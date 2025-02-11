@@ -7,14 +7,14 @@ const Index = () => {
   const { categories, toggleItem, getCategoryScore, getOverallScore } = useSecurityState();
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12 animate-fade-in">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Personal Security Checklist
+          <h1 className="text-4xl font-bold text-foreground mb-4">
+            The Ultimate Personal Security Checklist
           </h1>
-          <p className="text-lg text-gray-600">
-            Track and improve your security practices across different platforms
+          <p className="text-lg text-foreground-secondary">
+            Your guide to securing your digital life and protecting your privacy
           </p>
         </div>
 

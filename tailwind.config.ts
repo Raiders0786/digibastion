@@ -23,24 +23,30 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        background: {
+          DEFAULT: "#1A1F2C",
+          foreground: "#ffffff",
+        },
+        foreground: {
+          DEFAULT: "#ffffff",
+          secondary: "#94a3b8",
+        },
         primary: {
           DEFAULT: "#9b87f5",
           hover: "#8670f4",
           foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "#f4f5f7",
-          foreground: "#1f2937",
+          DEFAULT: "#1E2433",
+          foreground: "#ffffff",
         },
         success: {
           DEFAULT: "#34d399",
           foreground: "#ffffff",
         },
         card: {
-          DEFAULT: "#ffffff",
-          foreground: "#1f2937",
+          DEFAULT: "#1E2433",
+          foreground: "#ffffff",
         },
       },
       borderRadius: {

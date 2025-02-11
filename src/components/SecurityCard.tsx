@@ -26,14 +26,14 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
   };
 
   return (
-    <div className="bg-card rounded-lg p-6 shadow-sm transition-all duration-200 hover:shadow-md animate-fade-in">
+    <div className="bg-card rounded-lg p-6 shadow-md transition-all duration-200 hover:shadow-lg animate-fade-in border border-white/10">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-primary/10 rounded-md">
           {getIcon()}
         </div>
         <div>
-          <h3 className="font-semibold text-lg">{category.title}</h3>
-          <p className="text-sm text-gray-500">{category.description}</p>
+          <h3 className="font-semibold text-lg text-foreground">{category.title}</h3>
+          <p className="text-sm text-foreground-secondary">{category.description}</p>
         </div>
       </div>
       
@@ -49,11 +49,11 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
               type="checkbox"
               checked={item.completed}
               onChange={() => onItemToggle(item.id)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              className="mt-1 h-4 w-4 rounded border-white/20 bg-secondary text-primary focus:ring-primary"
             />
             <div>
-              <p className="font-medium text-sm">{item.title}</p>
-              <p className="text-sm text-gray-500">{item.description}</p>
+              <p className="font-medium text-sm text-foreground">{item.title}</p>
+              <p className="text-sm text-foreground-secondary">{item.description}</p>
             </div>
           </div>
         ))}
