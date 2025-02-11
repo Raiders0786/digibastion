@@ -1,5 +1,5 @@
 
-import { Icon } from 'lucide-react';
+import { Smartphone, Share2, Wallet, Laptop } from 'lucide-react';
 import { SecurityCategory } from '../types/security';
 import { Progress } from './ui/progress';
 
@@ -10,13 +10,26 @@ interface SecurityCardProps {
 }
 
 export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProps) => {
-  const IconComponent = Icon[category.icon as keyof typeof Icon];
+  const getIcon = () => {
+    switch (category.icon) {
+      case 'smartphone':
+        return <Smartphone className="w-6 h-6 text-primary" />;
+      case 'share-2':
+        return <Share2 className="w-6 h-6 text-primary" />;
+      case 'wallet':
+        return <Wallet className="w-6 h-6 text-primary" />;
+      case 'laptop':
+        return <Laptop className="w-6 h-6 text-primary" />;
+      default:
+        return <Laptop className="w-6 h-6 text-primary" />;
+    }
+  };
 
   return (
     <div className="bg-card rounded-lg p-6 shadow-sm transition-all duration-200 hover:shadow-md animate-fade-in">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-primary/10 rounded-md">
-          <IconComponent className="w-6 h-6 text-primary" />
+          {getIcon()}
         </div>
         <div>
           <h3 className="font-semibold text-lg">{category.title}</h3>
