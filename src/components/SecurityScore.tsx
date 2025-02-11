@@ -1,6 +1,7 @@
 
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 
 interface SecurityScoreProps {
   score: number;
@@ -13,49 +14,122 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
     return 'text-red-400';
   };
 
+  // Sample data for the radar chart - replace with actual category scores
+  const radarData = [
+    { category: 'Authentication', Essential: 80, Optional: 60, Advanced: 40 },
+    { category: 'Web Browsing', Essential: 65, Optional: 45, Advanced: 30 },
+    { category: 'Email', Essential: 90, Optional: 70, Advanced: 50 },
+    { category: 'Messaging', Essential: 75, Optional: 55, Advanced: 35 },
+    { category: 'Social Media', Essential: 85, Optional: 65, Advanced: 45 },
+    { category: 'Networks', Essential: 70, Optional: 50, Advanced: 30 },
+    { category: 'Mobile Devices', Essential: 95, Optional: 75, Advanced: 55 },
+    { category: 'Physical Security', Essential: 60, Optional: 40, Advanced: 20 },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="bg-card p-6 rounded-lg shadow-md mb-8 animate-slide-up border border-white/10">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-2 text-foreground">Your Security Score</h2>
-            <p className="text-foreground-secondary">Complete more items to improve your security</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-2 text-foreground">Your Security Score</h2>
+              <p className="text-foreground-secondary">14 out of 257 items completed</p>
+            </div>
+            <span className={`text-4xl font-bold ${getScoreColor(score)}`}>{score}%</span>
           </div>
-          <span className={`text-4xl font-bold ${getScoreColor(score)}`}>{score}%</span>
+          
+          <Progress value={score} className="h-2 mb-6" />
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-2">
+                <span className="text-xl font-bold text-green-400">11%</span>
+              </div>
+              <p className="text-sm text-foreground-secondary">Essential</p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 mb-2">
+                <span className="text-xl font-bold text-yellow-400">2%</span>
+              </div>
+              <p className="text-sm text-foreground-secondary">Optional</p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-2">
+                <span className="text-xl font-bold text-red-400">3%</span>
+              </div>
+              <p className="text-sm text-foreground-secondary">Advanced</p>
+            </div>
+          </div>
         </div>
-        
-        <Progress value={score} className="h-2 mb-4" />
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-            <AlertTriangle className="text-red-400" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Critical Tasks</p>
-              <p className="text-xs text-foreground-secondary">5 remaining</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-            <Shield className="text-yellow-400" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Recommended</p>
-              <p className="text-xs text-foreground-secondary">8 remaining</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-            <CheckCircle className="text-green-400" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Completed</p>
-              <p className="text-xs text-foreground-secondary">3 tasks done</p>
-            </div>
+
+        <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Security Coverage</h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={radarData} className="text-xs">
+                <PolarGrid stroke="#ffffff20" />
+                <PolarAngleAxis dataKey="category" stroke="#94a3b8" />
+                <Radar
+                  name="Essential"
+                  dataKey="Essential"
+                  stroke="#34d399"
+                  fill="#34d39920"
+                  fillOpacity={0.6}
+                />
+                <Radar
+                  name="Optional"
+                  dataKey="Optional"
+                  stroke="#eab308"
+                  fill="#eab30820"
+                  fillOpacity={0.6}
+                />
+                <Radar
+                  name="Advanced"
+                  dataKey="Advanced"
+                  stroke="#ef4444"
+                  fill="#ef444420"
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-8">
-        <h3 className="text-lg font-semibold text-red-400 mb-2">Recent Security Alert</h3>
-        <p className="text-sm text-foreground-secondary">
-          🚨 March 2024: Crypto users lost over $100M in social engineering attacks. 
-          Protect yourself by completing these security checklists.
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+          <AlertTriangle className="text-red-400" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Critical Tasks</p>
+            <p className="text-xs text-foreground-secondary">15 remaining</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+          <Shield className="text-yellow-400" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Recommended</p>
+            <p className="text-xs text-foreground-secondary">28 remaining</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+          <CheckCircle className="text-green-400" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Completed</p>
+            <p className="text-xs text-foreground-secondary">14 tasks done</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-red-400 mb-2">Next Steps</h3>
+        <p className="text-sm text-foreground-secondary mb-2">
+          Consider switching to more secure and privacy-respecting apps and services.
+        </p>
+        <p className="text-sm">
+          View our directory of recommended software at{' '}
+          <a href="https://awesome-privacy.xyz" className="text-primary hover:text-primary-hover">
+            awesome-privacy.xyz
+          </a>
         </p>
       </div>
     </div>
