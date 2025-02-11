@@ -122,14 +122,8 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
 
       <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-red-400 mb-2">Next Steps</h3>
-        <p className="text-sm text-foreground-secondary mb-2">
+        <p className="text-sm text-foreground-secondary">
           Consider switching to more secure and privacy-respecting apps and services.
-        </p>
-        <p className="text-sm">
-          View our directory of recommended software at{' '}
-          <a href="https://awesome-privacy.xyz" className="text-primary hover:text-primary-hover">
-            awesome-privacy.xyz
-          </a>
         </p>
       </div>
     </div>
