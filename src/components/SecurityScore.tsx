@@ -1,4 +1,3 @@
-
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
@@ -14,7 +13,6 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
     return 'text-red-400';
   };
 
-  // Sample data for the radar chart - replace with actual category scores
   const radarData = [
     { category: 'Authentication', Essential: 80, Optional: 60, Advanced: 40 },
     { category: 'Web Browsing', Essential: 65, Optional: 45, Advanced: 30 },
@@ -27,7 +25,7 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div id="score" className="space-y-6 scroll-mt-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
           <div className="flex items-start justify-between mb-4">

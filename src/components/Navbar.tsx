@@ -1,17 +1,31 @@
 
-import { Shield, ChevronDown } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
 
 export const Navbar = () => {
+  const scrollToCategory = (categoryId: string) => {
+    const element = document.getElementById(categoryId);
+    if (element) {
+      // Add a small offset to account for the fixed navbar
+      const offset = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <nav className="bg-card border-b border-white/10 py-4">
+    <nav className="bg-card border-b border-white/10 py-4 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -24,34 +38,41 @@ export const Navbar = () => {
               <NavigationMenuItem>
                 <NavigationMenuTrigger>Security Checklists</NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4">
+                  <ul className="grid w-[400px] gap-3 p-4 bg-card">
                     <li className="row-span-3">
-                      <NavigationMenuLink asChild>
-                        <a className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-primary/50 to-primary/10 p-6 no-underline outline-none focus:shadow-md">
-                          <div className="mb-2 mt-4 text-lg font-medium text-foreground">
-                            Personal Security Score
-                          </div>
-                          <p className="text-sm leading-tight text-foreground-secondary">
-                            Track and improve your security across all platforms
-                          </p>
-                        </a>
-                      </NavigationMenuLink>
+                      <button
+                        onClick={() => scrollToCategory('score')}
+                        className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-primary/50 to-primary/10 p-6 no-underline outline-none focus:shadow-md"
+                      >
+                        <div className="mb-2 mt-4 text-lg font-medium text-foreground">
+                          Personal Security Score
+                        </div>
+                        <p className="text-sm leading-tight text-foreground-secondary">
+                          Track and improve your security across all platforms
+                        </p>
+                      </button>
                     </li>
                     <li>
-                      <a href="#mobile" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary focus:bg-secondary">
+                      <button
+                        onClick={() => scrollToCategory('mobile')}
+                        className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
+                      >
                         <div className="text-sm font-medium leading-none text-foreground">Mobile Security</div>
-                        <p className="text-sm leading-snug text-foreground-secondary">
+                        <p className="line-clamp-2 text-sm leading-snug text-foreground-secondary">
                           Essential mobile device protection
                         </p>
-                      </a>
+                      </button>
                     </li>
                     <li>
-                      <a href="#web3" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary focus:bg-secondary">
+                      <button
+                        onClick={() => scrollToCategory('wallet')}
+                        className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
+                      >
                         <div className="text-sm font-medium leading-none text-foreground">Web3 Wallet Security</div>
-                        <p className="text-sm leading-snug text-foreground-secondary">
+                        <p className="line-clamp-2 text-sm leading-snug text-foreground-secondary">
                           Protect your crypto assets
                         </p>
-                      </a>
+                      </button>
                     </li>
                   </ul>
                 </NavigationMenuContent>

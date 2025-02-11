@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Smartphone, Share2, Wallet, Laptop, ChevronDown, ChevronUp } from 'lucide-react';
 import { SecurityCategory } from '../types/security';
@@ -36,7 +35,10 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
     : category.items.slice(0, 3);
 
   return (
-    <div className="bg-card rounded-lg p-6 shadow-md transition-all duration-200 hover:shadow-lg animate-fade-in border border-white/10">
+    <div 
+      id={category.id} 
+      className="bg-card rounded-lg p-6 shadow-md transition-all duration-200 hover:shadow-lg animate-fade-in border border-white/10 scroll-mt-24"
+    >
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-primary/10 rounded-md">
           {getIcon()}
