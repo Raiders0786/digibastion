@@ -14,15 +14,14 @@ import {
 } from "../components/ui/select";
 import { Switch } from '../components/ui/switch';
 import { Progress } from '../components/ui/progress';
+import { Badge } from '../components/ui/badge';
 
 const CategoryDetail = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const { categories, toggleItem } = useSecurityState();
-  const [showFilters, setShowFilters] = useState(false);
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [hideIgnored, setHideIgnored] = useState(true);
 
   const category = categories.find(c => c.id === categoryId);
 
@@ -31,20 +30,31 @@ const CategoryDetail = () => {
   }
 
   const completedCount = category.items.filter(item => item.completed).length;
-  const ignoredCount = category.items.filter(item => item.ignored).length;
   const progress = Math.round((completedCount / category.items.length) * 100);
 
   const filteredItems = category.items.filter(item => {
     if (hideCompleted && item.completed) return false;
-    if (hideIgnored && item.ignored) return false;
     if (filterLevel !== 'all' && item.level !== filterLevel) return false;
     return true;
   });
 
+  const getLevelIcon = (level: string) => {
+    switch (level) {
+      case 'essential':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'recommended':
+        return <Info className="w-4 h-4 text-yellow-500" />;
+      case 'optional':
+        return <Info className="w-4 h-4 text-blue-500" />;
+      default:
+        return null;
+    }
+  };
+
   const getLevelBadgeClass = (level: string) => {
     switch (level) {
       case 'essential':
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
       case 'recommended':
         return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'optional':
@@ -79,67 +89,63 @@ const CategoryDetail = () => {
             </div>
           </div>
 
-          {category.longDescription && (
-            <div className="bg-card p-6 rounded-lg mb-6 border border-white/10">
-              <p className="text-foreground-secondary">{category.longDescription}</p>
-            </div>
-          )}
-
-          <div className="mb-6">
-            <Progress value={progress} />
-            <div className="flex justify-between mt-2 text-sm text-foreground-secondary">
-              <span>{completedCount} completed</span>
-              <span>{ignoredCount} ignored</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mb-6">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </Button>
-          </div>
-
-          {showFilters && (
-            <div className="bg-card p-4 rounded-lg mb-6 border border-white/10 space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Level</label>
+          <div className="bg-card p-6 rounded-lg mb-6 border border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
                 <Select
                   value={filterLevel}
                   onValueChange={setFilterLevel}
                 >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select Level" />
+                  <SelectTrigger className="w-[200px] bg-secondary">
+                    <SelectValue placeholder="Filter by Level" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Levels</SelectItem>
-                    <SelectItem value="essential">Essential</SelectItem>
-                    <SelectItem value="recommended">Recommended</SelectItem>
-                    <SelectItem value="optional">Optional</SelectItem>
+                    <SelectItem value="essential">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        Essential
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="recommended">
+                      <div className="flex items-center gap-2">
+                        <Info className="w-4 h-4 text-yellow-500" />
+                        Recommended
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="optional">
+                      <div className="flex items-center gap-2">
+                        <Info className="w-4 h-4 text-blue-500" />
+                        Optional
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Hide Completed</label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-foreground-secondary">Hide Completed</span>
                 <Switch
                   checked={hideCompleted}
                   onCheckedChange={setHideCompleted}
                 />
               </div>
-
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Hide Ignored</label>
-                <Switch
-                  checked={hideIgnored}
-                  onCheckedChange={setHideIgnored}
-                />
-              </div>
             </div>
-          )}
+
+            <div className="flex gap-2">
+              <Badge variant="outline" className={`${filterLevel === 'all' ? 'bg-primary/10' : ''}`}>
+                All ({category.items.length})
+              </Badge>
+              <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+                Essential ({category.items.filter(item => item.level === 'essential').length})
+              </Badge>
+              <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
+                Recommended ({category.items.filter(item => item.level === 'recommended').length})
+              </Badge>
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                Optional ({category.items.filter(item => item.level === 'optional').length})
+              </Badge>
+            </div>
+          </div>
 
           <div className="space-y-4">
             {filteredItems.map(item => (
@@ -161,9 +167,12 @@ const CategoryDetail = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-medium text-foreground">{item.title}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeClass(item.level)}`}>
-                        {item.level}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        {getLevelIcon(item.level)}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeClass(item.level)}`}>
+                          {item.level}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-foreground-secondary mb-4">{item.description}</p>
                     {item.details && (
