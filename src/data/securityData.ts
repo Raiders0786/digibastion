@@ -1,7 +1,102 @@
-
 import { SecurityCategory } from "../types/security";
 
 export const initialSecurityData: SecurityCategory[] = [
+  {
+    id: "authentication",
+    title: "Authentication",
+    description: "Secure your accounts with strong authentication methods",
+    icon: "key",
+    items: [
+      {
+        id: "auth-1",
+        title: "Use password manager",
+        description: "Implement a reliable password manager for all accounts",
+        completed: false,
+      },
+      {
+        id: "auth-2",
+        title: "Enable 2FA everywhere",
+        description: "Set up two-factor authentication on all important accounts",
+        completed: false,
+      },
+      {
+        id: "auth-3",
+        title: "Strong unique passwords",
+        description: "Use strong, unique passwords for each account",
+        completed: false,
+      },
+      {
+        id: "auth-4",
+        title: "Biometric authentication",
+        description: "Set up fingerprint or face recognition where available",
+        completed: false,
+      },
+    ],
+  },
+  {
+    id: "browsing",
+    title: "Web Browsing",
+    description: "Protect your online browsing activities",
+    icon: "globe",
+    items: [
+      {
+        id: "browsing-1",
+        title: "Use secure browser",
+        description: "Switch to a privacy-focused web browser",
+        completed: false,
+      },
+      {
+        id: "browsing-2",
+        title: "Install privacy extensions",
+        description: "Add essential privacy protection extensions",
+        completed: false,
+      },
+      {
+        id: "browsing-3",
+        title: "Enable HTTPS everywhere",
+        description: "Force HTTPS connections when browsing",
+        completed: false,
+      },
+      {
+        id: "browsing-4",
+        title: "Clear browsing data",
+        description: "Regularly clear cookies and browsing history",
+        completed: false,
+      },
+    ],
+  },
+  {
+    id: "email",
+    title: "Email Security",
+    description: "Secure your email communications",
+    icon: "mail",
+    items: [
+      {
+        id: "email-1",
+        title: "Secure email provider",
+        description: "Use a privacy-focused email service",
+        completed: false,
+      },
+      {
+        id: "email-2",
+        title: "Email encryption",
+        description: "Set up end-to-end encryption for sensitive emails",
+        completed: false,
+      },
+      {
+        id: "email-3",
+        title: "Spam protection",
+        description: "Configure strong spam filters",
+        completed: false,
+      },
+      {
+        id: "email-4",
+        title: "Regular cleanup",
+        description: "Delete unnecessary emails regularly",
+        completed: false,
+      },
+    ],
+  },
   {
     id: "mobile",
     title: "Mobile Security",

@@ -12,7 +12,6 @@ export const Navbar = () => {
   const scrollToCategory = (categoryId: string) => {
     const element = document.getElementById(categoryId);
     if (element) {
-      // Add a small offset to account for the fixed navbar
       const offset = 80;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
@@ -52,28 +51,27 @@ export const Navbar = () => {
                         </p>
                       </button>
                     </li>
-                    <li>
-                      <button
-                        onClick={() => scrollToCategory('mobile')}
-                        className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
-                      >
-                        <div className="text-sm font-medium leading-none text-foreground">Mobile Security</div>
-                        <p className="line-clamp-2 text-sm leading-snug text-foreground-secondary">
-                          Essential mobile device protection
-                        </p>
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        onClick={() => scrollToCategory('wallet')}
-                        className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
-                      >
-                        <div className="text-sm font-medium leading-none text-foreground">Web3 Wallet Security</div>
-                        <p className="line-clamp-2 text-sm leading-snug text-foreground-secondary">
-                          Protect your crypto assets
-                        </p>
-                      </button>
-                    </li>
+                    {[
+                      { id: 'authentication', title: 'Authentication', desc: 'Secure account access' },
+                      { id: 'browsing', title: 'Web Browsing', desc: 'Safe online browsing' },
+                      { id: 'email', title: 'Email Security', desc: 'Protect communications' },
+                      { id: 'mobile', title: 'Mobile Security', desc: 'Device protection' },
+                      { id: 'social', title: 'Social Media', desc: 'Social account security' },
+                      { id: 'wallet', title: 'Web3 Wallet', desc: 'Crypto asset protection' },
+                      { id: 'os', title: 'OS Security', desc: 'System hardening' },
+                    ].map(item => (
+                      <li key={item.id}>
+                        <button
+                          onClick={() => scrollToCategory(item.id)}
+                          className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
+                        >
+                          <div className="text-sm font-medium leading-none text-foreground">{item.title}</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-foreground-secondary">
+                            {item.desc}
+                          </p>
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>

@@ -1,5 +1,16 @@
+
 import { useState } from 'react';
-import { Smartphone, Share2, Wallet, Laptop, ChevronDown, ChevronUp } from 'lucide-react';
+import { 
+  Smartphone, 
+  Share2, 
+  Wallet, 
+  Laptop, 
+  ChevronDown, 
+  ChevronUp,
+  Key,
+  Globe,
+  Mail
+} from 'lucide-react';
 import { SecurityCategory } from '../types/security';
 import { Progress } from './ui/progress';
 
@@ -25,6 +36,12 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
         return <Wallet className="w-6 h-6 text-primary" />;
       case 'laptop':
         return <Laptop className="w-6 h-6 text-primary" />;
+      case 'key':
+        return <Key className="w-6 h-6 text-primary" />;
+      case 'globe':
+        return <Globe className="w-6 h-6 text-primary" />;
+      case 'mail':
+        return <Mail className="w-6 h-6 text-primary" />;
       default:
         return <Laptop className="w-6 h-6 text-primary" />;
     }
