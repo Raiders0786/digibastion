@@ -1,12 +1,15 @@
+
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
+import { SecurityStats } from '../types/security';
 
 interface SecurityScoreProps {
   score: number;
+  stats: SecurityStats;
 }
 
-export const SecurityScore = ({ score }: SecurityScoreProps) => {
+export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
     if (score >= 50) return 'text-yellow-400';
@@ -31,7 +34,9 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold mb-2 text-foreground">Your Security Score</h2>
-              <p className="text-foreground-secondary">14 out of 257 items completed</p>
+              <p className="text-foreground-secondary">
+                {stats.completed} out of {stats.total} items completed
+              </p>
             </div>
             <span className={`text-4xl font-bold ${getScoreColor(score)}`}>{score}%</span>
           </div>
@@ -41,19 +46,19 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-2">
-                <span className="text-xl font-bold text-green-400">11%</span>
+                <span className="text-xl font-bold text-green-400">{stats.essential}%</span>
               </div>
               <p className="text-sm text-foreground-secondary">Essential</p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 mb-2">
-                <span className="text-xl font-bold text-yellow-400">2%</span>
+                <span className="text-xl font-bold text-yellow-400">{stats.optional}%</span>
               </div>
               <p className="text-sm text-foreground-secondary">Optional</p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-2">
-                <span className="text-xl font-bold text-red-400">3%</span>
+                <span className="text-xl font-bold text-red-400">{stats.advanced}%</span>
               </div>
               <p className="text-sm text-foreground-secondary">Advanced</p>
             </div>
@@ -99,21 +104,21 @@ export const SecurityScore = ({ score }: SecurityScoreProps) => {
           <AlertTriangle className="text-red-400" />
           <div>
             <p className="text-sm font-medium text-foreground">Critical Tasks</p>
-            <p className="text-xs text-foreground-secondary">15 remaining</p>
+            <p className="text-xs text-foreground-secondary">{stats.criticalRemaining} remaining</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
           <Shield className="text-yellow-400" />
           <div>
             <p className="text-sm font-medium text-foreground">Recommended</p>
-            <p className="text-xs text-foreground-secondary">28 remaining</p>
+            <p className="text-xs text-foreground-secondary">{stats.recommendedRemaining} remaining</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
           <CheckCircle className="text-green-400" />
           <div>
             <p className="text-sm font-medium text-foreground">Completed</p>
-            <p className="text-xs text-foreground-secondary">14 tasks done</p>
+            <p className="text-xs text-foreground-secondary">{stats.completed} tasks done</p>
           </div>
         </div>
       </div>

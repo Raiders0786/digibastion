@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { SecurityCategory, SecurityItem } from '../types/security';
+import { SecurityCategory, SecurityItem, SecurityStats } from '../types/security';
 import { initialSecurityData } from '../data/securityData';
 
 const STORAGE_KEY = 'security-checklist-state';
@@ -47,10 +47,37 @@ export const useSecurityState = () => {
     return Math.round((completedItems / totalItems) * 100);
   };
 
+  const getStats = (): SecurityStats => {
+    const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
+    const completedItems = categories.reduce(
+      (acc, cat) => acc + cat.items.filter(item => item.completed).length,
+      0
+    );
+
+    const essentialItems = categories.reduce(
+      (acc, cat) => acc + cat.items.filter(item => !item.completed).length,
+      0
+    );
+
+    const criticalTasks = Math.floor(essentialItems * 0.3); // 30% of incomplete items are critical
+    const recommendedTasks = essentialItems - criticalTasks;
+
+    return {
+      total: totalItems,
+      completed: completedItems,
+      essential: Math.round((completedItems / totalItems) * 100),
+      optional: Math.round((completedItems / (totalItems * 2)) * 100),
+      advanced: Math.round((completedItems / (totalItems * 3)) * 100),
+      criticalRemaining: criticalTasks,
+      recommendedRemaining: recommendedTasks
+    };
+  };
+
   return {
     categories,
     toggleItem,
     getCategoryScore,
     getOverallScore,
+    getStats,
   };
 };

@@ -5,12 +5,12 @@ import { SecurityScore } from '../components/SecurityScore';
 import { Navbar } from '../components/Navbar';
 
 const Index = () => {
-  const { categories, toggleItem, getCategoryScore, getOverallScore } = useSecurityState();
+  const { categories, toggleItem, getCategoryScore, getOverallScore, getStats } = useSecurityState();
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="py-12 px-4 sm:px-6 lg:px-8">
+      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-foreground mb-4">
@@ -21,9 +21,9 @@ const Index = () => {
             </p>
           </div>
 
-          <SecurityScore score={getOverallScore()} />
+          <SecurityScore score={getOverallScore()} stats={getStats()} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
             {categories.map(category => (
               <SecurityCard
                 key={category.id}
