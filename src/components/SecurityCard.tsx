@@ -1,5 +1,5 @@
-
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Smartphone, 
   Share2, 
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SecurityCategory } from '../types/security';
 import { Progress } from './ui/progress';
+import { Button } from './ui/button';
 
 interface SecurityCardProps {
   category: SecurityCategory;
@@ -22,9 +23,7 @@ interface SecurityCardProps {
 
 export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
-  const totalPages = Math.ceil(category.items.length / itemsPerPage);
+  const navigate = useNavigate();
   
   const getIcon = () => {
     switch (category.icon) {
@@ -47,9 +46,9 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
     }
   };
 
-  const visibleItems = isExpanded 
-    ? category.items.slice((page - 1) * itemsPerPage, page * itemsPerPage)
-    : category.items.slice(0, 3);
+  const handleViewDetails = () => {
+    navigate(`/category/${category.id}`);
+  };
 
   return (
     <div 
@@ -64,70 +63,22 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
           <h3 className="font-semibold text-lg text-foreground">{category.title}</h3>
           <p className="text-sm text-foreground-secondary">{category.description}</p>
         </div>
-        <button 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2 hover:bg-secondary/50 rounded-full transition-colors"
-        >
-          {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-foreground-secondary" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-foreground-secondary" />
-          )}
-        </button>
       </div>
       
       <Progress value={score} className="mb-4" />
       
-      <div className="space-y-3">
-        {visibleItems.map(item => (
-          <div
-            key={item.id}
-            className="flex items-start gap-3 p-3 rounded-md hover:bg-secondary/50 transition-colors"
-          >
-            <input
-              type="checkbox"
-              checked={item.completed}
-              onChange={() => onItemToggle(item.id)}
-              className="mt-1 h-4 w-4 rounded border-white/20 bg-secondary text-primary focus:ring-primary"
-            />
-            <div>
-              <p className="font-medium text-sm text-foreground">{item.title}</p>
-              <p className="text-sm text-foreground-secondary">{item.description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {isExpanded && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 rounded-md hover:bg-secondary/50 disabled:opacity-50 text-sm text-foreground-secondary"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-foreground-secondary">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1 rounded-md hover:bg-secondary/50 disabled:opacity-50 text-sm text-foreground-secondary"
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {!isExpanded && category.items.length > 3 && (
-        <button
-          onClick={() => setIsExpanded(true)}
-          className="w-full mt-4 pt-4 border-t border-white/10 text-sm text-foreground-secondary hover:text-foreground transition-colors"
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-foreground-secondary">
+          {category.items.filter(item => item.completed).length} of {category.items.length} completed
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleViewDetails}
         >
-          Show {category.items.length - 3} more items
-        </button>
-      )}
+          View Details
+        </Button>
+      </div>
     </div>
   );
 };

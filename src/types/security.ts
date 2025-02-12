@@ -1,9 +1,12 @@
-
 export interface SecurityItem {
   id: string;
   title: string;
   description: string;
   completed: boolean;
+  level: 'essential' | 'recommended' | 'optional';
+  details: string;
+  links?: { text: string; url: string }[];
+  ignored?: boolean;
 }
 
 export interface SecurityCategory {
@@ -12,6 +15,7 @@ export interface SecurityCategory {
   description: string;
   icon: string;
   items: SecurityItem[];
+  longDescription?: string;
 }
 
 export interface SecurityStats {
