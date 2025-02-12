@@ -1,3 +1,4 @@
+
 import { SecurityCategory } from "../../types/security";
 
 export const browsingData: SecurityCategory = {
@@ -40,4 +41,4 @@ export const browsingData: SecurityCategory = {
         details: "Set up your browser to automatically clear data when you close it, or do it manually regularly."
       }
     ],
-  };
+};

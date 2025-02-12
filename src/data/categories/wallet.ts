@@ -1,3 +1,4 @@
+
 import { SecurityCategory } from "../../types/security";
 
 export const walletData: SecurityCategory = {
