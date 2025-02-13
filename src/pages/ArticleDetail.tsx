@@ -16,7 +16,7 @@ const ArticleDetail = () => {
     if (article) {
       const ogImageUrl = `https://og-image.vercel.app/**${encodeURIComponent(
         article.title
-      )}**.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fassets.vercel.com%2Fimage%2Fupload%2Ffront%2Fassets%2Fdesign%2Fvercel-triangle-white.svg&backgroundColor=rgb(26%2C31%2C44)&textColor=rgb(155%2C135%2C245)`;
+      )}**.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fsecurequest-checklist.com%2Flovable-uploads%2F01298c2c-83d8-446e-b2e5-9199490d5f4e.png&backgroundColor=rgb(26%2C31%2C44)&textColor=rgb(155%2C135%2C245)`;
       
       setOgImage(ogImageUrl);
       
