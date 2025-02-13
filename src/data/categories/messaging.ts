@@ -1,6 +1,5 @@
 
 import { SecurityCategory } from "../../types/security";
-import { MessageSquare } from "lucide-react";
 
 export const messagingData: SecurityCategory = {
   id: "messaging",
