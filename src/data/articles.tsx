@@ -288,7 +288,7 @@ export const articles = {
     )
   },
   "privacy-security-web3-opsec": {
-    title: "Privacy, Security, and Web3 OPSEC: Complete Guide 2024",
+    title: "Privacy, Security, and Web3 OPSEC: Complete Guide",
     category: "Security",
     readTime: "15 min read",
     content: (
