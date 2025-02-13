@@ -19,7 +19,7 @@ import {
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const languages = [
     { code: 'en', label: 'English' },
@@ -66,6 +66,8 @@ export const Navbar = () => {
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
+    // Add toast notification for better UX
+    console.log(`Language changed to ${lng}`);
   };
 
   return (
@@ -82,8 +84,8 @@ export const Navbar = () => {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4">
-                    <span className="hidden sm:inline">Security Checklists</span>
-                    <span className="sm:hidden">Checklist</span>
+                    <span className="hidden sm:inline">{t('nav.security_checklists')}</span>
+                    <span className="sm:hidden">{t('nav.checklist')}</span>
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-[300px] sm:w-[400px] p-4 bg-[#1a1f2c]">
@@ -93,10 +95,10 @@ export const Navbar = () => {
                           className="w-full rounded-lg bg-gradient-to-br from-[#6e59a5] to-[#9b87f5] p-6 text-left"
                         >
                           <h3 className="text-lg font-semibold text-white mb-2">
-                            Personal Security Score
+                            {t('nav.personal_score')}
                           </h3>
                           <p className="text-sm text-gray-200">
-                            Track and improve your security across all platforms
+                            {t('nav.score_description')}
                           </p>
                         </button>
                       </div>
@@ -117,17 +119,17 @@ export const Navbar = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4">Resources</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4">{t('nav.resources')}</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-[200px] sm:w-[220px] p-3 bg-card">
                       {[
-                        { route: '/about', icon: Info, label: 'About Us' },
-                        { route: '/license', icon: FileText, label: 'License' },
-                        { route: '/tools', icon: Wrench, label: 'Tools' },
-                        { route: '/articles', icon: Book, label: 'Articles' },
-                        { route: '/links', icon: Link, label: 'Useful Links' },
-                        { route: '/contact', icon: Mail, label: 'Contact' },
-                        { route: '/share', icon: Share, label: 'Share & Connect' }
+                        { route: '/about', icon: Info, label: t('nav.about') },
+                        { route: '/license', icon: FileText, label: t('nav.license') },
+                        { route: '/tools', icon: Wrench, label: t('nav.tools') },
+                        { route: '/articles', icon: Book, label: t('nav.articles') },
+                        { route: '/links', icon: Link, label: t('nav.useful_links') },
+                        { route: '/contact', icon: Mail, label: t('nav.contact') },
+                        { route: '/share', icon: Share, label: t('nav.share') }
                       ].map(item => (
                         <button
                           key={item.route}

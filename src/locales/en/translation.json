@@ -1,0 +1,17 @@
+
+{
+  "nav": {
+    "security_checklists": "Security Checklists",
+    "checklist": "Checklist",
+    "resources": "Resources",
+    "personal_score": "Personal Security Score",
+    "score_description": "Track and improve your security across all platforms",
+    "about": "About Us",
+    "license": "License",
+    "tools": "Tools",
+    "articles": "Articles",
+    "useful_links": "Useful Links",
+    "contact": "Contact",
+    "share": "Share & Connect"
+  }
+}
