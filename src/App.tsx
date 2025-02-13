@@ -9,6 +9,12 @@ import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
 import NotFound from "./pages/NotFound";
 import Share from "./pages/Share";
+import About from "./pages/About";
+import License from "./pages/License";
+import Tools from "./pages/Tools";
+import Articles from "./pages/Articles";
+import Links from "./pages/Links";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +30,12 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/category/:categoryId" element={<CategoryDetail />} />
               <Route path="/share" element={<Share />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/license" element={<License />} />
+              <Route path="/tools" element={<Tools />} />
+              <Route path="/articles" element={<Articles />} />
+              <Route path="/links" element={<Links />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>

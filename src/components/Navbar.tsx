@@ -1,3 +1,4 @@
+
 import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench } from 'lucide-react';
 import {
   NavigationMenu,
@@ -34,126 +35,100 @@ export const Navbar = () => {
     }
   };
 
+  const categories = [
+    { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
+    { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing' },
+    { id: 'email', title: 'Email Security', description: 'Protect communications' },
+    { id: 'mobile', title: 'Mobile Security', description: 'Device protection' },
+    { id: 'social', title: 'Social Media', description: 'Social account security' },
+    { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection' },
+    { id: 'os', title: 'OS Security', description: 'System hardening' }
+  ];
+
   return (
-    <nav className="bg-card border-b border-white/10 py-4 fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-card border-b border-white/10 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <Shield className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold text-foreground">SecureWeb3</span>
+            <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+            <span className="text-lg sm:text-xl font-bold text-foreground">SecureWeb3</span>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4">
                     <span className="hidden sm:inline">Security Checklists</span>
                     <span className="sm:hidden">Checklist</span>
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="grid w-[400px] gap-3 p-4 bg-card">
-                      <div className="row-span-3">
+                    <div className="w-[300px] sm:w-[400px] p-4 bg-[#1a1f2c]">
+                      <div className="mb-4">
                         <button
                           onClick={() => scrollToCategory('score')}
-                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-primary/50 to-primary/10 p-6 no-underline outline-none focus:shadow-md"
+                          className="w-full rounded-lg bg-gradient-to-br from-[#6e59a5] to-[#9b87f5] p-6 text-left"
                         >
-                          <div className="mb-2 text-lg font-medium text-foreground">
-                            Security Score
-                          </div>
-                          <p className="text-sm leading-tight text-foreground-secondary">
-                            Track your security progress
+                          <h3 className="text-lg font-semibold text-white mb-2">
+                            Personal Security Score
+                          </h3>
+                          <p className="text-sm text-gray-200">
+                            Track and improve your security across all platforms
                           </p>
                         </button>
                       </div>
-                      {[
-                        { id: 'authentication', title: 'Authentication', icon: 'key' },
-                        { id: 'browsing', title: 'Web Browsing', icon: 'globe' },
-                        { id: 'email', title: 'Email Security', icon: 'mail' },
-                        { id: 'mobile', title: 'Mobile Security', icon: 'smartphone' },
-                        { id: 'social', title: 'Social Media', icon: 'share' },
-                      ].map(item => (
-                        <button
-                          key={item.id}
-                          onClick={() => scrollToCategory(item.id)}
-                          className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
-                        >
-                          <div className="text-sm font-medium leading-none text-foreground">{item.title}</div>
-                        </button>
-                      ))}
+                      <div className="space-y-1">
+                        {categories.map(category => (
+                          <button
+                            key={category.id}
+                            onClick={() => scrollToCategory(category.id)}
+                            className="w-full p-3 text-left hover:bg-white/5 rounded-md transition-colors"
+                          >
+                            <div className="text-sm font-medium text-white">{category.title}</div>
+                            <div className="text-xs text-gray-400">{category.description}</div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4">Resources</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="grid w-[220px] gap-2 p-4 bg-card">
-                      <button 
-                        onClick={() => navigate('/about')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Info className="w-4 h-4" />
-                        <span className="text-sm">About Us</span>
-                      </button>
-                      <button 
-                        onClick={() => navigate('/license')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <FileText className="w-4 h-4" />
-                        <span className="text-sm">License</span>
-                      </button>
-                      <button 
-                        onClick={() => navigate('/tools')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Wrench className="w-4 h-4" />
-                        <span className="text-sm">Tools</span>
-                      </button>
-                      <button 
-                        onClick={() => navigate('/articles')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Book className="w-4 h-4" />
-                        <span className="text-sm">Articles</span>
-                      </button>
-                      <button 
-                        onClick={() => navigate('/links')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Link className="w-4 h-4" />
-                        <span className="text-sm">Useful Links</span>
-                      </button>
-                      <button 
-                        onClick={() => navigate('/contact')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Mail className="w-4 h-4" />
-                        <span className="text-sm">Contact</span>
-                      </button>
-                      <button 
-                        onClick={() => navigate('/share')}
-                        className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Share className="w-4 h-4" />
-                        <span className="text-sm">Share & Connect</span>
-                      </button>
+                    <div className="w-[200px] sm:w-[220px] p-3 bg-card">
+                      {[
+                        { route: '/about', icon: Info, label: 'About Us' },
+                        { route: '/license', icon: FileText, label: 'License' },
+                        { route: '/tools', icon: Wrench, label: 'Tools' },
+                        { route: '/articles', icon: Book, label: 'Articles' },
+                        { route: '/links', icon: Link, label: 'Useful Links' },
+                        { route: '/contact', icon: Mail, label: 'Contact' },
+                        { route: '/share', icon: Share, label: 'Share & Connect' }
+                      ].map(item => (
+                        <button
+                          key={item.route}
+                          onClick={() => navigate(item.route)}
+                          className="flex items-center gap-2 w-full p-2 text-sm rounded-md hover:bg-accent text-left"
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
 
-            <div className="flex items-center gap-4">
-              <a 
-                href="https://github.com/yourusername/secureweb3"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground-secondary hover:text-foreground transition-colors"
-              >
-                <Github className="w-5 h-5" />
-              </a>
-            </div>
+            <a 
+              href="https://github.com/yourusername/secureweb3"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground-secondary hover:text-foreground transition-colors"
+            >
+              <Github className="w-5 h-5" />
+            </a>
           </div>
         </div>
       </div>
