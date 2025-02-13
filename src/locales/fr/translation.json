@@ -13,5 +13,9 @@
     "useful_links": "Liens utiles",
     "contact": "Contact",
     "share": "Partager et connecter"
+  },
+  "security": {
+    "completed_items": "{{completed}} sur {{total}} complétés",
+    "view_details": "Voir les détails"
   }
 }

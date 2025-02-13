@@ -13,5 +13,40 @@
     "useful_links": "Useful Links",
     "contact": "Contact",
     "share": "Share & Connect"
+  },
+  "home": {
+    "title": "The Ultimate Web3 Personal Security Checklist",
+    "subtitle": "Master your Web3 security with our comprehensive guide. Protect your digital assets, enhance privacy, and safeguard your crypto investments with expert-backed security practices.",
+    "view_github": "View on GitHub",
+    "categories": {
+      "authentication": {
+        "title": "Authentication Security",
+        "description": "Secure account access"
+      },
+      "browsing": {
+        "title": "Web Browsing",
+        "description": "Safe online browsing"
+      },
+      "email": {
+        "title": "Email Security",
+        "description": "Protect communications"
+      },
+      "mobile": {
+        "title": "Mobile Security",
+        "description": "Device protection"
+      },
+      "social": {
+        "title": "Social Media",
+        "description": "Social account security"
+      },
+      "wallet": {
+        "title": "Web3 Wallet",
+        "description": "Crypto asset protection"
+      },
+      "os": {
+        "title": "OS Security",
+        "description": "System hardening"
+      }
+    }
   }
 }
