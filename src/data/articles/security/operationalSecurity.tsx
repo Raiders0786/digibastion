@@ -1,3 +1,4 @@
+
 import { Article } from '../types';
 
 export const operationalSecurityArticle: Article = {
@@ -74,10 +75,7 @@ export const operationalSecurityArticle: Article = {
             </div>
           </div>
         </section>
-
-        <section>
-          <h2 className="text-2xl font-bold mb-4">Hardware vs. Software Wallets</h2>
-          <div
-</>
+      </div>
+    </>
   )
 };
