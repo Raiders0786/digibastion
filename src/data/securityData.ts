@@ -7,11 +7,13 @@ import { mobileData } from "./categories/mobile";
 import { socialData } from "./categories/social";
 import { walletData } from "./categories/wallet";
 import { osData } from "./categories/os";
+import { messagingData } from "./categories/messaging";
 
 export const initialSecurityData: SecurityCategory[] = [
   authenticationData,
   browsingData,
   emailData,
+  messagingData,
   mobileData,
   socialData,
   walletData,
