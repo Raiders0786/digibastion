@@ -17,13 +17,21 @@ import ArticleDetail from "./pages/ArticleDetail";
 import Links from "./pages/Links";
 import Contact from "./pages/Contact";
 
-const queryClient = new QueryClient();
+// Move queryClient outside of component
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 const App = () => {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <React.StrictMode>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -41,9 +49,9 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </React.StrictMode>
+        </React.StrictMode>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
