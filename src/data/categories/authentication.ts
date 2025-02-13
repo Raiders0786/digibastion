@@ -11,7 +11,7 @@ export const authenticationData: SecurityCategory = {
     {
       id: "auth-1",
       title: "Use password manager",
-      description: "Implement a reliable password manager for all accounts",
+      description: "Implement password manager",
       completed: false,
       level: "essential",
       details: "Use a password manager to generate and store strong, unique passwords for all your accounts.",
@@ -23,7 +23,7 @@ export const authenticationData: SecurityCategory = {
     {
       id: "auth-2",
       title: "Enable 2FA everywhere",
-      description: "Set up two-factor authentication on all important accounts",
+      description: "Set up two-factor authentication",
       completed: false,
       level: "essential",
       details: "Enable 2FA using authenticator apps instead of SMS where possible. Consider hardware security keys for critical accounts."
@@ -31,7 +31,7 @@ export const authenticationData: SecurityCategory = {
     {
       id: "auth-3",
       title: "Strong unique passwords",
-      description: "Use strong, unique passwords for each account",
+      description: "Use strong passwords",
       completed: false,
       level: "essential",
       details: "Create passwords that are at least 12 characters long with a mix of numbers, symbols, and mixed case letters."
@@ -39,7 +39,7 @@ export const authenticationData: SecurityCategory = {
     {
       id: "auth-4",
       title: "Biometric authentication",
-      description: "Set up fingerprint or face recognition where available",
+      description: "Set up biometric authentication",
       completed: false,
       level: "recommended",
       details: "Use biometric authentication as an additional security layer, but not as your only authentication method."
@@ -47,7 +47,7 @@ export const authenticationData: SecurityCategory = {
     {
       id: "auth-5",
       title: "Password rotation",
-      description: "Regularly update critical passwords",
+      description: "Update critical passwords",
       completed: false,
       level: "optional",
       details: "Change passwords for critical accounts periodically, especially if there's any suspicion of compromise."
@@ -55,7 +55,7 @@ export const authenticationData: SecurityCategory = {
     {
       id: "auth-6",
       title: "Recovery methods",
-      description: "Set up account recovery options",
+      description: "Set up account recovery",
       completed: false,
       level: "recommended",
       details: "Configure backup authentication methods and store recovery codes securely offline."

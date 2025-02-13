@@ -36,53 +36,47 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
   };
 
   return (
-    <div className={`bg-card p-6 rounded-lg border border-white/10 ${
+    <div className={`bg-card p-4 rounded-lg border border-white/10 ${
       item.completed ? 'bg-primary/5' : ''
     }`}>
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
         <div className="pt-1">
           <input
             type="checkbox"
             checked={item.completed}
             onChange={onToggle}
-            className="h-5 w-5 rounded border-white/20 bg-secondary text-primary focus:ring-primary"
+            className="h-4 w-4 rounded border-white/20 bg-secondary text-primary focus:ring-primary"
           />
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-lg font-medium text-foreground">{item.title}</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-base font-medium text-foreground">{item.title}</h3>
             <div className="flex items-center gap-2">
               {getLevelIcon(item.level)}
               <Badge 
                 variant="outline" 
-                className={`${getLevelBadgeClass(item.level)} capitalize`}
+                className={`${getLevelBadgeClass(item.level)} capitalize text-xs`}
               >
                 {item.level}
               </Badge>
             </div>
           </div>
           
-          <div className="space-y-4">
-            <p className="text-foreground-secondary">{item.description}</p>
-            
-            {item.details && (
-              <div className="bg-secondary/50 p-4 rounded-md space-y-2">
-                <p className="text-sm text-foreground-secondary">{item.details}</p>
-                {item.links && item.links.length > 0 && (
-                  <div className="flex gap-2 pt-2">
-                    {item.links.map((link, index) => (
-                      <a
-                        key={index}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline text-sm"
-                      >
-                        {link.text}
-                      </a>
-                    ))}
-                  </div>
-                )}
+          <div>
+            <p className="text-sm text-foreground-secondary">{item.details}</p>
+            {item.links && item.links.length > 0 && (
+              <div className="flex gap-2 mt-2">
+                {item.links.map((link, index) => (
+                  <a
+                    key={index}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline text-xs"
+                  >
+                    {link.text}
+                  </a>
+                ))}
               </div>
             )}
           </div>
