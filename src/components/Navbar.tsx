@@ -1,5 +1,5 @@
 
-import { Shield, Github, Info, Book } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -44,72 +44,51 @@ export const Navbar = () => {
             <span className="text-xl font-bold text-foreground">SecureWeb3</span>
           </div>
           
-          <div className="flex items-center gap-6">
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Security Checklists</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[400px] gap-3 p-4 bg-card">
-                      <div className="row-span-3">
+          <NavigationMenu>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Security Checklists</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 bg-card">
+                    <li className="row-span-3">
+                      <button
+                        onClick={() => scrollToCategory('score')}
+                        className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-primary/50 to-primary/10 p-6 no-underline outline-none focus:shadow-md"
+                      >
+                        <div className="mb-2 mt-4 text-lg font-medium text-foreground">
+                          Personal Security Score
+                        </div>
+                        <p className="text-sm leading-tight text-foreground-secondary">
+                          Track and improve your security across all platforms
+                        </p>
+                      </button>
+                    </li>
+                    {[
+                      { id: 'authentication', title: 'Authentication', desc: 'Secure account access' },
+                      { id: 'browsing', title: 'Web Browsing', desc: 'Safe online browsing' },
+                      { id: 'email', title: 'Email Security', desc: 'Protect communications' },
+                      { id: 'mobile', title: 'Mobile Security', desc: 'Device protection' },
+                      { id: 'social', title: 'Social Media', desc: 'Social account security' },
+                      { id: 'wallet', title: 'Web3 Wallet', desc: 'Crypto asset protection' },
+                      { id: 'os', title: 'OS Security', desc: 'System hardening' },
+                    ].map(item => (
+                      <li key={item.id}>
                         <button
-                          onClick={() => scrollToCategory('score')}
-                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-primary/50 to-primary/10 p-6 no-underline outline-none focus:shadow-md"
-                        >
-                          <div className="mb-2 text-lg font-medium text-foreground">
-                            Security Score
-                          </div>
-                          <p className="text-sm leading-tight text-foreground-secondary">
-                            Track your security progress
-                          </p>
-                        </button>
-                      </div>
-                      {[
-                        { id: 'authentication', title: 'Authentication', icon: 'key' },
-                        { id: 'browsing', title: 'Web Browsing', icon: 'globe' },
-                        { id: 'email', title: 'Email Security', icon: 'mail' },
-                        { id: 'mobile', title: 'Mobile Security', icon: 'smartphone' },
-                        { id: 'social', title: 'Social Media', icon: 'share' },
-                      ].map(item => (
-                        <button
-                          key={item.id}
                           onClick={() => scrollToCategory(item.id)}
                           className="block w-full select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent text-left"
                         >
                           <div className="text-sm font-medium leading-none text-foreground">{item.title}</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-foreground-secondary">
+                            {item.desc}
+                          </p>
                         </button>
-                      ))}
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[200px] gap-3 p-4 bg-card">
-                      <button className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent">
-                        <Book className="w-4 h-4" />
-                        <span className="text-sm">Security Guide</span>
-                      </button>
-                      <button className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent">
-                        <Info className="w-4 h-4" />
-                        <span className="text-sm">About</span>
-                      </button>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <a 
-              href="https://github.com/yourusername/secureweb3"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-foreground-secondary hover:text-foreground transition-colors"
-            >
-              <Github className="w-5 h-5" />
-            </a>
-          </div>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
         </div>
       </div>
     </nav>
