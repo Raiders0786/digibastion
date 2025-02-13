@@ -1,6 +1,7 @@
 
 import { AlertTriangle, Info } from 'lucide-react';
 import { SecurityItem } from '../../types/security';
+import { Badge } from '../ui/badge';
 
 interface CategoryItemProps {
   item: SecurityItem;
@@ -50,11 +51,14 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-lg font-medium text-foreground">{item.title}</h3>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {getLevelIcon(item.level)}
-              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeClass(item.level)}`}>
+              <Badge 
+                variant="outline" 
+                className={`${getLevelBadgeClass(item.level)} capitalize`}
+              >
                 {item.level}
-              </span>
+              </Badge>
             </div>
           </div>
           <p className="text-foreground-secondary mb-4">{item.description}</p>
