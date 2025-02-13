@@ -14,7 +14,7 @@ export const authenticationData: SecurityCategory = {
       description: "Implement a reliable password manager for all accounts",
       completed: false,
       level: "essential",
-      details: "A password manager helps you create and store strong, unique passwords for all your accounts. Consider options like 1Password, Bitwarden, or KeePassXC.",
+      details: "Use a password manager to generate and store strong, unique passwords for all your accounts.",
       links: [
         { text: "Bitwarden", url: "https://bitwarden.com" },
         { text: "1Password", url: "https://1password.com" }
@@ -26,7 +26,7 @@ export const authenticationData: SecurityCategory = {
       description: "Set up two-factor authentication on all important accounts",
       completed: false,
       level: "essential",
-      details: "Use authenticator apps instead of SMS where possible. Good options include Authy or Google Authenticator."
+      details: "Enable 2FA using authenticator apps instead of SMS where possible. Consider hardware security keys for critical accounts."
     },
     {
       id: "auth-3",
@@ -34,7 +34,7 @@ export const authenticationData: SecurityCategory = {
       description: "Use strong, unique passwords for each account",
       completed: false,
       level: "essential",
-      details: "Each password should be at least 12 characters long, containing numbers, symbols, and mixed case letters."
+      details: "Create passwords that are at least 12 characters long with a mix of numbers, symbols, and mixed case letters."
     },
     {
       id: "auth-4",
@@ -43,6 +43,22 @@ export const authenticationData: SecurityCategory = {
       completed: false,
       level: "recommended",
       details: "Use biometric authentication as an additional security layer, but not as your only authentication method."
+    },
+    {
+      id: "auth-5",
+      title: "Password rotation",
+      description: "Regularly update critical passwords",
+      completed: false,
+      level: "optional",
+      details: "Change passwords for critical accounts periodically, especially if there's any suspicion of compromise."
+    },
+    {
+      id: "auth-6",
+      title: "Recovery methods",
+      description: "Set up account recovery options",
+      completed: false,
+      level: "recommended",
+      details: "Configure backup authentication methods and store recovery codes securely offline."
     }
   ],
 };

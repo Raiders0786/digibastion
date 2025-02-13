@@ -14,7 +14,11 @@ export const browsingData: SecurityCategory = {
         description: "Switch to a privacy-focused web browser",
         completed: false,
         level: "essential",
-        details: "Consider using browsers like Brave, Firefox, or Librewolf that prioritize privacy."
+        details: "Use browsers focused on privacy and security like Brave or Firefox.",
+        links: [
+          { text: "Brave Browser", url: "https://brave.com" },
+          { text: "Firefox", url: "https://www.mozilla.org/firefox" }
+        ]
       },
       {
         id: "browsing-2",
@@ -22,7 +26,11 @@ export const browsingData: SecurityCategory = {
         description: "Add essential privacy protection extensions",
         completed: false,
         level: "recommended",
-        details: "Essential extensions include uBlock Origin, Privacy Badger, and HTTPS Everywhere."
+        details: "Install privacy-enhancing extensions like uBlock Origin and Privacy Badger.",
+        links: [
+          { text: "uBlock Origin", url: "https://ublockorigin.com/" },
+          { text: "Privacy Badger", url: "https://privacybadger.org/" }
+        ]
       },
       {
         id: "browsing-3",
@@ -30,15 +38,23 @@ export const browsingData: SecurityCategory = {
         description: "Force HTTPS connections when browsing",
         completed: false,
         level: "essential",
-        details: "Always use HTTPS to encrypt your web traffic. Modern browsers typically enforce this by default."
+        details: "Ensure your browser enforces HTTPS connections to protect your data in transit."
       },
       {
         id: "browsing-4",
         title: "Clear browsing data",
         description: "Regularly clear cookies and browsing history",
         completed: false,
+        level: "recommended",
+        details: "Regularly clear your browsing history, cache, and cookies to protect your privacy."
+      },
+      {
+        id: "browsing-5",
+        title: "Use private browsing",
+        description: "Enable private browsing mode for sensitive activities",
+        completed: false,
         level: "optional",
-        details: "Set up your browser to automatically clear data when you close it, or do it manually regularly."
+        details: "Use private/incognito mode when accessing sensitive websites or on shared devices."
       }
     ],
 };
