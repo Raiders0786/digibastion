@@ -1,4 +1,3 @@
-
 import { 
   Search, 
   BookOpen, 
@@ -12,7 +11,8 @@ import {
   AlertTriangle,
   Bell,
   MessageSquareLock,
-  LayoutDashboard
+  LayoutDashboard,
+  Wallet
 } from 'lucide-react';
 
 export interface Tool {
@@ -160,6 +160,40 @@ export const toolCategories: ToolCategory[] = [
         description: "End-to-end encrypted messaging network for secure Web3 communications, enhancing overall digital hygiene",
         link: "https://xmtp.org",
         icon: MessageSquareLock,
+        importance: "Optional"
+      }
+    ]
+  },
+  {
+    title: "Web3 Wallets & Asset Management",
+    description: "Secure wallet solutions for managing digital assets and protocol permissions",
+    tools: [
+      {
+        name: "Safe (formerly Gnosis Safe)",
+        description: "A trusted multi-signature wallet for securely managing protocol permissions, DAO treasuries, and significant crypto assets",
+        link: "https://safe.global",
+        icon: Wallet,
+        importance: "Essential"
+      },
+      {
+        name: "Rabby Wallet",
+        description: "A web3 wallet for Ethereum and EVM-compatible chains, featuring automatic network switching and built-in security checks",
+        link: "https://rabby.io",
+        icon: Wallet,
+        importance: "Recommended"
+      },
+      {
+        name: "MPCVault",
+        description: "A multi-chain, non-custodial wallet leveraging multi-party computation (MPC) and multi-sig for enhanced security in web3 teams",
+        link: "https://www.mpcvault.com",
+        icon: Shield,
+        importance: "Recommended"
+      },
+      {
+        name: "Liminal",
+        description: "A multi-sig and MPC wallet solution designed for enterprises, exchanges, and web3 projects to secure transactions",
+        link: "https://www.liminal.market",
+        icon: Shield,
         importance: "Optional"
       }
     ]
