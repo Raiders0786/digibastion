@@ -76,7 +76,7 @@ const ArticleDetail = () => {
                 alt={article.title}
                 className="w-full h-auto"
                 loading="eager"
-                priority="high"
+                fetchPriority="high"
               />
             </div>
           )}
