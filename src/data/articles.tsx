@@ -1,7 +1,6 @@
-
 export const articles = {
   "social-engineering-web3": {
-    title: "Social Engineering in Web3: Complete Guide to Avoiding Scams (2024)",
+    title: "Social Engineering in Web3: Complete Guide to Avoiding Scams",
     category: "Security",
     readTime: "12 min read",
     content: (
