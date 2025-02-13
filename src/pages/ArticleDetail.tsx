@@ -20,36 +20,40 @@ const ArticleDetail = () => {
       
       setOgImage(ogImageUrl);
       
-      // Update meta tags
-      const ogImageElement = document.getElementById('og-image');
-      if (ogImageElement) {
-        ogImageElement.setAttribute('content', ogImageUrl);
-      }
+      // Remove existing meta tags first
+      const existingMetaTags = document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]');
+      existingMetaTags.forEach(tag => tag.remove());
 
-      // Update other meta tags for better social sharing
-      const metaTags = {
-        'og:title': `${article.title} - SecureQuest Checklist`,
-        'og:description': `Learn about ${article.title} in this comprehensive guide`,
-        'og:type': 'article',
-        'og:url': window.location.href,
-        'twitter:card': 'summary_large_image',
-        'twitter:title': article.title,
-        'twitter:description': `Learn about ${article.title} in this comprehensive guide`,
-        'twitter:image': ogImageUrl
-      };
+      // Add new meta tags
+      const metaTags = [
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:site', content: '@securequest' },
+        { name: 'twitter:title', content: `${article.title} - SecureQuest Checklist` },
+        { name: 'twitter:description', content: `Learn about ${article.title} in this comprehensive guide` },
+        { name: 'twitter:image', content: ogImageUrl },
+        { property: 'og:title', content: `${article.title} - SecureQuest Checklist` },
+        { property: 'og:description', content: `Learn about ${article.title} in this comprehensive guide` },
+        { property: 'og:image', content: ogImageUrl },
+        { property: 'og:url', content: window.location.href },
+        { property: 'og:type', content: 'article' }
+      ];
 
-      Object.entries(metaTags).forEach(([property, content]) => {
-        let element = document.querySelector(`meta[property="${property}"]`);
-        if (!element) {
-          element = document.createElement('meta');
-          element.setAttribute('property', property);
-          document.head.appendChild(element);
-        }
-        element.setAttribute('content', content);
+      metaTags.forEach(({ name, property, content }) => {
+        const meta = document.createElement('meta');
+        if (name) meta.setAttribute('name', name);
+        if (property) meta.setAttribute('property', property);
+        meta.setAttribute('content', content);
+        document.head.appendChild(meta);
       });
 
       document.title = `${article.title} - SecureQuest Checklist`;
     }
+
+    // Cleanup function to remove meta tags when component unmounts
+    return () => {
+      const existingMetaTags = document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]');
+      existingMetaTags.forEach(tag => tag.remove());
+    };
   }, [article]);
 
   if (!article) {
