@@ -1,6 +1,5 @@
-
 import { Navbar } from '../components/Navbar';
-import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon } from 'lucide-react';
+import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon, Wallet } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -19,7 +18,6 @@ const About = () => {
           </div>
 
           <div className="space-y-12 animate-slide-up">
-            {/* Mission Section */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <Shield className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
@@ -34,7 +32,6 @@ const About = () => {
               </div>
             </Card>
 
-            {/* What We Offer Section */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <CheckCircle className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
@@ -66,7 +63,6 @@ const About = () => {
               </div>
             </Card>
 
-            {/* Community Section */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <Users className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
@@ -81,7 +77,6 @@ const About = () => {
               </div>
             </Card>
 
-            {/* Impact Section */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <TrendingUp className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
@@ -99,7 +94,6 @@ const About = () => {
               </div>
             </Card>
 
-            {/* Vision Section */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <Lightbulb className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
@@ -117,7 +111,30 @@ const About = () => {
               </div>
             </Card>
 
-            {/* Join Us Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <Wallet className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Support Our Mission</h2>
+                  <p className="text-foreground-secondary mb-6">
+                    Support us by sponsoring this project to help us continue researching and developing more useful tools, 
+                    resources, checklists, and critical alerts. Your support enables us to keep the community safe and informed 
+                    with the latest security practices.
+                  </p>
+                  <div className="space-y-4 bg-card/50 p-4 rounded-lg">
+                    <div>
+                      <p className="font-semibold mb-2">ETH/ERC-20:</p>
+                      <code className="bg-background p-2 rounded block text-sm">0x742d35Cc6634C0532925a3b844Bc454e4438f44e</code>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-2">BTC:</p>
+                      <code className="bg-background p-2 rounded block text-sm">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <HandshakeIcon className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
