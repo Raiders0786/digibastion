@@ -5,6 +5,8 @@ import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
 import { SecurityScore } from '../components/SecurityScore';
 import { Navbar } from '../components/Navbar';
+import { Github } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { categories, toggleItem, getCategoryScore, getOverallScore, getStats } = useSecurityState();
@@ -35,11 +37,25 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-foreground mb-4">
-              The Ultimate Web3 Security Checklist
+              The Ultimate Web3 Personal Security Checklist
             </h1>
-            <p className="text-lg text-foreground-secondary">
-              Your comprehensive guide to securing your digital assets and protecting your privacy in the Web3 era
+            <p className="text-lg text-foreground-secondary max-w-3xl mx-auto mb-8">
+              Master your Web3 security with our comprehensive guide. Protect your digital assets, enhance privacy, 
+              and safeguard your crypto investments with expert-backed security practices.
             </p>
+            <a 
+              href="https://github.com/yourusername/web3-security-checklist" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button 
+                size="lg" 
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Github className="mr-2 h-5 w-5" />
+                View on GitHub
+              </Button>
+            </a>
           </div>
 
           <SecurityScore score={getOverallScore()} stats={getStats()} />
