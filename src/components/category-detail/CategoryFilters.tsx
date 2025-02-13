@@ -25,9 +25,9 @@ export const CategoryFilters = ({
   const optionalCount = items.filter(item => item.level === 'optional').length;
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm p-6 rounded-lg mb-6 border border-white/10">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="bg-card/50 backdrop-blur-sm p-4 sm:p-6 rounded-lg mb-6 border border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">Filter Tasks</span>
@@ -36,7 +36,7 @@ export const CategoryFilters = ({
             value={filterLevel}
             onValueChange={setFilterLevel}
           >
-            <SelectTrigger className="w-[200px] bg-secondary border-white/10">
+            <SelectTrigger className="w-full sm:w-[200px] bg-secondary border-white/10">
               <SelectValue placeholder="Filter by Level" />
             </SelectTrigger>
             <SelectContent className="bg-secondary border-white/10">
@@ -62,7 +62,7 @@ export const CategoryFilters = ({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-3">
           <span className="text-sm font-medium text-foreground">Hide Completed</span>
           <Switch
             checked={hideCompleted}
