@@ -7,23 +7,28 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const scrollToCategory = (categoryId: string) => {
     if (categoryId === 'score') {
-      const element = document.getElementById(categoryId);
-      if (element) {
-        const offset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - offset;
-        
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
+      if (location.pathname !== '/') {
+        navigate('/', { state: { scrollTo: 'score' } });
+      } else {
+        const element = document.getElementById(categoryId);
+        if (element) {
+          const offset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - offset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
       }
     } else {
       navigate(`/category/${categoryId}`);
@@ -34,7 +39,7 @@ export const Navbar = () => {
     <nav className="bg-card border-b border-white/10 py-4 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <Shield className="w-8 h-8 text-primary" />
             <span className="text-xl font-bold text-foreground">SecureWeb3</span>
           </div>

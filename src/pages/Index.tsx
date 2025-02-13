@@ -1,4 +1,6 @@
 
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
 import { SecurityScore } from '../components/SecurityScore';
@@ -6,6 +8,25 @@ import { Navbar } from '../components/Navbar';
 
 const Index = () => {
   const { categories, toggleItem, getCategoryScore, getOverallScore, getStats } = useSecurityState();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.scrollTo === 'score') {
+      const element = document.getElementById('score');
+      if (element) {
+        const offset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+      // Clear the state after scrolling
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   return (
     <div className="min-h-screen bg-background">
