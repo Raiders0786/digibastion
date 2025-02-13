@@ -136,13 +136,6 @@ export const toolCategories: ToolCategory[] = [
     description: "Real-time monitoring and simulation tools for transaction safety",
     tools: [
       {
-        name: "Tenderly",
-        description: "Real-time monitoring and simulation of smart contract interactions, helping detect anomalous behavior before transaction execution",
-        link: "https://tenderly.co",
-        icon: LayoutDashboard,
-        importance: "Essential"
-      },
-      {
         name: "Forta",
         description: "Stop crypto hacks before they happen. Powered by the most advanced AI detection model, Forta Firewall integrates with protocols and rollups to prevent over 99% of hacks.",
         link: "https://www.forta.org/",

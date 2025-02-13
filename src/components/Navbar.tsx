@@ -107,11 +107,11 @@ export const Navbar = () => {
                   <NavigationMenuContent>
                     <div className="w-[200px] sm:w-[220px] p-3 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
                       {[
-                        { route: '/about', icon: Info, label: 'About Us' },
-                        { route: '/license', icon: FileText, label: 'License' },
                         { route: '/tools', icon: Wrench, label: 'Tools' },
                         { route: '/articles', icon: Book, label: 'Articles' },
                         { route: '/links', icon: Link, label: 'Useful Links' },
+                        { route: '/license', icon: FileText, label: 'License' },
+                        { route: '/about', icon: Info, label: 'About Us' },
                         { route: '/contact', icon: Mail, label: 'Contact' },
                         { route: '/share', icon: Share, label: 'Share & Connect' }
                       ].map(item => (
