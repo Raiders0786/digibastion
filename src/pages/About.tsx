@@ -1,39 +1,146 @@
 
 import { Navbar } from '../components/Navbar';
-import { Shield } from 'lucide-react';
+import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Shield className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-foreground mb-4">About SecureWeb3</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">Ultimate Personal Web3 Security & Hygiene Checklist</h1>
             <p className="text-lg text-foreground-secondary">
-              Your comprehensive guide to Web3 security
+              Empowering you to protect your digital life in an ever-changing online world
             </p>
           </div>
 
-          <div className="space-y-8 animate-slide-up">
-            <div className="bg-card rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Our Mission</h2>
-              <p className="text-foreground-secondary">
-                SecureWeb3 is dedicated to making Web3 security accessible to everyone. We provide comprehensive security checklists, guides, and tools to help users protect their digital assets and maintain privacy in the Web3 ecosystem.
-              </p>
-            </div>
+          <div className="space-y-12 animate-slide-up">
+            {/* Mission Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <Shield className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
+                  <p className="text-foreground-secondary">
+                    At SecureWeb3, we focus on providing practical guidance to secure your digital assets.
+                    Private key theft has been the number one attack vector over the years, and we're here
+                    to help you protect what matters most.
+                  </p>
+                </div>
+              </div>
+            </Card>
 
-            <div className="bg-card rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">What We Offer</h2>
-              <ul className="space-y-3 text-foreground-secondary">
-                <li>• Comprehensive security checklists</li>
-                <li>• Educational resources and guides</li>
-                <li>• Security scoring system</li>
-                <li>• Regular security updates</li>
-                <li>• Community-driven knowledge base</li>
-              </ul>
-            </div>
+            {/* What We Offer Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <CheckCircle className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">What We Offer</h2>
+                  <p className="text-foreground-secondary mb-4">
+                    We provide a living, community-maintained resource that evolves with new threats and best practices.
+                    Built by the Raiders and supported by contributors, sponsors, and supporters.
+                  </p>
+                  <ul className="grid sm:grid-cols-2 gap-4 text-foreground-secondary">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      Comprehensive security checklists
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      Educational resources
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      Security scoring system
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      Regular security updates
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+
+            {/* Community Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <Users className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Community-Driven and Expert-Supported</h2>
+                  <p className="text-foreground-secondary">
+                    This project is built for the true community. We invite everyone—whether you're an
+                    investor, researcher, trader, or new user—to contribute, suggest improvements, and
+                    share experiences.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Impact Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <TrendingUp className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Impact and Data</h2>
+                  <div className="bg-card/50 p-4 rounded-lg mb-4">
+                    <p className="text-2xl font-bold text-primary">$12B+</p>
+                    <p className="text-foreground-secondary">Digital assets stolen due to security breaches</p>
+                  </div>
+                  <p className="text-foreground-secondary">
+                    Social engineering and private key compromises have led to enormous losses in the crypto
+                    space, highlighting the importance of maintaining robust security hygiene in Web3.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Vision Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <Lightbulb className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Our Future Vision</h2>
+                  <p className="text-foreground-secondary mb-4">
+                    We believe that when you're armed with knowledge, you can guard against even the most
+                    sophisticated attacks. Our living document will continue to evolve, ensuring you always
+                    have access to the latest threats and best practices.
+                  </p>
+                  <p className="text-foreground-secondary font-semibold">
+                    Together, we're paving the way for crypto mass adoption. We all gonna make it!
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Join Us Section */}
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <HandshakeIcon className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Join Us on This Journey</h2>
+                  <p className="text-foreground-secondary mb-6">
+                    SecureWeb3 is not just a resource—it's a community of people dedicated to real value
+                    and protection. We invite you to engage with us, contribute your insights, and help
+                    spread the word.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <Button size="lg">
+                      <Users className="mr-2" />
+                      Join Community
+                    </Button>
+                    <Button variant="secondary" size="lg">
+                      <Shield className="mr-2" />
+                      View Checklist
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
       </main>
