@@ -1,83 +1,155 @@
+
 export const articles = {
-  "getting-started-web3-security": {
-    title: "Getting Started with Web3 Security: Complete Beginner's Guide 2024",
+  "social-engineering-web3": {
+    title: "Social Engineering in Web3: Complete Guide to Avoiding Scams (2024)",
     category: "Security",
-    readTime: "10 min read",
+    readTime: "12 min read",
     content: (
       <>
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Understanding Web3 Security</h2>
+          <h2 className="text-2xl font-bold mb-4">Understanding Social Engineering in Web3</h2>
           <div className="bg-card/50 p-6 rounded-lg mb-6">
             <h3 className="font-bold mb-2">TL;DR</h3>
-            <p>Web3 introduces a paradigm shift from traditional web models by emphasizing decentralization, user ownership, and blockchain technology. While this offers enhanced control and transparency, it also presents unique security challenges that require proactive measures.</p>
+            <p>Social engineering exploits human psychology rather than technical vulnerabilities. In Web3, attackers use deception and manipulation to steal cryptocurrency, NFTs, and other digital assets. Understanding common tactics and implementing strong security practices is crucial for protecting your investments.</p>
           </div>
         </div>
 
         <div className="space-y-8">
           <section>
-            <h2 className="text-2xl font-bold mb-4">Key Security Practices for Web3</h2>
-            
+            <h2 className="text-2xl font-bold mb-4">Common Social Engineering Attacks</h2>
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-semibold mb-3">Safeguard Your Secret Recovery Phrase (SRP)</h3>
+                <h3 className="text-xl font-semibold mb-3">Phishing Attacks</h3>
                 <div className="bg-card/50 p-6 rounded-lg">
-                  <p className="mb-4">Your SRP, often referred to as a seed phrase, is the master key to your crypto wallets. Never share it with anyone, and store it securely offline. Be cautious of phishing attempts that seek to obtain this information.</p>
-                  <div className="flex items-center gap-2 text-primary">
-                    <a href="https://learn.metamask.io" target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
-                      Learn more on MetaMask →
-                    </a>
+                  <p className="mb-4">Deceptive emails, messages, or websites that mimic legitimate platforms. Often target users with fake:</p>
+                  <ul className="list-disc pl-6 space-y-2">
+                    <li>Airdrop announcements</li>
+                    <li>Minting opportunities</li>
+                    <li>Security alerts</li>
+                  </ul>
+                  <div className="mt-4 p-4 bg-primary/10 rounded-lg">
+                    <strong className="text-primary">Pro Tip:</strong> Always double-check URLs and avoid clicking unsolicited links from social media, Discord, or Telegram.
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold mb-3">Use Reputable Wallets and DApps</h3>
+                <h3 className="text-xl font-semibold mb-3">Rug Pulls and Exit Scams</h3>
                 <div className="bg-card/50 p-6 rounded-lg">
+                  <p className="mb-4">Malicious projects build hype and community before developers suddenly abandon the project with investors' funds.</p>
+                  <div className="p-4 bg-primary/10 rounded-lg">
+                    <strong className="text-primary">Warning Signs:</strong>
+                    <ul className="list-disc pl-6 mt-2 space-y-2">
+                      <li>Anonymous teams</li>
+                      <li>Unrealistic promises or returns</li>
+                      <li>Rushed launches with high pressure to invest</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Impersonation Tactics</h3>
+                <div className="bg-card/50 p-6 rounded-lg">
+                  <p className="mb-4">Attackers create fake profiles to impersonate:</p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li>Research wallet providers thoroughly before use</li>
-                    <li>Verify DApp security audits and community feedback</li>
-                    <li>Check for proper documentation and support channels</li>
+                    <li>Project developers</li>
+                    <li>Community managers</li>
+                    <li>Celebrities and influencers</li>
+                  </ul>
+                  <div className="mt-4 p-4 bg-primary/10 rounded-lg">
+                    <strong className="text-primary">Safety Check:</strong> Verify identities through official channels and check for verified account badges.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Advanced Attack Vectors</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-card/50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold mb-3">Approval Phishing</h3>
+                <p className="mb-4">Attackers trick users into "blind signing" transactions that grant access to tokens.</p>
+                <div className="p-4 bg-primary/10 rounded-lg">
+                  <strong className="text-primary">Protection:</strong> Always review transaction details and use transaction simulators when possible.
+                </div>
+              </div>
+              <div className="bg-card/50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold mb-3">Fake Giveaways</h3>
+                <p className="mb-4">Scammers promote fake airdrops to collect information or connect wallets to malicious sites.</p>
+                <div className="p-4 bg-primary/10 rounded-lg">
+                  <strong className="text-primary">Rule:</strong> Never share seed phrases or connect to unofficial platforms.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Protection Strategies</h2>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Essential Security Measures</h3>
+                <div className="bg-card/50 p-6 rounded-lg">
+                  <ul className="list-disc pl-6 space-y-4">
+                    <li>
+                      <strong>Strong Authentication:</strong>
+                      <ul className="list-disc pl-6 mt-2 space-y-2">
+                        <li>Use unique, complex passwords</li>
+                        <li>Enable 2FA with authenticator apps</li>
+                        <li>Avoid SMS-based verification</li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Wallet Security:</strong>
+                      <ul className="list-disc pl-6 mt-2 space-y-2">
+                        <li>Keep private keys offline</li>
+                        <li>Use hardware wallets for large holdings</li>
+                        <li>Implement burner wallets for testing</li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Transaction Safety:</strong>
+                      <ul className="list-disc pl-6 mt-2 space-y-2">
+                        <li>Review all transaction details carefully</li>
+                        <li>Understand smart contract permissions</li>
+                        <li>Use transaction simulation tools</li>
+                      </ul>
+                    </li>
                   </ul>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold mb-3">Enable Multi-Factor Authentication (MFA)</h3>
-                <div className="bg-card/50 p-6 rounded-lg">
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>Set up authenticator apps for additional security</li>
-                    <li>Use hardware security keys when possible</li>
-                    <li>Avoid SMS-based authentication when alternatives exist</li>
-                  </ul>
+                <h3 className="text-xl font-semibold mb-3">Best Practices</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-card/50 p-6 rounded-lg">
+                    <h4 className="font-bold mb-3">Daily Habits</h4>
+                    <ul className="list-disc pl-6 space-y-2">
+                      <li>Verify URLs manually</li>
+                      <li>Use security extensions</li>
+                      <li>Keep software updated</li>
+                    </ul>
+                  </div>
+                  <div className="bg-card/50 p-6 rounded-lg">
+                    <h4 className="font-bold mb-3">Community Engagement</h4>
+                    <ul className="list-disc pl-6 space-y-2">
+                      <li>Join trusted communities</li>
+                      <li>Share security insights</li>
+                      <li>Report suspicious activity</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-4">Operational Security (OPSEC) in Web3</h2>
-            <div className="space-y-4">
-              <div className="bg-card/50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3">Essential OPSEC Practices</h3>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Limit Information Sharing: Be cautious about personal and financial information shared online</li>
-                  <li>Use Pseudonyms: Consider using different identities for various platforms</li>
-                  <li>Secure Communication: Utilize encrypted messaging services for sensitive communications</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">Recognizing Vulnerabilities and Attack Vectors</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-card/50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3">Smart Contract Exploits</h3>
-                <p>Vulnerabilities in smart contracts can be exploited to drain funds or manipulate outcomes. Regular audits and using established libraries can mitigate these risks.</p>
-              </div>
-              <div className="bg-card/50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3">Social Engineering</h3>
-                <p>Attackers may manipulate individuals into divulging confidential information. Always verify requests and be skeptical of unsolicited communications.</p>
+            <h2 className="text-2xl font-bold mb-4">Conclusion</h2>
+            <div className="bg-card/50 p-6 rounded-lg">
+              <p className="mb-4">Social engineering remains one of the most significant threats in Web3. By understanding common tactics and implementing robust security practices, you can significantly reduce your risk of falling victim to scams.</p>
+              <div className="p-4 bg-primary/10 rounded-lg">
+                <strong className="text-primary">Remember:</strong> Vigilance and skepticism are your best defenses in a decentralized ecosystem. Stay informed, secure your assets, and contribute to a safer Web3 community.
               </div>
             </div>
           </section>
