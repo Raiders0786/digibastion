@@ -1,5 +1,5 @@
 
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, Filter } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
@@ -25,17 +25,21 @@ export const CategoryFilters = ({
   const optionalCount = items.filter(item => item.level === 'optional').length;
 
   return (
-    <div className="bg-card p-6 rounded-lg mb-6 border border-white/10">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card/50 backdrop-blur-sm p-6 rounded-lg mb-6 border border-white/10">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">Filter Tasks</span>
+          </div>
           <Select
             value={filterLevel}
             onValueChange={setFilterLevel}
           >
-            <SelectTrigger className="w-[200px] bg-secondary">
+            <SelectTrigger className="w-[200px] bg-secondary border-white/10">
               <SelectValue placeholder="Filter by Level" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-secondary border-white/10">
               <SelectItem value="all">All Levels</SelectItem>
               <SelectItem value="essential">
                 <div className="flex items-center gap-2">
@@ -58,26 +62,47 @@ export const CategoryFilters = ({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-foreground-secondary">Hide Completed</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-foreground">Hide Completed</span>
           <Switch
             checked={hideCompleted}
             onCheckedChange={setHideCompleted}
+            className="data-[state=checked]:bg-primary"
           />
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Badge variant="outline" className={`${filterLevel === 'all' ? 'bg-primary/10' : ''}`}>
+      <div className="flex flex-wrap gap-2">
+        <Badge 
+          variant="outline" 
+          className={`py-1 px-3 ${filterLevel === 'all' ? 'bg-primary/20 border-primary text-primary' : 'hover:bg-primary/10'}`}
+          onClick={() => setFilterLevel('all')}
+          style={{ cursor: 'pointer' }}
+        >
           All ({items.length})
         </Badge>
-        <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+        <Badge 
+          variant="outline" 
+          className={`py-1 px-3 ${filterLevel === 'essential' ? 'bg-red-500/20' : ''} text-red-500 border-red-500/20 hover:bg-red-500/10`}
+          onClick={() => setFilterLevel('essential')}
+          style={{ cursor: 'pointer' }}
+        >
           Essential ({essentialCount})
         </Badge>
-        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
+        <Badge 
+          variant="outline" 
+          className={`py-1 px-3 ${filterLevel === 'recommended' ? 'bg-yellow-500/20' : ''} text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/10`}
+          onClick={() => setFilterLevel('recommended')}
+          style={{ cursor: 'pointer' }}
+        >
           Recommended ({recommendedCount})
         </Badge>
-        <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+        <Badge 
+          variant="outline" 
+          className={`py-1 px-3 ${filterLevel === 'optional' ? 'bg-blue-500/20' : ''} text-blue-500 border-blue-500/20 hover:bg-blue-500/10`}
+          onClick={() => setFilterLevel('optional')}
+          style={{ cursor: 'pointer' }}
+        >
           Optional ({optionalCount})
         </Badge>
       </div>
