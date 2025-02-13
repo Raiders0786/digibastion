@@ -1,0 +1,17 @@
+
+{
+  "nav": {
+    "security_checklists": "보안 체크리스트",
+    "checklist": "체크리스트",
+    "resources": "리소스",
+    "personal_score": "개인 보안 점수",
+    "score_description": "모든 플랫폼에서 보안을 추적하고 개선하세요",
+    "about": "회사 소개",
+    "license": "라이선스",
+    "tools": "도구",
+    "articles": "기사",
+    "useful_links": "유용한 링크",
+    "contact": "연락처",
+    "share": "공유 및 연결"
+  }
+}

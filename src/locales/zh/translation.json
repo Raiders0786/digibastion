@@ -1,0 +1,17 @@
+
+{
+  "nav": {
+    "security_checklists": "安全检查清单",
+    "checklist": "清单",
+    "resources": "资源",
+    "personal_score": "个人安全评分",
+    "score_description": "追踪并提高您在所有平台上的安全性",
+    "about": "关于我们",
+    "license": "许可证",
+    "tools": "工具",
+    "articles": "文章",
+    "useful_links": "有用链接",
+    "contact": "联系我们",
+    "share": "分享与连接"
+  }
+}

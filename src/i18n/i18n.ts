@@ -7,6 +7,12 @@ import Backend from 'i18next-http-backend';
 // Import translations
 import enTranslations from '../locales/en/translation.json';
 import esTranslations from '../locales/es/translation.json';
+import frTranslations from '../locales/fr/translation.json';
+import deTranslations from '../locales/de/translation.json';
+import zhTranslations from '../locales/zh/translation.json';
+import jaTranslations from '../locales/ja/translation.json';
+import koTranslations from '../locales/ko/translation.json';
+import ruTranslations from '../locales/ru/translation.json';
 
 const resources = {
   en: {
@@ -14,6 +20,24 @@ const resources = {
   },
   es: {
     translation: esTranslations
+  },
+  fr: {
+    translation: frTranslations
+  },
+  de: {
+    translation: deTranslations
+  },
+  zh: {
+    translation: zhTranslations
+  },
+  ja: {
+    translation: jaTranslations
+  },
+  ko: {
+    translation: koTranslations
+  },
+  ru: {
+    translation: ruTranslations
   }
 };
 
