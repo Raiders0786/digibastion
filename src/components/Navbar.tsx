@@ -1,5 +1,5 @@
 
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Globe } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -8,10 +8,29 @@ import {
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { i18n } = useTranslation();
+
+  const languages = [
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Español' },
+    { code: 'zh', label: 'Chinese' },
+    { code: 'fr', label: 'Français' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'ja', label: '日本語' },
+    { code: 'ko', label: '한국어' },
+    { code: 'ru', label: 'Русский' }
+  ];
 
   const scrollToCategory = (categoryId: string) => {
     if (categoryId === 'score') {
@@ -44,6 +63,10 @@ export const Navbar = () => {
     { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection' },
     { id: 'os', title: 'OS Security', description: 'System hardening' }
   ];
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
 
   return (
     <nav className="bg-card border-b border-white/10 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50">
@@ -120,6 +143,23 @@ export const Navbar = () => {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger className="focus:outline-none">
+                <Globe className="w-5 h-5 text-foreground-secondary hover:text-foreground transition-colors" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {languages.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code)}
+                    className={`cursor-pointer ${i18n.language === lang.code ? 'bg-accent' : ''}`}
+                  >
+                    {lang.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <a 
               href="https://github.com/yourusername/secureweb3"
