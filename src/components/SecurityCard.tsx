@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -53,14 +54,22 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
   return (
     <div 
       id={category.id} 
-      className="bg-card rounded-lg p-6 shadow-md transition-all duration-200 hover:shadow-lg animate-fade-in border border-white/10 scroll-mt-24"
+      className="group bg-card rounded-lg p-6 shadow-md transition-all duration-300 
+        hover:shadow-xl hover:shadow-primary/5 hover:scale-[1.02] hover:-translate-y-1
+        hover:bg-card/80 animate-fade-in border border-white/10 scroll-mt-24
+        cursor-pointer relative overflow-hidden
+        before:content-[''] before:absolute before:inset-0 
+        before:bg-gradient-to-r before:from-primary/0 before:via-primary/5 before:to-primary/0 
+        before:translate-x-[-100%] before:opacity-0 before:transition-all before:duration-500
+        hover:before:translate-x-[100%] hover:before:opacity-100"
+      onClick={handleViewDetails}
     >
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-primary/10 rounded-md">
+        <div className="p-2 bg-primary/10 rounded-md transition-all duration-300 group-hover:bg-primary/20">
           {getIcon()}
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-lg text-foreground">{category.title}</h3>
+          <h3 className="font-semibold text-lg text-foreground transition-all duration-300 group-hover:text-primary">{category.title}</h3>
           <p className="text-sm text-foreground-secondary">{category.description}</p>
         </div>
       </div>
@@ -74,7 +83,7 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleViewDetails}
+          className="transition-all duration-300 group-hover:bg-primary group-hover:text-white"
         >
           View Details
         </Button>
