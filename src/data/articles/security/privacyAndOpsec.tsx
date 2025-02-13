@@ -1,3 +1,4 @@
+
 import { Article } from '../types';
 
 export const privacyAndOpsecArticle: Article = {
@@ -72,38 +73,9 @@ export const privacyAndOpsecArticle: Article = {
                 <li>Use VPNs and Tor: Mask IP addresses when interacting with blockchain applications.</li>
               </ul>
             </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">What You Can Do</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-card/50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3">Immediate Actions</h3>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Educate Yourself: Stay informed about privacy threats and security trends</li>
-                  <li>Secure Your Accounts: Enable 2FA and use strong passwords</li>
-                  <li>Use Privacy Tools: Opt for decentralized browsers and encrypted messaging</li>
-                </ul>
-              </div>
-              <div className="bg-card/50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3">Long-term Strategy</h3>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Anonymize On-Chain Activity: Mix transactions and use privacy wallets</li>
-                  <li>Support Privacy Projects: Contribute to open-source security tools</li>
-                  <li>Be Cautious with Smart Contracts: Verify contract security</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">Conclusion</h2>
-            <div className="bg-card/50 p-6 rounded-lg">
-              <p className="mb-4">Privacy is a right, not a privilege. In an era of mass surveillance and blockchain transparency, digital security is more important than ever. Web3 offers new opportunities for self-sovereignty, but only if users adopt strong OPSEC practices and leverage privacy-enhancing technologies.</p>
-              <p className="mt-4">By taking control of your digital footprint, securing your Web3 interactions, and advocating for privacy rights, you contribute to a safer, more decentralized internet.</p>
-            </div>
-          </section>
-        </div>
-      </>
+          </div>
+        </section>
+      </div>
+    </>
   )
 };
