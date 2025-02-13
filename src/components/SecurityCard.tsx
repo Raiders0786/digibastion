@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -10,8 +9,7 @@ import {
   ChevronUp,
   Key,
   Globe,
-  Mail,
-  MessageSquare
+  Mail
 } from 'lucide-react';
 import { SecurityCategory } from '../types/security';
 import { Progress } from './ui/progress';
@@ -43,8 +41,6 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
         return <Globe className="w-6 h-6 text-primary" />;
       case 'mail':
         return <Mail className="w-6 h-6 text-primary" />;
-      case 'message-square':
-        return <MessageSquare className="w-6 h-6 text-primary" />;
       default:
         return <Laptop className="w-6 h-6 text-primary" />;
     }

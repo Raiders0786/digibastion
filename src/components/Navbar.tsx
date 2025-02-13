@@ -39,7 +39,6 @@ export const Navbar = () => {
     { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
     { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing' },
     { id: 'email', title: 'Email Security', description: 'Protect communications' },
-    { id: 'messaging', title: 'Messaging', description: 'Secure communication practices' },
     { id: 'mobile', title: 'Mobile Security', description: 'Device protection' },
     { id: 'social', title: 'Social Media', description: 'Social account security' },
     { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection' },
