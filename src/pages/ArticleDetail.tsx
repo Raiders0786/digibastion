@@ -1,7 +1,9 @@
+
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { ArrowLeft, Clock, Shield, Share2, Copy, Mail, Twitter, Link as LinkIcon } from 'lucide-react';
 import { toast } from "sonner";
+import { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +13,24 @@ import {
 
 const ArticleDetail = () => {
   const { slug } = useParams();
+
+  useEffect(() => {
+    // Update OG image when article loads
+    if (article) {
+      const ogImageUrl = `https://og-image.vercel.app/${encodeURIComponent(
+        article.title
+      )}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fassets.vercel.com%2Fimage%2Fupload%2Ffront%2Fassets%2Fdesign%2Fvercel-triangle-white.svg`;
+      
+      // Update OG image meta tag
+      const ogImageElement = document.getElementById('og-image');
+      if (ogImageElement) {
+        ogImageElement.setAttribute('content', ogImageUrl);
+      }
+
+      // Update page title
+      document.title = `${article.title} - SecureQuest Checklist`;
+    }
+  }, [article]);
 
   const handleShare = async (type: 'copy' | 'twitter' | 'email') => {
     const url = window.location.href;
