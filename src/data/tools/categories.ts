@@ -1,3 +1,4 @@
+
 import { 
   Search, 
   BookOpen, 
@@ -192,7 +193,7 @@ export const toolCategories: ToolCategory[] = [
       {
         name: "Liminal",
         description: "A multi-sig and MPC wallet solution designed for enterprises, exchanges, and web3 projects to secure transactions",
-        link: "https://www.liminal.market",
+        link: "https://docs.lmnl.app/docs/set-up-your-multisig-wallet",
         icon: Shield,
         importance: "Optional"
       }
