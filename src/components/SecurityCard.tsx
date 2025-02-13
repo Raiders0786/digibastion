@@ -1,7 +1,5 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { 
   Smartphone, 
   Share2, 
@@ -26,7 +24,6 @@ interface SecurityCardProps {
 export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
-  const { t } = useTranslation();
   
   const getIcon = () => {
     switch (category.icon) {
@@ -72,17 +69,14 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
       
       <div className="flex items-center justify-between">
         <span className="text-sm text-foreground-secondary">
-          {t('security.completed_items', {
-            completed: category.items.filter(item => item.completed).length,
-            total: category.items.length
-          })}
+          {category.items.filter(item => item.completed).length} of {category.items.length} completed
         </span>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleViewDetails}
         >
-          {t('security.view_details')}
+          View Details
         </Button>
       </div>
     </div>
