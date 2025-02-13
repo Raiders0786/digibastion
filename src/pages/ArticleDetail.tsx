@@ -1,10 +1,34 @@
-
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
-import { ArrowLeft, Clock, Shield, Share2 } from 'lucide-react';
+import { ArrowLeft, Clock, Shield, Share2, Copy, Mail, Twitter, Link as LinkIcon } from 'lucide-react';
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ArticleDetail = () => {
   const { slug } = useParams();
+
+  const handleShare = async (type: 'copy' | 'twitter' | 'email') => {
+    const url = window.location.href;
+    const title = article?.title || 'Check out this article';
+    
+    switch (type) {
+      case 'copy':
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard!");
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'email':
+        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`, '_blank');
+        break;
+    }
+  };
 
   const articles = {
     "privacy-security-web3-opsec": {
@@ -154,28 +178,43 @@ const ArticleDetail = () => {
               <span className="text-sm font-medium text-primary">{article.category}</span>
             </div>
             
-            <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
+            <h1 className="text-4xl font-bold mb-4 text-foreground/90">{article.title}</h1>
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-foreground-secondary">
                 <Clock className="w-4 h-4" />
                 <span>{article.readTime}</span>
               </div>
-              <button 
-                className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover"
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  // You might want to add a toast notification here
-                }}
-              >
-                <Share2 className="w-4 h-4" />
-                Share Article
-              </button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover">
+                    <Share2 className="w-4 h-4" />
+                    Share Article
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleShare('copy')}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('twitter')}>
+                    <Twitter className="w-4 h-4 mr-2" />
+                    Share on Twitter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('email')}>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Share via Email
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
           <div className="prose prose-invert max-w-none">
-            {article.content}
+            <div className="text-foreground/80 space-y-6">
+              {article.content}
+            </div>
           </div>
         </article>
       </main>

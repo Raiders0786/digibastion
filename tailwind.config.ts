@@ -49,6 +49,21 @@ export default {
           foreground: "#ffffff",
         },
       },
+      typography: {
+        invert: {
+          css: {
+            '--tw-prose-body': '#e2e8f0',
+            '--tw-prose-headings': '#f8fafc',
+            '--tw-prose-links': '#9b87f5',
+            '--tw-prose-bold': '#f8fafc',
+            '--tw-prose-bullets': '#9b87f5',
+            '--tw-prose-quotes': '#f8fafc',
+            '--tw-prose-code': '#f8fafc',
+            '--tw-prose-hr': '#334155',
+            '--tw-prose-th-borders': '#334155',
+          },
+        },
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -80,5 +95,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;
