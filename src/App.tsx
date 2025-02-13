@@ -29,10 +29,10 @@ const queryClient = new QueryClient({
 
 const App = () => {
   return (
-    <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
+        <TooltipProvider>
+          <React.StrictMode>
             <Toaster />
             <Sonner />
             <Routes>
@@ -48,10 +48,10 @@ const App = () => {
               <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </TooltipProvider>
-        </QueryClientProvider>
+          </React.StrictMode>
+        </TooltipProvider>
       </BrowserRouter>
-    </React.StrictMode>
+    </QueryClientProvider>
   );
 };
 
