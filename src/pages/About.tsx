@@ -42,7 +42,7 @@ const About = () => {
                   <h2 className="text-2xl font-semibold mb-4">What We Offer</h2>
                   <p className="text-foreground-secondary mb-4">
                     We provide a living, community-maintained resource that evolves with new threats and best practices.
-                    Built by the Raiders and supported by contributors, sponsors, and supporters.
+                    Built by the <a href="https://x.com/__Raiders" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Raiders</a> and supported by contributors, sponsors, and supporters.
                   </p>
                   <ul className="grid sm:grid-cols-2 gap-4 text-foreground-secondary">
                     <li className="flex items-center gap-2">
