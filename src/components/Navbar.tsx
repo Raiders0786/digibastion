@@ -1,5 +1,4 @@
-
-import { Shield, Github, Twitter, Linkedin, Reddit, Book, Info, Mail, Link, FileText, Tool, Share } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -108,7 +107,7 @@ export const Navbar = () => {
                         onClick={() => navigate('/tools')}
                         className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
                       >
-                        <Tool className="w-4 h-4" />
+                        <Wrench className="w-4 h-4" />
                         <span className="text-sm">Tools</span>
                       </button>
                       <button 

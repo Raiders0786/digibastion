@@ -1,24 +1,24 @@
 
-import { Twitter, Linkedin, Reddit } from 'lucide-react';
+import { ExternalLink, Share2, MessageCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 
 const Share = () => {
   const socialLinks = [
     {
       name: 'Twitter',
-      icon: Twitter,
+      icon: ExternalLink,
       url: 'https://twitter.com/intent/tweet?text=Check%20out%20SecureWeb3%20-%20Your%20comprehensive%20guide%20to%20Web3%20security!%20%23Web3%20%23Security%20%23Blockchain',
       color: 'hover:text-[#1DA1F2]'
     },
     {
       name: 'LinkedIn',
-      icon: Linkedin,
+      icon: Share2,
       url: 'https://www.linkedin.com/sharing/share-offsite/?url=https://secureweb3.com',
       color: 'hover:text-[#0A66C2]'
     },
     {
       name: 'Reddit',
-      icon: Reddit,
+      icon: MessageCircle,
       url: 'https://reddit.com/submit?url=https://secureweb3.com&title=SecureWeb3%20-%20Comprehensive%20Web3%20Security%20Guide',
       color: 'hover:text-[#FF4500]'
     }
