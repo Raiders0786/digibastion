@@ -27,6 +27,10 @@ const CategoryDetail = () => {
     return true;
   });
 
+  const essentialCount = category.items.filter(item => item.level === 'essential').length;
+  const recommendedCount = category.items.filter(item => item.level === 'recommended').length;
+  const optionalCount = category.items.filter(item => item.level === 'optional').length;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -55,6 +59,11 @@ const CategoryDetail = () => {
                 onToggle={() => toggleItem(category.id, item.id)}
               />
             ))}
+            {filteredItems.length === 0 && (
+              <div className="text-center py-8 text-foreground-secondary">
+                No items match the current filters
+              </div>
+            )}
           </div>
         </div>
       </main>

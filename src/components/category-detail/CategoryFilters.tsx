@@ -20,6 +20,10 @@ export const CategoryFilters = ({
   hideCompleted,
   setHideCompleted,
 }: CategoryFiltersProps) => {
+  const essentialCount = items.filter(item => item.level === 'essential').length;
+  const recommendedCount = items.filter(item => item.level === 'recommended').length;
+  const optionalCount = items.filter(item => item.level === 'optional').length;
+
   return (
     <div className="bg-card p-6 rounded-lg mb-6 border border-white/10">
       <div className="flex items-center justify-between mb-4">
@@ -36,19 +40,19 @@ export const CategoryFilters = ({
               <SelectItem value="essential">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-500" />
-                  Essential
+                  Essential ({essentialCount})
                 </div>
               </SelectItem>
               <SelectItem value="recommended">
                 <div className="flex items-center gap-2">
                   <Info className="w-4 h-4 text-yellow-500" />
-                  Recommended
+                  Recommended ({recommendedCount})
                 </div>
               </SelectItem>
               <SelectItem value="optional">
                 <div className="flex items-center gap-2">
                   <Info className="w-4 h-4 text-blue-500" />
-                  Optional
+                  Optional ({optionalCount})
                 </div>
               </SelectItem>
             </SelectContent>
@@ -68,13 +72,13 @@ export const CategoryFilters = ({
           All ({items.length})
         </Badge>
         <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
-          Essential ({items.filter(item => item.level === 'essential').length})
+          Essential ({essentialCount})
         </Badge>
         <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
-          Recommended ({items.filter(item => item.level === 'recommended').length})
+          Recommended ({recommendedCount})
         </Badge>
         <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-          Optional ({items.filter(item => item.level === 'optional').length})
+          Optional ({optionalCount})
         </Badge>
       </div>
     </div>
