@@ -66,10 +66,7 @@ export const Navbar = () => {
                     <div className="w-[300px] sm:w-[400px] p-4 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
                       <div className="mb-4">
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            scrollToCategory('score');
-                          }}
+                          onClick={() => scrollToCategory('score')}
                           className="w-full rounded-lg bg-gradient-to-br from-[#6e59a5] to-[#9b87f5] p-6 text-left
                             transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/20
                             relative overflow-hidden group"
@@ -88,10 +85,7 @@ export const Navbar = () => {
                         {categories.map(category => (
                           <button
                             key={category.id}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              scrollToCategory(category.id);
-                            }}
+                            onClick={() => scrollToCategory(category.id)}
                             className="w-full p-3 text-left hover:bg-white/5 rounded-md transition-all duration-200
                               hover:translate-x-1 hover:bg-accent/50 group"
                           >
@@ -123,10 +117,7 @@ export const Navbar = () => {
                       ].map(item => (
                         <button
                           key={item.route}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(item.route);
-                          }}
+                          onClick={() => navigate(item.route)}
                           className="flex items-center gap-2 w-full p-2 text-sm rounded-md 
                             hover:bg-accent/50 text-left transition-all duration-200
                             hover:translate-x-1 group"
