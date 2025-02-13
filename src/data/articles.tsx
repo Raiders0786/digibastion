@@ -1,5 +1,109 @@
-
 export const articles = {
+  "getting-started-web3-security": {
+    title: "Getting Started with Web3 Security: Complete Beginner's Guide 2024",
+    category: "Security",
+    readTime: "10 min read",
+    content: (
+      <>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Understanding Web3 Security</h2>
+          <div className="bg-card/50 p-6 rounded-lg mb-6">
+            <h3 className="font-bold mb-2">TL;DR</h3>
+            <p>Web3 introduces a paradigm shift from traditional web models by emphasizing decentralization, user ownership, and blockchain technology. While this offers enhanced control and transparency, it also presents unique security challenges that require proactive measures.</p>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Key Security Practices for Web3</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Safeguard Your Secret Recovery Phrase (SRP)</h3>
+                <div className="bg-card/50 p-6 rounded-lg">
+                  <p className="mb-4">Your SRP, often referred to as a seed phrase, is the master key to your crypto wallets. Never share it with anyone, and store it securely offline. Be cautious of phishing attempts that seek to obtain this information.</p>
+                  <div className="flex items-center gap-2 text-primary">
+                    <a href="https://learn.metamask.io" target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
+                      Learn more on MetaMask →
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Use Reputable Wallets and DApps</h3>
+                <p className="mb-4">Engage only with well-established wallets and decentralized applications (DApps). Ensure they have undergone security audits and have a positive reputation within the community.</p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Enable Multi-Factor Authentication (MFA)</h3>
+                <p className="mb-4">Where possible, activate MFA to add an extra layer of security to your accounts, making unauthorized access more difficult.</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Operational Security (OPSEC) in Web3</h2>
+            <div className="space-y-4">
+              <div className="bg-card/50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold mb-3">Essential OPSEC Practices</h3>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Limit Information Sharing: Be cautious about personal and financial information shared online</li>
+                  <li>Use Pseudonyms: Consider using different identities for various platforms</li>
+                  <li>Secure Communication: Utilize encrypted messaging services for sensitive communications</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Recognizing Vulnerabilities and Attack Vectors</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-card/50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold mb-3">Smart Contract Exploits</h3>
+                <p>Vulnerabilities in smart contracts can be exploited to drain funds or manipulate outcomes. Regular audits and using established libraries can mitigate these risks.</p>
+              </div>
+              <div className="bg-card/50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold mb-3">Social Engineering</h3>
+                <p>Attackers may manipulate individuals into divulging confidential information. Always verify requests and be skeptical of unsolicited communications.</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Security Best Practices</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Stay Vigilant Against Phishing</h3>
+                <p className="mb-4">Be wary of unsolicited messages or links that prompt you to enter sensitive information. Always verify the authenticity of communications and websites before interacting.</p>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Keep Software Updated</h3>
+                <p className="mb-4">Regularly update your wallets, browsers, and other related software to patch vulnerabilities and benefit from the latest security features.</p>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Conduct Regular Security Audits</h3>
+                <p className="mb-4">If you're developing or deploying smart contracts, ensure they undergo thorough security audits to identify and mitigate potential vulnerabilities.</p>
+                <div className="flex items-center gap-2 text-primary">
+                  <a href="https://web3devs.com" target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
+                    Learn more about security audits →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Conclusion</h2>
+            <div className="bg-card/50 p-6 rounded-lg">
+              <p className="mb-4">Navigating the Web3 ecosystem securely requires a combination of awareness, best practices, and continuous learning. By implementing the strategies outlined above, you can significantly enhance your security posture and enjoy the benefits of the decentralized web with greater confidence.</p>
+              <p>For a comprehensive understanding of Web3 security, consider exploring additional resources and staying updated with the latest security developments in the ecosystem.</p>
+            </div>
+          </section>
+        </div>
+      </>
+    )
+  },
   "privacy-security-web3-opsec": {
     title: "Privacy, Security, and Web3 OPSEC: Complete Guide 2024",
     category: "Security",
