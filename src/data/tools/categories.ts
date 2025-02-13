@@ -1,4 +1,3 @@
-
 import { 
   Search, 
   BookOpen, 
@@ -144,11 +143,11 @@ export const toolCategories: ToolCategory[] = [
         importance: "Essential"
       },
       {
-        name: "Blocknative",
-        description: "Transaction monitoring and real-time notifications to track wallet activity and spot unauthorized transactions early",
-        link: "https://blocknative.com",
-        icon: Bell,
-        importance: "Recommended"
+        name: "Forta",
+        description: "Stop crypto hacks before they happen. Powered by the most advanced AI detection model, Forta Firewall integrates with protocols and rollups to prevent over 99% of hacks.",
+        link: "https://www.forta.org/",
+        icon: Shield,
+        importance: "Essential"
       }
     ]
   },
