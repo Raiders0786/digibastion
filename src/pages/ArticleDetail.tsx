@@ -14,42 +14,6 @@ import {
 const ArticleDetail = () => {
   const { slug } = useParams();
 
-  useEffect(() => {
-    // Update OG image when article loads
-    if (article) {
-      const ogImageUrl = `https://og-image.vercel.app/${encodeURIComponent(
-        article.title
-      )}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fassets.vercel.com%2Fimage%2Fupload%2Ffront%2Fassets%2Fdesign%2Fvercel-triangle-white.svg`;
-      
-      // Update OG image meta tag
-      const ogImageElement = document.getElementById('og-image');
-      if (ogImageElement) {
-        ogImageElement.setAttribute('content', ogImageUrl);
-      }
-
-      // Update page title
-      document.title = `${article.title} - SecureQuest Checklist`;
-    }
-  }, [article]);
-
-  const handleShare = async (type: 'copy' | 'twitter' | 'email') => {
-    const url = window.location.href;
-    const title = article?.title || 'Check out this article';
-    
-    switch (type) {
-      case 'copy':
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied to clipboard!");
-        break;
-      case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
-        break;
-      case 'email':
-        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`, '_blank');
-        break;
-    }
-  };
-
   const articles = {
     "privacy-security-web3-opsec": {
       title: "Privacy, Security, and Web3 OPSEC",
@@ -162,6 +126,42 @@ const ArticleDetail = () => {
   };
 
   const article = articles[slug as keyof typeof articles];
+
+  useEffect(() => {
+    // Update OG image when article loads
+    if (article) {
+      const ogImageUrl = `https://og-image.vercel.app/${encodeURIComponent(
+        article.title
+      )}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fassets.vercel.com%2Fimage%2Fupload%2Ffront%2Fassets%2Fdesign%2Fvercel-triangle-white.svg`;
+      
+      // Update OG image meta tag
+      const ogImageElement = document.getElementById('og-image');
+      if (ogImageElement) {
+        ogImageElement.setAttribute('content', ogImageUrl);
+      }
+
+      // Update page title
+      document.title = `${article.title} - SecureQuest Checklist`;
+    }
+  }, [article]);
+
+  const handleShare = async (type: 'copy' | 'twitter' | 'email') => {
+    const url = window.location.href;
+    const title = article?.title || 'Check out this article';
+    
+    switch (type) {
+      case 'copy':
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard!");
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'email':
+        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`, '_blank');
+        break;
+    }
+  };
 
   if (!article) {
     return (
