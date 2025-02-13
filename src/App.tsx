@@ -13,6 +13,7 @@ import About from "./pages/About";
 import License from "./pages/License";
 import Tools from "./pages/Tools";
 import Articles from "./pages/Articles";
+import ArticleDetail from "./pages/ArticleDetail";
 import Links from "./pages/Links";
 import Contact from "./pages/Contact";
 
@@ -34,6 +35,7 @@ const App = () => {
               <Route path="/license" element={<License />} />
               <Route path="/tools" element={<Tools />} />
               <Route path="/articles" element={<Articles />} />
+              <Route path="/articles/:slug" element={<ArticleDetail />} />
               <Route path="/links" element={<Links />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
