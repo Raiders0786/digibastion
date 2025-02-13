@@ -3,7 +3,7 @@ import { SecurityCategory } from "../../types/security";
 
 export const messagingData: SecurityCategory = {
   id: "messaging",
-  title: "Messaging",
+  title: "Messaging Security",
   description: "Secure communication practices",
   icon: "message-square",
   items: [
