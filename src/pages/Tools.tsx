@@ -1,4 +1,3 @@
-
 import { Navbar } from '../components/Navbar';
 import { 
   Search, 
@@ -11,7 +10,10 @@ import {
   Shield, 
   Database,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Bell,
+  MessageSquareLock,
+  LayoutDashboard
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +120,39 @@ const Tools = () => {
           link: "https://ledgerql.com",
           icon: <Database className="w-5 h-5" />,
           importance: "Recommended"
+        }
+      ]
+    },
+    {
+      title: "Monitoring Tools",
+      description: "Real-time monitoring and simulation tools for transaction safety",
+      tools: [
+        {
+          name: "Tenderly",
+          description: "Real-time monitoring and simulation of smart contract interactions, helping detect anomalous behavior before transaction execution",
+          link: "https://tenderly.co",
+          icon: <LayoutDashboard className="w-5 h-5" />,
+          importance: "Essential"
+        },
+        {
+          name: "Blocknative",
+          description: "Transaction monitoring and real-time notifications to track wallet activity and spot unauthorized transactions early",
+          link: "https://blocknative.com",
+          icon: <Bell className="w-5 h-5" />,
+          importance: "Recommended"
+        }
+      ]
+    },
+    {
+      title: "Secure Communication",
+      description: "Tools for maintaining secure and private communications in Web3",
+      tools: [
+        {
+          name: "XMTP",
+          description: "End-to-end encrypted messaging network for secure Web3 communications, enhancing overall digital hygiene",
+          link: "https://xmtp.org",
+          icon: <MessageSquareLock className="w-5 h-5" />,
+          importance: "Optional"
         }
       ]
     }
