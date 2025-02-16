@@ -1,14 +1,14 @@
-
 import { Shield } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { CategorySection } from '@/components/tools/CategorySection';
 import { toolCategories } from '@/data/tools/categories';
 
 const Tools = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Shield className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -38,6 +38,7 @@ const Tools = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

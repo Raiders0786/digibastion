@@ -1,4 +1,5 @@
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { Book, Shield, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -39,9 +40,9 @@ const Articles = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Book className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -112,6 +113,7 @@ const Articles = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

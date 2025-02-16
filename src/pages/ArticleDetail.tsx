@@ -1,6 +1,6 @@
-
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { articles } from '@/data/articles';
@@ -61,9 +61,9 @@ const ArticleDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <article className="max-w-3xl mx-auto">
           <Link 
             to="/articles"
@@ -98,6 +98,7 @@ const ArticleDetail = () => {
           </div>
         </article>
       </main>
+      <Footer />
     </div>
   );
 };

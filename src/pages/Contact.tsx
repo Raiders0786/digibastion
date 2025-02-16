@@ -1,12 +1,12 @@
-
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { Mail, MessageSquare } from 'lucide-react';
 
 const Contact = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Mail className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -49,6 +49,7 @@ const Contact = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

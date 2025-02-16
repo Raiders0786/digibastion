@@ -1,5 +1,5 @@
-
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { FileText, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,9 +7,9 @@ import { Separator } from '@/components/ui/separator';
 
 const License = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <FileText className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -88,6 +88,7 @@ const License = () => {
           </Card>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

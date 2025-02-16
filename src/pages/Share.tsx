@@ -1,6 +1,6 @@
-
 import { ExternalLink, Share2, MessageCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 
 const Share = () => {
   const socialLinks = [
@@ -25,9 +25,9 @@ const Share = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-foreground mb-4">
@@ -85,6 +85,7 @@ const Share = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

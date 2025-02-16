@@ -1,8 +1,8 @@
-
 import { useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { CategoryHeader } from '../components/category-detail/CategoryHeader';
 import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
@@ -32,9 +32,9 @@ const CategoryDetail = () => {
   const optionalCount = category.items.filter(item => item.level === 'optional').length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <CategoryHeader
             title={category.title}
@@ -67,6 +67,7 @@ const CategoryDetail = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

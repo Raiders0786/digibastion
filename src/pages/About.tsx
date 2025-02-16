@@ -1,13 +1,14 @@
 import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon, Wallet } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 const About = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Shield className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -161,6 +162,7 @@ const About = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };
