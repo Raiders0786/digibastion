@@ -36,16 +36,18 @@ const Index = () => {
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 animate-fade-in space-y-6">
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight max-w-4xl mx-auto">
-              The Ultimate Web3 Security Checklist
-              <span className="block text-xl sm:text-2xl text-foreground/80 mt-2 font-medium">
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight max-w-4xl mx-auto bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+                The Ultimate Web3 Security Checklist
+              </h1>
+              <p className="text-xl sm:text-2xl text-foreground/80 font-medium">
                 for Personal Digital Protection
-              </span>
-            </h1>
-            <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed">
+              </p>
+            </div>
+            <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed mt-6">
               Protect your personal digital footprint with Digibastion. Our self-driven Web3 OpSec checklist lets you follow expert-backed security practices, earn a security score, and enhance your privacy across crypto, Web3, and beyond.
             </p>
-            <div className="pt-2">
+            <div className="pt-4">
               <a 
                 href="https://github.com/yourusername/web3-security-checklist" 
                 target="_blank" 
@@ -54,7 +56,7 @@ const Index = () => {
               >
                 <Button 
                   size="lg" 
-                  className="bg-primary hover:bg-primary/90 transition-all duration-200 transform hover:scale-105"
+                  className="bg-primary hover:bg-primary/90 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-primary/25"
                 >
                   <Github className="mr-2 h-5 w-5" />
                   View on GitHub
