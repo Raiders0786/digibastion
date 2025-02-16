@@ -33,21 +33,21 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="pt-24 pb-16 px-4 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16 animate-fade-in space-y-6">
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight max-w-4xl mx-auto bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+          <div className="text-center mb-20 animate-fade-in space-y-8">
+            <div className="space-y-4">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight leading-tight max-w-4xl mx-auto bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent px-4">
                 The Ultimate Web3 Security Checklist
               </h1>
-              <p className="text-xl sm:text-2xl text-foreground/80 font-medium">
+              <p className="text-xl sm:text-2xl lg:text-3xl text-foreground/80 font-medium">
                 for Personal Digital Protection
               </p>
             </div>
-            <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed mt-6">
+            <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed mt-8 px-4">
               Protect your personal digital footprint with Digibastion. Our self-driven Web3 OpSec checklist lets you follow expert-backed security practices, earn a security score, and enhance your privacy across crypto, Web3, and beyond.
             </p>
-            <div className="pt-4">
+            <div className="pt-6">
               <a 
                 href="https://github.com/yourusername/web3-security-checklist" 
                 target="_blank" 
@@ -65,9 +65,11 @@ const Index = () => {
             </div>
           </div>
 
-          <SecurityScore score={getOverallScore()} stats={getStats()} />
+          <div className="mb-20">
+            <SecurityScore score={getOverallScore()} stats={getStats()} />
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
             {categories.map(category => (
               <SecurityCard
                 key={category.id}
