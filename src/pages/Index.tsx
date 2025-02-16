@@ -40,7 +40,7 @@ const Index = () => {
               The Ultimate Web3 Security Checklist for Personal Digital Protection
             </h1>
             <p className="text-lg text-foreground-secondary max-w-3xl mx-auto mb-8">
-              Protect your personal digital footprint with Digibastion. Our Web3 OpSec checklist provides expert-backed security practices for Web3, crypto, and beyond, enhancing your privacy and safeguarding your data.
+              Protect your personal digital footprint with Digibastion. Our self-driven Web3 OpSec checklist lets you follow expert-backed security practices, earn a security score, and enhance your privacy across crypto, Web3, and beyond.
             </p>
             <a 
               href="https://github.com/yourusername/web3-security-checklist" 
