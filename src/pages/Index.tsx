@@ -37,7 +37,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 animate-fade-in space-y-6">
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight max-w-4xl mx-auto">
-              Web3 Security Checklist
+              The Ultimate Web3 Security Checklist
               <span className="block text-xl sm:text-2xl text-foreground/80 mt-2 font-medium">
                 for Personal Digital Protection
               </span>
