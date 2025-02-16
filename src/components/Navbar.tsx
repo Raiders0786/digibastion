@@ -51,7 +51,7 @@ export const Navbar = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <span className="text-lg sm:text-xl font-bold text-foreground">SecureWeb3</span>
+            <span className="text-lg sm:text-xl font-bold text-foreground">Digibastion</span>
           </div>
           
           <div className="flex items-center gap-4 sm:gap-6">

@@ -37,11 +37,10 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-foreground mb-4">
-              The Ultimate Web3 Personal Security Checklist
+              The Ultimate Web3 Security Checklist for Personal Digital Protection
             </h1>
             <p className="text-lg text-foreground-secondary max-w-3xl mx-auto mb-8">
-              Master your Web3 security with our comprehensive guide. Protect your digital assets, enhance privacy, 
-              and safeguard your crypto investments with expert-backed security practices.
+              Protect your personal digital footprint with Digibastion. Our checklist provides expert-backed security practices for Web3, crypto, and beyond, enhancing your privacy and safeguarding your data.
             </p>
             <a 
               href="https://github.com/yourusername/web3-security-checklist" 
