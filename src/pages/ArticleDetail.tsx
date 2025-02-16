@@ -1,3 +1,4 @@
+
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -26,16 +27,18 @@ const ArticleDetail = () => {
 
       // Add new meta tags
       const metaTags = [
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:site', content: '@securequest' },
-        { name: 'twitter:title', content: `${article.title} - SecureQuest Checklist` },
-        { name: 'twitter:description', content: `Learn about ${article.title} in this comprehensive guide` },
-        { name: 'twitter:image', content: ogImageUrl },
-        { property: 'og:title', content: `${article.title} - SecureQuest Checklist` },
+        { property: 'og:type', content: 'article' },
+        { property: 'og:url', content: window.location.href },
+        { property: 'og:title', content: `${article.title} - Digibastion` },
         { property: 'og:description', content: `Learn about ${article.title} in this comprehensive guide` },
         { property: 'og:image', content: ogImageUrl },
-        { property: 'og:url', content: window.location.href },
-        { property: 'og:type', content: 'article' }
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:site', content: '@Digibastion' },
+        { name: 'twitter:title', content: `${article.title} - Digibastion` },
+        { name: 'twitter:description', content: `Learn about ${article.title} in this comprehensive guide` },
+        { name: 'twitter:image', content: ogImageUrl }
       ];
 
       metaTags.forEach(({ name, property, content }) => {
@@ -46,7 +49,8 @@ const ArticleDetail = () => {
         document.head.appendChild(meta);
       });
 
-      document.title = `${article.title} - SecureQuest Checklist`;
+      // Update page title
+      document.title = `${article.title} - Digibastion`;
     }
 
     // Cleanup function to remove meta tags when component unmounts
