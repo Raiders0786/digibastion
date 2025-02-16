@@ -112,7 +112,9 @@ const Index = () => {
               </a>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-foreground/60">Securing internet, one byte at a time</span>
+              <span className="text-foreground/90 font-medium hover:text-primary transition-colors duration-200 cursor-default select-none">
+                Securing internet, one byte at a time
+              </span>
               <span className="px-1">·</span>
               <a 
                 href="https://github.com/yourusername/web3-security-checklist" 
