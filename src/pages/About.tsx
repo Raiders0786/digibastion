@@ -24,7 +24,7 @@ const About = () => {
                 <div>
                   <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
                   <p className="text-foreground-secondary">
-                    At SecureWeb3, we focus on providing practical guidance to secure your digital assets.
+                    At Digibastion, we focus on providing practical guidance to secure your digital assets.
                     Private key theft has been the number one attack vector over the years, and we're here
                     to help you protect what matters most.
                   </p>
@@ -141,7 +141,7 @@ const About = () => {
                 <div>
                   <h2 className="text-2xl font-semibold mb-4">Join Us on This Journey</h2>
                   <p className="text-foreground-secondary mb-6">
-                    SecureWeb3 is not just a resource—it's a community of people dedicated to real value
+                    Digibastion is not just a resource—it's a community of people dedicated to real value
                     and protection. We invite you to engage with us, contribute your insights, and help
                     spread the word.
                   </p>

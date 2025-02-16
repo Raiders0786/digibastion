@@ -10,7 +10,7 @@ const Contact = () => {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Mail className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-foreground mb-4">Contact Us</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">Contact Digibastion</h1>
             <p className="text-lg text-foreground-secondary">
               Get in touch with our team
             </p>

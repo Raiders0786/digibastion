@@ -15,12 +15,12 @@ const License = () => {
             <FileText className="w-16 h-16 text-primary mx-auto mb-6" />
             <h1 className="text-4xl font-bold text-foreground mb-4">License</h1>
             <p className="text-lg text-foreground-secondary mb-6">
-              Terms of use and distribution for Web3 Security Checklist
+              Terms of use and distribution for Digibastion Web3 Security Checklist
             </p>
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => window.open('https://github.com/yourusername/web3-security-checklist/blob/main/LICENSE', '_blank')}
+              onClick={() => window.open('https://github.com/yourusername/digibastion/blob/main/LICENSE', '_blank')}
             >
               <Github className="w-5 h-5" />
               View on GitHub

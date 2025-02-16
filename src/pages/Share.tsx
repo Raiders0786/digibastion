@@ -7,19 +7,19 @@ const Share = () => {
     {
       name: 'Twitter',
       icon: ExternalLink,
-      url: 'https://twitter.com/intent/tweet?text=Check%20out%20SecureWeb3%20-%20Your%20comprehensive%20guide%20to%20Web3%20security!%20%23Web3%20%23Security%20%23Blockchain',
+      url: 'https://twitter.com/intent/tweet?text=Check%20out%20Digibastion%20-%20Your%20comprehensive%20guide%20to%20Web3%20security!%20%23Web3%20%23Security%20%23Blockchain',
       color: 'hover:text-[#1DA1F2]'
     },
     {
       name: 'LinkedIn',
       icon: Share2,
-      url: 'https://www.linkedin.com/sharing/share-offsite/?url=https://secureweb3.com',
+      url: 'https://www.linkedin.com/sharing/share-offsite/?url=https://digibastion.com',
       color: 'hover:text-[#0A66C2]'
     },
     {
       name: 'Reddit',
       icon: MessageCircle,
-      url: 'https://reddit.com/submit?url=https://secureweb3.com&title=SecureWeb3%20-%20Comprehensive%20Web3%20Security%20Guide',
+      url: 'https://reddit.com/submit?url=https://digibastion.com&title=Digibastion%20-%20Comprehensive%20Web3%20Security%20Guide',
       color: 'hover:text-[#FF4500]'
     }
   ];
@@ -31,7 +31,7 @@ const Share = () => {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-foreground mb-4">
-              Share SecureWeb3
+              Share Digibastion
             </h1>
             <p className="text-lg text-foreground-secondary">
               Help others secure their Web3 journey by sharing this resource
@@ -40,7 +40,7 @@ const Share = () => {
 
           <div className="bg-card rounded-lg p-6 mb-8 animate-slide-up">
             <p className="text-foreground-secondary mb-6">
-              If you found SecureWeb3 helpful, consider sharing it with your network. Together, we can make Web3 a safer space for everyone by spreading awareness about security best practices.
+              If you found Digibastion helpful, consider sharing it with your network. Together, we can make Web3 a safer space for everyone by spreading awareness about security best practices.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -66,7 +66,7 @@ const Share = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="https://discord.gg/secureweb3"
+                href="https://discord.gg/digibastion"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors text-center"
@@ -74,7 +74,7 @@ const Share = () => {
                 Join Discord
               </a>
               <a
-                href="https://t.me/secureweb3"
+                href="https://t.me/digibastion"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors text-center"
