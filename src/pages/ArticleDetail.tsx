@@ -15,9 +15,14 @@ const ArticleDetail = () => {
 
   useEffect(() => {
     if (article) {
-      const ogImageUrl = `https://og-image.vercel.app/**${encodeURIComponent(
-        article.title
-      )}**.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fsecurequest-checklist.com%2Flovable-uploads%2F01298c2c-83d8-446e-b2e5-9199490d5f4e.png&backgroundColor=rgb(26%2C31%2C44)&textColor=rgb(155%2C135%2C245)`;
+      // Properly encode the title for the OG image URL
+      const encodedTitle = encodeURIComponent(article.title)
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+        .replace(/'/g, '%27')
+        .replace(/"/g, '%22');
+
+      const ogImageUrl = `https://og-image.vercel.app/${encodedTitle}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fsecurequest-checklist.com%2Flovable-uploads%2F01298c2c-83d8-446e-b2e5-9199490d5f4e.png&widths=350&heights=350`;
       
       setOgImage(ogImageUrl);
       
@@ -25,7 +30,7 @@ const ArticleDetail = () => {
       const existingMetaTags = document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]');
       existingMetaTags.forEach(tag => tag.remove());
 
-      // Add new meta tags
+      // Add new meta tags with explicit dimensions
       const metaTags = [
         { property: 'og:type', content: 'article' },
         { property: 'og:url', content: window.location.href },
@@ -34,11 +39,15 @@ const ArticleDetail = () => {
         { property: 'og:image', content: ogImageUrl },
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
+        { property: 'og:image:type', content: 'image/png' },
+        { property: 'og:image:alt', content: article.title },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:site', content: '@Digibastion' },
         { name: 'twitter:title', content: `${article.title} - Digibastion` },
         { name: 'twitter:description', content: `Learn about ${article.title} in this comprehensive guide` },
-        { name: 'twitter:image', content: ogImageUrl }
+        { name: 'twitter:image', content: ogImageUrl },
+        { name: 'twitter:image:width', content: '1200' },
+        { name: 'twitter:image:height', content: '630' }
       ];
 
       metaTags.forEach(({ name, property, content }) => {
@@ -85,6 +94,8 @@ const ArticleDetail = () => {
                 className="w-full h-auto"
                 loading="eager"
                 fetchPriority="high"
+                width="1200"
+                height="630"
               />
             </div>
           )}
