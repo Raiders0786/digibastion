@@ -20,7 +20,7 @@ const License = () => {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => window.open('https://github.com/yourusername/digibastion/blob/main/LICENSE', '_blank')}
+              onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/LICENSE', '_blank')}
             >
               <Github className="w-5 h-5" />
               View on GitHub

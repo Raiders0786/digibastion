@@ -49,7 +49,7 @@ const Index = () => {
             </p>
             <div className="pt-6">
               <a 
-                href="https://github.com/yourusername/web3-security-checklist" 
+                href="https://github.com/Raiders0786/digibastion" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-block"

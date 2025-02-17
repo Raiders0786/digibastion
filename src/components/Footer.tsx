@@ -13,7 +13,7 @@ export const Footer = () => {
             <span>{currentYear}</span>
             <span className="px-1">·</span>
             <a 
-              href="https://github.com/yourusername/web3-security-checklist/blob/main/LICENSE" 
+              href="https://github.com/Raiders0786/digibastion/blob/main/LICENSE" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center hover:text-primary transition-colors"
@@ -38,7 +38,7 @@ export const Footer = () => {
             </span>
             <span className="px-1">·</span>
             <a 
-              href="https://github.com/yourusername/web3-security-checklist" 
+              href="https://github.com/Raiders0786/digibastion" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center hover:text-primary transition-colors"
