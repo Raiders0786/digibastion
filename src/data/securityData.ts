@@ -7,6 +7,9 @@ import { mobileData } from "./categories/mobile";
 import { socialData } from "./categories/social";
 import { walletData } from "./categories/wallet";
 import { osData } from "./categories/os";
+import { defiData } from "./categories/defi";
+import { developersData } from "./categories/developers";
+import { jobsData } from "./categories/jobs";
 
 export const initialSecurityData: SecurityCategory[] = [
   authenticationData,
@@ -16,4 +19,7 @@ export const initialSecurityData: SecurityCategory[] = [
   socialData,
   walletData,
   osData,
+  defiData,
+  developersData,
+  jobsData,
 ];

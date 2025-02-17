@@ -10,7 +10,10 @@ import {
   ChevronUp,
   Key,
   Globe,
-  Mail
+  Mail,
+  Wallet2,
+  Code,
+  Briefcase
 } from 'lucide-react';
 import { SecurityCategory } from '../types/security';
 import { Progress } from './ui/progress';
@@ -42,6 +45,12 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
         return <Globe className="w-6 h-6 text-primary" />;
       case 'mail':
         return <Mail className="w-6 h-6 text-primary" />;
+      case 'wallet-2':
+        return <Wallet2 className="w-6 h-6 text-primary" />;
+      case 'code':
+        return <Code className="w-6 h-6 text-primary" />;
+      case 'briefcase':
+        return <Briefcase className="w-6 h-6 text-primary" />;
       default:
         return <Laptop className="w-6 h-6 text-primary" />;
     }

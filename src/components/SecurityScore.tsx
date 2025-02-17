@@ -20,11 +20,13 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     { category: 'Authentication', Essential: 80, Optional: 60, Advanced: 40 },
     { category: 'Web Browsing', Essential: 65, Optional: 45, Advanced: 30 },
     { category: 'Email', Essential: 90, Optional: 70, Advanced: 50 },
-    { category: 'Messaging', Essential: 75, Optional: 55, Advanced: 35 },
+    { category: 'Mobile Security', Essential: 75, Optional: 55, Advanced: 35 },
     { category: 'Social Media', Essential: 85, Optional: 65, Advanced: 45 },
-    { category: 'Networks', Essential: 70, Optional: 50, Advanced: 30 },
-    { category: 'Mobile Devices', Essential: 95, Optional: 75, Advanced: 55 },
-    { category: 'Physical Security', Essential: 60, Optional: 40, Advanced: 20 },
+    { category: 'Web3 Wallet', Essential: 70, Optional: 50, Advanced: 30 },
+    { category: 'OS Security', Essential: 95, Optional: 75, Advanced: 55 },
+    { category: 'DeFi Security', Essential: 80, Optional: 60, Advanced: 40 },
+    { category: 'Developer Security', Essential: 85, Optional: 65, Advanced: 45 },
+    { category: 'Job Security', Essential: 75, Optional: 55, Advanced: 35 },
   ];
 
   return (

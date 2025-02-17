@@ -1,5 +1,4 @@
-
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Wallet2, Code, Briefcase } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -42,7 +41,10 @@ export const Navbar = () => {
     { id: 'mobile', title: 'Mobile Security', description: 'Device protection' },
     { id: 'social', title: 'Social Media', description: 'Social account security' },
     { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection' },
-    { id: 'os', title: 'OS Security', description: 'System hardening' }
+    { id: 'os', title: 'OS Security', description: 'System hardening' },
+    { id: 'defi', title: 'DeFi Security', description: 'Secure DeFi interactions' },
+    { id: 'developers', title: 'Developer Security', description: 'Web3 development security' },
+    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting' }
   ];
 
   return (
