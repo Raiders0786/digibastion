@@ -9,46 +9,46 @@ export const jobsData: SecurityCategory = {
   items: [
     {
       id: "job-1",
-      title: "Verify Company Legitimacy",
-      description: "Validate Web3 job opportunities",
+      title: "Identity Verification",
+      description: "Verify employers and recruiters",
       completed: false,
       level: "essential",
-      details: "Research companies thoroughly, verify team members, and check community feedback before sharing any personal information.",
+      details: "Always verify the identity of potential employers and recruiters through official channels and community networks.",
       links: [
-        { text: "Company Verification", url: "https://cryptojobslist.com/blog/how-to-spot-crypto-scams" }
+        { text: "Verification Guide", url: "https://cryptojobslist.com/blog/how-to-spot-crypto-scams" }
       ]
     },
     {
       id: "job-2",
-      title: "Secure Communication Channels",
-      description: "Use secure channels for job discussions",
+      title: "Secure Communications",
+      description: "Use secure channels",
       completed: false,
       level: "essential",
-      details: "Communicate through official channels, use encrypted messaging when possible, and verify recruiter identities.",
+      details: "Communicate through official channels and use encrypted messaging when discussing sensitive information.",
     },
     {
       id: "job-3",
-      title: "Protected Personal Information",
-      description: "Safeguard personal data during job search",
+      title: "Document Security",
+      description: "Protect sensitive documents",
       completed: false,
       level: "recommended",
-      details: "Be cautious with personal information sharing, use professional email addresses, and protect sensitive documents.",
+      details: "Secure all job-related documents including resumes, portfolios, and contracts. Use secure sharing methods.",
     },
     {
       id: "job-4",
-      title: "Smart Contract Review",
-      description: "Review job-related smart contracts",
+      title: "Interview Security",
+      description: "Secure interview process",
       completed: false,
-      level: "recommended",
-      details: "Carefully review any smart contracts related to employment, vesting, or compensation. Seek legal advice when necessary.",
+      level: "essential",
+      details: "Verify interview platforms and protect sensitive information during technical interviews and assessments.",
     },
     {
       id: "job-5",
-      title: "Network Security",
-      description: "Maintain security while networking",
+      title: "Contract Review",
+      description: "Secure agreement process",
       completed: false,
-      level: "optional",
-      details: "Use secure practices when networking, attending virtual events, or connecting with potential employers.",
+      level: "recommended",
+      details: "Carefully review all contracts and agreements, including smart contract-based compensation arrangements.",
     }
   ],
   longDescription: "Protect yourself during your Web3 job search through proper security measures and verification processes."

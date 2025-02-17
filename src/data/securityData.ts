@@ -19,7 +19,7 @@ export const initialSecurityData: SecurityCategory[] = [
   socialData,
   walletData,
   osData,
-  defiData,
-  developersData,
-  jobsData,
+  defiData, // Added after OS
+  jobsData, // Added after DeFi
+  developersData, // Added after Jobs
 ];

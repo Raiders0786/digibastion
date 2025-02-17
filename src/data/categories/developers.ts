@@ -9,52 +9,46 @@ export const developersData: SecurityCategory = {
   items: [
     {
       id: "dev-1",
-      title: "Secure Code Repository Access",
-      description: "Implement proper access controls for code",
+      title: "Secure Development Environment",
+      description: "Set up secure workspace",
       completed: false,
       level: "essential",
-      details: "Use strong authentication, 2FA, and proper permission management for all code repositories and development environments.",
+      details: "Configure a secure development environment with proper key management, environment variables, and security tools.",
       links: [
-        { text: "GitHub Security", url: "https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa" }
+        { text: "Security Guide", url: "https://github.com/transmissions11/solcurity" }
       ]
     },
     {
       id: "dev-2",
-      title: "Smart Contract Security",
-      description: "Follow smart contract security best practices",
+      title: "Code Repository Security",
+      description: "Protect source code",
       completed: false,
       level: "essential",
-      details: "Implement proper testing, auditing, and security measures in smart contract development. Use security tools and follow established patterns.",
-      links: [
-        { text: "Smart Contract Best Practices", url: "https://consensys.github.io/smart-contract-best-practices/" }
-      ]
+      details: "Implement strong access controls, 2FA, and secure configuration for all code repositories.",
     },
     {
       id: "dev-3",
-      title: "Secure Development Environment",
-      description: "Set up a secure development workspace",
+      title: "Smart Contract Testing",
+      description: "Comprehensive testing",
       completed: false,
       level: "recommended",
-      details: "Use secure development tools, keep software updated, and implement proper security measures in your development environment.",
+      details: "Set up thorough testing environments including unit tests, integration tests, and security-focused test cases.",
     },
     {
       id: "dev-4",
-      title: "Code Review Process",
-      description: "Establish secure code review practices",
+      title: "Audit Preparation",
+      description: "Ready code for audits",
       completed: false,
-      level: "recommended",
-      details: "Implement thorough code review processes with security checkpoints and automated security scanning.",
-      links: [
-        { text: "Security Review Guide", url: "https://www.sonarqube.org/features/security/" }
-      ]
+      level: "essential",
+      details: "Prepare code for security audits with proper documentation, test coverage, and known issue tracking.",
     },
     {
       id: "dev-5",
-      title: "API Security",
-      description: "Secure API endpoints and interactions",
+      title: "Deployment Security",
+      description: "Secure deployment process",
       completed: false,
-      level: "essential",
-      details: "Implement proper API security measures including authentication, rate limiting, and input validation.",
+      level: "recommended",
+      details: "Implement secure deployment procedures including proper key management and deployment verification steps.",
     }
   ],
   longDescription: "Ensure the security of your development process and code through proper security measures and best practices."

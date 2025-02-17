@@ -9,55 +9,46 @@ export const defiData: SecurityCategory = {
   items: [
     {
       id: "defi-1",
-      title: "Use Hardware Wallets for Large Holdings",
-      description: "Secure high-value DeFi positions with cold storage",
+      title: "Hardware Wallet Integration",
+      description: "Secure high-value DeFi positions",
       completed: false,
       level: "essential",
-      details: "Keep the majority of your funds in hardware wallets and only move what's needed for active trading or yield farming to hot wallets.",
+      details: "Use hardware wallets for storing and managing large DeFi positions. Never keep significant amounts in hot wallets.",
       links: [
-        { text: "Hardware Wallet Guide", url: "https://www.ledger.com/academy/hardwarewallet/best-practices-when-using-a-hardware-wallet" }
+        { text: "Hardware Wallet Guide", url: "https://www.ledger.com/academy/security/the-safest-way-to-use-hardware-wallets" }
       ]
     },
     {
       id: "defi-2",
-      title: "Smart Contract Audits Verification",
-      description: "Verify protocol security audits before investing",
+      title: "Smart Contract Audits",
+      description: "Verify protocol security",
       completed: false,
       level: "essential",
-      details: "Always check if the DeFi protocol has been audited by reputable firms and review their audit reports before depositing funds.",
-      links: [
-        { text: "DeFi Audit Database", url: "https://consensys.io/diligence/audits" }
-      ]
+      details: "Always verify smart contract audits before interacting with DeFi protocols. Check multiple audit reports and community feedback.",
     },
     {
       id: "defi-3",
-      title: "Use DeFi Security Tools",
-      description: "Implement additional security tools for DeFi",
+      title: "Risk Management",
+      description: "Implement proper risk strategies",
       completed: false,
       level: "recommended",
-      details: "Utilize tools like Tenderly, DeFi Saver, or similar platforms to monitor and protect your DeFi positions.",
-      links: [
-        { text: "Security Tools Guide", url: "https://defisafety.com/" }
-      ]
+      details: "Set up proper risk management including position sizes, stop-losses, and diversification across different protocols.",
     },
     {
       id: "defi-4",
-      title: "Implement Risk Management",
-      description: "Set up proper risk management strategies",
+      title: "Protocol Research",
+      description: "Due diligence on DeFi platforms",
       completed: false,
-      level: "recommended",
-      details: "Diversify holdings across different protocols, set stop-losses, and never invest more than you can afford to lose.",
+      level: "essential",
+      details: "Research protocols thoroughly, including team background, TVL history, and security measures.",
     },
     {
       id: "defi-5",
-      title: "Monitor Protocol TVL and Statistics",
-      description: "Keep track of protocol health metrics",
+      title: "Emergency Procedures",
+      description: "Plan for security incidents",
       completed: false,
-      level: "optional",
-      details: "Regularly check protocol TVL, user statistics, and other key metrics to assess platform health and security.",
-      links: [
-        { text: "DeFi Stats", url: "https://defillama.com/" }
-      ]
+      level: "recommended",
+      details: "Have clear procedures for emergency situations like exploits or compromised wallets.",
     }
   ],
   longDescription: "Secure your DeFi investments and interactions through proper security measures and risk management strategies."
