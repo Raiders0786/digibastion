@@ -135,7 +135,7 @@ export const Navbar = () => {
             </NavigationMenu>
 
             <a 
-              href="https://github.com/yourusername/secureweb3"
+              href="https://github.com/Raiders0786/digibastion"
               target="_blank"
               rel="noopener noreferrer"
               className="text-foreground-secondary hover:text-foreground transition-colors"
