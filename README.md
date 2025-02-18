@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Twitter Follow](https://img.shields.io/twitter/follow/__Raiders?style=social)](https://twitter.com/__Raiders)
 
-<img src="public/og-image.png" alt="Digibastion Logo" width="200"/>
+<img src="public/og-image.png" alt="Digibastion Logo" width="800" height="300" />
 
 </div>
 
