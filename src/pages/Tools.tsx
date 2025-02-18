@@ -1,8 +1,10 @@
+
 import { Shield } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { CategorySection } from '@/components/tools/CategorySection';
 import { toolCategories } from '@/data/tools/categories';
+import { Badge } from '@/components/ui/badge';
 
 const Tools = () => {
   return (
@@ -29,12 +31,26 @@ const Tools = () => {
             ))}
           </div>
 
-          <div className="mt-16 text-center text-sm text-foreground-secondary">
-            <p>
-              These tools have been collected from various online resources and community contributions. 
-              Credits are due to all the original creators and contributors who have made efforts in 
-              developing and maintaining these valuable security tools.
-            </p>
+          <div className="mt-16 bg-card p-8 rounded-lg border border-white/10">
+            <div className="max-w-3xl mx-auto text-center space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">Community Contributions</h3>
+              <p className="text-foreground-secondary">
+                These tools have been carefully curated from various online resources and community contributions. 
+                We extend our heartfelt gratitude to all the original creators and contributors who have dedicated 
+                their time and expertise in developing and maintaining these invaluable security tools.
+              </p>
+              <div className="flex justify-center gap-2 pt-4">
+                <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20">
+                  Open Source
+                </Badge>
+                <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20">
+                  Community Driven
+                </Badge>
+                <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20">
+                  Security First
+                </Badge>
+              </div>
+            </div>
           </div>
         </div>
       </main>
