@@ -1,3 +1,4 @@
+
 import { ExternalLink, Share2, MessageCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -64,22 +65,14 @@ const Share = () => {
             <p className="text-foreground-secondary mb-6">
               Connect with fellow security enthusiasts, share experiences, and stay updated with the latest in Web3 security.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="https://discord.gg/digibastion"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors text-center"
-              >
-                Join Discord
-              </a>
+            <div className="flex justify-center">
               <a
                 href="https://t.me/digibastion"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors text-center"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors text-center"
               >
-                Join Telegram
+                Join Telegram Community
               </a>
             </div>
           </div>

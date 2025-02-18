@@ -1,8 +1,9 @@
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon, Wallet, Twitter } from 'lucide-react';
+import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, Wallet, Twitter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // Define contributors data
 const CONTRIBUTORS = [
@@ -10,6 +11,7 @@ const CONTRIBUTORS = [
     name: "Raiders",
     role: "Creator & Lead Developer",
     twitter: "https://x.com/__Raiders",
+    twitterHandle: "__Raiders",
     description: "Project creator and main developer"
   },
   // Add more contributors as needed
@@ -77,40 +79,6 @@ const About = () => {
 
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
-                <Users className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Contributors</h2>
-                  <p className="text-foreground-secondary mb-6">
-                    Meet the amazing people who have contributed to making Digibastion better for everyone.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {CONTRIBUTORS.map((contributor, index) => (
-                      <div
-                        key={index}
-                        className="bg-background/50 p-4 rounded-lg border border-white/10 hover:border-primary/50 transition-all"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium">{contributor.name}</h3>
-                          <a
-                            href={contributor.twitter}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:text-primary/80 transition-colors"
-                          >
-                            <Twitter className="w-4 h-4" />
-                          </a>
-                        </div>
-                        <p className="text-sm text-foreground-secondary">{contributor.role}</p>
-                        <p className="text-xs text-foreground-secondary mt-2">{contributor.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
                 <TrendingUp className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
                 <div>
                   <h2 className="text-2xl font-semibold mb-4">Impact and Data</h2>
@@ -143,53 +111,79 @@ const About = () => {
               </div>
             </Card>
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <Wallet className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Support Our Mission</h2>
-                  <p className="text-foreground-secondary mb-6">
-                    Support us by sponsoring this project to help us continue researching and developing more useful tools, 
-                    resources, checklists, and critical alerts. Your support enables us to keep the community safe and informed 
-                    with the latest security practices.
-                  </p>
-                  <div className="space-y-4 bg-card/50 p-4 rounded-lg">
-                    <div>
-                      <p className="font-semibold mb-2">ETH/ERC-20:</p>
-                      <code className="bg-background p-2 rounded block text-sm">0x742d35Cc6634C0532925a3b844Bc454e4438f44e</code>
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-2">BTC:</p>
-                      <code className="bg-background p-2 rounded block text-sm">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</code>
+            <div id="contributors" className="scroll-mt-20">
+              <Card className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-4">
+                  <Users className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4">Contributors</h2>
+                    <p className="text-foreground-secondary mb-6">
+                      Meet the amazing people who have contributed to making Digibastion better for everyone.
+                      Join us in our mission to make Web3 safer for all!
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {CONTRIBUTORS.map((contributor, index) => (
+                        <div
+                          key={index}
+                          className="bg-background/50 p-4 rounded-lg border border-white/10 hover:border-primary/50 transition-all"
+                        >
+                          <div className="flex items-start space-x-4">
+                            <Avatar className="w-12 h-12">
+                              <AvatarImage 
+                                src={`https://unavatar.io/twitter/${contributor.twitterHandle}`} 
+                                alt={contributor.name} 
+                              />
+                              <AvatarFallback>{contributor.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium">{contributor.name}</h3>
+                                <a
+                                  href={contributor.twitter}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:text-primary/80 transition-colors"
+                                >
+                                  <Twitter className="w-4 h-4" />
+                                </a>
+                              </div>
+                              <p className="text-sm text-foreground-secondary">{contributor.role}</p>
+                              <p className="text-xs text-foreground-secondary mt-2">{contributor.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <HandshakeIcon className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Join Us on This Journey</h2>
-                  <p className="text-foreground-secondary mb-6">
-                    Digibastion is not just a resource—it's a community of people dedicated to real value
-                    and protection. We invite you to engage with us, contribute your insights, and help
-                    spread the word.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <Button size="lg">
-                      <Users className="mr-2" />
-                      Join Community
-                    </Button>
-                    <Button variant="secondary" size="lg">
-                      <Shield className="mr-2" />
-                      View Checklist
-                    </Button>
+            <div id="support-our-mission" className="scroll-mt-20">
+              <Card className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-4">
+                  <Wallet className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4">Support Our Mission</h2>
+                    <p className="text-foreground-secondary mb-6">
+                      Support us by sponsoring this project to help us continue researching and developing more useful tools, 
+                      resources, checklists, and critical alerts. Your support enables us to keep the community safe and informed 
+                      with the latest security practices.
+                    </p>
+                    <div className="space-y-4 bg-card/50 p-4 rounded-lg">
+                      <div>
+                        <p className="font-semibold mb-2">ETH/ERC-20:</p>
+                        <code className="bg-background p-2 rounded block text-sm">0x742d35Cc6634C0532925a3b844Bc454e4438f44e</code>
+                      </div>
+                      <div>
+                        <p className="font-semibold mb-2">BTC:</p>
+                        <code className="bg-background p-2 rounded block text-sm">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</code>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
         </div>
       </main>
