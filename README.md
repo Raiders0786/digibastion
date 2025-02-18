@@ -21,7 +21,6 @@
 - [Development](#development)
 - [How to Contribute](#how-to-contribute)
 - [Credits](#credits)
-- [Contributors](#contributors)
 - [License](#license)
 
 </details>
@@ -121,11 +120,13 @@ Thank you to all who have contributed to, or sponsored this project!
 <!-- This section is automatically updated when someone sponsors the project -->
 <!-- SPONSORS_LIST:END -->
 
-## Contributors
+<!-- Contributors
 
 <!-- ALL-CONTRIBUTORS-LIST:START -->
 <!-- This section is automatically updated when someone contributes to the project -->
 <!-- ALL-CONTRIBUTORS:END -->
+
+## License
 
 <details>
 <summary>License</summary>
