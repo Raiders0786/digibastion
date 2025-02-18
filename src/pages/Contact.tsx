@@ -117,25 +117,6 @@ const Contact = () => {
               </div>
               <form onSubmit={onSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Inquiry Type</label>
-                  <Select
-                    name="inquiryType"
-                    value={inquiryType}
-                    onValueChange={setInquiryType}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select your inquiry type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INQUIRY_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
                   <label className="block text-sm font-medium mb-2">Name</label>
                   <input
                     type="text"
@@ -154,6 +135,29 @@ const Contact = () => {
                     className="w-full p-3 rounded-md bg-background border border-white/10"
                     placeholder="your@email.com"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Inquiry Type</label>
+                  <Select
+                    name="inquiryType"
+                    value={inquiryType}
+                    onValueChange={setInquiryType}
+                  >
+                    <SelectTrigger className="w-full bg-background">
+                      <SelectValue placeholder="Select your inquiry type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border border-white/10">
+                      {INQUIRY_TYPES.map((type) => (
+                        <SelectItem 
+                          key={type.value} 
+                          value={type.value}
+                          className="focus:bg-primary/20 focus:text-foreground"
+                        >
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Social Handle (Optional)</label>

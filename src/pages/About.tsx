@@ -1,8 +1,19 @@
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon, Wallet } from 'lucide-react';
+import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, HandshakeIcon, Wallet, Twitter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+
+// Define contributors data
+const CONTRIBUTORS = [
+  {
+    name: "Raiders",
+    role: "Creator & Lead Developer",
+    twitter: "https://x.com/__Raiders",
+    description: "Project creator and main developer"
+  },
+  // Add more contributors as needed
+];
 
 const About = () => {
   return (
@@ -68,12 +79,32 @@ const About = () => {
               <div className="flex items-start gap-4">
                 <Users className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
                 <div>
-                  <h2 className="text-2xl font-semibold mb-4">Community-Driven and Expert-Supported</h2>
-                  <p className="text-foreground-secondary">
-                    This project is built for the true community. We invite everyone—whether you're an
-                    investor, researcher, trader, or new user—to contribute, suggest improvements, and
-                    share experiences.
+                  <h2 className="text-2xl font-semibold mb-4">Contributors</h2>
+                  <p className="text-foreground-secondary mb-6">
+                    Meet the amazing people who have contributed to making Digibastion better for everyone.
                   </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {CONTRIBUTORS.map((contributor, index) => (
+                      <div
+                        key={index}
+                        className="bg-background/50 p-4 rounded-lg border border-white/10 hover:border-primary/50 transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">{contributor.name}</h3>
+                          <a
+                            href={contributor.twitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary/80 transition-colors"
+                          >
+                            <Twitter className="w-4 h-4" />
+                          </a>
+                        </div>
+                        <p className="text-sm text-foreground-secondary">{contributor.role}</p>
+                        <p className="text-xs text-foreground-secondary mt-2">{contributor.description}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </Card>
