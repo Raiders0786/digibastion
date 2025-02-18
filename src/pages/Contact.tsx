@@ -2,12 +2,29 @@
 import { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { Mail, MessageSquare, Twitter, Send } from 'lucide-react';
+import { Mail, MessageSquare, Twitter, Send, Handshake, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const INQUIRY_TYPES = [
+  { value: 'partnership', label: 'Partnership Opportunity' },
+  { value: 'sponsorship', label: 'Sponsorship Discussion' },
+  { value: 'collaboration', label: 'Collaboration Proposal' },
+  { value: 'work', label: 'Working with Us' },
+  { value: 'issue', label: 'Report an Issue' },
+  { value: 'meeting', label: 'Schedule a Meeting' },
+];
 
 const Contact = () => {
   const [result, setResult] = useState("");
+  const [inquiryType, setInquiryType] = useState<string>("");
   const { toast } = useToast();
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -15,8 +32,9 @@ const Contact = () => {
     setResult("Sending....");
     const formData = new FormData(event.target as HTMLFormElement);
 
-    // Public Access Key
-    formData.append("access_key", "fd8fc32b-444d-4b96-bb87-70c8ce806ba2");
+    // Public Access Key - stored in environment variable for security
+    const accessKey = import.meta.env.VITE_WEB3FORMS_KEY || "fd8fc32b-444d-4b96-bb87-70c8ce806ba2";
+    formData.append("access_key", accessKey);
 
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
@@ -33,6 +51,7 @@ const Contact = () => {
         });
         setResult("Form Submitted Successfully");
         (event.target as HTMLFormElement).reset();
+        setInquiryType("");
       } else {
         console.log("Error", data);
         setResult(data.message);
@@ -58,10 +77,11 @@ const Contact = () => {
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
-            <Mail className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-foreground mb-4">Contact Digibastion</h1>
-            <p className="text-lg text-foreground-secondary mb-6">
-              Get in touch with our team
+            <Handshake className="w-16 h-16 text-primary mx-auto mb-6" />
+            <h1 className="text-4xl font-bold text-foreground mb-4">Let's Work Together!</h1>
+            <p className="text-lg text-foreground-secondary mb-6 max-w-2xl mx-auto">
+              Whether you're interested in partnerships, sponsorships, or just want to say hello,
+              we're excited to hear from you. Join us in making Web3 security more accessible for everyone!
             </p>
             <div className="flex justify-center gap-4 mb-8">
               <a
@@ -91,11 +111,30 @@ const Contact = () => {
 
           <div className="grid gap-6 animate-slide-up">
             <div className="bg-card rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-6">
                 <MessageSquare className="w-6 h-6 text-primary" />
-                <h2 className="text-xl font-semibold">Send us a message</h2>
+                <h2 className="text-xl font-semibold">Get in Touch</h2>
               </div>
-              <form onSubmit={onSubmit} className="space-y-4">
+              <form onSubmit={onSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Inquiry Type</label>
+                  <Select
+                    name="inquiryType"
+                    value={inquiryType}
+                    onValueChange={setInquiryType}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select your inquiry type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INQUIRY_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Name</label>
                   <input
@@ -125,20 +164,34 @@ const Contact = () => {
                     placeholder="Your Twitter or Telegram handle"
                   />
                 </div>
+                {inquiryType === 'meeting' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Meeting Link (Required)</label>
+                    <input
+                      type="url"
+                      name="meetingLink"
+                      required
+                      className="w-full p-3 rounded-md bg-background border border-white/10"
+                      placeholder="Your Calendly/Cal.com link"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-2">Message</label>
                   <textarea
                     name="message"
                     required
                     className="w-full p-3 rounded-md bg-background border border-white/10 min-h-[120px]"
-                    placeholder="Your message..."
+                    placeholder={inquiryType === 'meeting' ? 
+                      "Please share some context about the meeting..." : 
+                      "Tell us about your proposal or inquiry..."}
                   />
                 </div>
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90"
                 >
-                  Send Message
+                  {inquiryType === 'meeting' ? 'Request Meeting' : 'Send Message'}
                 </Button>
               </form>
               {result && (

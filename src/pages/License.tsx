@@ -1,3 +1,4 @@
+
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { FileText, Github } from 'lucide-react';
@@ -6,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 const License = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -31,7 +34,7 @@ const License = () => {
             <div>
               <h2 className="text-xl font-semibold mb-4">MIT License</h2>
               <p className="text-foreground-secondary mb-4">
-                Copyright (c) 2024 Raiders
+                Copyright (c) {currentYear} Raiders
               </p>
               <div className="prose prose-invert max-w-none">
                 <p className="mb-4">
