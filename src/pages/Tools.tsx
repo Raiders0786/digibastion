@@ -1,10 +1,12 @@
 
-import { Shield } from 'lucide-react';
+import { Shield, Github } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { CategorySection } from '@/components/tools/CategorySection';
 import { toolCategories } from '@/data/tools/categories';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 const Tools = () => {
   return (
@@ -31,15 +33,15 @@ const Tools = () => {
             ))}
           </div>
 
-          <div className="mt-16 bg-card p-8 rounded-lg border border-white/10">
-            <div className="max-w-3xl mx-auto text-center space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Community Contributions</h3>
-              <p className="text-foreground-secondary">
-                These tools have been carefully curated from various online resources and community contributions. 
-                We extend our heartfelt gratitude to all the original creators and contributors who have dedicated 
-                their time and expertise in developing and maintaining these invaluable security tools.
-              </p>
-              <div className="flex justify-center gap-2 pt-4">
+          <Card className="mt-16 p-8 bg-gradient-to-b from-card/80 to-card border border-white/10">
+            <div className="max-w-3xl mx-auto text-center space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-foreground">Community-Driven Security</h3>
+                <p className="text-foreground-secondary">
+                  Join our growing community of security enthusiasts and contribute to making Web3 safer for everyone.
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-3">
                 <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20">
                   Open Source
                 </Badge>
@@ -50,8 +52,25 @@ const Tools = () => {
                   Security First
                 </Badge>
               </div>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  className="bg-primary/5 hover:bg-primary/10"
+                  asChild
+                >
+                  <a
+                    href="https://github.com/Raiders0786/digibastion"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2"
+                  >
+                    <Github className="w-4 h-4" />
+                    Contribute on GitHub
+                  </a>
+                </Button>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       </main>
       <Footer />
