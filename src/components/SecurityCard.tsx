@@ -83,20 +83,19 @@ export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProp
           {getIcon()}
         </div>
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <h3 className="font-semibold text-lg text-foreground transition-all duration-300 group-hover:text-primary">
               {category.title}
             </h3>
-            <Badge 
-              variant="outline" 
-              className={`${
-                isWeb2 
-                  ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400' 
-                  : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400'
-              } text-xs`}
+            <span 
+              className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full tracking-wide
+                ${isWeb2 
+                  ? 'bg-blue-400/10 text-blue-300/90' 
+                  : 'bg-purple-400/10 text-purple-300/90'
+                } transition-colors duration-300`}
             >
               {isWeb2 ? 'Web2' : 'Web3'}
-            </Badge>
+            </span>
           </div>
           <p className="text-sm text-foreground-secondary mb-4">{category.description}</p>
         </div>
