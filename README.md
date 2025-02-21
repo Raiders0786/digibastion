@@ -20,6 +20,7 @@
 - [About](#about)
 - [Development](#development)
 - [How to Contribute](#how-to-contribute)
+- [Adding Security Categories](#adding-security-categories)
 - [Credits](#credits)
 - [License](#license)
 
@@ -73,11 +74,27 @@ To run the app locally:
    npm run dev
    ```
 
-Alternatively, open this repo in [GitHub Codespaces](https://github.com/features/codespaces), where everything is already configured and ready to go.
-
 ## How to Contribute
 
-### Adding a New Category
+We welcome contributions from the community! Here's how you can help:
+
+### Getting Started
+
+1. Fork the repository
+2. Create a new branch for your feature: `git checkout -b feature/your-feature-name`
+3. Make your changes
+4. Run tests: `npm test`
+5. Submit a pull request
+
+### Code Style Guidelines
+
+- Follow the TypeScript conventions in the codebase
+- Use meaningful variable and function names
+- Add comments for complex logic
+- Write tests for new features
+- Follow our commit message format
+
+### Adding Security Categories
 
 1. Create a new file in `src/data/categories/` following the existing pattern
 2. Define your category using the `SecurityCategory` type
@@ -98,7 +115,7 @@ export const newCategoryData: SecurityCategory = {
       title: "Item Title",
       description: "Item description",
       completed: false,
-      level: "essential", // or "recommended" or "optional"
+      level: "essential",
       details: "Detailed explanation"
     }
     // Add more items...
@@ -106,11 +123,7 @@ export const newCategoryData: SecurityCategory = {
 };
 ```
 
-### Editing Existing Categories
-
-1. Locate the category file in `src/data/categories/`
-2. Make your changes following the existing format
-3. Submit a pull request with a clear description of your changes
+For more detailed contribution guidelines, please see our [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
@@ -120,11 +133,10 @@ Thank you to all who have contributed to, or sponsored this project!
 <!-- This section is automatically updated when someone sponsors the project -->
 <!-- SPONSORS_LIST:END -->
 
-<!-- Contributors
-
+<!-- Contributors -->
 <!-- ALL-CONTRIBUTORS-LIST:START -->
 <!-- This section is automatically updated when someone contributes to the project -->
-<!-- ALL-CONTRIBUTORS:END -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## License
 
