@@ -1,21 +1,18 @@
+
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2 } from 'lucide-react';
-import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { SecurityStats } from '../types/security';
 import { Card } from './ui/card';
+import { useSecurityState } from '../hooks/useSecurityState';
 
 interface SecurityScoreProps {
   score: number;
   stats: SecurityStats;
 }
 
-interface CategoryProgress {
-  name: string;
-  icon: JSX.Element;
-  progress: number;
-}
-
 export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
+  const { categories } = useSecurityState();
+  
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
     if (score >= 50) return 'text-yellow-400';
@@ -28,144 +25,135 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     return 'bg-red-500';
   };
 
-  const categories: CategoryProgress[] = [
-    { name: 'Authentication', icon: <Key className="w-5 h-5" />, progress: 65 },
-    { name: 'Web Browsing', icon: <Globe className="w-5 h-5" />, progress: 45 },
-    { name: 'Email', icon: <Mail className="w-5 h-5" />, progress: 85 },
-    { name: 'Messaging', icon: <MessageSquare className="w-5 h-5" />, progress: 55 },
-    { name: 'Social Media', icon: <Share2 className="w-5 h-5" />, progress: 70 },
-    { name: 'Networks', icon: <Network className="w-5 h-5" />, progress: 60 },
-    { name: 'Mobile Devices', icon: <Smartphone className="w-5 h-5" />, progress: 75 },
-    { name: 'Personal Computers', icon: <Laptop className="w-5 h-5" />, progress: 80 },
-    { name: 'Smart Home', icon: <Home className="w-5 h-5" />, progress: 40 },
-    { name: 'Personal Finance', icon: <CreditCard className="w-5 h-5" />, progress: 90 },
-    { name: 'Human Aspect', icon: <User className="w-5 h-5" />, progress: 50 },
-    { name: 'Physical Security', icon: <Building2 className="w-5 h-5" />, progress: 65 },
-  ];
+  const getCategoryProgress = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return 0;
+    const completed = category.items.filter(item => item.completed).length;
+    return Math.round((completed / category.items.length) * 100);
+  };
 
-  const web2Data = [
-    { category: 'Authentication', Essential: 80, Optional: 60, Completed: 75 },
-    { category: 'Web Browsing', Essential: 65, Optional: 45, Completed: 55 },
-    { category: 'Email', Essential: 90, Optional: 70, Completed: 85 },
-    { category: 'Mobile Security', Essential: 75, Optional: 55, Completed: 65 },
-    { category: 'Social Media', Essential: 85, Optional: 65, Completed: 70 },
-  ];
-
-  const web3Data = [
-    { category: 'DeFi Security', Essential: 80, Optional: 60, Completed: 70 },
-    { category: 'Developer Security', Essential: 85, Optional: 65, Completed: 75 },
-    { category: 'Job Security', Essential: 75, Optional: 55, Completed: 65 },
-    { category: 'OS Security', Essential: 95, Optional: 75, Completed: 85 },
+  const categoryData = [
+    { id: 'authentication', name: 'Authentication', icon: <Key className="w-4 h-4" /> },
+    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" /> },
+    { id: 'email', name: 'Email', icon: <Mail className="w-4 h-4" /> },
+    { id: 'social', name: 'Social Media', icon: <Share2 className="w-4 h-4" /> },
+    { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" /> },
+    { id: 'os', name: 'OS Security', icon: <Laptop className="w-4 h-4" /> },
+    { id: 'defi', name: 'DeFi Security', icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'developers', name: 'Developer Security', icon: <User className="w-4 h-4" /> },
+    { id: 'jobs', name: 'Job Security', icon: <Building2 className="w-4 h-4" /> },
   ];
 
   return (
-    <div id="score" className="space-y-8 scroll-mt-24">
+    <div id="score" className="space-y-6 scroll-mt-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
-          <div className="flex items-start justify-between mb-6">
+        <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
+          <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-2xl font-bold mb-2 text-foreground">Your Security Score</h2>
-              <p className="text-foreground-secondary">
+              <h2 className="text-xl font-bold mb-1 text-foreground">Your Security Score</h2>
+              <p className="text-sm text-foreground-secondary">
                 {stats.completed} out of {stats.total} items completed
               </p>
             </div>
-            <span className={`text-4xl font-bold ${getScoreColor(score)}`}>{score}%</span>
+            <span className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</span>
           </div>
           
-          <Progress value={score} className="h-3 mb-8" />
+          <Progress value={score} className="h-2 mb-6" />
           
-          <div className="grid grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl font-bold text-green-400">{stats.essential}%</span>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Essential', value: stats.essential, color: 'green' },
+              { label: 'Optional', value: stats.optional, color: 'yellow' },
+              { label: 'Advanced', value: stats.advanced, color: 'red' }
+            ].map(({ label, value, color }) => (
+              <div key={label} className="space-y-2">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className={`text-lg font-bold text-${color}-400`}>{value}%</span>
+                  </div>
+                  <svg className="w-16 h-16 mx-auto" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="16" fill="none" className={`stroke-${color}-500/10`} strokeWidth="3"/>
+                    <circle cx="18" cy="18" r="16" fill="none" className={`stroke-${color}-500`} strokeWidth="3"
+                      strokeDasharray={`${value}, 100`}
+                      transform="rotate(-90 18 18)"
+                    />
+                  </svg>
                 </div>
-                <svg className="w-full h-full" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-green-500/10" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-green-500" strokeWidth="3"
-                    strokeDasharray={`${stats.essential}, 100`}
-                    transform="rotate(-90 18 18)"
-                  />
-                </svg>
+                <p className="text-xs text-center text-foreground-secondary">{label}</p>
               </div>
-              <p className="text-sm text-center text-foreground-secondary">Essential</p>
-            </div>
-            <div className="space-y-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl font-bold text-yellow-400">{stats.optional}%</span>
-                </div>
-                <svg className="w-full h-full" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-500/10" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-500" strokeWidth="3"
-                    strokeDasharray={`${stats.optional}, 100`}
-                    transform="rotate(-90 18 18)"
-                  />
-                </svg>
-              </div>
-              <p className="text-sm text-center text-foreground-secondary">Optional</p>
-            </div>
-            <div className="space-y-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl font-bold text-red-400">{stats.advanced}%</span>
-                </div>
-                <svg className="w-full h-full" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-red-500/10" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-red-500" strokeWidth="3"
-                    strokeDasharray={`${stats.advanced}, 100`}
-                    transform="rotate(-90 18 18)"
-                  />
-                </svg>
-              </div>
-              <p className="text-sm text-center text-foreground-secondary">Advanced</p>
-            </div>
+            ))}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <h3 className="text-sm font-medium mb-2">Security Tips</h3>
+            <p className="text-xs text-foreground-secondary">
+              {score < 50 ? 'Focus on completing essential tasks first to improve your security score.' :
+               score < 80 ? 'Good progress! Consider implementing recommended security measures next.' :
+               'Excellent security practices! Keep maintaining and updating your security measures.'}
+            </p>
           </div>
         </div>
 
-        <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
-          <h3 className="text-lg font-semibold text-foreground mb-6">Security Categories Overview</h3>
-          <div className="space-y-4">
-            {categories.map((category) => (
-              <div key={category.name} className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  {category.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-foreground">{category.name}</span>
-                    <span className="text-sm text-foreground-secondary">{category.progress}%</span>
+        <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Security Categories Overview</h3>
+          <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2">
+            {categoryData.map((category) => {
+              const progress = getCategoryProgress(category.id);
+              return (
+                <div key={category.id} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    {category.icon}
                   </div>
-                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${getProgressColor(category.progress)}`}
-                      style={{ width: `${category.progress}%` }}
-                    />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-foreground">{category.name}</span>
+                      <span className="text-xs text-foreground-secondary">{progress}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${getProgressColor(progress)}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
+            {categoryData
+              .map(cat => ({ ...cat, progress: getCategoryProgress(cat.id) }))
+              .filter(cat => cat.progress < 50)
+              .slice(0, 3)
+              .map(cat => (
+                <div key={cat.id} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
+                  <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                  <span>{cat.name} needs attention ({cat.progress}% complete)</span>
+                </div>
+              ))}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-          <AlertTriangle className="text-red-400" />
+          <AlertTriangle className="text-red-400 w-4 h-4" />
           <div>
             <p className="text-sm font-medium text-foreground">Critical Tasks</p>
             <p className="text-xs text-foreground-secondary">{stats.criticalRemaining} remaining</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-          <Shield className="text-yellow-400" />
+          <Shield className="text-yellow-400 w-4 h-4" />
           <div>
             <p className="text-sm font-medium text-foreground">Recommended</p>
             <p className="text-xs text-foreground-secondary">{stats.recommendedRemaining} remaining</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-          <CheckCircle className="text-green-400" />
+          <CheckCircle className="text-green-400 w-4 h-4" />
           <div>
             <p className="text-sm font-medium text-foreground">Completed</p>
             <p className="text-xs text-foreground-secondary">{stats.completed} tasks done</p>
