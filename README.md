@@ -100,6 +100,11 @@ We welcome contributions from the community! Here's how you can help:
 2. Define your category using the `SecurityCategory` type
 3. Add your category to `src/data/securityData.ts`
 
+### Editing Existing Categories
+1. Locate the category file in `src/data/categories/`
+2. Make your changes following the existing format
+3. Submit a pull request with a clear description of your changes
+
 Example:
 ```typescript
 import { SecurityCategory } from "../../types/security";
