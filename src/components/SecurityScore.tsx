@@ -1,6 +1,5 @@
-
 import { Progress } from './ui/progress';
-import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2 } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet } from 'lucide-react';
 import { SecurityStats } from '../types/security';
 import { Card } from './ui/card';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -39,10 +38,39 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     { id: 'social', name: 'Social Media', icon: <Share2 className="w-4 h-4" /> },
     { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" /> },
     { id: 'os', name: 'OS Security', icon: <Laptop className="w-4 h-4" /> },
+    { id: 'wallet', name: 'Crypto Wallet Security', icon: <Wallet className="w-4 h-4" /> },
     { id: 'defi', name: 'DeFi Security', icon: <CreditCard className="w-4 h-4" /> },
     { id: 'developers', name: 'Developer Security', icon: <User className="w-4 h-4" /> },
     { id: 'jobs', name: 'Job Security', icon: <Building2 className="w-4 h-4" /> },
   ];
+
+  const getSecurityTips = (score: number) => {
+    if (score < 50) {
+      return [
+        'Focus on completing essential security tasks first.',
+        'Set up hardware wallets for your crypto assets.',
+        'Enable 2FA on all your Web3 accounts.',
+        'Create secure backups of your wallet seed phrases.',
+        'Use password managers for your credentials.',
+      ];
+    } else if (score < 80) {
+      return [
+        'Good progress! Consider implementing recommended security measures.',
+        'Set up multi-signature wallets for extra protection.',
+        'Use separate hot and cold wallets for different purposes.',
+        'Regularly audit your Web3 platform permissions.',
+        'Consider using a dedicated device for crypto transactions.',
+      ];
+    } else {
+      return [
+        'Excellent security practices! Keep maintaining and updating your measures.',
+        'Regularly review and rotate your backup strategies.',
+        'Stay updated with the latest Web3 security practices.',
+        'Consider advanced features like hardware security keys.',
+        'Help others improve their security practices.',
+      ];
+    }
+  };
 
   return (
     <div id="score" className="space-y-6 scroll-mt-24">
@@ -86,11 +114,14 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
 
           <div className="mt-6 pt-6 border-t border-white/10">
             <h3 className="text-sm font-medium mb-2">Security Tips</h3>
-            <p className="text-xs text-foreground-secondary">
-              {score < 50 ? 'Focus on completing essential tasks first to improve your security score.' :
-               score < 80 ? 'Good progress! Consider implementing recommended security measures next.' :
-               'Excellent security practices! Keep maintaining and updating your security measures.'}
-            </p>
+            <div className="space-y-2">
+              {getSecurityTips(score).map((tip, index) => (
+                <div key={index} className="flex items-start gap-2 text-xs text-foreground-secondary">
+                  <Shield className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                  <span>{tip}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
