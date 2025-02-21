@@ -1,6 +1,6 @@
 
 import { useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -15,6 +15,17 @@ const CategoryDetail = () => {
   const [hideCompleted, setHideCompleted] = useState(false);
 
   const category = categories.find(c => c.id === categoryId);
+  
+  // Add debugging logs
+  useEffect(() => {
+    if (category) {
+      console.log('Category found:', category.id);
+      console.log('Total items in category:', category.items.length);
+      console.log('Items:', category.items);
+    } else {
+      console.log('No category found for id:', categoryId);
+    }
+  }, [category, categoryId]);
 
   if (!category) {
     return <div>Category not found</div>;
@@ -28,9 +39,8 @@ const CategoryDetail = () => {
     return true;
   });
 
-  const essentialCount = category.items.filter(item => item.level === 'essential').length;
-  const recommendedCount = category.items.filter(item => item.level === 'recommended').length;
-  const optionalCount = category.items.filter(item => item.level === 'optional').length;
+  // Add debugging log for filtered items
+  console.log('Filtered items:', filteredItems.length);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -74,3 +84,4 @@ const CategoryDetail = () => {
 };
 
 export default CategoryDetail;
+
