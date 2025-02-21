@@ -1,27 +1,19 @@
 import { Progress } from './ui/progress';
-import { Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2 } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { SecurityStats } from '../types/security';
+import { Card } from './ui/card';
 
 interface SecurityScoreProps {
   score: number;
   stats: SecurityStats;
 }
 
-const WEB2_CATEGORIES = [
-  'Authentication',
-  'Web Browsing',
-  'Email',
-  'Mobile Security',
-  'Social Media',
-];
-
-const WEB3_CATEGORIES = [
-  'DeFi Security',
-  'Developer Security',
-  'Job Security',
-  'OS Security',
-];
+interface CategoryProgress {
+  name: string;
+  icon: JSX.Element;
+  progress: number;
+}
 
 export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
   const getScoreColor = (score: number) => {
@@ -29,6 +21,27 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     if (score >= 50) return 'text-yellow-400';
     return 'text-red-400';
   };
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 80) return 'bg-green-500';
+    if (progress >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const categories: CategoryProgress[] = [
+    { name: 'Authentication', icon: <Key className="w-5 h-5" />, progress: 65 },
+    { name: 'Web Browsing', icon: <Globe className="w-5 h-5" />, progress: 45 },
+    { name: 'Email', icon: <Mail className="w-5 h-5" />, progress: 85 },
+    { name: 'Messaging', icon: <MessageSquare className="w-5 h-5" />, progress: 55 },
+    { name: 'Social Media', icon: <Share2 className="w-5 h-5" />, progress: 70 },
+    { name: 'Networks', icon: <Network className="w-5 h-5" />, progress: 60 },
+    { name: 'Mobile Devices', icon: <Smartphone className="w-5 h-5" />, progress: 75 },
+    { name: 'Personal Computers', icon: <Laptop className="w-5 h-5" />, progress: 80 },
+    { name: 'Smart Home', icon: <Home className="w-5 h-5" />, progress: 40 },
+    { name: 'Personal Finance', icon: <CreditCard className="w-5 h-5" />, progress: 90 },
+    { name: 'Human Aspect', icon: <User className="w-5 h-5" />, progress: 50 },
+    { name: 'Physical Security', icon: <Building2 className="w-5 h-5" />, progress: 65 },
+  ];
 
   const web2Data = [
     { category: 'Authentication', Essential: 80, Optional: 60, Completed: 75 },
@@ -46,10 +59,10 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
   ];
 
   return (
-    <div id="score" className="space-y-6 scroll-mt-24">
+    <div id="score" className="space-y-8 scroll-mt-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold mb-2 text-foreground">Your Security Score</h2>
               <p className="text-foreground-secondary">
@@ -59,95 +72,79 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
             <span className={`text-4xl font-bold ${getScoreColor(score)}`}>{score}%</span>
           </div>
           
-          <Progress value={score} className="h-2 mb-6" />
+          <Progress value={score} className="h-3 mb-8" />
           
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-2">
-                <span className="text-xl font-bold text-green-400">{stats.essential}%</span>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="space-y-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl font-bold text-green-400">{stats.essential}%</span>
+                </div>
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-green-500/10" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-green-500" strokeWidth="3"
+                    strokeDasharray={`${stats.essential}, 100`}
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
               </div>
-              <p className="text-sm text-foreground-secondary">Essential</p>
+              <p className="text-sm text-center text-foreground-secondary">Essential</p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 mb-2">
-                <span className="text-xl font-bold text-yellow-400">{stats.optional}%</span>
+            <div className="space-y-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl font-bold text-yellow-400">{stats.optional}%</span>
+                </div>
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-500/10" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-500" strokeWidth="3"
+                    strokeDasharray={`${stats.optional}, 100`}
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
               </div>
-              <p className="text-sm text-foreground-secondary">Optional</p>
+              <p className="text-sm text-center text-foreground-secondary">Optional</p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-2">
-                <span className="text-xl font-bold text-red-400">{stats.advanced}%</span>
+            <div className="space-y-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl font-bold text-red-400">{stats.advanced}%</span>
+                </div>
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-red-500/10" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-red-500" strokeWidth="3"
+                    strokeDasharray={`${stats.advanced}, 100`}
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
               </div>
-              <p className="text-sm text-foreground-secondary">Advanced</p>
+              <p className="text-sm text-center text-foreground-secondary">Advanced</p>
             </div>
           </div>
         </div>
 
         <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Web2 Security Coverage</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={web2Data} className="text-xs">
-                <PolarGrid stroke="#ffffff20" />
-                <PolarAngleAxis dataKey="category" stroke="#94a3b8" />
-                <Radar
-                  name="Essential"
-                  dataKey="Essential"
-                  stroke="#34d399"
-                  fill="#34d39920"
-                  fillOpacity={0.6}
-                />
-                <Radar
-                  name="Optional"
-                  dataKey="Optional"
-                  stroke="#eab308"
-                  fill="#eab30820"
-                  fillOpacity={0.6}
-                />
-                <Radar
-                  name="Completed"
-                  dataKey="Completed"
-                  stroke="#3b82f6"
-                  fill="#3b82f620"
-                  fillOpacity={0.6}
-                />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-card p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Web3 Security Coverage</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={web3Data} className="text-xs">
-                <PolarGrid stroke="#ffffff20" />
-                <PolarAngleAxis dataKey="category" stroke="#94a3b8" />
-                <Radar
-                  name="Essential"
-                  dataKey="Essential"
-                  stroke="#34d399"
-                  fill="#34d39920"
-                  fillOpacity={0.6}
-                />
-                <Radar
-                  name="Optional"
-                  dataKey="Optional"
-                  stroke="#eab308"
-                  fill="#eab30820"
-                  fillOpacity={0.6}
-                />
-                <Radar
-                  name="Completed"
-                  dataKey="Completed"
-                  stroke="#3b82f6"
-                  fill="#3b82f620"
-                  fillOpacity={0.6}
-                />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
+          <h3 className="text-lg font-semibold text-foreground mb-6">Security Categories Overview</h3>
+          <div className="space-y-4">
+            {categories.map((category) => (
+              <div key={category.name} className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  {category.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-foreground">{category.name}</span>
+                    <span className="text-sm text-foreground-secondary">{category.progress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${getProgressColor(category.progress)}`}
+                      style={{ width: `${category.progress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -174,13 +171,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
             <p className="text-xs text-foreground-secondary">{stats.completed} tasks done</p>
           </div>
         </div>
-      </div>
-
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-red-400 mb-2">Next Steps</h3>
-        <p className="text-sm text-foreground-secondary">
-          Consider switching to more secure and privacy-respecting apps and services.
-        </p>
       </div>
     </div>
   );
