@@ -7,120 +7,93 @@ We love your input! We want to make contributing to Digibastion as easy and tran
 - Discussing the current state of the code
 - Submitting a fix
 - Proposing new features
-- Adding new security categories or checklist items
+- Adding new security resources or tools
+
+## Adding New Security Resources
+
+### Resource Format
+When adding new security tools or resources to our collection, please follow this format:
+
+```typescript
+{
+  "title": "Tool Name",
+  "url": "https://tool-url.com",
+  "description": "A concise description of the tool (max 200 characters)",
+  "tags": ["relevant", "tags", "here"],
+  "lastReviewed": "YYYY-MM-DD",
+  "active": true
+}
+```
+
+### Categories
+Resources are organized into categories. Current categories include:
+- Application Security
+- Cloud Security
+- Personal Security
+- Corporate & IT Security
+- Cryptocurrency & Wallet Security
+- Smart Contract Security
+- Private Key Management
+- On-Chain Monitoring
+- Web3 Ecosystem Best Practices & Guides
+
+### Adding a New Resource
+
+1. Fork the repository
+2. Navigate to `src/data/links/securityResources.ts`
+3. Add your resource to the appropriate category
+4. Ensure all required fields are filled out
+5. Submit a Pull Request
+
+### Resource Requirements
+
+1. **Active Maintenance**: The resource should be actively maintained
+2. **Relevance**: Must be relevant to Web3/blockchain security
+3. **Quality**: Should provide significant value to the community
+4. **Accessibility**: Should be accessible to the target audience
+
+### Tags Guidelines
+
+- Use existing tags when possible
+- New tags should be:
+  - Lowercase
+  - Hyphen-separated if multiple words
+  - Descriptive and relevant
+  - Generic enough to be reusable
 
 ## Development Process
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
-
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
-
-## Adding New Security Categories
-
-1. Create a new file in `src/data/categories/` with your category name
-2. Follow the `SecurityCategory` type structure:
-
-```typescript
-export interface SecurityCategory {
-  id: string;           // Unique identifier
-  title: string;        // Display name
-  description: string;  // Short description
-  icon: string;         // Icon name from lucide-react
-  items: SecurityItem[];
-}
-
-export interface SecurityItem {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  level: 'essential' | 'recommended' | 'optional';
-  details: string;
-  links?: { text: string; url: string }[];
-}
-```
-
-3. Add your category to `src/data/securityData.ts`
-
-## Testing
-
-Run the test suite:
-
-```bash
-npm test
-```
-
-### Writing Tests
-
-- Place tests in the `__tests__` directory next to the component
-- Follow the naming convention: `ComponentName.test.tsx`
-- Use React Testing Library for component tests
-- Write meaningful test descriptions
-
-Example test:
-```typescript
-import { render, screen } from '@testing-library/react';
-import { SecurityCard } from './SecurityCard';
-
-describe('SecurityCard', () => {
-  it('renders correctly', () => {
-    const category = {
-      id: 'test',
-      title: 'Test Category',
-      description: 'Test Description',
-      items: []
-    };
-    
-    render(<SecurityCard category={category} />);
-    expect(screen.getByText('Test Category')).toBeInTheDocument();
-  });
-});
-```
-
-## Commit Message Format
-
-We follow the Conventional Commits specification:
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-Types:
-- feat: New feature
-- fix: Bug fix
-- docs: Documentation changes
-- style: Code style changes
-- refactor: Code refactoring
-- test: Adding tests
-- chore: Maintenance tasks
-
-Example:
-```
-feat(categories): add crypto wallet security checklist
-
-Added new category for cryptocurrency wallet security with essential,
-recommended, and optional tasks.
-
-Closes #123
-```
+1. Fork the repo and create your branch from `main`
+2. If you've added code that should be tested, add tests
+3. Ensure your code lints
+4. Issue that pull request!
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under its MIT License with Commons Clause.
+By contributing, you agree that your contributions will be licensed under its MIT License.
 
-## Code of Conduct
+## Examples
 
-This project follows our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+Here's an example of adding a new tool:
+
+```typescript
+{
+  name: "Security Tools",
+  description: "Essential security tools for Web3 development",
+  tools: [
+    {
+      title: "New Security Tool",
+      url: "https://tool-url.com",
+      description: "A comprehensive security testing framework",
+      tags: ["security", "testing", "web3"],
+      lastReviewed: "2024-02-26",
+      active: true
+    }
+  ]
+}
+```
 
 ## Questions?
 
-Feel free to contact raiders@securequest.dev with any questions about contributing.
+Feel free to contact us or open an issue with any questions about contributing!
+
