@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { MetaTags } from "./components/MetaTags";
 import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
 import NotFound from "./pages/NotFound";
@@ -17,11 +18,10 @@ import ArticleDetail from "./pages/ArticleDetail";
 import Links from "./pages/Links";
 import Contact from "./pages/Contact";
 
-// Move queryClient outside of component
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       retry: 1,
     },
   },
@@ -33,6 +33,7 @@ const App = () => {
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
+            <MetaTags /> {/* Default meta tags */}
             <Toaster />
             <Sonner />
             <Routes>
