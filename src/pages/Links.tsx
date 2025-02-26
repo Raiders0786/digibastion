@@ -16,6 +16,7 @@ import {
 } from '../components/ui/select';
 import { Search, Tag, ExternalLink, Filter, Github } from 'lucide-react';
 import { securityResources, getAllTags } from '../data/links/securityResources';
+import { MetaTags } from '../components/MetaTags';
 
 const Links = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +57,11 @@ const Links = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="Security Resources & Links | Digibastion"
+        description="Access our curated collection of Web3 security resources, tools, and educational materials. Find everything you need to enhance your blockchain security."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

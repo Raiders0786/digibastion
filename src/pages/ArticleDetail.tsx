@@ -1,4 +1,3 @@
-
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -7,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { articles } from '@/data/articles';
 import { ArticleHeader } from '@/components/article/ArticleHeader';
 import { NotFoundView } from '@/components/article/NotFoundView';
+import { MetaTags } from '../components/MetaTags';
 
 const ArticleDetail = () => {
   const { slug } = useParams();
@@ -23,50 +23,8 @@ const ArticleDetail = () => {
         .replace(/"/g, '%22');
 
       const ogImageUrl = `https://og-image.vercel.app/${encodedTitle}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fsecurequest-checklist.com%2Flovable-uploads%2F01298c2c-83d8-446e-b2e5-9199490d5f4e.png&widths=350&heights=350`;
-      
       setOgImage(ogImageUrl);
-      
-      // Remove existing meta tags first
-      const existingMetaTags = document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]');
-      existingMetaTags.forEach(tag => tag.remove());
-
-      // Add new meta tags with explicit dimensions
-      const metaTags = [
-        { property: 'og:type', content: 'article' },
-        { property: 'og:url', content: window.location.href },
-        { property: 'og:title', content: `${article.title} - Digibastion` },
-        { property: 'og:description', content: `Learn about ${article.title} in this comprehensive guide` },
-        { property: 'og:image', content: ogImageUrl },
-        { property: 'og:image:width', content: '1200' },
-        { property: 'og:image:height', content: '630' },
-        { property: 'og:image:type', content: 'image/png' },
-        { property: 'og:image:alt', content: article.title },
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:site', content: '@Digibastion' },
-        { name: 'twitter:title', content: `${article.title} - Digibastion` },
-        { name: 'twitter:description', content: `Learn about ${article.title} in this comprehensive guide` },
-        { name: 'twitter:image', content: ogImageUrl },
-        { name: 'twitter:image:width', content: '1200' },
-        { name: 'twitter:image:height', content: '630' }
-      ];
-
-      metaTags.forEach(({ name, property, content }) => {
-        const meta = document.createElement('meta');
-        if (name) meta.setAttribute('name', name);
-        if (property) meta.setAttribute('property', property);
-        meta.setAttribute('content', content);
-        document.head.appendChild(meta);
-      });
-
-      // Update page title
-      document.title = `${article.title} - Digibastion`;
     }
-
-    // Cleanup function to remove meta tags when component unmounts
-    return () => {
-      const existingMetaTags = document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]');
-      existingMetaTags.forEach(tag => tag.remove());
-    };
   }, [article]);
 
   if (!article) {
@@ -75,6 +33,12 @@ const ArticleDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title={`${article.title} - Digibastion`}
+        description={`Learn about ${article.title} in this comprehensive guide from Digibastion`}
+        image={ogImage}
+        type="article"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <article className="max-w-3xl mx-auto">

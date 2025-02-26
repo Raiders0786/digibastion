@@ -1,6 +1,6 @@
-
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 import { FileText, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,11 @@ const License = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="License | Digibastion"
+        description="View Digibastion's license information and terms of use. Our commitment to open source and community collaboration."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">

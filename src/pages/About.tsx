@@ -1,5 +1,6 @@
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, Wallet, Twitter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,11 @@ const CONTRIBUTORS = [
 const About = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="About Digibastion | Web3 Security Platform"
+        description="Learn about Digibastion's mission to make Web3 safer through comprehensive security checklists, tools, and resources. Join our community of security-conscious developers and users."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">

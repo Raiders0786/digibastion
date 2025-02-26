@@ -1,5 +1,6 @@
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 import { Book, Shield, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -41,6 +42,11 @@ const Articles = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="Web3 Security Articles | Digibastion"
+        description="Explore our comprehensive collection of Web3 security articles. Learn about blockchain security, crypto safety, and DeFi best practices."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">

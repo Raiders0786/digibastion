@@ -1,7 +1,7 @@
-
 import { Shield, Github } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 import { CategorySection } from '@/components/tools/CategorySection';
 import { toolCategories } from '@/data/tools/categories';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,11 @@ import { Card } from '@/components/ui/card';
 const Tools = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="Web3 Security Tools | Digibastion"
+        description="Discover essential Web3 security tools and resources. A curated collection of tools for blockchain security, smart contract analysis, and crypto asset protection."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

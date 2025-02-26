@@ -1,7 +1,7 @@
-
 import { ExternalLink, Share2, MessageCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 
 const Share = () => {
   const socialLinks = [
@@ -27,6 +27,11 @@ const Share = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="Share Digibastion | Web3 Security Resources"
+        description="Share Digibastion's Web3 security resources with your network. Help make blockchain and cryptocurrency safer for everyone."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">

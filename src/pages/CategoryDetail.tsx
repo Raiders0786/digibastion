@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -7,6 +6,7 @@ import { Footer } from '../components/Footer';
 import { CategoryHeader } from '../components/category-detail/CategoryHeader';
 import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
+import { MetaTags } from '../components/MetaTags';
 
 const CategoryDetail = () => {
   const { categoryId } = useParams();
@@ -44,6 +44,11 @@ const CategoryDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title={`${category.title} Security Checklist | Digibastion`}
+        description={`Complete security checklist for ${category.title}. ${category.description}`}
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -84,4 +89,3 @@ const CategoryDetail = () => {
 };
 
 export default CategoryDetail;
-
