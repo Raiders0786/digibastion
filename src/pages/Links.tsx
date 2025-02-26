@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -47,7 +46,7 @@ const Links = () => {
           
           const matchesTags = 
             selectedTags.length === 0 || 
-            selectedTags.every(tag => tool.tags.includes(tag));
+            tool.tags.some(tag => selectedTags.includes(tag));
           
           return matchesSearch && matchesTags && tool.active;
         })
@@ -68,16 +67,15 @@ const Links = () => {
             <Button
               variant="outline"
               className="hover:bg-primary hover:text-white transition-all duration-300"
-              onClick={() => window.open('https://github.com/yourusername/digibastion/blob/main/CONTRIBUTING.md', '_blank')}
+              onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md', '_blank')}
             >
               <Github className="w-4 h-4 mr-2" />
               Contribute on GitHub
             </Button>
           </div>
 
-          {/* Filters Section */}
           <div className="mb-8 space-y-4 bg-secondary/50 backdrop-blur-sm p-6 rounded-lg border border-white/10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-secondary w-4 h-4" />
                 <Input
@@ -106,33 +104,33 @@ const Links = () => {
                   </SelectGroup>
                 </SelectContent>
               </Select>
+            </div>
 
-              <div className="lg:col-span-2 flex items-center gap-2">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-foreground-secondary mb-2">
                 <Filter className="w-4 h-4 text-primary" />
-                <ScrollArea className="w-full">
-                  <div className="flex gap-2 pb-2">
-                    {allTags.map(tag => (
-                      <Badge
-                        key={tag}
-                        variant={selectedTags.includes(tag) ? "default" : "outline"}
-                        className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                          selectedTags.includes(tag) 
-                            ? 'bg-primary text-white hover:bg-primary/90' 
-                            : 'hover:bg-primary/20 border-white/20'
-                        }`}
-                        onClick={() => toggleTag(tag)}
-                      >
-                        <Tag className="w-3 h-3 mr-1" />
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <span>Filter by tags (click multiple tags to see resources with any of the selected tags)</span>
+              </div>
+              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 rounded-lg bg-background/30">
+                {allTags.map(tag => (
+                  <Badge
+                    key={tag}
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                      selectedTags.includes(tag) 
+                        ? 'bg-primary text-white hover:bg-primary/90' 
+                        : 'hover:bg-primary/20 border-white/20'
+                    }`}
+                    onClick={() => toggleTag(tag)}
+                  >
+                    <Tag className="w-3 h-3 mr-1" />
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Resources Grid */}
           <div className="space-y-8 animate-fade-in">
             {filteredResources.map(category => (
               <div key={category.name} className="bg-secondary/30 p-6 rounded-lg border border-white/10">
