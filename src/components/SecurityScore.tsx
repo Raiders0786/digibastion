@@ -1,3 +1,4 @@
+
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet } from 'lucide-react';
 import { SecurityStats } from '../types/security';
@@ -51,7 +52,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
         'Set up hardware wallets for your crypto assets.',
         'Enable 2FA on all your Web3 accounts.',
         'Create secure backups of your wallet seed phrases.',
-        'Use password managers for your credentials.',
+        `Use a secure password manager (see https://www.privacyguides.org/en/passwords/).`,
       ];
     } else if (score < 80) {
       return [
@@ -72,6 +73,12 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     }
   };
 
+  const securityLevels = [
+    { label: 'Essential', value: stats.essential, color: 'green', description: 'Must-have security measures' },
+    { label: 'Optional', value: stats.optional, color: 'yellow', description: 'Additional protection layers' },
+    { label: 'Advanced', value: stats.advanced, color: 'blue', description: 'Expert-level security' }
+  ];
+
   return (
     <div id="score" className="space-y-6 scroll-mt-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -88,26 +95,47 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           
           <Progress value={score} className="h-2 mb-6" />
           
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Essential', value: stats.essential, color: 'green' },
-              { label: 'Optional', value: stats.optional, color: 'yellow' },
-              { label: 'Advanced', value: stats.advanced, color: 'red' }
-            ].map(({ label, value, color }) => (
-              <div key={label} className="space-y-2">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-lg font-bold text-${color}-400`}>{value}%</span>
+          {/* New Circular Progress Section */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {securityLevels.map(({ label, value, color, description }) => (
+              <div key={label} className="relative group">
+                <div className="flex flex-col items-center">
+                  <div className="relative">
+                    <svg className="w-24 h-24 transform -rotate-90">
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="45"
+                        className={`stroke-${color}-500/10`}
+                        strokeWidth="6"
+                        fill="none"
+                      />
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="45"
+                        className={`stroke-${color}-500`}
+                        strokeWidth="6"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 45}`}
+                        strokeDashoffset={`${2 * Math.PI * 45 * (1 - value / 100)}`}
+                        style={{
+                          transition: 'stroke-dashoffset 0.5s ease-in-out'
+                        }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className={`text-2xl font-bold text-${color}-400`}>{value}%</span>
+                    </div>
                   </div>
-                  <svg className="w-16 h-16 mx-auto" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16" fill="none" className={`stroke-${color}-500/10`} strokeWidth="3"/>
-                    <circle cx="18" cy="18" r="16" fill="none" className={`stroke-${color}-500`} strokeWidth="3"
-                      strokeDasharray={`${value}, 100`}
-                      transform="rotate(-90 18 18)"
-                    />
-                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-foreground">{label}</h3>
+                  <p className="text-xs text-foreground-secondary mt-1">{description}</p>
                 </div>
-                <p className="text-xs text-center text-foreground-secondary">{label}</p>
+                
+                {/* Hover tooltip */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-background p-2 rounded shadow-lg text-xs w-48 text-center pointer-events-none z-10">
+                  {description}
+                </div>
               </div>
             ))}
           </div>
