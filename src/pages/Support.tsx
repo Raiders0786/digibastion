@@ -42,7 +42,7 @@ const Support = () => {
                     <div className="aspect-w-16 aspect-h-9 mb-6">
                       <iframe 
                         src="https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00" 
-                        className="w-full h-[400px] border-0 rounded-md"
+                        className="w-full h-[800px] border-0 rounded-md transition-all duration-300 hover:shadow-lg"
                         title="Support Digibastion"
                         allow="payment"
                       ></iframe>
@@ -51,7 +51,7 @@ const Support = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10">
+                  <div className="bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 hover:scale-105">
                     <Shield className="w-8 h-8 text-primary mb-3" />
                     <h3 className="font-medium mb-2">Improved Resources</h3>
                     <p className="text-sm text-foreground-secondary">
@@ -59,7 +59,7 @@ const Support = () => {
                     </p>
                   </div>
                   
-                  <div className="bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10">
+                  <div className="bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 hover:scale-105">
                     <Lock className="w-8 h-8 text-primary mb-3" />
                     <h3 className="font-medium mb-2">Security Research</h3>
                     <p className="text-sm text-foreground-secondary">
@@ -67,7 +67,7 @@ const Support = () => {
                     </p>
                   </div>
                   
-                  <div className="bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10">
+                  <div className="bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 hover:scale-105">
                     <Zap className="w-8 h-8 text-primary mb-3" />
                     <h3 className="font-medium mb-2">Community Growth</h3>
                     <p className="text-sm text-foreground-secondary">
@@ -94,31 +94,31 @@ const Support = () => {
                 Financial contributions are just one way to support our mission. Here are other meaningful ways you can help:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
-                <div className="bg-card/30 p-6 rounded-lg border border-white/10">
-                  <h3 className="text-lg font-medium mb-3">Contribute Code</h3>
+                <div className="bg-card/30 p-6 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 cursor-pointer group" 
+                  onClick={() => window.open('https://github.com/Raiders0786/digibastion', '_blank')}>
+                  <h3 className="text-lg font-medium mb-3 group-hover:text-primary transition-colors">Contribute Code</h3>
                   <p className="text-foreground-secondary text-sm mb-4">
                     Help improve our platform by contributing code, fixing bugs, or adding new features through GitHub.
                   </p>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.open('https://github.com/Raiders0786/digibastion', '_blank')}
-                    className="w-full"
+                    className="w-full group-hover:bg-primary/20 transition-all"
                   >
                     View GitHub Repository
                   </Button>
                 </div>
                 
-                <div className="bg-card/30 p-6 rounded-lg border border-white/10">
-                  <h3 className="text-lg font-medium mb-3">Spread the Word</h3>
+                <div className="bg-card/30 p-6 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 cursor-pointer group"
+                  onClick={() => window.location.pathname = '/share'}>
+                  <h3 className="text-lg font-medium mb-3 group-hover:text-primary transition-colors">Spread the Word</h3>
                   <p className="text-foreground-secondary text-sm mb-4">
                     Share Digibastion with your network to help more people learn about Web3 security best practices.
                   </p>
                   <Button 
                     variant="outline"
-                    size="sm"
-                    onClick={() => window.location.pathname = '/share'}
-                    className="w-full"
+                    size="sm" 
+                    className="w-full group-hover:bg-primary/20 transition-all"
                   >
                     Share Digibastion
                   </Button>

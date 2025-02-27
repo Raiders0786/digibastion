@@ -1,120 +1,89 @@
 
-import { useState } from 'react';
+import React from 'react';
+import { Shield, AlertCircle, Check, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Smartphone, 
-  Share2, 
-  Wallet, 
-  Laptop, 
-  ChevronDown, 
-  ChevronUp,
-  Key,
-  Globe,
-  Mail,
-  Wallet2,
-  Code,
-  Briefcase
-} from 'lucide-react';
-import { SecurityCategory } from '../types/security';
-import { Progress } from './ui/progress';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { SecurityItem } from '@/types/security';
+import {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
 
 interface SecurityCardProps {
-  category: SecurityCategory;
-  score: number;
-  onItemToggle: (itemId: string) => void;
+  category: string;
+  title: string;
+  description: string;
+  icon?: React.ElementType;
+  link: string;
+  color?: string;
+  total: number;
+  completed: number;
 }
 
-const WEB2_CATEGORIES = ['authentication', 'browsing', 'email', 'mobile', 'social'];
-
-export const SecurityCard = ({ category, score, onItemToggle }: SecurityCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+export const SecurityCard: React.FC<SecurityCardProps> = ({
+  category,
+  title,
+  description,
+  icon: Icon = Shield,
+  link,
+  color = 'from-violet-500 to-indigo-500',
+  total,
+  completed,
+}) => {
   const navigate = useNavigate();
-  
-  const getIcon = () => {
-    switch (category.icon) {
-      case 'smartphone':
-        return <Smartphone className="w-6 h-6 text-primary" />;
-      case 'share-2':
-        return <Share2 className="w-6 h-6 text-primary" />;
-      case 'wallet':
-        return <Wallet className="w-6 h-6 text-primary" />;
-      case 'laptop':
-        return <Laptop className="w-6 h-6 text-primary" />;
-      case 'key':
-        return <Key className="w-6 h-6 text-primary" />;
-      case 'globe':
-        return <Globe className="w-6 h-6 text-primary" />;
-      case 'mail':
-        return <Mail className="w-6 h-6 text-primary" />;
-      case 'wallet-2':
-        return <Wallet2 className="w-6 h-6 text-primary" />;
-      case 'code':
-        return <Code className="w-6 h-6 text-primary" />;
-      case 'briefcase':
-        return <Briefcase className="w-6 h-6 text-primary" />;
-      default:
-        return <Laptop className="w-6 h-6 text-primary" />;
-    }
-  };
+  const isComplete = completed === total && total > 0;
+  const progress = total > 0 ? (completed / total) * 100 : 0;
 
-  const handleViewDetails = () => {
-    navigate(`/category/${category.id}`);
+  const handleClick = () => {
+    navigate(link);
   };
-
-  const isWeb2 = WEB2_CATEGORIES.includes(category.id);
 
   return (
-    <div 
-      id={category.id} 
-      className="group bg-card rounded-lg p-6 shadow-md transition-all duration-300 
-        hover:shadow-xl hover:shadow-primary/5 hover:scale-[1.02] hover:-translate-y-1
-        hover:bg-card/80 animate-fade-in border border-white/10 scroll-mt-24
-        cursor-pointer relative overflow-hidden
-        before:content-[''] before:absolute before:inset-0 
-        before:bg-gradient-to-r before:from-primary/0 before:via-primary/5 before:to-primary/0 
-        before:translate-x-[-100%] before:opacity-0 before:transition-all before:duration-500
-        hover:before:translate-x-[100%] hover:before:opacity-100"
-      onClick={handleViewDetails}
+    <Card 
+      className="h-full border border-white/10 bg-card/70 backdrop-blur-sm overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
+      onClick={handleClick}
     >
-      <div className="flex items-start gap-3">
-        <div className="p-2 bg-primary/10 rounded-md transition-all duration-300 group-hover:bg-primary/20">
-          {getIcon()}
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1.5">
-            <h3 className="font-semibold text-lg text-foreground transition-all duration-300 group-hover:text-primary">
-              {category.title}
-            </h3>
-            <span 
-              className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full tracking-wide
-                ${isWeb2 
-                  ? 'bg-blue-400/10 text-blue-300/90' 
-                  : 'bg-purple-400/10 text-purple-300/90'
-                } transition-colors duration-300`}
-            >
-              {isWeb2 ? 'Web2' : 'Web3'}
-            </span>
+      <div className="absolute top-0 right-0 h-20 w-20 -mt-10 -mr-10 bg-gradient-to-br opacity-20 rounded-full group-hover:opacity-40 transition-all duration-300" style={{ background: `linear-gradient(${color})` }}></div>
+      
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-full bg-opacity-10 group-hover:scale-110 transition-all duration-300" style={{ background: `linear-gradient(to bottom right, ${color})`, opacity: 0.2 }}>
+            <Icon className="w-5 h-5 text-primary" />
           </div>
-          <p className="text-sm text-foreground-secondary mb-4">{category.description}</p>
+          <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+            {title}
+          </CardTitle>
+          {isComplete && (
+            <div className="ml-auto">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20">
+                <Check className="w-3 h-3 text-green-500" />
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+        <CardDescription className="text-xs text-foreground-secondary mt-1">
+          {description}
+        </CardDescription>
+      </CardHeader>
       
-      <Progress value={score} className="mb-4" />
-      
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-foreground-secondary">
-          {category.items.filter(item => item.completed).length} of {category.items.length} completed
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="transition-all duration-300 group-hover:bg-primary group-hover:text-white"
-        >
-          View Details
-        </Button>
-      </div>
-    </div>
+      <CardContent className="pb-4">
+        <div className="w-full h-1.5 bg-background rounded-full overflow-hidden">
+          <div 
+            className="h-full transition-all duration-1000 ease-in-out rounded-full" 
+            style={{ 
+              width: `${progress}%`, 
+              background: `linear-gradient(to right, ${color})` 
+            }}
+          ></div>
+        </div>
+        <div className="flex justify-between mt-2 text-xs text-foreground-secondary">
+          <span>{completed} of {total} completed</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

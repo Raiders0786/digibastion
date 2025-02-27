@@ -1,179 +1,84 @@
 
 <div align="center">
-
-# The Ultimate Web3 Security Checklist
-### for Personal Digital Protection
-
-[![Website](https://img.shields.io/badge/🌐_Website-digibastion.com-9b87f5)](https://digibastion.com)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Twitter Follow](https://img.shields.io/twitter/follow/__Raiders?style=social)](https://twitter.com/__Raiders)
-
-<img src="public/og-image.png" alt="Digibastion Logo" width="800" height="300" />
-
+  <img src="public/og-image.png" alt="Digibastion Logo" width="300" />
+  <h1>Digibastion - Web3 Security Platform</h1>
+  <p>
+    <strong>Comprehensive security checklists, tools, and resources for Web3</strong>
+  </p>
+  <p>
+    <a href="https://digibastion.com">Website</a>
+    ·
+    <a href="https://digibastion.com/about">About</a>
+    ·
+    <a href="https://digibastion.com/tools">Tools</a>
+    ·
+    <a href="https://digibastion.com/articles">Articles</a>
+    ·
+    <a href="https://digibastion.com/support">Support Us</a>
+  </p>
 </div>
 
-<details>
-<summary>Table of Contents</summary>
+## 🛡️ About Digibastion
 
-- [The Checklist](#the-checklist)
-- [Website](#website)
-- [About](#about)
-- [Development](#development)
-- [How to Contribute](#how-to-contribute)
-- [Adding Security Categories](#adding-security-categories)
-- [Credits](#credits)
-- [License](#license)
+Digibastion is a comprehensive Web3 security platform designed to help users navigate the complex world of blockchain and cryptocurrency security. Our mission is to provide accessible, practical security guidance for users at all technical levels.
 
-</details>
+### 🔍 Features
 
-## The Checklist
+- **Security Checklists**: Comprehensive security checklists covering Web3 wallets, DeFi, smart contracts, and more
+- **Security Score Calculator**: Track and improve your security posture across multiple categories
+- **Curated Tools Directory**: A collection of essential security tools for Web3 users and developers
+- **Educational Resources**: Articles, guides, and resources to help you understand Web3 security concepts
+- **Community-Driven**: Continuously updated based on real-world security practices and community feedback
 
-Our comprehensive security checklist is available in two formats:
+## 🚀 Getting Started
 
-1. **[View on Website](https://digibastion.com)** - Interactive version with progress tracking
-2. **[View in Repository](src/data/securityData.ts)** - Source code version
+Visit [digibastion.com](https://digibastion.com) to start improving your Web3 security posture. Begin by:
 
-## Website
+1. Calculate your personalized security score
+2. Explore specialized security checklists based on your needs
+3. Check out recommended tools for additional security measures
+4. Learn from our articles and educational resources
 
-The easiest method for consuming the checklist is via our website: [digibastion.com](https://digibastion.com)
+## 🛠️ Technologies
 
-Here you can:
-- Browse lists organized by category
-- Filter by your threat model
-- Track your progress with interactive checkboxes
-- Visualize your security score with beautiful charts ☺️
+Digibastion is built with:
 
-## About
+- React + TypeScript
+- Tailwind CSS
+- Shadcn UI Components
+- Vite
 
-The source for the website is in the [`src`](src/) directory. The site is built with:
+## 👥 Contributing
 
-- [Vite](https://vitejs.dev/)
-- [React](https://reactjs.org/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [shadcn/ui](https://ui.shadcn.com/)
+We welcome contributions from the community! See our [contributing guidelines](CONTRIBUTING.md) for details on how to:
 
-## Development
+- Add new security tools and resources
+- Contribute blog articles
+- Enhance security checklists
+- Suggest improvements
 
-To run the app locally:
+## 💖 Support Us
 
-1. **Prerequisites**
-   - [Node.js](https://nodejs.org/) (v16 or higher)
-   - [Git](https://git-scm.com/)
+If you find Digibastion valuable, please consider supporting our work. Your contributions help us maintain and improve the platform.
 
-2. **Setup**
-   ```bash
-   # Clone the repository
-   git clone https://github.com/Raiders0786/digibastion.git
-   cd digibastion
+We accept donations on various blockchains including Ethereum, BSC, Optimism, Polygon, and Base.
 
-   # Install dependencies
-   npm install
+Visit our [Support Page](https://digibastion.com/support) to contribute.
 
-   # Start the development server
-   npm run dev
-   ```
+## 📄 License
 
-## How to Contribute
+Digibastion is licensed under the [MIT License](LICENSE)
 
-We welcome contributions from the community! Here's how you can help:
+## 🙏 Acknowledgements
 
-### Getting Started
+Special thanks to:
 
-1. Fork the repository
-2. Create a new branch for your feature: `git checkout -b feature/your-feature-name`
-3. Make your changes
-4. Run tests: `npm test`
-5. Submit a pull request
+- [Raiders](https://twitter.com/__Raiders) - Project Founder
+- [Vladimir S. (Officer's Notes)](https://twitter.com/officer_cia) - Core Contributor
+- All community members who have contributed to the project
 
-### Code Style Guidelines
+---
 
-- Follow the TypeScript conventions in the codebase
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Write tests for new features
-- Follow our commit message format
-
-### Adding Security Categories
-
-1. Create a new file in `src/data/categories/` following the existing pattern
-2. Define your category using the `SecurityCategory` type
-3. Add your category to `src/data/securityData.ts`
-
-Example:
-```typescript
-import { SecurityCategory } from "../../types/security";
-
-export const newCategoryData: SecurityCategory = {
-  id: "unique-id",
-  title: "Category Title",
-  description: "Brief description",
-  icon: "icon-name",
-  items: [
-    {
-      id: "item-1",
-      title: "Item Title",
-      description: "Item description",
-      completed: false,
-      level: "essential",
-      details: "Detailed explanation"
-    }
-    // Add more items...
-  ]
-};
-```
-### Editing into Existing Categories
-1. Locate the category file in `src/data/categories/`
-2. Make your changes following the existing format
-3. Submit a pull request with a clear description of your changes
-For more detailed contribution guidelines, please see our [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Credits
-
-Thank you to all who have contributed to, or sponsored this project!
-
-<!-- SPONSORS_LIST:START -->
-<!-- This section is automatically updated when someone sponsors the project -->
-<!-- SPONSORS_LIST:END -->
-
-<!-- Contributors -->
-<!-- ALL-CONTRIBUTORS-LIST:START -->
-<!-- This section is automatically updated when someone contributes to the project -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-## License
-
-<details>
-<summary>License</summary>
-
-```
-MIT License
-
-Copyright (c) 2025 Raiders
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-Commons Clause Restriction:
-- You may not sell, lease, or provide paid services based on the Software without prior written permission.
-- You may use, modify, and share the Software freely for non-commercial purposes.
-- Open-source contributions, forks, and modifications are allowed as long as they comply with this license.
-- If you wish to use this Software commercially, please contact raiders@securequest.dev
-```
-
-</details>
+<div align="center">
+  <p>Made with ❤️ for the Web3 community</p>
+</div>

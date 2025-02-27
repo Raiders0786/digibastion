@@ -39,7 +39,7 @@ const About = () => {
                 all technical levels to protect their digital assets and privacy.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <Card className="p-6 bg-card border border-white/10">
+                <Card className="p-6 bg-card border border-white/10 hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
                   <Code className="w-10 h-10 text-primary mb-4" />
                   <h3 className="text-lg font-medium mb-2">Education First</h3>
                   <p className="text-foreground-secondary text-sm">
@@ -48,7 +48,7 @@ const About = () => {
                     practical solutions.
                   </p>
                 </Card>
-                <Card className="p-6 bg-card border border-white/10">
+                <Card className="p-6 bg-card border border-white/10 hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
                   <Users className="w-10 h-10 text-primary mb-4" />
                   <h3 className="text-lg font-medium mb-2">Community Driven</h3>
                   <p className="text-foreground-secondary text-sm">
@@ -67,10 +67,11 @@ const About = () => {
                 Core Contributors
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors">
+                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors hover:scale-105 duration-300 cursor-pointer group" 
+                  onClick={() => window.open('https://github.com/Raiders0786', '_blank')}>
                   <div className="flex flex-col h-full">
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1">Anshik Bansal</h3>
+                      <h3 className="text-lg font-medium mb-1 group-hover:text-primary transition-colors">Raiders</h3>
                       <p className="text-foreground-secondary text-sm mb-3">Project Founder</p>
                       <p className="text-foreground-secondary text-sm">
                         Security researcher and blockchain enthusiast dedicated to making Web3 more secure and accessible.
@@ -97,10 +98,11 @@ const About = () => {
                   </div>
                 </Card>
 
-                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors">
+                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors hover:scale-105 duration-300 cursor-pointer group"
+                  onClick={() => window.open('https://x.com/officer_cia', '_blank')}>
                   <div className="flex flex-col h-full">
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1">Vladimir S.</h3>
+                      <h3 className="text-lg font-medium mb-1 group-hover:text-primary transition-colors">Vladimir S.</h3>
                       <p className="text-foreground-secondary text-sm mb-3">Officer's Notes</p>
                       <p className="text-foreground-secondary text-sm">
                         Security expert and Web3 educator continuously helping review and provide valuable tools and resources.
@@ -127,10 +129,11 @@ const About = () => {
                   </div>
                 </Card>
 
-                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors">
+                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors hover:scale-105 duration-300 cursor-pointer group"
+                  onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md', '_blank')}>
                   <div className="flex flex-col h-full">
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1">Open to Contributors</h3>
+                      <h3 className="text-lg font-medium mb-1 group-hover:text-primary transition-colors">Open to Contributors</h3>
                       <p className="text-foreground-secondary text-sm mb-3">Join Our Mission</p>
                       <p className="text-foreground-secondary text-sm">
                         We welcome security researchers, designers, and content creators passionate about making Web3 safer.
@@ -142,7 +145,7 @@ const About = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button variant="outline" size="sm" className="w-full group-hover:bg-primary/20 transition-all">
                           <Github className="w-4 h-4 mr-2" />
                           Contribute
                         </Button>
@@ -161,28 +164,28 @@ const About = () => {
                 Our Values
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                <div className="space-y-3">
+                <div className="space-y-3 p-4 rounded-lg hover:bg-card/50 transition-all duration-300">
                   <h3 className="text-lg font-medium">Accessibility</h3>
                   <p className="text-foreground-secondary text-sm">
                     Security information should be accessible to everyone, regardless of technical background. 
                     We strive to present complex security concepts in straightforward, actionable ways.
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 p-4 rounded-lg hover:bg-card/50 transition-all duration-300">
                   <h3 className="text-lg font-medium">Transparency</h3>
                   <p className="text-foreground-secondary text-sm">
                     We're committed to transparent practices in our recommendations. We don't receive 
                     compensation for recommending specific tools or services - our focus is purely on security efficacy.
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 p-4 rounded-lg hover:bg-card/50 transition-all duration-300">
                   <h3 className="text-lg font-medium">Continuous Improvement</h3>
                   <p className="text-foreground-secondary text-sm">
                     The security landscape evolves rapidly. We're dedicated to keeping our guidance current 
                     with emerging threats and best practices through ongoing research and community feedback.
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 p-4 rounded-lg hover:bg-card/50 transition-all duration-300">
                   <h3 className="text-lg font-medium">Community Focus</h3>
                   <p className="text-foreground-secondary text-sm">
                     We believe that security is a collective responsibility. By fostering a security-conscious 
@@ -210,7 +213,7 @@ const About = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="gap-2 hover:bg-primary/20 transition-all">
                     <Github className="w-4 h-4" />
                     GitHub
                   </Button>
@@ -220,12 +223,12 @@ const About = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="gap-2 hover:bg-primary/20 transition-all">
                     <Twitter className="w-4 h-4" />
                     Twitter
                   </Button>
                 </a>
-                <Button variant="outline" className="gap-2" onClick={() => window.location.pathname = '/contact'}>
+                <Button variant="outline" className="gap-2 hover:bg-primary/20 transition-all" onClick={() => window.location.pathname = '/contact'}>
                   <Mail className="w-4 h-4" />
                   Contact Us
                 </Button>

@@ -1,27 +1,47 @@
+
 import { ExternalLink, Share2, MessageCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useToast } from "@/hooks/use-toast";
+import { handleShare } from '@/utils/share';
 
 const Share = () => {
+  const { toast } = useToast();
+  const websiteUrl = "https://digibastion.com";
+  
   const socialLinks = [
     {
       name: 'Twitter',
       icon: ExternalLink,
-      url: 'https://twitter.com/intent/tweet?text=Check%20out%20Digibastion%20-%20Your%20comprehensive%20guide%20to%20Web3%20security!%20%23Web3%20%23Security%20%23Blockchain',
+      onClick: () => handleShare(
+        'twitter', 
+        websiteUrl, 
+        "Discover Digibastion - Your comprehensive guide to Web3 security! Protect your crypto assets with expert checklists and tools. Check it out at https://digibastion.com #Web3Security #Blockchain #CryptoSafety"
+      ),
       color: 'hover:text-[#1DA1F2]'
     },
     {
       name: 'LinkedIn',
       icon: Share2,
-      url: 'https://www.linkedin.com/sharing/share-offsite/?url=https://digibastion.com',
+      onClick: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${websiteUrl}&title=Digibastion%20-%20Web3%20Security%20Platform&summary=Digibastion%20offers%20comprehensive%20security%20checklists%20and%20tools%20for%20blockchain%20users%20and%20developers.%20Protect%20your%20digital%20assets%20with%20our%20expert%20security%20resources.`, '_blank'),
       color: 'hover:text-[#0A66C2]'
     },
     {
       name: 'Reddit',
       icon: MessageCircle,
-      url: 'https://reddit.com/submit?url=https://digibastion.com&title=Digibastion%20-%20Comprehensive%20Web3%20Security%20Guide',
+      onClick: () => window.open(`https://reddit.com/submit?url=${websiteUrl}&title=Digibastion%20-%20The%20Ultimate%20Web3%20Security%20Resource%20Hub`, '_blank'),
       color: 'hover:text-[#FF4500]'
+    },
+    {
+      name: 'Copy Link',
+      icon: ExternalLink,
+      onClick: () => {
+        handleShare('copy', websiteUrl, 'Digibastion - Web3 Security Platform');
+      },
+      color: 'hover:text-primary'
     }
   ];
 
@@ -44,43 +64,49 @@ const Share = () => {
             </p>
           </div>
 
-          <div className="bg-card rounded-lg p-6 mb-8 animate-slide-up">
+          <Card className="bg-card rounded-lg p-6 mb-8 animate-slide-up border border-white/10 hover:border-white/20 transition-all">
             <p className="text-foreground-secondary mb-6">
-              If you found Digibastion helpful, consider sharing it with your network. Together, we can make Web3 a safer space for everyone by spreading awareness about security best practices.
+              If you found Digibastion helpful, consider sharing it with your network. Together, we can make Web3 a safer space for everyone by spreading awareness about security best practices. Our comprehensive security checklists, tools, and resources can help both new and experienced users protect their digital assets.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {socialLinks.map((social) => (
-                <a
+                <button
                   key={social.name}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center justify-center gap-2 p-4 rounded-lg border border-white/10 ${social.color} transition-colors hover:bg-white/5`}
+                  onClick={social.onClick}
+                  className={`flex items-center justify-center gap-2 p-4 rounded-lg border border-white/10 ${social.color} transition-all duration-300 hover:bg-white/5 hover:scale-105`}
                 >
                   <social.icon className="w-5 h-5" />
                   <span>Share on {social.name}</span>
-                </a>
+                </button>
               ))}
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-card rounded-lg p-6 animate-slide-up">
+          <Card className="bg-gradient-to-br from-primary/10 to-card rounded-lg p-6 animate-slide-up border border-white/10 hover:border-white/20 transition-all">
             <h2 className="text-xl font-semibold mb-4">Join Our Community</h2>
             <p className="text-foreground-secondary mb-6">
-              Connect with fellow security enthusiasts, share experiences, and stay updated with the latest in Web3 security.
+              Connect with fellow security enthusiasts, share experiences, and stay updated with the latest in Web3 security. Be part of a community dedicated to making blockchain technology safer for everyone.
             </p>
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="https://t.me/digibastion"
+                href="https://twitter.com/__Raiders"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors text-center"
+                className="px-6 py-3 bg-card hover:bg-card/80 text-foreground rounded-lg transition-all duration-300 border border-white/10 hover:border-white/20 text-center hover:shadow-lg hover:shadow-primary/10 hover:scale-105"
               >
-                Join Telegram Community
+                Follow on Twitter
+              </a>
+              <a
+                href="https://github.com/Raiders0786/digibastion"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all duration-300 text-center hover:shadow-lg hover:shadow-primary/20 hover:scale-105"
+              >
+                Star on GitHub
               </a>
             </div>
-          </div>
+          </Card>
         </div>
       </main>
       <Footer />

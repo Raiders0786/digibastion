@@ -1,61 +1,47 @@
 
-import { ExternalLink } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Tool } from '@/data/tools/categories';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface ToolCardProps {
   tool: Tool;
 }
 
 export const ToolCard = ({ tool }: ToolCardProps) => {
-  const getImportanceBadgeColor = (importance: string) => {
-    switch (importance.toLowerCase()) {
-      case 'essential':
-        return 'bg-red-500/10 text-red-500 border-red-500/20';
-      case 'recommended':
-        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case 'optional':
-        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+  const getBadgeVariant = (importance: string) => {
+    switch (importance) {
+      case 'Essential':
+        return 'default';
+      case 'Recommended':
+        return 'secondary';
+      case 'Optional':
+        return 'outline';
       default:
-        return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+        return 'outline';
     }
   };
 
   return (
-    <Card className="group p-6 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 
-      hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden cursor-pointer
-      before:content-[''] before:absolute before:inset-0 
-      before:bg-gradient-to-r before:from-primary/0 before:via-primary/5 before:to-primary/0 
-      before:translate-x-[-100%] before:opacity-0 before:transition-all before:duration-500
-      hover:before:translate-x-[100%] hover:before:opacity-100">
-      <div className="flex items-start gap-4">
-        <div className="p-2 bg-primary/10 rounded-lg transition-all duration-300 group-hover:bg-primary/20">
-          <tool.icon className="w-5 h-5 transition-colors duration-300 group-hover:text-primary" />
+    <Card 
+      className="bg-card/50 p-5 border border-white/10 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 cursor-pointer group hover:scale-[1.02]"
+      onClick={() => window.open(tool.link, '_blank')}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className="bg-primary/10 p-2 rounded-full group-hover:bg-primary/20 transition-all duration-300">
+          <tool.icon className="w-5 h-5 text-primary" />
         </div>
-        <div className="space-y-2 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-foreground transition-colors duration-300 group-hover:text-primary">{tool.name}</h3>
-            <Badge 
-              variant="outline" 
-              className={`${getImportanceBadgeColor(tool.importance)} text-xs`}
-            >
-              {tool.importance}
-            </Badge>
-          </div>
-          
-          <p className="text-sm text-foreground-secondary">{tool.description}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full mt-4 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
-            onClick={() => window.open(tool.link, '_blank')}
-          >
-            Visit Tool
-            <ExternalLink className="w-4 h-4 ml-2" />
-          </Button>
+        <h3 className="font-medium group-hover:text-primary transition-colors">
+          {tool.name}
+        </h3>
+        <div className="ml-auto">
+          <Badge variant={getBadgeVariant(tool.importance)} className="text-xs">
+            {tool.importance}
+          </Badge>
         </div>
+      </div>
+      <p className="text-sm text-foreground-secondary">{tool.description}</p>
+      <div className="mt-4 text-xs text-foreground-secondary truncate hover:text-primary transition-colors">
+        {tool.link}
       </div>
     </Card>
   );
