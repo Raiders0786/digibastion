@@ -7,7 +7,7 @@ We love your input! We want to make contributing to Digibastion as easy and tran
 - Discussing the current state of the code
 - Submitting a fix
 - Proposing new features
-- Adding new security resources or tools
+- Adding new security tools and resources
 - Contributing blog articles
 - Enhancing security checklists
 - Becoming a maintainer
