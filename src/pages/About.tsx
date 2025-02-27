@@ -2,7 +2,7 @@
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
-import { Shield, Github, Heart, Twitter, Link, Zap, Code, Users, Globe, Gift } from 'lucide-react';
+import { Shield, Github, Heart, Twitter, Link, Zap, Code, Users, Globe, Gift, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
