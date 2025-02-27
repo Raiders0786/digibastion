@@ -110,14 +110,6 @@ Your contributions help us maintain and improve Digibastion. If you'd like to su
 
 Visit our [Support Page](https://digibastion.com/support) to contribute via Ethereum, BSC, Optimism, Polygon, Base, and other networks.
 
-<iframe 
-  src="https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00" 
-  width="100%" 
-  height="400px" 
-  frameborder="0"
-  allowpayment
-></iframe>
-
 ## License
 
 By contributing, you agree that your contributions will be licensed under its MIT License.
