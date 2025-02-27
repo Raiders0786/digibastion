@@ -1,6 +1,8 @@
+
 import { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 import { Mail, MessageSquare, Twitter, Send, Handshake, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +74,11 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="Contact Us | Digibastion"
+        description="Get in touch with the Digibastion team. Share your feedback, report issues, or join our community of Web3 security enthusiasts."
+        type="website"
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">

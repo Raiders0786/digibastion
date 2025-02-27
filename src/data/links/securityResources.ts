@@ -152,10 +152,18 @@ export const securityResources: SecurityResourcesData = {
           "active": true
         },
         {
-          "title": "Password Managers (1Password, KeePass)",
-          "url": "https://1password.com, https://keepass.info",
-          "description": "Securely store and manage your passwords using industry-standard password managers.",
+          "title": "Password Managers (1Password)",
+          "url": "https://1password.com",
+          "description": "Securely store and manage your passwords using industry-standard password manager.",
           "tags": ["password manager", "personal security"],
+          "lastReviewed": "2025-02-26",
+          "active": true
+        },
+        {
+          "title": "KeePass Password Manager",
+          "url": "https://keepass.info",
+          "description": "Open-source password manager to securely store credentials and sensitive information.",
+          "tags": ["password manager", "personal security", "open-source"],
           "lastReviewed": "2025-02-26",
           "active": true
         },
@@ -199,8 +207,16 @@ export const securityResources: SecurityResourcesData = {
         },
         {
           "title": "Endpoint Detection & Response (EDR) Solutions",
-          "url": "https://www.redcanary.com, https://www.crowdstrike.com",
+          "url": "https://www.crowdstrike.com",
           "description": "Advanced EDR solutions to monitor and secure endpoint devices.",
+          "tags": ["EDR", "endpoint security", "IT security"],
+          "lastReviewed": "2025-02-26",
+          "active": true
+        },
+        {
+          "title": "Red Canary EDR",
+          "url": "https://www.redcanary.com",
+          "description": "Managed detection and response service for enhanced endpoint security.",
           "tags": ["EDR", "endpoint security", "IT security"],
           "lastReviewed": "2025-02-26",
           "active": true

@@ -17,6 +17,7 @@ import Articles from "./pages/Articles";
 import ArticleDetail from "./pages/ArticleDetail";
 import Links from "./pages/Links";
 import Contact from "./pages/Contact";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +48,7 @@ const App = () => {
               <Route path="/articles/:slug" element={<ArticleDetail />} />
               <Route path="/links" element={<Links />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/support" element={<Support />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>

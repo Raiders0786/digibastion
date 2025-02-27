@@ -1,4 +1,5 @@
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Wallet2, Code, Briefcase } from 'lucide-react';
+
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Wallet2, Code, Briefcase, Heart } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -114,6 +115,7 @@ export const Navbar = () => {
                         { route: '/links', icon: Link, label: 'Useful Links' },
                         { route: '/license', icon: FileText, label: 'License' },
                         { route: '/about', icon: Info, label: 'About Us' },
+                        { route: '/support', icon: Heart, label: 'Support Us' },
                         { route: '/contact', icon: Mail, label: 'Contact' },
                         { route: '/share', icon: Share, label: 'Share & Connect' }
                       ].map(item => (

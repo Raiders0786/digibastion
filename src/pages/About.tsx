@@ -1,22 +1,11 @@
+
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
-import { Shield, CheckCircle, Users, TrendingUp, Lightbulb, Wallet, Twitter } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Shield, Github, Heart, Twitter, Link, Zap, Code, Users, Globe, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-// Define contributors data
-const CONTRIBUTORS = [
-  {
-    name: "Raiders",
-    role: "Creator & Lead Developer",
-    twitter: "https://x.com/__Raiders",
-    twitterHandle: "__Raiders",
-    description: "Project creator and main developer"
-  },
-  // Add more contributors as needed
-];
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 const About = () => {
   return (
@@ -31,165 +20,217 @@ const About = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-fade-in">
             <Shield className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-foreground mb-4">Ultimate Personal Web3 Security & Hygiene Checklist</h1>
-            <p className="text-lg text-foreground-secondary">
-              Empowering you to protect your digital life in an ever-changing online world
+            <h1 className="text-4xl font-bold text-foreground mb-4">About Digibastion</h1>
+            <p className="text-lg text-foreground-secondary max-w-2xl mx-auto">
+              Empowering users with knowledge and tools to navigate Web3 securely.
             </p>
           </div>
 
-          <div className="space-y-12 animate-slide-up">
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <Shield className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
-                  <p className="text-foreground-secondary">
-                    At Digibastion, we focus on providing practical guidance to secure your digital assets.
-                    Private key theft has been the number one attack vector over the years, and we're here
-                    to help you protect what matters most.
+          <div className="grid gap-12 animate-slide-up">
+            <section className="space-y-6">
+              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                <Zap className="w-6 h-6 text-primary" />
+                Our Mission
+              </h2>
+              <p className="text-foreground-secondary">
+                Digibastion was born from a simple observation: as Web3 continues to evolve and attract new users, 
+                the need for accessible, comprehensive security guidance becomes increasingly important. Our mission 
+                is to bridge this gap by providing practical, actionable security information that empowers users at 
+                all technical levels to protect their digital assets and privacy.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <Card className="p-6 bg-card border border-white/10">
+                  <Code className="w-10 h-10 text-primary mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Education First</h3>
+                  <p className="text-foreground-secondary text-sm">
+                    We believe that security literacy is the foundation of a safer Web3 ecosystem. 
+                    Our detailed checklists and resources are designed to educate while providing 
+                    practical solutions.
                   </p>
-                </div>
+                </Card>
+                <Card className="p-6 bg-card border border-white/10">
+                  <Users className="w-10 h-10 text-primary mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Community Driven</h3>
+                  <p className="text-foreground-secondary text-sm">
+                    Digibastion is built by and for the community. We incorporate feedback, research, and 
+                    real-world experiences to continuously improve our security guidance.
+                  </p>
+                </Card>
               </div>
-            </Card>
+            </section>
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <CheckCircle className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">What We Offer</h2>
-                  <p className="text-foreground-secondary mb-4">
-                    We provide a living, community-maintained resource that evolves with new threats and best practices.
-                    Built by the <a href="https://x.com/__Raiders" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Raiders</a> and supported by contributors, sponsors, and supporters.
-                  </p>
-                  <ul className="grid sm:grid-cols-2 gap-4 text-foreground-secondary">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      Comprehensive security checklists
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      Educational resources
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      Security scoring system
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      Regular security updates
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
+            <Separator className="border-white/10" />
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <TrendingUp className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Impact and Data</h2>
-                  <div className="bg-card/50 p-4 rounded-lg mb-4">
-                    <p className="text-2xl font-bold text-primary">$12B+</p>
-                    <p className="text-foreground-secondary">Digital assets stolen due to security breaches</p>
-                  </div>
-                  <p className="text-foreground-secondary">
-                    Social engineering and private key compromises have led to enormous losses in the crypto
-                    space, highlighting the importance of maintaining robust security hygiene in Web3.
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <Lightbulb className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Our Future Vision</h2>
-                  <p className="text-foreground-secondary mb-4">
-                    We believe that when you're armed with knowledge, you can guard against even the most
-                    sophisticated attacks. Our living document will continue to evolve, ensuring you always
-                    have access to the latest threats and best practices.
-                  </p>
-                  <p className="text-foreground-secondary font-semibold">
-                    Together, we're paving the way for crypto mass adoption. We all gonna make it!
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <div id="contributors" className="scroll-mt-20">
-              <Card className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start gap-4">
-                  <Users className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-4">Contributors</h2>
-                    <p className="text-foreground-secondary mb-6">
-                      Meet the amazing people who have contributed to making Digibastion better for everyone.
-                      Join us in our mission to make Web3 safer for all!
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {CONTRIBUTORS.map((contributor, index) => (
-                        <div
-                          key={index}
-                          className="bg-background/50 p-4 rounded-lg border border-white/10 hover:border-primary/50 transition-all"
-                        >
-                          <div className="flex items-start space-x-4">
-                            <Avatar className="w-12 h-12">
-                              <AvatarImage 
-                                src={`https://unavatar.io/twitter/${contributor.twitterHandle}`} 
-                                alt={contributor.name} 
-                              />
-                              <AvatarFallback>{contributor.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <h3 className="font-medium">{contributor.name}</h3>
-                                <a
-                                  href={contributor.twitter}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:text-primary/80 transition-colors"
-                                >
-                                  <Twitter className="w-4 h-4" />
-                                </a>
-                              </div>
-                              <p className="text-sm text-foreground-secondary">{contributor.role}</p>
-                              <p className="text-xs text-foreground-secondary mt-2">{contributor.description}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+            <section className="space-y-6">
+              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                <Globe className="w-6 h-6 text-primary" />
+                Core Contributors
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium mb-1">Anshik Bansal</h3>
+                      <p className="text-foreground-secondary text-sm mb-3">Project Founder</p>
+                      <p className="text-foreground-secondary text-sm">
+                        Security researcher and blockchain enthusiast dedicated to making Web3 more secure and accessible.
+                      </p>
+                    </div>
+                    <div className="mt-auto pt-4 flex items-center gap-3">
+                      <a 
+                        href="https://x.com/__Raiders" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground-secondary hover:text-primary transition-colors"
+                      >
+                        <Twitter className="w-5 h-5" />
+                      </a>
+                      <a 
+                        href="https://github.com/Raiders0786" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground-secondary hover:text-primary transition-colors"
+                      >
+                        <Github className="w-5 h-5" />
+                      </a>
                     </div>
                   </div>
-                </div>
-              </Card>
-            </div>
+                </Card>
 
-            <div id="support-our-mission" className="scroll-mt-20">
-              <Card className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start gap-4">
-                  <Wallet className="w-10 h-10 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-4">Support Our Mission</h2>
-                    <p className="text-foreground-secondary mb-6">
-                      Support us by sponsoring this project to help us continue researching and developing more useful tools, 
-                      resources, checklists, and critical alerts. Your support enables us to keep the community safe and informed 
-                      with the latest security practices.
-                    </p>
-                    <div className="space-y-4 bg-card/50 p-4 rounded-lg">
-                      <div>
-                        <p className="font-semibold mb-2">ETH/ERC-20:</p>
-                        <code className="bg-background p-2 rounded block text-sm">0x742d35Cc6634C0532925a3b844Bc454e4438f44e</code>
-                      </div>
-                      <div>
-                        <p className="font-semibold mb-2">BTC:</p>
-                        <code className="bg-background p-2 rounded block text-sm">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</code>
-                      </div>
+                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium mb-1">Vladimir S.</h3>
+                      <p className="text-foreground-secondary text-sm mb-3">Officer's Notes</p>
+                      <p className="text-foreground-secondary text-sm">
+                        Security expert and Web3 educator continuously helping review and provide valuable tools and resources.
+                      </p>
+                    </div>
+                    <div className="mt-auto pt-4 flex items-center gap-3">
+                      <a 
+                        href="https://x.com/officer_cia" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground-secondary hover:text-primary transition-colors"
+                      >
+                        <Twitter className="w-5 h-5" />
+                      </a>
+                      <a 
+                        href="https://officercia.mirror.xyz" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground-secondary hover:text-primary transition-colors"
+                      >
+                        <Link className="w-5 h-5" />
+                      </a>
                     </div>
                   </div>
+                </Card>
+
+                <Card className="p-6 bg-card/50 border border-white/10 hover:bg-card/80 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium mb-1">Open to Contributors</h3>
+                      <p className="text-foreground-secondary text-sm mb-3">Join Our Mission</p>
+                      <p className="text-foreground-secondary text-sm">
+                        We welcome security researchers, designers, and content creators passionate about making Web3 safer.
+                      </p>
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <a 
+                        href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Github className="w-4 h-4 mr-2" />
+                          Contribute
+                        </Button>
+                      </a>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </section>
+
+            <Separator className="border-white/10" />
+
+            <section className="space-y-6">
+              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                <Heart className="w-6 h-6 text-primary" />
+                Our Values
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium">Accessibility</h3>
+                  <p className="text-foreground-secondary text-sm">
+                    Security information should be accessible to everyone, regardless of technical background. 
+                    We strive to present complex security concepts in straightforward, actionable ways.
+                  </p>
                 </div>
-              </Card>
-            </div>
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium">Transparency</h3>
+                  <p className="text-foreground-secondary text-sm">
+                    We're committed to transparent practices in our recommendations. We don't receive 
+                    compensation for recommending specific tools or services - our focus is purely on security efficacy.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium">Continuous Improvement</h3>
+                  <p className="text-foreground-secondary text-sm">
+                    The security landscape evolves rapidly. We're dedicated to keeping our guidance current 
+                    with emerging threats and best practices through ongoing research and community feedback.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium">Community Focus</h3>
+                  <p className="text-foreground-secondary text-sm">
+                    We believe that security is a collective responsibility. By fostering a security-conscious 
+                    community, we can create a safer Web3 ecosystem for everyone.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <Separator className="border-white/10" />
+
+            <section className="space-y-6">
+              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                <Zap className="w-6 h-6 text-primary" />
+                Get Involved
+              </h2>
+              <p className="text-foreground-secondary">
+                Digibastion is an evolving project, and we welcome contributions from the community. Whether it's 
+                suggesting improvements to our checklists, reporting security issues, or helping spread the word 
+                about digital security, your involvement helps make Web3 safer for everyone.
+              </p>
+              <div className="flex flex-wrap gap-4 justify-center sm:justify-start mt-4">
+                <a 
+                  href="https://github.com/Raiders0786/digibastion"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" className="gap-2">
+                    <Github className="w-4 h-4" />
+                    GitHub
+                  </Button>
+                </a>
+                <a 
+                  href="https://twitter.com/__Raiders"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" className="gap-2">
+                    <Twitter className="w-4 h-4" />
+                    Twitter
+                  </Button>
+                </a>
+                <Button variant="outline" className="gap-2" onClick={() => window.location.pathname = '/contact'}>
+                  <Mail className="w-4 h-4" />
+                  Contact Us
+                </Button>
+              </div>
+            </section>
           </div>
         </div>
       </main>

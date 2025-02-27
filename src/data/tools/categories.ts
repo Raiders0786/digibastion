@@ -1,3 +1,4 @@
+
 import { 
   Search, 
   BookOpen, 
@@ -71,7 +72,7 @@ export const toolCategories: ToolCategory[] = [
       {
         name: "Dune.xyz",
         description: "Powerful platform for creating custom dashboards and visualizing blockchain data for security trend analysis",
-        link: "https://dune.xyz",
+        link: "https://dune.com",
         icon: BarChart,
         importance: "Recommended"
       },
