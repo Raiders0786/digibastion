@@ -10,8 +10,8 @@ interface MetaTagsProps {
 }
 
 export const MetaTags = ({ 
-  title = "Digibastion - Web3 Security Checklist & Resources",
-  description = "Enhance your Web3 security with our comprehensive checklist, tools, and resources. Learn best practices for crypto, DeFi, and blockchain security.",
+  title = "Digibastion - Digital Security Checklist & Resources",
+  description = "Enhance your digital security with our comprehensive checklist, tools, and resources. Learn best practices for online safety, privacy, crypto, and Web3 security.",
   image = "https://digibastion.com/og-image.png",
   type = "website"
 }: MetaTagsProps) => {

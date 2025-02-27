@@ -38,6 +38,8 @@ Resources are organized into categories. Current categories include:
 - Smart Contract Security
 - Private Key Management
 - On-Chain Monitoring
+- Digital Identity Protection
+- Privacy Tools
 - Web3 Ecosystem Best Practices & Guides
 
 ### Adding a New Resource
@@ -51,7 +53,7 @@ Resources are organized into categories. Current categories include:
 ### Resource Requirements
 
 1. **Active Maintenance**: The resource should be actively maintained
-2. **Relevance**: Must be relevant to Web3/blockchain security
+2. **Relevance**: Must be relevant to digital and/or Web3 security
 3. **Quality**: Should provide significant value to the community
 4. **Accessibility**: Should be accessible to the target audience
 
@@ -76,7 +78,7 @@ We welcome contributions to our blog section. To contribute an article:
 
 ### Article Format
 
-Articles should be informative, well-researched, and provide actionable insights related to Web3 security. The format should include:
+Articles should be informative, well-researched, and provide actionable insights related to digital security. The format should include:
 
 - Title
 - Author
@@ -110,6 +112,14 @@ Your contributions help us maintain and improve Digibastion. If you'd like to su
 
 Visit our [Support Page](https://digibastion.com/support) to contribute via Ethereum, BSC, Optimism, Polygon, Base, and other networks.
 
+<iframe 
+  src="https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00" 
+  width="100%" 
+  height="400px" 
+  frameborder="0"
+  allowpayment
+></iframe>
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under its MIT License.
@@ -121,13 +131,13 @@ Here's an example of adding a new tool:
 ```typescript
 {
   name: "Security Tools",
-  description: "Essential security tools for Web3 development",
+  description: "Essential security tools for digital protection",
   tools: [
     {
       title: "New Security Tool",
       url: "https://tool-url.com",
       description: "A comprehensive security testing framework",
-      tags: ["security", "testing", "web3"],
+      tags: ["security", "testing", "privacy"],
       lastReviewed: "2024-02-26",
       active: true
     }

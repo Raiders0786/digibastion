@@ -1,9 +1,9 @@
 
 <div align="center">
   <img src="public/og-image.png" alt="Digibastion Logo" width="300" />
-  <h1>Digibastion - Web3 Security Platform</h1>
+  <h1>Digibastion - Digital Security Platform</h1>
   <p>
-    <strong>Comprehensive security checklists, tools, and resources for Web3</strong>
+    <strong>Comprehensive security checklists, tools, and resources for personal digital protection</strong>
   </p>
   <p>
     <a href="https://digibastion.com">Website</a>
@@ -20,19 +20,19 @@
 
 ## 🛡️ About Digibastion
 
-Digibastion is a comprehensive Web3 security platform designed to help users navigate the complex world of blockchain and cryptocurrency security. Our mission is to provide accessible, practical security guidance for users at all technical levels.
+Digibastion is a comprehensive digital security platform designed to help users protect their personal digital footprint across all online activities. With a special focus on Web3 security in response to the rise in blockchain-related attacks, our mission is to provide accessible, practical security guidance for users at all technical levels.
 
 ### 🔍 Features
 
-- **Security Checklists**: Comprehensive security checklists covering Web3 wallets, DeFi, smart contracts, and more
+- **Security Checklists**: Comprehensive security checklists covering everyday digital activities, Web3 wallets, DeFi, smart contracts, and more
 - **Security Score Calculator**: Track and improve your security posture across multiple categories
-- **Curated Tools Directory**: A collection of essential security tools for Web3 users and developers
-- **Educational Resources**: Articles, guides, and resources to help you understand Web3 security concepts
+- **Curated Tools Directory**: A collection of essential security tools for both traditional and Web3 users
+- **Educational Resources**: Articles, guides, and resources to help you understand digital security concepts
 - **Community-Driven**: Continuously updated based on real-world security practices and community feedback
 
 ## 🚀 Getting Started
 
-Visit [digibastion.com](https://digibastion.com) to start improving your Web3 security posture. Begin by:
+Visit [digibastion.com](https://digibastion.com) to start improving your digital security posture. Begin by:
 
 1. Calculate your personalized security score
 2. Explore specialized security checklists based on your needs
@@ -80,5 +80,5 @@ Special thanks to:
 ---
 
 <div align="center">
-  <p>Made with ❤️ for the Web3 community</p>
+  <p>Made with ❤️ for a safer digital world</p>
 </div>
