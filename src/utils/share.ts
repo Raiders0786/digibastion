@@ -9,10 +9,12 @@ export const handleShare = async (type: 'copy' | 'twitter' | 'email', url: strin
         toast.success("Link copied to clipboard!");
         break;
       case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}`, '_blank');
+        // Format the tweet with title and URL
+        const tweetText = encodeURIComponent(`${title}\n\n${url}`);
+        window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
         break;
       case 'email':
-        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out Digibastion - your comprehensive guide to Web3 security: ${url}`)}`);
+        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out Digibastion - your comprehensive guide to digital security: ${url}`)}`);
         break;
     }
   } catch (error) {

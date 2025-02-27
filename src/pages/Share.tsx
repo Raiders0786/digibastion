@@ -19,27 +19,27 @@ const Share = () => {
       onClick: () => handleShare(
         'twitter', 
         websiteUrl, 
-        "Discover Digibastion - Your comprehensive guide to Web3 security! Protect your crypto assets with expert checklists and tools. Check it out at https://digibastion.com #Web3Security #Blockchain #CryptoSafety"
+        "Protect your personal digital footprint with Digibastion today. Self-driven operation security best practices, expert-backed checklists, and security scoring to enhance your privacy across digital services, crypto, Web3, and beyond."
       ),
       color: 'hover:text-[#1DA1F2]'
     },
     {
       name: 'LinkedIn',
       icon: Share2,
-      onClick: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${websiteUrl}&title=Digibastion%20-%20Web3%20Security%20Platform&summary=Digibastion%20offers%20comprehensive%20security%20checklists%20and%20tools%20for%20blockchain%20users%20and%20developers.%20Protect%20your%20digital%20assets%20with%20our%20expert%20security%20resources.`, '_blank'),
+      onClick: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${websiteUrl}&title=Digibastion%20-%20Digital%20Security%20Platform&summary=Protect%20your%20personal%20digital%20footprint%20with%20Digibastion.%20Self-driven%20security%20checklists%20and%20tools%20for%20users%20and%20developers.%20Enhance%20your%20privacy%20across%20all%20digital%20activities.`, '_blank'),
       color: 'hover:text-[#0A66C2]'
     },
     {
       name: 'Reddit',
       icon: MessageCircle,
-      onClick: () => window.open(`https://reddit.com/submit?url=${websiteUrl}&title=Digibastion%20-%20The%20Ultimate%20Web3%20Security%20Resource%20Hub`, '_blank'),
+      onClick: () => window.open(`https://reddit.com/submit?url=${websiteUrl}&title=Digibastion%20-%20The%20Ultimate%20Digital%20Security%20Resource%20Hub`, '_blank'),
       color: 'hover:text-[#FF4500]'
     },
     {
       name: 'Copy Link',
       icon: ExternalLink,
       onClick: () => {
-        handleShare('copy', websiteUrl, 'Digibastion - Web3 Security Platform');
+        handleShare('copy', websiteUrl, 'Digibastion - Digital Security Platform');
       },
       color: 'hover:text-primary'
     }
@@ -48,8 +48,8 @@ const Share = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Share Digibastion | Web3 Security Resources"
-        description="Share Digibastion's Web3 security resources with your network. Help make blockchain and cryptocurrency safer for everyone."
+        title="Share Digibastion | Digital Security Resources"
+        description="Share Digibastion's complete digital security resources with your network. Help make online activities and blockchain safer for everyone."
         type="website"
       />
       <Navbar />
@@ -60,13 +60,13 @@ const Share = () => {
               Share Digibastion
             </h1>
             <p className="text-lg text-foreground-secondary">
-              Help others secure their Web3 journey by sharing this resource
+              Help others secure their digital journey
             </p>
           </div>
 
           <Card className="bg-card rounded-lg p-6 mb-8 animate-slide-up border border-white/10 hover:border-white/20 transition-all">
             <p className="text-foreground-secondary mb-6">
-              If you found Digibastion helpful, consider sharing it with your network. Together, we can make Web3 a safer space for everyone by spreading awareness about security best practices. Our comprehensive security checklists, tools, and resources can help both new and experienced users protect their digital assets.
+              If you found Digibastion helpful, consider sharing it with your network. Together, we can make the digital world safer by spreading awareness about security best practices. Our comprehensive security checklists, tools, and resources help protect digital assets across everyday online activities, social media, email, cryptocurrency, and more.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -86,7 +86,7 @@ const Share = () => {
           <Card className="bg-gradient-to-br from-primary/10 to-card rounded-lg p-6 animate-slide-up border border-white/10 hover:border-white/20 transition-all">
             <h2 className="text-xl font-semibold mb-4">Join Our Community</h2>
             <p className="text-foreground-secondary mb-6">
-              Connect with fellow security enthusiasts, share experiences, and stay updated with the latest in Web3 security. Be part of a community dedicated to making blockchain technology safer for everyone.
+              Connect with fellow security enthusiasts, share experiences, and stay updated with the latest in digital security. Be part of a community dedicated to making technology safer for everyone.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a

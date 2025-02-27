@@ -15,6 +15,22 @@ interface ArticleHeaderProps {
 }
 
 export const ArticleHeader = ({ title, category, readTime }: ArticleHeaderProps) => {
+  const currentUrl = window.location.href;
+  
+  const handleTwitterShare = () => {
+    // Create a more descriptive tweet for article sharing
+    const tweetText = `${title} - A ${category} guide from Digibastion`;
+    handleShare('twitter', currentUrl, tweetText);
+  };
+  
+  const handleCopyLink = () => {
+    handleShare('copy', currentUrl, title);
+  };
+  
+  const handleEmailShare = () => {
+    handleShare('email', currentUrl, `${title} - ${category} guide from Digibastion`);
+  };
+
   return (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-4">
@@ -38,15 +54,15 @@ export const ArticleHeader = ({ title, category, readTime }: ArticleHeaderProps)
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => handleShare('copy', window.location.href, title)}>
+            <DropdownMenuItem onClick={handleCopyLink}>
               <Copy className="w-4 h-4 mr-2" />
               Copy Link
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleShare('twitter', window.location.href, title)}>
+            <DropdownMenuItem onClick={handleTwitterShare}>
               <Twitter className="w-4 h-4 mr-2" />
               Share on Twitter
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleShare('email', window.location.href, title)}>
+            <DropdownMenuItem onClick={handleEmailShare}>
               <Mail className="w-4 h-4 mr-2" />
               Share via Email
             </DropdownMenuItem>
