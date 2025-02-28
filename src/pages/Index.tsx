@@ -6,7 +6,7 @@ import { SecurityCard } from '../components/SecurityCard';
 import { SecurityScore } from '../components/SecurityScore';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { Github } from 'lucide-react';
+import { Github, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
@@ -48,7 +48,7 @@ const Index = () => {
             <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed mt-8 px-4">
               Protect your personal digital footprint with Digibastion. Our self-driven Web3 OpSec checklist lets you follow expert-backed security practices, earn a security score, and enhance your privacy across crypto, Web3, and beyond.
             </p>
-            <div className="pt-6">
+            <div className="pt-6 flex flex-wrap justify-center gap-4">
               <a 
                 href="https://github.com/Raiders0786/digibastion" 
                 target="_blank" 
@@ -61,6 +61,21 @@ const Index = () => {
                 >
                   <Github className="mr-2 h-5 w-5" />
                   View on GitHub
+                </Button>
+              </a>
+              <a 
+                href="https://www.digibastion.com/support" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <Button 
+                  size="lg" 
+                  className="bg-[#F97316] hover:bg-[#E66A00] text-white transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-[#F97316]/25 animate-[pulse_3s_ease-in-out_infinite]"
+                  aria-label="Support our project"
+                >
+                  <Heart className="mr-2 h-5 w-5 fill-white" />
+                  Support Us
                 </Button>
               </a>
             </div>
