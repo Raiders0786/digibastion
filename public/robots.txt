@@ -1,0 +1,7 @@
+
+# www.digibastion.com robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.digibastion.com/sitemap.xml

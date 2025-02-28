@@ -19,4 +19,6 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Ensure all files in the public directory are served at the root
+  publicDir: "public",
 }));

@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digibastion Sitemap Generator</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1, h2 {
+      color: #2563eb;
+    }
+    pre {
+      background-color: #eee;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+      font-family: monospace;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    .info {
+      background-color: #e6f3ff;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <h1>Digibastion Sitemap Generator</h1>
+  
+  <div class="info">
+    <p><strong>Note:</strong> This tool is for administrators only. It helps generate an updated sitemap.xml file for the Digibastion website.</p>
+    <p>After generating the sitemap, copy the XML content and update the sitemap.xml file in the project root.</p>
+  </div>
+  
+  <h2>Website Structure</h2>
+  <p>Current pages in the Digibastion website:</p>
+  
+  <pre id="sitemap-structure">
+Base URL: https://www.digibastion.com
+
+Main Pages:
+- / (Home)
+- /about
+- /tools
+- /articles
+- /support
+- /contact
+- /license
+- /share
+
+Category Pages:
+- /category/email
+- /category/social
+- /category/wallet
+- /category/authentication
+- /category/browsing
+- /category/os
+- /category/mobile
+- /category/defi
+- /category/developers
+- /category/jobs
+
+Article Pages:
+- Generated dynamically based on /articles
+  </pre>
+  
+  <button id="generate-btn">Generate Sitemap XML</button>
+  
+  <textarea id="sitemap-output" readonly placeholder="Generated sitemap will appear here..."></textarea>
+  
+  <script>
+    document.getElementById('generate-btn').addEventListener('click', function() {
+      const baseUrl = 'https://www.digibastion.com';
+      const today = new Date().toISOString().split('T')[0];
+      
+      const pages = [
+        { url: '/', priority: '1.0', changefreq: 'weekly' },
+        { url: '/about', priority: '0.8', changefreq: 'monthly' },
+        { url: '/tools', priority: '0.8', changefreq: 'monthly' },
+        { url: '/articles', priority: '0.9', changefreq: 'weekly' },
+        { url: '/support', priority: '0.7', changefreq: 'monthly' },
+        { url: '/contact', priority: '0.7', changefreq: 'monthly' },
+        { url: '/license', priority: '0.5', changefreq: 'yearly' },
+        { url: '/share', priority: '0.5', changefreq: 'yearly' },
+        
+        // Categories
+        { url: '/category/email', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/social', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/wallet', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/authentication', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/browsing', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/os', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/mobile', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/defi', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/developers', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/jobs', priority: '0.8', changefreq: 'monthly' },
+        
+        // Add known article URLs here if needed
+        // { url: '/articles/secure-password-management', priority: '0.7', changefreq: 'monthly' },
+      ];
+      
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      
+      pages.forEach(page => {
+        xml += '  <url>\n';
+        xml += `    <loc>${baseUrl}${page.url}</loc>\n`;
+        xml += `    <lastmod>${today}</lastmod>\n`;
+        xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
+        xml += `    <priority>${page.priority}</priority>\n`;
+        xml += '  </url>\n';
+      });
+      
+      xml += '</urlset>';
+      
+      document.getElementById('sitemap-output').value = xml;
+    });
+  </script>
+</body>
+</html>
