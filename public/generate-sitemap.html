@@ -106,44 +106,47 @@ Article Pages:
       const isoTimestamp = now.toISOString().replace(/\.\d+Z$/, '+00:00');
       
       const pages = [
-        { url: '/', priority: '1.0', changefreq: 'weekly' },
-        { url: '/about', priority: '0.8', changefreq: 'monthly' },
-        { url: '/tools', priority: '0.8', changefreq: 'monthly' },
-        { url: '/articles', priority: '0.9', changefreq: 'weekly' },
-        { url: '/support', priority: '0.7', changefreq: 'monthly' },
-        { url: '/contact', priority: '0.7', changefreq: 'monthly' },
-        { url: '/license', priority: '0.5', changefreq: 'yearly' },
-        { url: '/share', priority: '0.5', changefreq: 'yearly' },
+        { url: '/' },
+        { url: '/about' },
+        { url: '/tools' },
+        { url: '/articles' },
+        { url: '/support' },
+        { url: '/contact' },
+        { url: '/license' },
+        { url: '/share' },
         
         // Categories
-        { url: '/category/email', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/social', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/wallet', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/authentication', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/browsing', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/os', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/mobile', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/defi', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/developers', priority: '0.8', changefreq: 'monthly' },
-        { url: '/category/jobs', priority: '0.8', changefreq: 'monthly' },
+        { url: '/category/email' },
+        { url: '/category/social' },
+        { url: '/category/wallet' },
+        { url: '/category/authentication' },
+        { url: '/category/browsing' },
+        { url: '/category/os' },
+        { url: '/category/mobile' },
+        { url: '/category/defi' },
+        { url: '/category/developers' },
+        { url: '/category/jobs' },
         
         // Add known article URLs here if needed
-        // { url: '/articles/secure-password-management', priority: '0.7', changefreq: 'monthly' },
+        // { url: '/articles/secure-password-management' },
       ];
       
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      xml += '<urlset\n';
+      xml += '      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n';
+      xml += '      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n';
+      xml += '      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n';
+      xml += '            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n';
+      xml += '<!-- created with Digibastion Sitemap Generator -->\n\n';
       
       pages.forEach(page => {
-        xml += '  <url>\n';
-        xml += `    <loc>${baseUrl}${page.url}</loc>\n`;
-        xml += `    <lastmod>${isoTimestamp}</lastmod>\n`;
-        xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
-        xml += `    <priority>${page.priority}</priority>\n`;
-        xml += '  </url>\n';
+        xml += '<url>\n';
+        xml += `  <loc>${baseUrl}${page.url}</loc>\n`;
+        xml += `  <lastmod>${isoTimestamp}</lastmod>\n`;
+        xml += '</url>\n';
       });
       
-      xml += '</urlset>';
+      xml += '\n</urlset>';
       
       document.getElementById('sitemap-output').value = xml;
     });
