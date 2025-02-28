@@ -100,7 +100,10 @@ Article Pages:
   <script>
     document.getElementById('generate-btn').addEventListener('click', function() {
       const baseUrl = 'https://www.digibastion.com';
-      const today = new Date().toISOString().split('T')[0];
+      
+      // Generate current timestamp in ISO format with timezone
+      const now = new Date();
+      const isoTimestamp = now.toISOString().replace(/\.\d+Z$/, '+00:00');
       
       const pages = [
         { url: '/', priority: '1.0', changefreq: 'weekly' },
@@ -134,7 +137,7 @@ Article Pages:
       pages.forEach(page => {
         xml += '  <url>\n';
         xml += `    <loc>${baseUrl}${page.url}</loc>\n`;
-        xml += `    <lastmod>${today}</lastmod>\n`;
+        xml += `    <lastmod>${isoTimestamp}</lastmod>\n`;
         xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
         xml += `    <priority>${page.priority}</priority>\n`;
         xml += '  </url>\n';
