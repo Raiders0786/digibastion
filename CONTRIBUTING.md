@@ -111,14 +111,7 @@ Our security checklists are a core part of Digibastion. To enhance existing chec
 Your contributions help us maintain and improve Digibastion. If you'd like to support us financially, we accept donations in various cryptocurrencies:
 
 Visit our [Support Page](https://digibastion.com/support) to contribute via Ethereum, BSC, Optimism, Polygon, Base, and other networks.
-
-<iframe 
-  src="https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00" 
-  width="100%" 
-  height="400px" 
-  frameborder="0"
-  allowpayment
-></iframe>
+or reach out to discuss at **raiders@digibastion.com**
 
 ## License
 
