@@ -71,7 +71,7 @@ const Index = () => {
               >
                 <Button 
                   size="lg" 
-                  className="bg-[#F97316] hover:bg-[#E66A00] text-white transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-[#F97316]/25 animate-[pulse_3s_ease-in-out_infinite]"
+                  className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-[#8B5CF6]/25 border border-[#9B87F5]/30"
                   aria-label="Support our project"
                 >
                   <Heart className="mr-2 h-5 w-5 fill-white" />
