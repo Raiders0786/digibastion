@@ -1,4 +1,3 @@
-
 import { 
   Search, 
   BookOpen, 
@@ -13,7 +12,10 @@ import {
   Bell,
   MessageSquareLock,
   LayoutDashboard,
-  Wallet
+  Wallet,
+  Lock,
+  Lightbulb,
+  Key
 } from 'lucide-react';
 
 export interface Tool {
@@ -109,6 +111,13 @@ export const toolCategories: ToolCategory[] = [
         link: "https://metasleuth.io",
         icon: Search,
         importance: "Recommended"
+      },
+      {
+        name: "any.run",
+        description: "Interactive malware analysis service for analyzing suspicious files and URLs to detect potential threats",
+        link: "https://any.run",
+        icon: Search,
+        importance: "Recommended"
       }
     ]
   },
@@ -129,6 +138,34 @@ export const toolCategories: ToolCategory[] = [
         link: "https://ledgerql.com",
         icon: Database,
         importance: "Recommended"
+      },
+      {
+        name: "Web3 Antivirus",
+        description: "Specialized protection for cryptocurrency users, detecting malicious websites and potential phishing attacks in real-time",
+        link: "https://web3antivirus.io",
+        icon: Shield,
+        importance: "Essential"
+      },
+      {
+        name: "Blockaid",
+        description: "Security tool that helps users verify transaction integrity before approval, protecting against scams and transaction manipulation",
+        link: "https://www.blockaid.io",
+        icon: Shield,
+        importance: "Recommended"
+      },
+      {
+        name: "Tweetsigner",
+        description: "Tool for cryptographically signing tweets to verify authenticity in the Web3 ecosystem",
+        link: "https://tweetsigner.com",
+        icon: Lock,
+        importance: "Optional"
+      },
+      {
+        name: "DangerZone",
+        description: "Open-source tool that helps users safely open risky documents by converting them to safer formats",
+        link: "https://dangerzone.rocks",
+        icon: AlertTriangle,
+        importance: "Optional"
       }
     ]
   },
@@ -189,6 +226,53 @@ export const toolCategories: ToolCategory[] = [
         link: "https://docs.lmnl.app/docs/set-up-your-multisig-wallet",
         icon: Shield,
         importance: "Optional"
+      },
+      {
+        name: "GridPlus Lattice1",
+        description: "Advanced hardware wallet with a secure enclave for private keys, allowing users to sign transactions directly on the device",
+        link: "https://gridplus.io/products/grid-lattice1",
+        icon: Wallet,
+        importance: "Essential"
+      },
+      {
+        name: "AirGap",
+        description: "Two-device approach to cryptocurrency security, offering an air-gapped solution for signing transactions offline",
+        link: "https://airgap.it",
+        icon: Lock,
+        importance: "Recommended"
+      }
+    ]
+  },
+  {
+    title: "Physical Security & Authentication",
+    description: "Hardware solutions for enhancing account security and preventing unauthorized access",
+    tools: [
+      {
+        name: "YubiKey",
+        description: "Physical security key supporting multiple authentication protocols to protect cryptocurrency accounts with robust 2FA",
+        link: "https://www.yubico.com",
+        icon: Key,
+        importance: "Essential"
+      },
+      {
+        name: "Nitrokey",
+        description: "Open-source hardware security keys and secure storage devices for enhanced authentication and encryption",
+        link: "https://www.nitrokey.com",
+        icon: Key,
+        importance: "Recommended"
+      }
+    ]
+  },
+  {
+    title: "Educational Resources",
+    description: "Knowledge bases and tools to improve your security awareness and practices",
+    tools: [
+      {
+        name: "Consumer Reports Security Planner",
+        description: "Personalized security recommendations to help protect your digital life and cryptocurrency holdings",
+        link: "https://securityplanner.consumerreports.org",
+        icon: Lightbulb,
+        importance: "Recommended"
       }
     ]
   }

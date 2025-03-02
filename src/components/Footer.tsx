@@ -1,5 +1,5 @@
 
-import { Github, Copyright, Twitter, ExternalLink, MessageSquare } from 'lucide-react';
+import { Github, Copyright, Twitter, ExternalLink, MessageSquare, Heart } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +10,7 @@ export const Footer = () => {
     <footer className="w-full border-t border-primary/10 bg-secondary/5 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col space-y-6">
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-4">
             <Button
               variant="ghost"
               size="sm"
@@ -25,6 +25,23 @@ export const Footer = () => {
               >
                 <MessageSquare className="h-4 w-4" />
                 Join Telegram
+              </a>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-foreground/70 hover:text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition-all duration-300"
+              asChild
+            >
+              <a
+                href="https://www.digibastion.com/support"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2"
+              >
+                <Heart className="h-4 w-4" />
+                Support Us
               </a>
             </Button>
           </div>
