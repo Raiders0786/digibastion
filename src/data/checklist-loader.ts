@@ -8,13 +8,7 @@ export async function loadSecurityChecklist(checklistId: string): Promise<Securi
     return data as unknown as SecurityCategory;
   } catch (error) {
     console.error(`Failed to load security checklist ${checklistId}:`, error);
-    return {
-      id: checklistId,
-      title: `Failed to load ${checklistId}`,
-      description: 'Error loading checklist data. Please check the console for details.',
-      icon: 'alert-triangle',
-      items: []
-    };
+    throw new Error(`Failed to load security checklist ${checklistId}`);
   }
 }
 
@@ -33,9 +27,28 @@ export async function loadAllSecurityChecklists(): Promise<SecurityCategory[]> {
     'developers'
   ];
   
-  const checklists = await Promise.all(
-    checklistFiles.map(file => loadSecurityChecklist(file))
-  );
-  
-  return checklists;
+  try {
+    const checklists = await Promise.all(
+      checklistFiles.map(async (file) => {
+        try {
+          return await loadSecurityChecklist(file);
+        } catch (error) {
+          console.error(`Error loading checklist ${file}:`, error);
+          // Return a minimal valid category to prevent application crash
+          return {
+            id: file,
+            title: `${file.charAt(0).toUpperCase() + file.slice(1)} Security`,
+            description: 'Error loading checklist',
+            icon: 'alert-triangle',
+            items: []
+          };
+        }
+      })
+    );
+    
+    return checklists;
+  } catch (error) {
+    console.error('Failed to load security checklists:', error);
+    return [];
+  }
 }

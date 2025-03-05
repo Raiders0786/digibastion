@@ -10,6 +10,7 @@ import { CategoryItem } from '../components/category-detail/CategoryItem';
 import { MetaTags } from '../components/MetaTags';
 import { loadSecurityChecklist } from '../data/checklist-loader';
 import { SecurityCategory } from '../types/security';
+import { useToast } from "../hooks/use-toast";
 
 const CategoryDetail = () => {
   const { categoryId } = useParams<{categoryId?: string}>();
@@ -19,6 +20,7 @@ const CategoryDetail = () => {
   const [category, setCategory] = useState<SecurityCategory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   
   useEffect(() => {
     const fetchCategory = async () => {
@@ -31,8 +33,13 @@ const CategoryDetail = () => {
       try {
         const loadedCategory = await loadSecurityChecklist(categoryId);
         
-        // Sync with the global state to ensure completion status is correct
+        if (!loadedCategory) {
+          throw new Error(`Failed to load category ${categoryId}`);
+        }
+        
+        // Find the category from global state to sync completion status
         const globalCategory = categories.find(c => c.id === categoryId);
+        
         if (globalCategory) {
           // Map completion status from global state to loaded category
           loadedCategory.items = loadedCategory.items.map(item => {
@@ -45,16 +52,42 @@ const CategoryDetail = () => {
         }
         
         setCategory(loadedCategory);
+        setError(null);
       } catch (err) {
         console.error('Error loading category:', err);
         setError('Failed to load category');
+        toast({
+          title: "Error",
+          description: "Failed to load category. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
 
+    setLoading(true);
     fetchCategory();
-  }, [categoryId, categories]);
+  }, [categoryId, categories, toast]);
+
+  // Create a handler that correctly updates both local and global state
+  const handleToggleItem = (itemId: string) => {
+    if (!category) return;
+    
+    // Update global state
+    toggleItem(category.id, itemId);
+    
+    // Update local state immediately for UI response
+    setCategory(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        items: prev.items.map(item => 
+          item.id === itemId ? { ...item, completed: !item.completed } : item
+        )
+      };
+    });
+  };
 
   if (loading) {
     return (
@@ -83,7 +116,7 @@ const CategoryDetail = () => {
     );
   }
 
-  // Calculate completed count from the synced category data
+  // Calculate completed count from the category data
   const completedCount = category.items.filter(item => item.completed).length;
 
   const filteredItems = category.items.filter(item => {
@@ -91,22 +124,6 @@ const CategoryDetail = () => {
     if (filterLevel !== 'all' && item.level !== filterLevel) return false;
     return true;
   });
-
-  // Create a handler that uses the correct category ID
-  const handleToggleItem = (itemId: string) => {
-    toggleItem(category.id, itemId);
-    
-    // Update local state to reflect the change immediately
-    setCategory(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        items: prev.items.map(item => 
-          item.id === itemId ? { ...item, completed: !item.completed } : item
-        )
-      };
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

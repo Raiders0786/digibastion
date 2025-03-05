@@ -7,12 +7,14 @@ import { MetaTags } from '../components/MetaTags';
 import { Shield, Clock, Calendar } from 'lucide-react';
 import { loadArticleData } from '../data/articles/loader';
 import { ArticleRenderer } from '../components/articles/ArticleRenderer';
+import { useToast } from "../hooks/use-toast";
 
 interface ArticleData {
   title: string;
   category: string;
   readTime: string;
   content: string;
+  slug: string;
 }
 
 const ArticleDetail = () => {
@@ -20,6 +22,7 @@ const ArticleDetail = () => {
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -35,17 +38,28 @@ const ArticleDetail = () => {
           setArticle(data);
         } else {
           setError('Failed to load article');
+          toast({
+            title: "Error",
+            description: "Failed to load article. Please try again.",
+            variant: "destructive"
+          });
         }
       } catch (err) {
         console.error('Error loading article:', err);
         setError('Error loading article');
+        toast({
+          title: "Error",
+          description: "Error loading article. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
 
+    setLoading(true);
     fetchArticle();
-  }, [slug]);
+  }, [slug, toast]);
 
   if (loading) {
     return (
@@ -102,9 +116,11 @@ const ArticleDetail = () => {
             </div>
           </div>
 
-          <div className="prose prose-lg max-w-none">
-            <ArticleRenderer markdown={article.content} />
-          </div>
+          <ArticleRenderer 
+            markdown={article.content} 
+            slug={article.slug}
+            title={article.title}
+          />
         </div>
       </main>
       <Footer />

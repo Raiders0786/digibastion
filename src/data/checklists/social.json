@@ -29,6 +29,22 @@
       "completed": false,
       "level": "recommended",
       "details": "Avoid sharing information that could be used to answer security questions or for identity theft, such as birthdate, hometown, or education history."
+    },
+    {
+      "id": "social-4",
+      "title": "Location privacy",
+      "description": "Disable location sharing",
+      "completed": false,
+      "level": "recommended",
+      "details": "Turn off location tagging on social media posts and photos to avoid revealing your whereabouts."
+    },
+    {
+      "id": "social-5",
+      "title": "Secure third-party apps",
+      "description": "Review connected applications",
+      "completed": false,
+      "level": "essential",
+      "details": "Regularly audit and remove unnecessary third-party apps that have access to your social media accounts."
     }
   ]
 }
