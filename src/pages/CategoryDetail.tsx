@@ -47,7 +47,7 @@ const CategoryDetail = () => {
             const globalItem = globalCategory.items.find(gi => gi.id === item.id);
             return {
               ...item,
-              completed: globalItem ? globalItem.completed : false
+              completed: globalItem ? globalItem.completed : item.completed
             };
           });
         }
@@ -161,7 +161,7 @@ const CategoryDetail = () => {
               />
             ))}
             {filteredItems.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-foreground-secondary">
                 No items match the current filters
               </div>
             )}

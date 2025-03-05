@@ -5,7 +5,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
 import { MetaTags } from "./components/MetaTags";
 import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
@@ -32,31 +31,29 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <React.StrictMode>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <BrowserRouter>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <MetaTags /> {/* Default meta tags */}
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/category/:categoryId" element={<CategoryDetail />} />
-                <Route path="/share" element={<Share />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/license" element={<License />} />
-                <Route path="/tools" element={<Tools />} />
-                <Route path="/articles" element={<Articles />} />
-                <Route path="/articles/:slug" element={<ArticleDetail />} />
-                <Route path="/links" element={<Links />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </BrowserRouter>
-      </ThemeProvider>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <MetaTags /> {/* Default meta tags */}
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/category/:categoryId" element={<CategoryDetail />} />
+              <Route path="/share" element={<Share />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/license" element={<License />} />
+              <Route path="/tools" element={<Tools />} />
+              <Route path="/articles" element={<Articles />} />
+              <Route path="/articles/:slug" element={<ArticleDetail />} />
+              <Route path="/links" element={<Links />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
     </React.StrictMode>
   );
 };
