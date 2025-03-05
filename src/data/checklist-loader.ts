@@ -5,7 +5,7 @@ import { SecurityCategory } from '../types/security';
 export async function loadSecurityChecklist(checklistId: string): Promise<SecurityCategory> {
   try {
     const data = await import(`./checklists/${checklistId}.json`);
-    return data as SecurityCategory;
+    return data as unknown as SecurityCategory;
   } catch (error) {
     console.error(`Failed to load security checklist ${checklistId}:`, error);
     return {

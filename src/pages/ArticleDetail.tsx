@@ -12,7 +12,8 @@ interface ArticleData {
   title: string;
   category: string;
   readTime: string;
-  sections: ArticleSection[];
+  sections?: ArticleSection[];
+  content?: string;
 }
 
 const ArticleDetail = () => {
@@ -104,6 +105,7 @@ const ArticleDetail = () => {
 
           <div className="prose prose-lg max-w-none">
             {article.sections && <ArticleRenderer sections={article.sections} />}
+            {article.content && !article.sections && <ArticleRenderer markdown={article.content} />}
           </div>
         </div>
       </main>

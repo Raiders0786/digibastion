@@ -1,0 +1,37 @@
+
+{
+  "id": "developers",
+  "title": "Developer Security",
+  "description": "Secure your development environment",
+  "icon": "user",
+  "longDescription": "As a developer, you have unique security responsibilities. These measures help secure your code and development environment.",
+  "items": [
+    {
+      "id": "dev-1",
+      "title": "Secure coding practices",
+      "description": "Follow secure coding guidelines",
+      "completed": false,
+      "level": "essential",
+      "details": "Adhere to language-specific secure coding practices and run static code analysis tools.",
+      "links": [
+        { "text": "OWASP Top 10", "url": "https://owasp.org/www-project-top-ten/" }
+      ]
+    },
+    {
+      "id": "dev-2",
+      "title": "Git security",
+      "description": "Secure your Git repositories",
+      "completed": false,
+      "level": "essential",
+      "details": "Use .gitignore to prevent sensitive files from being committed. Never commit API keys, passwords, or private keys."
+    },
+    {
+      "id": "dev-3",
+      "title": "Dependency management",
+      "description": "Regularly audit dependencies",
+      "completed": false,
+      "level": "recommended",
+      "details": "Use tools like npm audit, Dependabot, or Snyk to regularly check for vulnerabilities in your dependencies."
+    }
+  ]
+}

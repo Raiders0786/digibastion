@@ -1,0 +1,34 @@
+
+{
+  "id": "os",
+  "title": "OS Security",
+  "description": "Secure your operating system",
+  "icon": "laptop",
+  "longDescription": "Your operating system is the foundation of your digital security. Keep it secure with these essential practices.",
+  "items": [
+    {
+      "id": "os-1",
+      "title": "Keep OS updated",
+      "description": "Regularly update your operating system",
+      "completed": false,
+      "level": "essential",
+      "details": "Enable automatic updates for your operating system to ensure you have the latest security patches."
+    },
+    {
+      "id": "os-2",
+      "title": "Disk encryption",
+      "description": "Enable full disk encryption",
+      "completed": false,
+      "level": "essential",
+      "details": "Enable FileVault (Mac), BitLocker (Windows), or LUKS (Linux) to encrypt your entire drive in case your device is lost or stolen."
+    },
+    {
+      "id": "os-3",
+      "title": "Secure boot",
+      "description": "Enable secure boot if available",
+      "completed": false,
+      "level": "recommended",
+      "details": "Secure boot helps prevent unauthorized boot loaders and software from loading during the startup process."
+    }
+  ]
+}
