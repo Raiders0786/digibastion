@@ -93,11 +93,11 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
   const categoryType = getCategoryType(category);
   
   // Badge color based on category type
-  const badgeColor = categoryType === 'Web3' ? 'bg-indigo-700/70' : 'bg-blue-600/70';
+  const badgeColor = categoryType === 'Web3' ? 'bg-indigo-700/70 dark:bg-indigo-600/70' : 'bg-blue-600/70 dark:bg-blue-500/70';
 
   return (
     <Card 
-      className="h-full border border-white/10 bg-card/70 backdrop-blur-sm overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
+      className="h-full border border-border/50 dark:border-border/30 bg-card/70 backdrop-blur-sm overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02] cursor-pointer group animate-fade-in"
       onClick={handleClick}
     >
       <div className="absolute top-0 right-0 h-20 w-20 -mt-10 -mr-10 bg-gradient-to-br opacity-20 rounded-full group-hover:opacity-40 transition-all duration-300" style={{ background: `linear-gradient(${color})` }}></div>
@@ -119,7 +119,7 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
                 {categoryType}
               </Badge>
             </div>
-            <CardDescription className="text-xs text-foreground-secondary mt-1">
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               {description}
             </CardDescription>
           </div>
@@ -127,16 +127,19 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
       </CardHeader>
       
       <CardContent className="pb-4">
-        <div className="w-full h-1.5 bg-background rounded-full overflow-hidden mt-3 mb-2">
+        <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-3 mb-2 dark:bg-secondary/50">
           <div 
-            className="h-full transition-all duration-1000 ease-in-out rounded-full" 
+            className="h-full transition-all duration-1000 ease-in-out rounded-full relative overflow-hidden"
             style={{ 
               width: `${progress}%`, 
               background: `linear-gradient(to right, ${color})` 
             }}
-          ></div>
+          >
+            {/* Add a subtle animation for the progress bar */}
+            <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+          </div>
         </div>
-        <div className="flex justify-between text-xs text-foreground-secondary">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span>{completed} of {total} completed</span>
           <span className="font-medium group-hover:text-primary transition-colors">View Details</span>
         </div>

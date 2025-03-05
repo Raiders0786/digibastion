@@ -7,6 +7,7 @@ export interface Article {
   readTime: string;
   content: string;
   slug: string;
+  author?: string;
 }
 
 export interface ArticleListItem {
@@ -15,6 +16,7 @@ export interface ArticleListItem {
   category: string;
   readTime: string;
   featured: boolean;
+  author?: string;
 }
 
 // Function to load article metadata (for listings)
@@ -27,28 +29,32 @@ export async function loadAllArticleMeta(): Promise<ArticleListItem[]> {
         title: "Privacy, Security, and Web3 OPSEC: Complete Guide",
         category: "Security",
         readTime: "15 min read",
-        featured: true
+        featured: true,
+        author: "Digibastion Team"
       },
       {
         slug: "getting-started-web3-security",
         title: "Getting Started with Web3 Security: Essential Guide for Beginners",
         category: "Security",
         readTime: "10 min read",
-        featured: false
+        featured: false,
+        author: "Security Expert"
       },
       {
         slug: "social-engineering-web3",
         title: "Social Engineering in Web3: Complete Guide to Avoiding Scams",
         category: "Security",
         readTime: "12 min read",
-        featured: false
+        featured: false,
+        author: "Cybersecurity Analyst"
       },
       {
         slug: "advanced-wallet-security",
         title: "Advanced Wallet Security: Best Practices for Protecting Your Crypto Assets",
         category: "Security",
         readTime: "15 min read",
-        featured: false
+        featured: false,
+        author: "Crypto Security Specialist"
       }
     ];
   } catch (error) {
@@ -84,6 +90,7 @@ export async function loadArticleData(articleSlug: string): Promise<Article | nu
     let title = articleSlug.replace(/-/g, ' ');
     let category = 'Security';
     let readTime = '5 min read';
+    let author = 'Digibastion Team';
     let content = mdContent;
     
     if (match) {
@@ -95,7 +102,17 @@ export async function loadArticleData(articleSlug: string): Promise<Article | nu
         if (key === 'title') title = value;
         if (key === 'category') category = value;
         if (key === 'readTime') readTime = value;
+        if (key === 'author') author = value;
       });
+    }
+
+    // Get author from metadata if not found in frontmatter
+    if (!author) {
+      const meta = await loadAllArticleMeta();
+      const articleMeta = meta.find(item => item.slug === articleSlug);
+      if (articleMeta?.author) {
+        author = articleMeta.author;
+      }
     }
     
     return {
@@ -103,7 +120,8 @@ export async function loadArticleData(articleSlug: string): Promise<Article | nu
       category,
       readTime,
       content,
-      slug: articleSlug
+      slug: articleSlug,
+      author
     };
   } catch (error) {
     console.error(`Failed to load article ${articleSlug}:`, error);

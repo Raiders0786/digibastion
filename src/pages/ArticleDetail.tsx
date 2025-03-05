@@ -15,6 +15,7 @@ interface ArticleData {
   readTime: string;
   content: string;
   slug: string;
+  author?: string;
 }
 
 const ArticleDetail = () => {
@@ -98,21 +99,18 @@ const ArticleDetail = () => {
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-primary">{article.category}</span>
+          <div className="flex items-center gap-2 mb-6">
+            <Shield className="w-5 h-5 text-primary" />
+            <span className="text-sm font-medium text-primary">{article.category}</span>
+            <span className="text-muted-foreground mx-2">•</span>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span className="text-sm">{article.readTime}</span>
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-6">{article.title}</h1>
-            <div className="flex items-center gap-4 text-foreground-secondary">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span>{article.readTime}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
+            <span className="text-muted-foreground mx-2">•</span>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
           </div>
 
@@ -120,6 +118,7 @@ const ArticleDetail = () => {
             markdown={article.content} 
             slug={article.slug}
             title={article.title}
+            authorName={article.author || "Digibastion Team"}
           />
         </div>
       </main>

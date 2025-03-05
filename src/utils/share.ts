@@ -1,7 +1,11 @@
 
 import { toast } from "sonner";
 
-export const handleShare = async (type: 'copy' | 'twitter' | 'email', url: string, title: string) => {
+export const handleShare = async (
+  type: 'copy' | 'twitter' | 'linkedin' | 'reddit' | 'email', 
+  url: string, 
+  title: string
+) => {
   try {
     switch (type) {
       case 'copy':
@@ -13,8 +17,14 @@ export const handleShare = async (type: 'copy' | 'twitter' | 'email', url: strin
         const tweetText = encodeURIComponent(`${title}\n\n${url}`);
         window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
         break;
+      case 'linkedin':
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'reddit':
+        window.open(`https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`, '_blank');
+        break;
       case 'email':
-        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out Digibastion - your comprehensive guide to digital security: ${url}`)}`);
+        window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this security guide: ${url}`)}`);
         break;
     }
   } catch (error) {

@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 252 59% 48%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -36,19 +36,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -62,8 +55,8 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 252 59% 54%;
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -119,11 +112,11 @@
 }
 
 .prose code {
-  @apply text-foreground bg-muted px-1 py-0.5 rounded;
+  @apply text-foreground bg-secondary px-1 py-0.5 rounded;
 }
 
 .prose pre {
-  @apply bg-muted p-4 rounded-lg overflow-x-auto;
+  @apply bg-secondary p-4 rounded-lg overflow-x-auto;
 }
 
 .prose blockquote {
@@ -137,10 +130,103 @@
 /* Add some additional styling for better code readability */
 @layer components {
   .prose code {
-    @apply text-foreground bg-muted px-1 py-0.5 rounded;
+    @apply text-foreground bg-secondary px-1 py-0.5 rounded;
   }
   
   .prose pre code {
     @apply bg-transparent px-0 py-0;
   }
+
+  /* Enhanced card styling */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1;
+  }
+
+  /* Enhanced button styling */
+  .btn-glow {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-glow::after {
+    @apply content-[''] absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0 -translate-x-[100%] animate-[pulse_2s_ease-in-out_infinite];
+  }
+
+  /* Enhanced animations */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  
+  .animate-fade-in {
+    @apply animate-[fadeIn_0.5s_ease-in-out];
+  }
+  
+  .animate-slide-up {
+    @apply animate-[slideUp_0.5s_ease-in-out];
+  }
+
+  /* Glass effect for cards */
+  .glass-card {
+    @apply backdrop-blur-md bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10;
+  }
+}
+
+/* Keyframes for custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Dark mode improvements */
+.dark .prose {
+  @apply text-gray-200;
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4 {
+  @apply text-white;
+}
+
+.dark .prose strong {
+  @apply text-white;
+}
+
+.dark .prose a {
+  @apply text-primary hover:text-primary-300;
+}
+
+.dark .prose code {
+  @apply bg-gray-800 text-gray-200;
+}
+
+.dark .prose pre {
+  @apply bg-gray-800 border border-gray-700;
+}
+
+.dark .prose blockquote {
+  @apply border-primary bg-gray-800/50;
+}
+
+.dark .prose table th {
+  @apply text-white bg-gray-800;
+}
+
+.dark .prose table td {
+  @apply border-gray-700;
 }
