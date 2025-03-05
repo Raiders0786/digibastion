@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -7,28 +8,65 @@ import { CategoryHeader } from '../components/category-detail/CategoryHeader';
 import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
 import { MetaTags } from '../components/MetaTags';
+import { loadSecurityChecklist } from '../data/checklist-loader';
+import { SecurityCategory } from '../types/security';
 
 const CategoryDetail = () => {
-  const { categoryId } = useParams();
-  const { categories, toggleItem } = useSecurityState();
+  const { categoryId } = useParams<{categoryId?: string}>();
+  const { toggleItem } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
-
-  const category = categories.find(c => c.id === categoryId);
+  const [category, setCategory] = useState<SecurityCategory | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Add debugging logs
   useEffect(() => {
-    if (category) {
-      console.log('Category found:', category.id);
-      console.log('Total items in category:', category.items.length);
-      console.log('Items:', category.items);
-    } else {
-      console.log('No category found for id:', categoryId);
-    }
-  }, [category, categoryId]);
+    const fetchCategory = async () => {
+      if (!categoryId) {
+        setError('Category not found');
+        setLoading(false);
+        return;
+      }
 
-  if (!category) {
-    return <div>Category not found</div>;
+      try {
+        const loadedCategory = await loadSecurityChecklist(categoryId);
+        setCategory(loadedCategory);
+      } catch (err) {
+        console.error('Error loading category:', err);
+        setError('Failed to load category');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategory();
+  }, [categoryId]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-xl">Loading category...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !category) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Category Not Found</h2>
+            <p>{error || 'The requested category could not be found.'}</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
   const completedCount = category.items.filter(item => item.completed).length;
@@ -38,9 +76,6 @@ const CategoryDetail = () => {
     if (filterLevel !== 'all' && item.level !== filterLevel) return false;
     return true;
   });
-
-  // Add debugging log for filtered items
-  console.log('Filtered items:', filteredItems.length);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

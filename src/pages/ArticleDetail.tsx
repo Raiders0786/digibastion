@@ -1,82 +1,117 @@
 
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { ArrowLeft } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { articles } from '@/data/articles';
-import { ArticleHeader } from '@/components/article/ArticleHeader';
-import { NotFoundView } from '@/components/article/NotFoundView';
 import { MetaTags } from '../components/MetaTags';
+import { Shield, Clock, Calendar } from 'lucide-react';
+import { loadArticleData } from '../data/articles/loader';
+import { ArticleRenderer } from '../components/articles/ArticleRenderer';
+
+interface ArticleSection {
+  type: string;
+  title: string;
+  content: string;
+}
+
+interface ArticleData {
+  title: string;
+  category: string;
+  readTime: string;
+  sections: ArticleSection[];
+}
 
 const ArticleDetail = () => {
-  const { slug } = useParams();
-  const article = articles[slug as keyof typeof articles];
-  const [ogImage, setOgImage] = useState<string>('');
+  const { slug } = useParams<{ slug: string }>();
+  const [article, setArticle] = useState<ArticleData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (article) {
-      // Properly encode the title for the OG image URL
-      const encodedTitle = encodeURIComponent(article.title)
-        .replace(/\(/g, '%28')
-        .replace(/\)/g, '%29')
-        .replace(/'/g, '%27')
-        .replace(/"/g, '%22');
+    const fetchArticle = async () => {
+      if (!slug) {
+        setError('Article not found');
+        setLoading(false);
+        return;
+      }
 
-      const ogImageUrl = `https://og-image.vercel.app/${encodedTitle}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fsecurequest-checklist.com%2Flovable-uploads%2F01298c2c-83d8-446e-b2e5-9199490d5f4e.png&widths=350&heights=350`;
-      setOgImage(ogImageUrl);
-    }
-  }, [article]);
+      try {
+        const data = await loadArticleData(slug);
+        if (data) {
+          setArticle(data as unknown as ArticleData);
+        } else {
+          setError('Failed to load article');
+        }
+      } catch (err) {
+        console.error('Error loading article:', err);
+        setError('Error loading article');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!article) {
-    return <NotFoundView />;
+    fetchArticle();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-xl">Loading article...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !article) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Article Not Found</h2>
+            <p>{error || 'The requested article could not be found.'}</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title={`${article.title} - Digibastion`}
-        description={`Learn about ${article.title} in this comprehensive guide from Digibastion`}
-        image={ogImage}
+        title={`${article.title} | Digibastion`}
+        description={`Read about ${article.title}. A comprehensive guide to Web3 security.`}
         type="article"
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
-        <article className="max-w-3xl mx-auto">
-          <Link 
-            to="/articles"
-            className="inline-flex items-center text-primary hover:text-primary-hover mb-6"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Articles
-          </Link>
-          
-          {ogImage && (
-            <div className="mb-8 rounded-xl overflow-hidden shadow-xl border border-primary/20">
-              <img 
-                src={ogImage} 
-                alt={article.title}
-                className="w-full h-auto"
-                loading="eager"
-                fetchPriority="high"
-                width="1200"
-                height="630"
-              />
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-10 animate-fade-in">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-primary">{article.category}</span>
             </div>
-          )}
-          
-          <ArticleHeader 
-            title={article.title}
-            category={article.category}
-            readTime={article.readTime}
-          />
-
-          <div className="prose prose-invert max-w-none">
-            <div className="text-foreground/80 space-y-6">
-              {article.content}
+            <h1 className="text-4xl font-bold text-foreground mb-6">{article.title}</h1>
+            <div className="flex items-center gap-4 text-foreground-secondary">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                <span>{article.readTime}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
             </div>
           </div>
-        </article>
+
+          <div className="prose prose-lg max-w-none">
+            {article.sections && <ArticleRenderer sections={article.sections} />}
+          </div>
+        </div>
       </main>
       <Footer />
     </div>

@@ -17,7 +17,7 @@ We love your input! We want to make contributing to Digibastion as easy and tran
 ### Resource Format
 When adding new security tools or resources to our collection, please follow this format:
 
-```typescript
+```json
 {
   "title": "Tool Name",
   "url": "https://tool-url.com",
@@ -28,25 +28,11 @@ When adding new security tools or resources to our collection, please follow thi
 }
 ```
 
-### Categories
-Resources are organized into categories. Current categories include:
-- Application Security
-- Cloud Security
-- Personal Security
-- Corporate & IT Security
-- Cryptocurrency & Wallet Security
-- Smart Contract Security
-- Private Key Management
-- On-Chain Monitoring
-- Digital Identity Protection
-- Privacy Tools
-- Web3 Ecosystem Best Practices & Guides
-
 ### Adding a New Resource
 
 1. Fork the repository
-2. Navigate to `src/data/links/securityResources.ts`
-3. Add your resource to the appropriate category
+2. Navigate to `src/data/links/json/` and find the appropriate category file
+3. Add your resource to the JSON file
 4. Ensure all required fields are filled out
 5. Submit a Pull Request
 
@@ -71,9 +57,9 @@ Resources are organized into categories. Current categories include:
 We welcome contributions to our blog section. To contribute an article:
 
 1. Fork the repository
-2. Create a new Markdown file in the `src/data/articles` directory
+2. Create a new JSON file in the `src/data/articles/json` directory
 3. Follow the article format structure
-4. Include relevant images and links
+4. Add your article metadata to the index file
 5. Submit a Pull Request
 
 ### Article Format
@@ -81,23 +67,23 @@ We welcome contributions to our blog section. To contribute an article:
 Articles should be informative, well-researched, and provide actionable insights related to digital security. The format should include:
 
 - Title
-- Author
-- Date
-- Tags
-- Summary/Introduction
-- Main content (divided into sections)
-- Conclusion
-- References/Sources
+- Category
+- Read time
+- Content sections (introduction, main content, conclusion)
 
 ## Contributing to Security Checklists
 
 Our security checklists are a core part of Digibastion. To enhance existing checklists or add new ones:
 
-1. Review the current checklists in `src/data/categories/`
+1. Review the current checklists in `src/data/checklists/`
 2. Identify gaps or outdated information
 3. Fork the repository
-4. Make your changes
+4. Make your changes to the appropriate JSON file
 5. Submit a Pull Request with a clear explanation of the additions or changes
+
+## Detailed Contribution Guide
+
+For step-by-step instructions on how to contribute without coding experience, please see our [Contributor's Guide](./CONTRIBUTORS_GUIDE.md).
 
 ## Development Process
 
@@ -116,27 +102,6 @@ or reach out to discuss at **raiders@digibastion.com**
 ## License
 
 By contributing, you agree that your contributions will be licensed under its MIT License.
-
-## Examples
-
-Here's an example of adding a new tool:
-
-```typescript
-{
-  name: "Security Tools",
-  description: "Essential security tools for digital protection",
-  tools: [
-    {
-      title: "New Security Tool",
-      url: "https://tool-url.com",
-      description: "A comprehensive security testing framework",
-      tags: ["security", "testing", "privacy"],
-      lastReviewed: "2024-02-26",
-      active: true
-    }
-  ]
-}
-```
 
 ## Questions?
 

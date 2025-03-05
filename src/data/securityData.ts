@@ -1,25 +1,22 @@
-
 import { SecurityCategory } from "../types/security";
-import { authenticationData } from "./categories/authentication";
-import { browsingData } from "./categories/browsing";
-import { emailData } from "./categories/email";
-import { mobileData } from "./categories/mobile";
-import { socialData } from "./categories/social";
-import { walletData } from "./categories/wallet";
-import { osData } from "./categories/os";
-import { defiData } from "./categories/defi";
-import { developersData } from "./categories/developers";
-import { jobsData } from "./categories/jobs";
+import { loadAllSecurityChecklists } from "./checklist-loader";
 
-export const initialSecurityData: SecurityCategory[] = [
-  authenticationData,
-  browsingData,
-  emailData,
-  mobileData,
-  socialData,
-  walletData,
-  osData,
-  defiData, // Added after OS
-  jobsData, // Added after DeFi
-  developersData, // Added after Jobs
-];
+// Initialize with empty categories that will be populated asynchronously
+export const initialSecurityData: SecurityCategory[] = [];
+
+// Load security checklists asynchronously
+async function initializeSecurityData() {
+  try {
+    const checklists = await loadAllSecurityChecklists();
+    // Replace all items in the array while keeping the same reference
+    initialSecurityData.splice(0, initialSecurityData.length, ...checklists);
+    console.log('Security checklists loaded successfully:', 
+      checklists.length, 'checklists,',
+      checklists.reduce((total, cat) => total + cat.items.length, 0), 'items');
+  } catch (error) {
+    console.error('Failed to initialize security checklists:', error);
+  }
+}
+
+// Call the initialization function when the module is loaded
+initializeSecurityData();
