@@ -31,6 +31,7 @@ const CategoryDetail = () => {
       }
 
       try {
+        console.log(`Loading category: ${categoryId}`);
         const loadedCategory = await loadSecurityChecklist(categoryId);
         
         if (!loadedCategory) {
@@ -53,6 +54,7 @@ const CategoryDetail = () => {
         
         setCategory(loadedCategory);
         setError(null);
+        console.log(`Successfully loaded category ${categoryId} with ${loadedCategory.items.length} items`);
       } catch (err) {
         console.error('Error loading category:', err);
         setError('Failed to load category');

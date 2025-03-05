@@ -98,7 +98,7 @@ const ArticleDetail = () => {
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-10 animate-fade-in">
+          <div className="mb-8 animate-fade-in">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-5 h-5 text-primary" />
               <span className="text-sm font-medium text-primary">{article.category}</span>

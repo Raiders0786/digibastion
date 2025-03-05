@@ -60,52 +60,51 @@ export async function loadAllArticleMeta(): Promise<ArticleListItem[]> {
 // Function to load the article Markdown data
 export async function loadArticleData(articleSlug: string): Promise<Article | null> {
   try {
-    // Try loading Markdown
-    try {
-      const markdownModule = await import(`./markdown/${articleSlug}.md?raw`);
-      const mdContent = markdownModule.default;
-      
-      // Extract frontmatter from markdown
-      const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
-      const match = mdContent.match(frontmatterRegex);
-      
-      let title = articleSlug.replace(/-/g, ' ');
-      let category = 'Security';
-      let readTime = '5 min read';
-      let content = mdContent;
-      
-      if (match) {
-        const frontmatter = match[1];
-        const frontmatterLines = frontmatter.split('\n');
-        frontmatterLines.forEach(line => {
-          if (!line.includes(':')) return;
-          const [key, value] = line.split(':').map(part => part.trim());
-          if (key === 'title') title = value;
-          if (key === 'category') category = value;
-          if (key === 'readTime') readTime = value;
-        });
-        
-        // Remove frontmatter from content
-        content = mdContent.replace(frontmatterRegex, '');
-      }
-      
-      return {
-        title,
-        category,
-        readTime,
-        content,
-        slug: articleSlug
-      };
-    } catch (error) {
-      console.error(`Error loading markdown for ${articleSlug}:`, error);
-      return {
-        title: "Article not found",
-        category: "Error",
-        readTime: "1 min read",
-        content: "# Article Not Found\n\nThe requested article could not be loaded.",
-        slug: articleSlug
-      };
+    // Create a mapping of article slugs to their respective import paths
+    const articleImports: Record<string, () => Promise<any>> = {
+      'privacy-security-web3-opsec': () => import('./markdown/privacy-security-web3-opsec.md?raw'),
+      'getting-started-web3-security': () => import('./markdown/getting-started-web3-security.md?raw'),
+      'social-engineering-web3': () => import('./markdown/social-engineering-web3.md?raw'),
+      'advanced-wallet-security': () => import('./markdown/advanced-wallet-security.md?raw')
+    };
+    
+    if (!articleImports[articleSlug]) {
+      console.error(`No article found with slug: ${articleSlug}`);
+      return null;
     }
+    
+    // Load the Markdown content
+    const markdownModule = await articleImports[articleSlug]();
+    const mdContent = markdownModule.default;
+    
+    // Extract frontmatter from markdown
+    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
+    const match = mdContent.match(frontmatterRegex);
+    
+    let title = articleSlug.replace(/-/g, ' ');
+    let category = 'Security';
+    let readTime = '5 min read';
+    let content = mdContent;
+    
+    if (match) {
+      const frontmatter = match[1];
+      const frontmatterLines = frontmatter.split('\n');
+      frontmatterLines.forEach(line => {
+        if (!line.includes(':')) return;
+        const [key, value] = line.split(':').map(part => part.trim());
+        if (key === 'title') title = value;
+        if (key === 'category') category = value;
+        if (key === 'readTime') readTime = value;
+      });
+    }
+    
+    return {
+      title,
+      category,
+      readTime,
+      content,
+      slug: articleSlug
+    };
   } catch (error) {
     console.error(`Failed to load article ${articleSlug}:`, error);
     return null;

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,4 +99,37 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Add these classes to improve article rendering */
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  @apply text-foreground font-bold;
+}
+
+.prose p, .prose ul, .prose ol, .prose li {
+  @apply text-foreground;
+}
+
+.prose strong {
+  @apply text-foreground font-bold;
+}
+
+.prose a {
+  @apply text-primary hover:text-primary/80;
+}
+
+.prose code {
+  @apply text-foreground bg-muted px-1 py-0.5 rounded;
+}
+
+.prose pre {
+  @apply bg-muted p-4 rounded-lg overflow-x-auto;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary pl-4 italic;
+}
+
+.prose img {
+  @apply rounded-lg my-4 max-w-full;
 }

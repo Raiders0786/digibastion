@@ -15,6 +15,13 @@ interface ArticleRendererProps {
 export const ArticleRenderer: React.FC<ArticleRendererProps> = ({ markdown, slug, title }) => {
   const { toast } = useToast();
 
+  // Process markdown to remove frontmatter
+  const cleanMarkdown = React.useMemo(() => {
+    // Remove frontmatter if present
+    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
+    return markdown.replace(frontmatterRegex, '');
+  }, [markdown]);
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -57,22 +64,22 @@ export const ArticleRenderer: React.FC<ArticleRendererProps> = ({ markdown, slug
             h1: ({node, ...props}) => <h1 className="text-4xl font-bold mb-6 mt-8 text-foreground" {...props} />,
             h2: ({node, ...props}) => <h2 className="text-3xl font-bold mb-4 mt-8 text-foreground" {...props} />,
             h3: ({node, ...props}) => <h3 className="text-2xl font-bold mb-4 mt-6 text-foreground" {...props} />,
-            p: ({node, ...props}) => <p className="mb-4 text-foreground-secondary" {...props} />,
-            ul: ({node, ...props}) => <ul className="mb-4 ml-6 list-disc text-foreground-secondary" {...props} />,
-            ol: ({node, ...props}) => <ol className="mb-4 ml-6 list-decimal text-foreground-secondary" {...props} />,
-            li: ({node, ...props}) => <li className="mb-1" {...props} />,
+            p: ({node, ...props}) => <p className="mb-4 text-foreground" {...props} />,
+            ul: ({node, ...props}) => <ul className="mb-4 ml-6 list-disc text-foreground" {...props} />,
+            ol: ({node, ...props}) => <ol className="mb-4 ml-6 list-decimal text-foreground" {...props} />,
+            li: ({node, ...props}) => <li className="mb-1 text-foreground" {...props} />,
             blockquote: ({node, ...props}) => (
-              <blockquote className="border-l-4 border-primary pl-4 italic my-6 text-foreground/80" {...props} />
+              <blockquote className="border-l-4 border-primary pl-4 italic my-6 text-foreground" {...props} />
             ),
             code: ({node, className, children, ...props}) => {
               // Check if the code block is inside a paragraph (inline) or standalone
               const isInline = !className;
               return isInline ? (
-                <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                <code className="bg-muted px-1 py-0.5 rounded text-sm text-foreground" {...props}>
                   {children}
                 </code>
               ) : (
-                <code className="block bg-muted p-4 rounded-md text-sm overflow-x-auto my-4" {...props}>
+                <code className="block bg-muted p-4 rounded-md text-sm overflow-x-auto my-4 text-foreground" {...props}>
                   {children}
                 </code>
               );
@@ -82,10 +89,16 @@ export const ArticleRenderer: React.FC<ArticleRendererProps> = ({ markdown, slug
             ),
             img: ({node, ...props}) => (
               <img className="rounded-lg my-6 max-w-full h-auto" alt={props.alt || "Article image"} {...props} />
+            ),
+            strong: ({node, ...props}) => (
+              <strong className="font-bold text-foreground" {...props} />
+            ),
+            em: ({node, ...props}) => (
+              <em className="italic text-foreground" {...props} />
             )
           }}
         >
-          {markdown}
+          {cleanMarkdown}
         </ReactMarkdown>
       </div>
 
