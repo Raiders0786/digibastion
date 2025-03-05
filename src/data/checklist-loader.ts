@@ -1,5 +1,5 @@
 
-import { SecurityCategory } from './types/security';
+import { SecurityCategory } from '../types/security';
 
 // Function to load a JSON checklist file
 export async function loadSecurityChecklist(checklistId: string): Promise<SecurityCategory> {

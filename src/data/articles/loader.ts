@@ -30,8 +30,8 @@ export async function loadArticleData(articleSlug: string): Promise<Article | nu
 // Function to load all article metadata for listings
 export async function loadAllArticleMeta(): Promise<{slug: string, title: string, category: string, readTime: string, featured: boolean}[]> {
   try {
-    const data = await import('./index.json');
-    return data.articles;
+    const { articles } = await import('./json/index.json');
+    return articles;
   } catch (error) {
     console.error('Failed to load article index:', error);
     return [];

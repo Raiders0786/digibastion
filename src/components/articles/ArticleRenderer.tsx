@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-interface ArticleSection {
+export interface ArticleSection {
   type: 'introduction' | 'section' | 'tip' | 'conclusion';
   title: string;
   content: string;

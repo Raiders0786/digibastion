@@ -6,13 +6,7 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { Shield, Clock, Calendar } from 'lucide-react';
 import { loadArticleData } from '../data/articles/loader';
-import { ArticleRenderer } from '../components/articles/ArticleRenderer';
-
-interface ArticleSection {
-  type: string;
-  title: string;
-  content: string;
-}
+import { ArticleRenderer, ArticleSection } from '../components/articles/ArticleRenderer';
 
 interface ArticleData {
   title: string;
