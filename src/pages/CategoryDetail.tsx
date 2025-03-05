@@ -13,7 +13,7 @@ import { SecurityCategory } from '../types/security';
 
 const CategoryDetail = () => {
   const { categoryId } = useParams<{categoryId?: string}>();
-  const { toggleItem } = useSecurityState();
+  const { categories, toggleItem } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
   const [category, setCategory] = useState<SecurityCategory | null>(null);
@@ -30,6 +30,20 @@ const CategoryDetail = () => {
 
       try {
         const loadedCategory = await loadSecurityChecklist(categoryId);
+        
+        // Sync with the global state to ensure completion status is correct
+        const globalCategory = categories.find(c => c.id === categoryId);
+        if (globalCategory) {
+          // Map completion status from global state to loaded category
+          loadedCategory.items = loadedCategory.items.map(item => {
+            const globalItem = globalCategory.items.find(gi => gi.id === item.id);
+            return {
+              ...item,
+              completed: globalItem ? globalItem.completed : item.completed
+            };
+          });
+        }
+        
         setCategory(loadedCategory);
       } catch (err) {
         console.error('Error loading category:', err);
@@ -40,8 +54,8 @@ const CategoryDetail = () => {
     };
 
     fetchCategory();
-  }, [categoryId]);
-  
+  }, [categoryId, categories]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -69,6 +83,7 @@ const CategoryDetail = () => {
     );
   }
 
+  // Calculate completed count from the synced category data
   const completedCount = category.items.filter(item => item.completed).length;
 
   const filteredItems = category.items.filter(item => {
@@ -76,6 +91,22 @@ const CategoryDetail = () => {
     if (filterLevel !== 'all' && item.level !== filterLevel) return false;
     return true;
   });
+
+  // Create a handler that uses the correct category ID
+  const handleToggleItem = (itemId: string) => {
+    toggleItem(category.id, itemId);
+    
+    // Update local state to reflect the change immediately
+    setCategory(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        items: prev.items.map(item => 
+          item.id === itemId ? { ...item, completed: !item.completed } : item
+        )
+      };
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -107,7 +138,7 @@ const CategoryDetail = () => {
               <CategoryItem
                 key={item.id}
                 item={item}
-                onToggle={() => toggleItem(category.id, item.id)}
+                onToggle={() => handleToggleItem(item.id)}
               />
             ))}
             {filteredItems.length === 0 && (

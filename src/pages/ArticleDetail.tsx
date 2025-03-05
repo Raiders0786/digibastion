@@ -6,14 +6,13 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { Shield, Clock, Calendar } from 'lucide-react';
 import { loadArticleData } from '../data/articles/loader';
-import { ArticleRenderer, ArticleSection } from '../components/articles/ArticleRenderer';
+import { ArticleRenderer } from '../components/articles/ArticleRenderer';
 
 interface ArticleData {
   title: string;
   category: string;
   readTime: string;
-  sections?: ArticleSection[];
-  content?: string;
+  content: string;
 }
 
 const ArticleDetail = () => {
@@ -33,7 +32,7 @@ const ArticleDetail = () => {
       try {
         const data = await loadArticleData(slug);
         if (data) {
-          setArticle(data as unknown as ArticleData);
+          setArticle(data);
         } else {
           setError('Failed to load article');
         }
@@ -104,8 +103,7 @@ const ArticleDetail = () => {
           </div>
 
           <div className="prose prose-lg max-w-none">
-            {article.sections && <ArticleRenderer sections={article.sections} />}
-            {article.content && !article.sections && <ArticleRenderer markdown={article.content} />}
+            <ArticleRenderer markdown={article.content} />
           </div>
         </div>
       </main>
