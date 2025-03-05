@@ -32,12 +32,19 @@ export const ArticleRenderer: React.FC<ArticleRendererProps> = ({ sections, mark
             blockquote: ({node, ...props}) => (
               <blockquote className="border-l-4 border-primary pl-4 italic my-6" {...props} />
             ),
-            code: ({node, inline, ...props}) => 
-              inline ? (
-                <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props} />
+            code: ({node, className, children, ...props}) => {
+              // Check if the code block is inside a paragraph (inline) or standalone
+              const isInline = !className;
+              return isInline ? (
+                <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                  {children}
+                </code>
               ) : (
-                <code className="block bg-muted p-4 rounded-md text-sm overflow-x-auto my-4" {...props} />
-              ),
+                <code className="block bg-muted p-4 rounded-md text-sm overflow-x-auto my-4" {...props}>
+                  {children}
+                </code>
+              );
+            },
             a: ({node, ...props}) => (
               <a className="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer" {...props} />
             )
