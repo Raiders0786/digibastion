@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -15,7 +16,8 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { Search, Tag, ExternalLink, Filter, Github } from 'lucide-react';
-import { securityResources, getAllTags } from '../data/links/securityResources';
+// Update import path to use the new structure
+import { securityResources, getAllTags } from '../data/links';
 import { MetaTags } from '../components/MetaTags';
 
 const Links = () => {
