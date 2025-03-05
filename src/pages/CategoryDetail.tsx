@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -8,117 +7,30 @@ import { CategoryHeader } from '../components/category-detail/CategoryHeader';
 import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
 import { MetaTags } from '../components/MetaTags';
-import { loadSecurityChecklist } from '../data/checklist-loader';
-import { SecurityCategory } from '../types/security';
-import { useToast } from "../hooks/use-toast";
 
 const CategoryDetail = () => {
-  const { categoryId } = useParams<{categoryId?: string}>();
+  const { categoryId } = useParams();
   const { categories, toggleItem } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [category, setCategory] = useState<SecurityCategory | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+
+  const category = categories.find(c => c.id === categoryId);
   
+  // Add debugging logs
   useEffect(() => {
-    const fetchCategory = async () => {
-      if (!categoryId) {
-        setError('Category not found');
-        setLoading(false);
-        return;
-      }
+    if (category) {
+      console.log('Category found:', category.id);
+      console.log('Total items in category:', category.items.length);
+      console.log('Items:', category.items);
+    } else {
+      console.log('No category found for id:', categoryId);
+    }
+  }, [category, categoryId]);
 
-      try {
-        console.log(`Loading category: ${categoryId}`);
-        const loadedCategory = await loadSecurityChecklist(categoryId);
-        
-        if (!loadedCategory) {
-          throw new Error(`Failed to load category ${categoryId}`);
-        }
-        
-        // Find the category from global state to sync completion status
-        const globalCategory = categories.find(c => c.id === categoryId);
-        
-        if (globalCategory) {
-          // Map completion status from global state to loaded category
-          loadedCategory.items = loadedCategory.items.map(item => {
-            const globalItem = globalCategory.items.find(gi => gi.id === item.id);
-            return {
-              ...item,
-              completed: globalItem ? globalItem.completed : item.completed
-            };
-          });
-        }
-        
-        setCategory(loadedCategory);
-        setError(null);
-        console.log(`Successfully loaded category ${categoryId} with ${loadedCategory.items.length} items`);
-      } catch (err) {
-        console.error('Error loading category:', err);
-        setError('Failed to load category');
-        toast({
-          title: "Error",
-          description: "Failed to load category. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    setLoading(true);
-    fetchCategory();
-  }, [categoryId, categories, toast]);
-
-  // Create a handler that correctly updates both local and global state
-  const handleToggleItem = (itemId: string) => {
-    if (!category) return;
-    
-    // Update global state
-    toggleItem(category.id, itemId);
-    
-    // Update local state immediately for UI response
-    setCategory(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        items: prev.items.map(item => 
-          item.id === itemId ? { ...item, completed: !item.completed } : item
-        )
-      };
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <div className="flex-grow flex items-center justify-center">
-          <p className="text-xl">Loading category...</p>
-        </div>
-        <Footer />
-      </div>
-    );
+  if (!category) {
+    return <div>Category not found</div>;
   }
 
-  if (error || !category) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <div className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Category Not Found</h2>
-            <p>{error || 'The requested category could not be found.'}</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // Calculate completed count from the category data
   const completedCount = category.items.filter(item => item.completed).length;
 
   const filteredItems = category.items.filter(item => {
@@ -126,6 +38,9 @@ const CategoryDetail = () => {
     if (filterLevel !== 'all' && item.level !== filterLevel) return false;
     return true;
   });
+
+  // Add debugging log for filtered items
+  console.log('Filtered items:', filteredItems.length);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -157,7 +72,7 @@ const CategoryDetail = () => {
               <CategoryItem
                 key={item.id}
                 item={item}
-                onToggle={() => handleToggleItem(item.id)}
+                onToggle={() => toggleItem(category.id, item.id)}
               />
             ))}
             {filteredItems.length === 0 && (

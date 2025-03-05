@@ -1,33 +1,39 @@
 
-import { SecurityResourcesData, SecurityCategory } from "./types";
-import { loadAllSecurityCategories, extractAllTags } from './loaders';
+import { SecurityResourcesData } from "./types";
+import { applicationSecurity } from "./categories/applicationSecurity";
+import { cloudSecurity } from "./categories/cloudSecurity";
+import { personalSecurity } from "./categories/personalSecurity";
+import { corporateSecurity } from "./categories/corporateSecurity";
+import { cryptoWalletSecurity } from "./categories/cryptoWalletSecurity";
+import { smartContractSecurity } from "./categories/smartContractSecurity";
+import { privateKeyManagement } from "./categories/privateKeyManagement";
+import { onChainMonitoring } from "./categories/onChainMonitoring";
+import { web3BestPractices } from "./categories/web3BestPractices";
 
-// Initialize with empty categories that will be populated asynchronously
 export const securityResources: SecurityResourcesData = {
   metadataVersion: "1.2",
   lastUpdated: "2025-02-26",
-  categories: []
+  categories: [
+    applicationSecurity,
+    cloudSecurity,
+    personalSecurity,
+    corporateSecurity,
+    cryptoWalletSecurity,
+    smartContractSecurity,
+    privateKeyManagement,
+    onChainMonitoring,
+    web3BestPractices
+  ]
 };
 
-// Load security categories asynchronously
-async function initializeSecurityResources() {
-  try {
-    const categories = await loadAllSecurityCategories();
-    securityResources.categories = categories;
-    console.log('Security resources loaded successfully:', 
-      categories.length, 'categories,',
-      categories.reduce((total, cat) => total + cat.tools.length, 0), 'tools');
-  } catch (error) {
-    console.error('Failed to initialize security resources:', error);
-  }
-}
-
-// Call the initialization function when the module is loaded
-initializeSecurityResources();
-
-// Function to get all unique tags from the loaded security resources
 export const getAllTags = (): string[] => {
-  return extractAllTags(securityResources.categories);
+  const tagsSet = new Set<string>();
+  securityResources.categories.forEach(category => {
+    category.tools.forEach(tool => {
+      tool.tags.forEach(tag => tagsSet.add(tag));
+    });
+  });
+  return Array.from(tagsSet).sort();
 };
 
 // Re-export types for convenient access

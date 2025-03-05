@@ -1,63 +1,84 @@
 
-# Digibastion - Web3 Security Platform
+<div align="center">
+  <img src="public/og-image.png" alt="Digibastion Logo" width="300" />
+  <h1>Digibastion - Digital Security Platform</h1>
+  <p>
+    <strong>Comprehensive security checklists, tools, and resources for personal digital protection</strong>
+  </p>
+  <p>
+    <a href="https://digibastion.com">Website</a>
+    ·
+    <a href="https://digibastion.com/about">About</a>
+    ·
+    <a href="https://digibastion.com/tools">Tools</a>
+    ·
+    <a href="https://digibastion.com/articles">Articles</a>
+    ·
+    <a href="https://digibastion.com/support">Support Us</a>
+  </p>
+</div>
 
-Digibastion is an open-source platform dedicated to providing comprehensive security resources for Web3 users, developers, and organizations.
+## 🛡️ About Digibastion
 
-## Features
+Digibastion is a comprehensive digital security platform designed to help users protect their personal digital footprint across all online activities. With a special focus on Web3 security in response to the rise in blockchain-related attacks, our mission is to provide accessible, practical security guidance for users at all technical levels.
 
-- Security checklists for different aspects of Web3 and digital security
-- Curated collections of security tools and resources
-- Educational articles on Web3 security topics
-- Community-driven security recommendations
+### 🔍 Features
 
-## Contributing
+- **Security Checklists**: Comprehensive security checklists covering everyday digital activities, Web3 wallets, DeFi, smart contracts, and more
+- **Security Score Calculator**: Track and improve your security posture across multiple categories
+- **Curated Tools Directory**: A collection of essential security tools for both traditional and Web3 users
+- **Educational Resources**: Articles, guides, and resources to help you understand digital security concepts
+- **Community-Driven**: Continuously updated based on real-world security practices and community feedback
 
-We welcome contributions from everyone, regardless of technical experience! Our project is designed to make it easy for non-developers to contribute content.
+## 🚀 Getting Started
 
-### Ways to Contribute
+Visit [digibastion.com](https://digibastion.com) to start improving your digital security posture. Begin by:
 
-You can contribute in several ways:
+1. Calculate your personalized security score
+2. Explore specialized security checklists based on your needs
+3. Check out recommended tools for additional security measures
+4. Learn from our articles and educational resources
 
-1. **Add Security Tools**: Share valuable security tools and resources
-2. **Create Checklist Items**: Suggest new security measures for our checklists
-3. **Write Articles**: Share your knowledge on Web3 security topics
-4. **Report Issues**: Help us improve by reporting bugs or suggesting enhancements
+## 🛠️ Technologies
 
-### How to Contribute (Non-Technical)
+Digibastion is built with:
 
-We've structured the project to use simple JSON files that can be edited directly on GitHub:
+- React + TypeScript
+- Tailwind CSS
+- Shadcn UI Components
+- Vite
 
-1. Navigate to the appropriate JSON file (tools, checklists, or articles)
-2. Click the "Edit" (pencil) icon
-3. Make your changes following the existing format
-4. Propose your changes by creating a pull request
+## 👥 Contributing
 
-For detailed instructions, see our [Contributor's Guide](./CONTRIBUTORS_GUIDE.md).
+We welcome contributions from the community! See our [contributing guidelines](CONTRIBUTING.md) for details on how to:
 
-### For Developers
+- Add new security tools and resources
+- Contribute blog articles
+- Enhance security checklists
+- Suggest improvements
 
-If you want to run the project locally:
+## 💖 Support Us
 
-1. Clone the repository
-2. Install dependencies with `npm install`
-3. Run the development server with `npm run dev`
-4. Make your changes
-5. Submit a pull request
+If you find Digibastion valuable, please consider supporting our work. Your contributions help us maintain and improve the platform.
 
-## Project Structure
+We accept donations on various blockchains including Ethereum, BSC, Optimism, Polygon, and Base.
 
-- `src/data/links/json/`: JSON files for security tools and resources
-- `src/data/checklists/`: JSON files for security checklists
-- `src/data/articles/json/`: JSON files for educational articles
+Visit our [Support Page](https://digibastion.com/support) to contribute.
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Digibastion is licensed under the [MIT License](LICENSE)
 
-## Support
+## 🙏 Acknowledgements
 
-If you'd like to support Digibastion, please visit our [Support Page](https://digibastion.com/support).
+Special thanks to:
 
-## Contact
+- [Raiders](https://twitter.com/__Raiders) - Project Founder
+- [Vladimir S. (Officer's Notes)](https://twitter.com/officer_cia) - Core Contributor
+- All community members who have contributed to the project
 
-Questions or suggestions? Contact us at raiders@digibastion.com.
+---
+
+<div align="center">
+  <p>Made with ❤️ for a safer digital world</p>
+</div>

@@ -21,6 +21,4 @@ export default defineConfig(({ mode }) => ({
   },
   // Ensure all files in the public directory are served at the root
   publicDir: "public",
-  // Handle markdown files properly
-  assetsInclude: ['**/*.md'],
 }));
