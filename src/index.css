@@ -133,3 +133,14 @@
 .prose img {
   @apply rounded-lg my-4 max-w-full;
 }
+
+/* Add some additional styling for better code readability */
+@layer components {
+  .prose code {
+    @apply text-foreground bg-muted px-1 py-0.5 rounded;
+  }
+  
+  .prose pre code {
+    @apply bg-transparent px-0 py-0;
+  }
+}
