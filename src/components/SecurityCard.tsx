@@ -81,8 +81,19 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
   };
   
   const getCategoryType = (categoryId: string) => {
-    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs', 'browsing', 'mobile', 'email'];
-    return web3Categories.includes(categoryId) ? 'Web3' : 'Web2';
+    const web3Categories = ['wallet', 'defi', 'developers', 'jobs'];
+    const hybridWeb3Categories = ['authentication', 'mobile', 'os', 'browsing'];
+    const hybridCategories = ['email'];
+    
+    if (web3Categories.includes(categoryId)) {
+      return 'Web3';
+    } else if (hybridWeb3Categories.includes(categoryId)) {
+      return 'Web3';
+    } else if (hybridCategories.includes(categoryId)) {
+      return 'Web3';
+    } else {
+      return 'Web2';
+    }
   };
   
   const CardIcon = getCategoryIcon(category);
