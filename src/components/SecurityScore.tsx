@@ -1,5 +1,5 @@
 import { Progress } from './ui/progress';
-import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet, Gauge } from 'lucide-react';
 import { SecurityStats } from '../types/security';
 import { Card } from './ui/card';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -38,8 +38,8 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     { id: 'developers', name: 'Developer Security', icon: <User className="w-4 h-4" />, priority: 'web3' },
     { id: 'os', name: 'OS Security', icon: <Laptop className="w-4 h-4" />, priority: 'web3' },
     { id: 'jobs', name: 'Job Security', icon: <Building2 className="w-4 h-4" />, priority: 'web3' },
-    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" />, priority: 'web2' },
-    { id: 'email', name: 'Email', icon: <Mail className="w-4 h-4" />, priority: 'web2' },
+    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" />, priority: 'web3' },
+    { id: 'email', name: 'Email', icon: <Mail className="w-4 h-4" />, priority: 'web3' },
     { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" />, priority: 'web2' },
     { id: 'social', name: 'Social Media', icon: <Share2 className="w-4 h-4" />, priority: 'web2' },
   ];
@@ -92,11 +92,43 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
                 {stats.completed} out of {stats.total} items completed
               </p>
             </div>
-            <span className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</span>
           </div>
-          
-          <Progress value={score} className="h-2 mb-6" />
-          
+
+          {/* Speedometer Visualization */}
+          <div className="relative w-48 h-24 mx-auto mb-6">
+            <div className="absolute inset-0">
+              <svg viewBox="0 0 100 50" className="w-full h-full">
+                {/* Background arc */}
+                <path
+                  d="M 5 45 A 40 40 0 0 1 95 45"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  className="text-secondary/30"
+                />
+                {/* Score arc */}
+                <path
+                  d={`M 5 45 A 40 40 0 0 1 ${5 + (90 * score) / 100} 45`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  className={`${getProgressColor(score)} transition-all duration-1000`}
+                />
+                {/* Gauge Icon */}
+                <Gauge 
+                  className={`w-6 h-6 ${getScoreColor(score)}`} 
+                  style={{ 
+                    transform: `rotate(${(score / 100) * 180 - 90}deg) translate(50px, 45px)` 
+                  }} 
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Levels */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             {securityLevels.map(({ label, value, color, description }) => (
               <div key={label} className="relative group">
@@ -140,6 +172,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
             ))}
           </div>
 
+          {/* Security Tips */}
           <div className="mt-6 pt-6 border-t border-white/10">
             <h3 className="text-sm font-medium mb-2">Security Tips</h3>
             <div className="space-y-2">
@@ -151,8 +184,24 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
               ))}
             </div>
           </div>
+
+          {/* Priority Categories - Moved from Overview */}
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
+            {categoryData
+              .map(cat => ({ ...cat, progress: getCategoryProgress(cat.id) }))
+              .filter(cat => cat.progress < 50)
+              .slice(0, 3)
+              .map(cat => (
+                <div key={cat.id} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
+                  <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                  <span>{cat.name} needs attention ({cat.progress}% complete)</span>
+                </div>
+              ))}
+          </div>
         </div>
 
+        {/* Categories Overview */}
         <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
           <h3 className="text-lg font-semibold text-foreground mb-4">Security Categories Overview</h3>
           
@@ -214,20 +263,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
                   );
                 })}
             </div>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
-            {categoryData
-              .map(cat => ({ ...cat, progress: getCategoryProgress(cat.id) }))
-              .filter(cat => cat.progress < 50)
-              .slice(0, 3)
-              .map(cat => (
-                <div key={cat.id} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
-                  <AlertTriangle className="w-3 h-3 text-yellow-400" />
-                  <span>{cat.name} needs attention ({cat.progress}% complete)</span>
-                </div>
-              ))}
           </div>
         </div>
       </div>

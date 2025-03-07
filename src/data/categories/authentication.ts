@@ -1,4 +1,3 @@
-
 import { SecurityCategory } from "../../types/security";
 
 export const authenticationData: SecurityCategory = {
@@ -72,10 +71,10 @@ export const authenticationData: SecurityCategory = {
       description: "Leverage cryptographic wallet signatures for login.",
       completed: false,
       level: "essential",
-      details: "Integrate wallet-based authentication using standards like Sign-In with Ethereum (SIWE) for a decentralized, password-less login. This method uses cryptographic signatures from your crypto wallet for secure identity verification.",
+      details: "Integrate wallet-based authentication using solutions like Privy or Fractal for a decentralized, password-less login. This method uses cryptographic signatures from your crypto wallet for secure identity verification.",
       links: [
-        { text: "Sign-In with Ethereum", url: "https://siwe.dev/" },
-        { text: "Web3Auth", url: "https://web3auth.io/" }
+        { text: "Privy", url: "https://www.privy.io/" },
+        { text: "Fractal ID", url: "https://web.fractal.id/" }
       ]
     },
     {
