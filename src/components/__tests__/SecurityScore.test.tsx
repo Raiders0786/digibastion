@@ -1,7 +1,15 @@
 
 import { render, screen } from '@testing-library/react';
 import { SecurityScore } from '../SecurityScore';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { useSecurityState } from '../../hooks/useSecurityState';
+
+// Mock the useSecurityState hook
+vi.mock('../../hooks/useSecurityState', () => ({
+  useSecurityState: () => ({
+    categories: []
+  })
+}));
 
 describe('SecurityScore', () => {
   const mockProps = {
