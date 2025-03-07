@@ -11,15 +11,16 @@ import { defiData } from "./categories/defi";
 import { developersData } from "./categories/developers";
 import { jobsData } from "./categories/jobs";
 
+// Reordering categories to prioritize Web3 categories
 export const initialSecurityData: SecurityCategory[] = [
-  authenticationData,
-  browsingData,
-  emailData,
-  mobileData,
-  socialData,
-  walletData,
-  osData,
-  defiData, // Added after OS
-  jobsData, // Added after DeFi
-  developersData, // Added after Jobs
+  walletData,        // Web3 - Crypto Wallet (highest priority)
+  defiData,          // Web3 - DeFi Security
+  authenticationData, // Web3/Web2 - Authentication (with wallet methods)
+  developersData,    // Web3 - Developer Security
+  osData,            // Web3/Web2 - OS Security
+  jobsData,          // Web3 - Job Security
+  browsingData,      // Web2 - Browsing
+  emailData,         // Web2 - Email
+  mobileData,        // Web2 - Mobile
+  socialData,        // Web2 - Social
 ];

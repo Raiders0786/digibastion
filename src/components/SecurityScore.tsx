@@ -32,17 +32,18 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     return Math.round((completed / category.items.length) * 100);
   };
 
+  // Updated category data with prioritization on Web3
   const categoryData = [
-    { id: 'authentication', name: 'Authentication', icon: <Key className="w-4 h-4" /> },
-    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" /> },
-    { id: 'email', name: 'Email', icon: <Mail className="w-4 h-4" /> },
-    { id: 'social', name: 'Social Media', icon: <Share2 className="w-4 h-4" /> },
-    { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" /> },
-    { id: 'os', name: 'OS Security', icon: <Laptop className="w-4 h-4" /> },
-    { id: 'wallet', name: 'Crypto Wallet Security', icon: <Wallet className="w-4 h-4" /> },
-    { id: 'defi', name: 'DeFi Security', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'developers', name: 'Developer Security', icon: <User className="w-4 h-4" /> },
-    { id: 'jobs', name: 'Job Security', icon: <Building2 className="w-4 h-4" /> },
+    { id: 'wallet', name: 'Crypto Wallet Security', icon: <Wallet className="w-4 h-4" />, priority: 'web3' },
+    { id: 'defi', name: 'DeFi Security', icon: <CreditCard className="w-4 h-4" />, priority: 'web3' },
+    { id: 'authentication', name: 'Authentication', icon: <Key className="w-4 h-4" />, priority: 'web3' },
+    { id: 'developers', name: 'Developer Security', icon: <User className="w-4 h-4" />, priority: 'web3' },
+    { id: 'os', name: 'OS Security', icon: <Laptop className="w-4 h-4" />, priority: 'web3' },
+    { id: 'jobs', name: 'Job Security', icon: <Building2 className="w-4 h-4" />, priority: 'web3' },
+    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" />, priority: 'web2' },
+    { id: 'email', name: 'Email', icon: <Mail className="w-4 h-4" />, priority: 'web2' },
+    { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" />, priority: 'web2' },
+    { id: 'social', name: 'Social Media', icon: <Share2 className="w-4 h-4" />, priority: 'web2' },
   ];
 
   const getSecurityTips = (score: number) => {
@@ -51,6 +52,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
         'Focus on completing essential security tasks first.',
         'Set up hardware wallets for your crypto assets.',
         'Enable 2FA on all your Web3 accounts.',
+        'Use wallet-based authentication where available.',
         'Create secure backups of your wallet seed phrases.',
         `Use a secure password manager (see https://www.privacyguides.org/en/passwords/).`,
       ];
@@ -60,6 +62,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
         'Set up multi-signature wallets for extra protection.',
         'Use separate hot and cold wallets for different purposes.',
         'Regularly audit your Web3 platform permissions.',
+        'Consider using hardware security keys for critical accounts.',
         'Consider using a dedicated device for crypto transactions.',
       ];
     } else {
@@ -68,6 +71,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
         'Regularly review and rotate your backup strategies.',
         'Stay updated with the latest Web3 security practices.',
         'Consider advanced features like hardware security keys.',
+        'Consider wallet-based authentication for all compatible services.',
         'Help others improve their security practices.',
       ];
     }
@@ -95,7 +99,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           
           <Progress value={score} className="h-2 mb-6" />
           
-          {/* New Circular Progress Section */}
+          {/* Circular Progress Section */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             {securityLevels.map(({ label, value, color, description }) => (
               <div key={label} className="relative group">
@@ -155,29 +159,67 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
 
         <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
           <h3 className="text-lg font-semibold text-foreground mb-4">Security Categories Overview</h3>
-          <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2">
-            {categoryData.map((category) => {
-              const progress = getCategoryProgress(category.id);
-              return (
-                <div key={category.id} className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                    {category.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-foreground">{category.name}</span>
-                      <span className="text-xs text-foreground-secondary">{progress}%</span>
+          
+          {/* Web3 Categories Section */}
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-indigo-400 mb-2">Web3 Security</h4>
+            <div className="grid gap-3 pr-2">
+              {categoryData
+                .filter(cat => cat.priority === 'web3')
+                .map((category) => {
+                  const progress = getCategoryProgress(category.id);
+                  return (
+                    <div key={category.id} className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                        {category.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-foreground">{category.name}</span>
+                          <span className="text-xs text-foreground-secondary">{progress}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${getProgressColor(progress)}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${getProgressColor(progress)}`}
-                        style={{ width: `${progress}%` }}
-                      />
+                  );
+                })}
+            </div>
+          </div>
+          
+          {/* Web2 Categories Section */}
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-blue-400 mb-2">Web2 Security</h4>
+            <div className="grid gap-3 pr-2">
+              {categoryData
+                .filter(cat => cat.priority === 'web2')
+                .map((category) => {
+                  const progress = getCategoryProgress(category.id);
+                  return (
+                    <div key={category.id} className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        {category.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-foreground">{category.name}</span>
+                          <span className="text-xs text-foreground-secondary">{progress}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${getProgressColor(progress)}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+            </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-white/10">

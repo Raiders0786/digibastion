@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -41,6 +42,11 @@ const CategoryDetail = () => {
 
   // Add debugging log for filtered items
   console.log('Filtered items:', filteredItems.length);
+  
+  const handleToggleItem = (itemId: string) => {
+    console.log('Toggling item:', itemId);
+    toggleItem(category.id, itemId);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -66,13 +72,19 @@ const CategoryDetail = () => {
             hideCompleted={hideCompleted}
             setHideCompleted={setHideCompleted}
           />
+          
+          {category.longDescription && (
+            <div className="bg-primary/5 p-4 rounded-lg mb-6 border border-primary/10">
+              <p className="text-sm text-foreground-secondary">{category.longDescription}</p>
+            </div>
+          )}
 
           <div className="space-y-4">
             {filteredItems.map(item => (
               <CategoryItem
                 key={item.id}
                 item={item}
-                onToggle={() => toggleItem(category.id, item.id)}
+                onToggle={() => handleToggleItem(item.id)}
               />
             ))}
             {filteredItems.length === 0 && (

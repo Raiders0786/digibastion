@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { SecurityCategory, SecurityItem, SecurityStats } from '../types/security';
 import { initialSecurityData } from '../data/securityData';
@@ -8,7 +7,28 @@ const STORAGE_KEY = 'security-checklist-state';
 export const useSecurityState = () => {
   const [categories, setCategories] = useState<SecurityCategory[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : initialSecurityData;
+    
+    if (stored) {
+      const storedCategories = JSON.parse(stored) as SecurityCategory[];
+      
+      return initialSecurityData.map(initialCategory => {
+        const storedCategory = storedCategories.find(c => c.id === initialCategory.id);
+        
+        if (!storedCategory) return initialCategory;
+        
+        const mergedItems = initialCategory.items.map(initialItem => {
+          const storedItem = storedCategory.items.find(i => i.id === initialItem.id);
+          return storedItem ? { ...initialItem, completed: storedItem.completed } : initialItem;
+        });
+        
+        return {
+          ...initialCategory,
+          items: mergedItems
+        };
+      });
+    }
+    
+    return initialSecurityData;
   });
 
   useEffect(() => {
@@ -16,6 +36,7 @@ export const useSecurityState = () => {
   }, [categories]);
 
   const toggleItem = (categoryId: string, itemId: string) => {
+    console.log(`Toggling item: ${categoryId} - ${itemId}`);
     setCategories(prev =>
       prev.map(category =>
         category.id === categoryId
@@ -55,12 +76,14 @@ export const useSecurityState = () => {
     );
 
     const essentialItems = categories.reduce(
-      (acc, cat) => acc + cat.items.filter(item => !item.completed).length,
+      (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'essential').length,
       0
     );
-
-    const criticalTasks = Math.floor(essentialItems * 0.3); // 30% of incomplete items are critical
-    const recommendedTasks = essentialItems - criticalTasks;
+    
+    const recommendedItems = categories.reduce(
+      (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'recommended').length,
+      0
+    );
 
     return {
       total: totalItems,
@@ -68,8 +91,8 @@ export const useSecurityState = () => {
       essential: Math.round((completedItems / totalItems) * 100),
       optional: Math.round((completedItems / (totalItems * 2)) * 100),
       advanced: Math.round((completedItems / (totalItems * 3)) * 100),
-      criticalRemaining: criticalTasks,
-      recommendedRemaining: recommendedTasks
+      criticalRemaining: essentialItems,
+      recommendedRemaining: recommendedItems
     };
   };
 

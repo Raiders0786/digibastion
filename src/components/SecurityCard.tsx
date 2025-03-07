@@ -81,8 +81,8 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
   
   // Function to determine if category is Web2 or Web3
   const getCategoryType = (categoryId: string) => {
-    // Web3 categories
-    const web3Categories = ['wallet', 'defi', 'jobs', 'developers', 'os'];
+    // Web3 categories with proper ordering for display
+    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs'];
     return web3Categories.includes(categoryId) ? 'Web3' : 'Web2';
   };
   
@@ -93,7 +93,9 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
   const categoryType = getCategoryType(category);
   
   // Badge color based on category type
-  const badgeColor = categoryType === 'Web3' ? 'bg-indigo-700/70' : 'bg-blue-600/70';
+  const badgeColor = categoryType === 'Web3' 
+    ? 'bg-indigo-700/70 hover:bg-indigo-700/80' 
+    : 'bg-blue-600/70 hover:bg-blue-600/80';
 
   return (
     <Card 
@@ -114,7 +116,7 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
               </CardTitle>
               <Badge 
                 variant="outline" 
-                className={`${badgeColor} text-xs border-0 px-2 py-0.5 h-5 ml-2`}
+                className={`${badgeColor} text-xs border-0 px-2 py-0.5 h-5 ml-2 transition-colors duration-300`}
               >
                 {categoryType}
               </Badge>
