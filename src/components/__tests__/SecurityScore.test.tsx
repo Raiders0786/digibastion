@@ -1,7 +1,26 @@
 
 import { render, screen } from '@testing-library/react';
-import { SecurityScore } from '../SecurityScore';
-import { describe, it, expect } from 'vitest';
+import { SecurityScore } from '../security-score';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock the useSecurityState hook
+vi.mock('../../hooks/useSecurityState', () => ({
+  useSecurityState: () => ({
+    categories: [
+      {
+        id: 'wallet',
+        title: 'Wallet Security',
+        items: [
+          { id: 'item1', completed: true },
+          { id: 'item2', completed: false }
+        ]
+      }
+    ],
+    getCategoryScore: () => 50,
+    getOverallScore: () => 75,
+    getStats: () => mockProps.stats
+  })
+}));
 
 describe('SecurityScore', () => {
   const mockProps = {
