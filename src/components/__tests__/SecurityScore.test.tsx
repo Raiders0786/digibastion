@@ -3,6 +3,22 @@ import { render, screen } from '@testing-library/react';
 import { SecurityScore } from '../SecurityScore';
 import { describe, it, expect } from 'vitest';
 
+// Mock the useSecurityState hook
+vi.mock('../../hooks/useSecurityState', () => ({
+  useSecurityState: () => ({
+    categories: [
+      {
+        id: 'wallet',
+        items: [{ completed: true }, { completed: false }]
+      },
+      {
+        id: 'defi',
+        items: [{ completed: true }, { completed: false }]
+      }
+    ]
+  })
+}));
+
 describe('SecurityScore', () => {
   const mockProps = {
     score: 75,

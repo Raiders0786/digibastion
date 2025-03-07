@@ -1,5 +1,6 @@
+
 import { Progress } from './ui/progress';
-import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet, Lock, Star, Code, FileText } from 'lucide-react';
 import { SecurityStats } from '../types/security';
 import { Card } from './ui/card';
 import { useSecurityState } from '../hooks/useSecurityState';
@@ -31,16 +32,17 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     return Math.round((completed / category.items.length) * 100);
   };
 
+  // Updated to include all categories from securityData.ts
   const categoryData = [
     { id: 'wallet', name: 'Crypto Wallet Security', icon: <Wallet className="w-4 h-4" />, priority: 'web3' },
     { id: 'defi', name: 'DeFi Security', icon: <CreditCard className="w-4 h-4" />, priority: 'web3' },
     { id: 'authentication', name: 'Authentication', icon: <Key className="w-4 h-4" />, priority: 'web3' },
-    { id: 'developers', name: 'Developer Security', icon: <User className="w-4 h-4" />, priority: 'web3' },
     { id: 'os', name: 'OS Security', icon: <Laptop className="w-4 h-4" />, priority: 'web3' },
+    { id: 'email', name: 'Email Security', icon: <Mail className="w-4 h-4" />, priority: 'web3' },
+    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" />, priority: 'web3' },
+    { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" />, priority: 'web3' },
+    { id: 'developers', name: 'Developer Security', icon: <Code className="w-4 h-4" />, priority: 'web3' },
     { id: 'jobs', name: 'Job Security', icon: <Building2 className="w-4 h-4" />, priority: 'web3' },
-    { id: 'browsing', name: 'Web Browsing', icon: <Globe className="w-4 h-4" />, priority: 'web2' },
-    { id: 'email', name: 'Email', icon: <Mail className="w-4 h-4" />, priority: 'web2' },
-    { id: 'mobile', name: 'Mobile Security', icon: <Smartphone className="w-4 h-4" />, priority: 'web2' },
     { id: 'social', name: 'Social Media', icon: <Share2 className="w-4 h-4" />, priority: 'web2' },
   ];
 
@@ -151,6 +153,21 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
               ))}
             </div>
           </div>
+          
+          {/* Moved Priority Categories to the Security Score card */}
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
+            {categoryData
+              .map(cat => ({ ...cat, progress: getCategoryProgress(cat.id) }))
+              .filter(cat => cat.progress < 50)
+              .slice(0, 3)
+              .map(cat => (
+                <div key={cat.id} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
+                  <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                  <span>{cat.name} needs attention ({cat.progress}% complete)</span>
+                </div>
+              ))}
+          </div>
         </div>
 
         <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
@@ -214,20 +231,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
                   );
                 })}
             </div>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
-            {categoryData
-              .map(cat => ({ ...cat, progress: getCategoryProgress(cat.id) }))
-              .filter(cat => cat.progress < 50)
-              .slice(0, 3)
-              .map(cat => (
-                <div key={cat.id} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
-                  <AlertTriangle className="w-3 h-3 text-yellow-400" />
-                  <span>{cat.name} needs attention ({cat.progress}% complete)</span>
-                </div>
-              ))}
           </div>
         </div>
       </div>
