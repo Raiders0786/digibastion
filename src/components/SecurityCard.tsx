@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Shield, 
@@ -54,7 +53,6 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
     navigate(link);
   };
 
-  // Function to determine the icon based on category
   const getCategoryIcon = (categoryId: string) => {
     switch (categoryId) {
       case 'social':
@@ -82,20 +80,15 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
     }
   };
   
-  // Function to determine if category is Web2 or Web3
   const getCategoryType = (categoryId: string) => {
-    // Web3 categories with proper ordering for display
-    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs', 'browsing', 'mobile'];
+    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs', 'browsing', 'mobile', 'email'];
     return web3Categories.includes(categoryId) ? 'Web3' : 'Web2';
   };
   
-  // Get the appropriate icon
   const CardIcon = getCategoryIcon(category);
   
-  // Determine category type (Web2 or Web3)
   const categoryType = getCategoryType(category);
   
-  // Badge color based on category type
   const badgeColor = categoryType === 'Web3' 
     ? 'bg-indigo-700/70 hover:bg-indigo-700/80' 
     : 'bg-blue-600/70 hover:bg-blue-600/80';

@@ -17,10 +17,10 @@ export const initialSecurityData: SecurityCategory[] = [
   defiData,              // Web3 - DeFi Security
   authenticationData,    // Web3/Web2 - Authentication (with wallet methods)
   osData,                // Web3/Web2 - OS Security (higher priority for Web3)
+  emailData,             // Web3/Web2 - Email (moved higher for Web3 relevance)
   browsingData,          // Web3/Web2 - Browsing (with Web3 browser focus)
   mobileData,            // Web3/Web2 - Mobile (updated with Web3 focus)
   developersData,        // Web3 - Developer Security
   jobsData,              // Web3 - Job Security
-  emailData,             // Web2 - Email
   socialData,            // Web2 - Social
 ];
