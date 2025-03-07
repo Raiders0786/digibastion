@@ -1,4 +1,3 @@
-
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet } from 'lucide-react';
 import { SecurityStats } from '../types/security';
@@ -32,7 +31,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     return Math.round((completed / category.items.length) * 100);
   };
 
-  // Updated category data with prioritization on Web3
   const categoryData = [
     { id: 'wallet', name: 'Crypto Wallet Security', icon: <Wallet className="w-4 h-4" />, priority: 'web3' },
     { id: 'defi', name: 'DeFi Security', icon: <CreditCard className="w-4 h-4" />, priority: 'web3' },
@@ -79,7 +77,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
 
   const securityLevels = [
     { label: 'Essential', value: stats.essential, color: 'green', description: 'Must-have security measures' },
-    { label: 'Optional', value: stats.optional, color: 'yellow', description: 'Additional protection layers' },
+    { label: 'Recommended', value: stats.optional, color: 'yellow', description: 'Additional protection layers' },
     { label: 'Advanced', value: stats.advanced, color: 'blue', description: 'Expert-level security' }
   ];
 
@@ -99,7 +97,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           
           <Progress value={score} className="h-2 mb-6" />
           
-          {/* Circular Progress Section */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             {securityLevels.map(({ label, value, color, description }) => (
               <div key={label} className="relative group">
@@ -136,7 +133,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
                   <p className="text-xs text-foreground-secondary mt-1">{description}</p>
                 </div>
                 
-                {/* Hover tooltip */}
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-background p-2 rounded shadow-lg text-xs w-48 text-center pointer-events-none z-10">
                   {description}
                 </div>
@@ -160,7 +156,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
         <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
           <h3 className="text-lg font-semibold text-foreground mb-4">Security Categories Overview</h3>
           
-          {/* Web3 Categories Section */}
           <div className="mb-4">
             <h4 className="text-sm font-medium text-indigo-400 mb-2">Web3 Security</h4>
             <div className="grid gap-3 pr-2">
@@ -191,7 +186,6 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
             </div>
           </div>
           
-          {/* Web2 Categories Section */}
           <div className="mb-4">
             <h4 className="text-sm font-medium text-blue-400 mb-2">Web2 Security</h4>
             <div className="grid gap-3 pr-2">

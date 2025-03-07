@@ -1,9 +1,10 @@
+
 export interface SecurityItem {
   id: string;
   title: string;
   description: string;
   completed: boolean;
-  level: 'essential' | 'recommended' | 'optional';
+  level: 'essential' | 'recommended' | 'optional' | 'advanced';
   details: string;
   links?: { text: string; url: string }[];
   ignored?: boolean;

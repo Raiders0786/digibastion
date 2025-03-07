@@ -1,5 +1,5 @@
 
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, Zap } from 'lucide-react';
 import { SecurityItem } from '../../types/security';
 import { Badge } from '../ui/badge';
 
@@ -17,6 +17,8 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
         return <Info className="w-4 h-4 text-yellow-500" />;
       case 'optional':
         return <Info className="w-4 h-4 text-blue-500" />;
+      case 'advanced':
+        return <Zap className="w-4 h-4 text-purple-500" />;
       default:
         return null;
     }
@@ -30,6 +32,8 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
         return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'optional':
         return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'advanced':
+        return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
       default:
         return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
     }
