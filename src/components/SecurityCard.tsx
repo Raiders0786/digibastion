@@ -85,7 +85,7 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
   // Function to determine if category is Web2 or Web3
   const getCategoryType = (categoryId: string) => {
     // Web3 categories with proper ordering for display
-    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs', 'browsing'];
+    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs', 'browsing', 'mobile'];
     return web3Categories.includes(categoryId) ? 'Web3' : 'Web2';
   };
   
