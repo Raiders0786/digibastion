@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { SecurityCategory, SecurityItem, SecurityStats } from '../types/security';
 import { initialSecurityData } from '../data/securityData';
@@ -82,6 +83,16 @@ export const useSecurityState = () => {
     
     const recommendedItems = categories.reduce(
       (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'recommended').length,
+      0
+    );
+
+    const advancedItems = categories.reduce(
+      (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'advanced').length,
+      0
+    );
+
+    const optionalItems = categories.reduce(
+      (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'optional').length,
       0
     );
 

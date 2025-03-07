@@ -10,7 +10,8 @@ import {
   Code, 
   Mail, 
   Smartphone, 
-  Key
+  Key,
+  Globe
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SecurityItem } from '@/types/security';
@@ -74,6 +75,8 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
         return Smartphone;
       case 'authentication':
         return Key;
+      case 'browsing':
+        return Globe;
       default:
         return Shield;
     }
@@ -82,7 +85,7 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
   // Function to determine if category is Web2 or Web3
   const getCategoryType = (categoryId: string) => {
     // Web3 categories with proper ordering for display
-    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs'];
+    const web3Categories = ['wallet', 'defi', 'authentication', 'developers', 'os', 'jobs', 'browsing'];
     return web3Categories.includes(categoryId) ? 'Web3' : 'Web2';
   };
   
