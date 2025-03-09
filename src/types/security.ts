@@ -39,3 +39,15 @@ export interface SecurityStats {
 export interface SecurityState {
   categories: SecurityCategory[];
 }
+
+// New interfaces for score history tracking
+export interface ScoreHistoryEntry {
+  date: string;
+  score: number;
+  completed: number;
+  total: number;
+}
+
+export interface ScoreHistory {
+  entries: ScoreHistoryEntry[];
+}

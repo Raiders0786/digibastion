@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { SecurityCategory, SecurityItem, SecurityStats } from '../types/security';
 import { initialSecurityData } from '../data/securityData';
@@ -5,7 +6,13 @@ import { ThreatLevel } from '../types/threatProfile';
 import { getItemsForThreatLevel } from '../data/threatProfiles';
 import { toast } from 'sonner';
 import { CompletionState, ScoreCache } from '../types/securityState';
-import { loadThreatLevel, saveThreatLevel, loadCompletionState, saveCompletionState } from '../utils/storageUtils';
+import { 
+  loadThreatLevel, 
+  saveThreatLevel, 
+  loadCompletionState, 
+  saveCompletionState,
+  addScoreHistoryEntry 
+} from '../utils/storageUtils';
 import { getRelevantItems, calculatePercentage, calculateSecurityStats } from '../utils/scoringUtils';
 
 export const useSecurityState = () => {
@@ -118,11 +125,10 @@ export const useSecurityState = () => {
     const completedItems = relevantItems.filter(item => item.completed).length;
     const score = Math.round((completedItems / relevantItems.length) * 100) || 0;
     
-    // Cache the result with required properties
+    // Cache the result
     setScoreCache(prev => {
       const updatedCache = { ...prev };
       
-      // Initialize if not exists with all required properties
       if (!updatedCache[threatLevel]) {
         updatedCache[threatLevel] = {
           overall: 0,
@@ -130,12 +136,6 @@ export const useSecurityState = () => {
         };
       }
       
-      // Make sure categories object exists
-      if (!updatedCache[threatLevel].categories) {
-        updatedCache[threatLevel].categories = {};
-      }
-      
-      // Update category score
       updatedCache[threatLevel].categories[category.id] = score;
       
       return updatedCache;
@@ -162,18 +162,16 @@ export const useSecurityState = () => {
     
     const score = totalRelevantItems > 0 ? Math.round((totalCompletedItems / totalRelevantItems) * 100) : 0;
     
-    // Cache the result with required properties
+    // Cache the result
     setScoreCache(prev => {
       const updatedCache = { ...prev };
       
-      // Initialize if not exists with all required properties
       if (!updatedCache[threatLevel]) {
         updatedCache[threatLevel] = {
           overall: score,
           categories: {}
         };
       } else {
-        // Update overall score while keeping categories
         updatedCache[threatLevel] = {
           ...updatedCache[threatLevel],
           overall: score
@@ -188,8 +186,14 @@ export const useSecurityState = () => {
 
   // Get security statistics based on current threat level
   const getStats = useCallback((): SecurityStats => {
-    return calculateSecurityStats(categories, threatLevel);
-  }, [categories, threatLevel]);
+    const stats = calculateSecurityStats(categories, threatLevel);
+    
+    // Record this score in history whenever stats are calculated
+    const score = getOverallScore();
+    addScoreHistoryEntry(score, stats);
+    
+    return stats;
+  }, [categories, threatLevel, getOverallScore]);
 
   // Get filtered categories based on threat level
   const getFilteredCategories = useMemo(() => {

@@ -1,6 +1,7 @@
 
 import { Progress } from '../ui/progress';
 import { SecurityStats } from '../../types/security';
+import { ScoreHistory } from './ScoreHistory';
 
 interface ScoreOverviewProps {
   score: number;
@@ -22,6 +23,8 @@ export const ScoreOverview = ({ score, stats, getScoreColor }: ScoreOverviewProp
       </div>
       
       <Progress value={score} className="h-2 mb-6" />
+      
+      <ScoreHistory />
     </div>
   );
 };
