@@ -1,46 +1,52 @@
-
-import { ThreatProfile, CategoryThreatMapping } from '@/types/threatProfile';
+import { ThreatLevel, ThreatProfile, CategoryThreatMapping } from "../types/threatProfile";
 
 export const threatProfiles: ThreatProfile[] = [
   {
-    id: 'basic',
-    name: 'Basic Protection',
-    description: 'Essential security measures for everyday users against common threats like phishing and malware',
-    icon: 'shield',
-    color: 'from-blue-500 to-blue-600'
+    id: "all",
+    name: "All Items",
+    description: "Show all security items regardless of threat profile",
+    icon: "shield",
+    color: "from-gray-600 to-gray-800",
   },
   {
-    id: 'developer',
-    name: 'Developer Setup',
-    description: 'Security practices for developers to protect code, credentials, and development environments',
-    icon: 'code',
-    color: 'from-green-500 to-green-600'
+    id: "basic",
+    name: "Basic",
+    description: "General security for everyday users",
+    icon: "shield",
+    color: "from-blue-600 to-blue-800",
   },
   {
-    id: 'privacy',
-    name: 'Privacy Focused',
-    description: 'Enhanced measures for users seeking stronger privacy and anonymity protections',
-    icon: 'eye-off',
-    color: 'from-purple-500 to-purple-600'
+    id: "developer",
+    name: "Developer",
+    description: "For Web3 developers and builders",
+    icon: "code",
+    color: "from-purple-600 to-purple-800",
   },
   {
-    id: 'highValue',
-    name: 'High-Value Target',
-    description: 'Comprehensive protection for individuals managing significant digital assets or sensitive information',
-    icon: 'vault',
-    color: 'from-amber-500 to-amber-600'
+    id: "privacy",
+    name: "Privacy",
+    description: "Focus on privacy and anonymity",
+    icon: "eye-off",
+    color: "from-green-600 to-green-800",
   },
   {
-    id: 'institution',
-    name: 'Institutional',
-    description: 'Enterprise-grade security for organizations facing sophisticated threat actors like nation-states',
-    icon: 'building',
-    color: 'from-red-500 to-red-600'
+    id: "highValue",
+    name: "High Value",
+    description: "For users with significant assets",
+    icon: "disc-3",
+    color: "from-amber-600 to-amber-800",
+  },
+  {
+    id: "institution",
+    name: "Institution",
+    description: "For organizations and DAOs",
+    icon: "building",
+    color: "from-red-600 to-red-800",
   }
 ];
 
-// This maps categories and their items to specific threat profiles
-export const categoryThreatMappings: CategoryThreatMapping[] = [
+// Category and threat level mappings
+const categoryThreatMappings: CategoryThreatMapping[] = [
   {
     categoryId: 'wallet',
     basicItems: ['wallet-1', 'wallet-2', 'wallet-4'],
@@ -73,7 +79,6 @@ export const categoryThreatMappings: CategoryThreatMapping[] = [
     highValueItems: ['job-1', 'job-2', 'job-3', 'job-4', 'job-5'],
     institutionItems: ['job-1', 'job-2', 'job-3', 'job-4', 'job-5']
   },
-  // Add mappings for other categories with appropriate item IDs
   {
     categoryId: 'email',
     basicItems: ['email-1', 'email-2', 'email-3'],
@@ -124,9 +129,20 @@ export const categoryThreatMappings: CategoryThreatMapping[] = [
   }
 ];
 
-export const getItemsForThreatLevel = (categoryId: string, threatLevel: string): string[] => {
+/**
+ * Get the items that are relevant for a specific threat level and category
+ */
+export const getItemsForThreatLevel = (categoryId: string, threatLevel: ThreatLevel): string[] => {
+  if (threatLevel === 'all') {
+    return [];
+  }
+  
   const mapping = categoryThreatMappings.find(m => m.categoryId === categoryId);
-  if (!mapping) return [];
+  
+  if (!mapping) {
+    console.warn(`No threat mapping found for category: ${categoryId}`);
+    return [];
+  }
   
   switch (threatLevel) {
     case 'basic':

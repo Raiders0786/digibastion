@@ -1,14 +1,16 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { SecurityCategory, SecurityItem, SecurityStats } from '../types/security';
 import { initialSecurityData } from '../data/securityData';
 import { ThreatLevel } from '../types/threatProfile';
 import { getItemsForThreatLevel } from '../data/threatProfiles';
+import { toast } from 'sonner';
 
 const STORAGE_KEY = 'security-checklist-state';
 const THREAT_LEVEL_KEY = 'security-threat-level';
 
 export const useSecurityState = () => {
+  // Load categories from localStorage or use initial data
   const [categories, setCategories] = useState<SecurityCategory[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     
@@ -35,20 +37,25 @@ export const useSecurityState = () => {
     return initialSecurityData;
   });
 
+  // Load threat level from localStorage or default to 'all'
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(() => {
     const stored = localStorage.getItem(THREAT_LEVEL_KEY);
-    return (stored as ThreatLevel) || 'basic';
+    return (stored as ThreatLevel) || 'all';
   });
 
+  // Save categories to localStorage when they change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
   }, [categories]);
 
+  // Save threat level to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(THREAT_LEVEL_KEY, threatLevel);
+    console.log(`Threat level changed to: ${threatLevel}`);
   }, [threatLevel]);
 
-  const toggleItem = (categoryId: string, itemId: string) => {
+  // Toggle item completion status
+  const toggleItem = useCallback((categoryId: string, itemId: string) => {
     console.log(`Toggling item: ${categoryId} - ${itemId}`);
     setCategories(prev =>
       prev.map(category =>
@@ -64,24 +71,27 @@ export const useSecurityState = () => {
           : category
       )
     );
-  };
+  }, []);
 
-  const getCategoryScore = (category: SecurityCategory) => {
+  // Get score for a specific category
+  const getCategoryScore = useCallback((category: SecurityCategory) => {
     const total = category.items.length;
     const completed = category.items.filter(item => item.completed).length;
     return Math.round((completed / total) * 100);
-  };
+  }, []);
 
-  const getOverallScore = () => {
+  // Get overall security score
+  const getOverallScore = useCallback(() => {
     const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
     const completedItems = categories.reduce(
       (acc, cat) => acc + cat.items.filter(item => item.completed).length,
       0
     );
     return Math.round((completedItems / totalItems) * 100);
-  };
+  }, [categories]);
 
-  const getStats = (): SecurityStats => {
+  // Get security statistics
+  const getStats = useCallback((): SecurityStats => {
     const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
     const completedItems = categories.reduce(
       (acc, cat) => acc + cat.items.filter(item => item.completed).length,
@@ -117,12 +127,26 @@ export const useSecurityState = () => {
       criticalRemaining: essentialItems,
       recommendedRemaining: recommendedItems
     };
-  };
+  }, [categories]);
 
-  const getFilteredCategories = () => {
+  // Get filtered categories based on threat level - memoized for performance
+  const getFilteredCategories = useMemo(() => {
+    console.log(`Filtering categories for threat level: ${threatLevel}`);
+    
     return categories.map(category => {
+      // If "all" is selected, return all items
+      if (threatLevel === 'all') {
+        return category;
+      }
+      
       // Get the relevant items for the current threat level
       const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
+      
+      // If no mapping found, log warning and return all items
+      if (!relevantItemIds.length) {
+        console.warn(`No items found for category ${category.id} with threat level ${threatLevel}`);
+        return category;
+      }
       
       // Filter the items based on the threat level
       const filteredItems = category.items.filter(item => 
@@ -134,10 +158,10 @@ export const useSecurityState = () => {
         items: filteredItems
       };
     });
-  };
+  }, [categories, threatLevel]);
 
   return {
-    categories: getFilteredCategories(),
+    categories: getFilteredCategories,
     originalCategories: categories,
     threatLevel,
     setThreatLevel,

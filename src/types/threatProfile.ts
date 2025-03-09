@@ -1,5 +1,5 @@
 
-export type ThreatLevel = 'basic' | 'developer' | 'privacy' | 'highValue' | 'institution';
+export type ThreatLevel = 'all' | 'basic' | 'developer' | 'privacy' | 'highValue' | 'institution';
 
 export interface ThreatProfile {
   id: ThreatLevel;

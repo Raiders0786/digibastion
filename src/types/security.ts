@@ -8,6 +8,11 @@ export interface SecurityItem {
   details: string;
   links?: { text: string; url: string }[];
   ignored?: boolean;
+  
+  // Enhanced metadata
+  threatLevels?: ThreatLevel[]; // List of applicable threat levels
+  dependencies?: string[]; // IDs of items this depends on
+  priority?: number; // 1-5 priority score (higher = more important)
 }
 
 export interface SecurityCategory {
