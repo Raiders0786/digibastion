@@ -1,4 +1,6 @@
 
+import { ThreatLevel } from "./threatProfile";
+
 export interface SecurityItem {
   id: string;
   title: string;
