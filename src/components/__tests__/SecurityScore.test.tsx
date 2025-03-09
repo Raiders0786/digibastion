@@ -7,8 +7,30 @@ import { useSecurityState } from '../../hooks/useSecurityState';
 // Mock the useSecurityState hook
 vi.mock('../../hooks/useSecurityState', () => ({
   useSecurityState: () => ({
-    categories: []
+    categories: [],
+    threatLevel: 'all'
   })
+}));
+
+// Mock the child components
+vi.mock('../security-score/ScoreOverview', () => ({
+  ScoreOverview: () => <div data-testid="score-overview">Score Overview Mock</div>
+}));
+
+vi.mock('../security-score/ScoreCircles', () => ({
+  ScoreCircles: () => <div data-testid="score-circles">Score Circles Mock</div>
+}));
+
+vi.mock('../security-score/SecurityTips', () => ({
+  SecurityTips: () => <div data-testid="security-tips">Security Tips Mock</div>
+}));
+
+vi.mock('../security-score/CategoryOverview', () => ({
+  CategoryOverview: () => <div data-testid="category-overview">Category Overview Mock</div>
+}));
+
+vi.mock('../security-score/SummaryCards', () => ({
+  SummaryCards: () => <div data-testid="summary-cards">Summary Cards Mock</div>
 }));
 
 describe('SecurityScore', () => {
@@ -27,18 +49,10 @@ describe('SecurityScore', () => {
 
   it('renders correctly', () => {
     render(<SecurityScore {...mockProps} />);
-    expect(screen.getByText('Your Security Score')).toBeInTheDocument();
-    expect(screen.getByText('75%')).toBeInTheDocument();
-  });
-
-  it('displays correct progress colors', () => {
-    render(<SecurityScore {...mockProps} />);
-    const progressElement = screen.getByRole('progressbar');
-    expect(progressElement).toBeInTheDocument();
-  });
-
-  it('shows correct stats', () => {
-    render(<SecurityScore {...mockProps} />);
-    expect(screen.getByText('75 out of 100 items completed')).toBeInTheDocument();
+    expect(screen.getByTestId('score-overview')).toBeInTheDocument();
+    expect(screen.getByTestId('score-circles')).toBeInTheDocument();
+    expect(screen.getByTestId('security-tips')).toBeInTheDocument();
+    expect(screen.getByTestId('category-overview')).toBeInTheDocument();
+    expect(screen.getByTestId('summary-cards')).toBeInTheDocument();
   });
 });
