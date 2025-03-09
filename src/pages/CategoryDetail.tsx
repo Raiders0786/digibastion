@@ -9,13 +9,14 @@ import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
 import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { MetaTags } from '../components/MetaTags';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 const CategoryDetail = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
-  const { categories, toggleItem, threatLevel, isLoading } = useSecurityState();
+  const { categories, toggleItem, threatLevel, isLoading, getCategoryScore } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
   const [localLoading, setLocalLoading] = useState(true);
@@ -78,6 +79,13 @@ const CategoryDetail = () => {
   }
 
   const completedCount = category.items.filter(item => item.completed).length;
+  const completionPercentage = Math.round((completedCount / category.items.length) * 100) || 0;
+  
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 80) return 'bg-green-500';
+    if (percentage >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
 
   const filteredItems = category.items.filter(item => {
     if (hideCompleted && item.completed) return false;
@@ -89,6 +97,10 @@ const CategoryDetail = () => {
     console.log('Toggling item:', itemId);
     toggleItem(category.id, itemId);
   };
+
+  const essentialItems = category.items.filter(item => item.level === 'essential');
+  const essentialCompleted = essentialItems.filter(item => item.completed).length;
+  const hasIncompleteEssential = essentialItems.some(item => !item.completed);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -106,6 +118,32 @@ const CategoryDetail = () => {
             completedCount={completedCount}
             totalItems={category.items.length}
           />
+
+          {/* Progress bar */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-foreground-secondary">Completion</span>
+              <span className="text-sm font-medium">{completionPercentage}%</span>
+            </div>
+            <Progress 
+              value={completionPercentage} 
+              className={`h-2 ${getProgressColor(completionPercentage)}`} 
+            />
+          </div>
+
+          {/* Essential items alert */}
+          {hasIncompleteEssential && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-red-500 mb-1">Essential Items Incomplete</h3>
+                <p className="text-sm text-foreground-secondary">
+                  {essentialCompleted} of {essentialItems.length} essential security items completed. 
+                  These items are critical for your security.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="mb-6">
             <ThreatLevelSelector />

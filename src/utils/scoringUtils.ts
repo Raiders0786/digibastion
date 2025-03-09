@@ -72,3 +72,19 @@ export const calculateSecurityStats = (
     recommendedRemaining: recommendedItems
   };
 };
+
+// Get category score by ID - helper function for external components
+export const getCategoryScoreById = (
+  categories: SecurityCategory[],
+  categoryId: string,
+  threatLevel: ThreatLevel
+): number => {
+  const category = categories.find(c => c.id === categoryId);
+  if (!category) return 0;
+  
+  const relevantItems = getRelevantItems(category, threatLevel);
+  if (relevantItems.length === 0) return 0;
+  
+  const completedItems = relevantItems.filter(item => item.completed).length;
+  return Math.round((completedItems / relevantItems.length) * 100) || 0;
+};
