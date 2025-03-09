@@ -46,6 +46,7 @@ export const useSecurityState = () => {
 
   useEffect(() => {
     localStorage.setItem(THREAT_LEVEL_KEY, threatLevel);
+    console.log('Threat level changed to:', threatLevel);
   }, [threatLevel]);
 
   const toggleItem = (categoryId: string, itemId: string) => {
@@ -73,37 +74,39 @@ export const useSecurityState = () => {
   };
 
   const getOverallScore = () => {
-    const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
-    const completedItems = categories.reduce(
+    const filteredCategories = getFilteredCategories();
+    const totalItems = filteredCategories.reduce((acc, cat) => acc + cat.items.length, 0);
+    const completedItems = filteredCategories.reduce(
       (acc, cat) => acc + cat.items.filter(item => item.completed).length,
       0
     );
-    return Math.round((completedItems / totalItems) * 100);
+    return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
   };
 
   const getStats = (): SecurityStats => {
-    const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
-    const completedItems = categories.reduce(
+    const filteredCategories = getFilteredCategories();
+    const totalItems = filteredCategories.reduce((acc, cat) => acc + cat.items.length, 0);
+    const completedItems = filteredCategories.reduce(
       (acc, cat) => acc + cat.items.filter(item => item.completed).length,
       0
     );
 
-    const essentialItems = categories.reduce(
+    const essentialItems = filteredCategories.reduce(
       (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'essential').length,
       0
     );
     
-    const recommendedItems = categories.reduce(
+    const recommendedItems = filteredCategories.reduce(
       (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'recommended').length,
       0
     );
 
-    const advancedItems = categories.reduce(
+    const advancedItems = filteredCategories.reduce(
       (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'advanced').length,
       0
     );
 
-    const optionalItems = categories.reduce(
+    const optionalItems = filteredCategories.reduce(
       (acc, cat) => acc + cat.items.filter(item => !item.completed && item.level === 'optional').length,
       0
     );
@@ -111,9 +114,9 @@ export const useSecurityState = () => {
     return {
       total: totalItems,
       completed: completedItems,
-      essential: Math.round((completedItems / totalItems) * 100),
-      optional: Math.round((completedItems / (totalItems * 2)) * 100),
-      advanced: Math.round((completedItems / (totalItems * 3)) * 100),
+      essential: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0,
+      optional: totalItems > 0 ? Math.round((completedItems / (totalItems * 2)) * 100) : 0,
+      advanced: totalItems > 0 ? Math.round((completedItems / (totalItems * 3)) * 100) : 0,
       criticalRemaining: essentialItems,
       recommendedRemaining: recommendedItems
     };
@@ -124,10 +127,17 @@ export const useSecurityState = () => {
       // Get the relevant items for the current threat level
       const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
       
+      // Log for debugging
+      console.log(`Filtering category ${category.id} for threat level ${threatLevel}`);
+      console.log('Relevant item IDs:', relevantItemIds);
+      console.log('Total items before filtering:', category.items.length);
+      
       // Filter the items based on the threat level
       const filteredItems = category.items.filter(item => 
         relevantItemIds.includes(item.id)
       );
+      
+      console.log('Total items after filtering:', filteredItems.length);
       
       return {
         ...category,

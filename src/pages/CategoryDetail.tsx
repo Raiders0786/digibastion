@@ -31,7 +31,10 @@ const CategoryDetail = () => {
   }, [category, categoryId, threatLevel]);
 
   if (!category) {
-    return <div>Category not found</div>;
+    return <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+      <h1 className="text-2xl font-bold">Category not found</h1>
+      <p className="text-foreground-secondary mt-2">The category you're looking for doesn't exist or is not available for your threat profile.</p>
+    </div>;
   }
 
   const completedCount = category.items.filter(item => item.completed).length;
@@ -86,14 +89,15 @@ const CategoryDetail = () => {
           )}
 
           <div className="space-y-4">
-            {filteredItems.map(item => (
-              <CategoryItem
-                key={item.id}
-                item={item}
-                onToggle={() => handleToggleItem(item.id)}
-              />
-            ))}
-            {filteredItems.length === 0 && (
+            {filteredItems.length > 0 ? (
+              filteredItems.map(item => (
+                <CategoryItem
+                  key={item.id}
+                  item={item}
+                  onToggle={() => handleToggleItem(item.id)}
+                />
+              ))
+            ) : (
               <div className="text-center py-8 text-foreground-secondary">
                 No items match the current filters
               </div>
