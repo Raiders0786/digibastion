@@ -25,7 +25,7 @@ export const useSecurityState = (): SecurityStateContextType => {
   // Add a change counter to force re-renders when threat level changes
   const [changeCount, setChangeCount] = useState(0);
   
-  // Use the new completion state hook
+  // Use the completion state hook
   const { 
     categories, 
     completionState, 
@@ -65,31 +65,16 @@ export const useSecurityState = (): SecurityStateContextType => {
     setChangeCount(globalThreatLevelChangeCount);
   }, [threatLevel]);
 
-  // Handle threat level change with loading state
+  // Handle threat level change - simplified since we're doing a full page reload
   const handleThreatLevelChange = useCallback((newThreatLevel: ThreatLevel) => {
     if (newThreatLevel === threatLevel) return;
     
-    setIsLoading(true);
+    // Just update the threat level in localStorage
+    setThreatLevel(newThreatLevel);
     
-    try {
-      setThreatLevel(newThreatLevel);
-      
-      // Force a re-render by updating change count
-      globalThreatLevelChangeCount++;
-      setChangeCount(globalThreatLevelChangeCount);
-      
-      // Shorter loading time for better UX
-      setTimeout(() => {
-        setIsLoading(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 300);
-    } catch (error) {
-      console.error('Error changing threat level:', error);
-      toast.error('Error changing security profile', {
-        description: 'Please try again',
-      });
-      setIsLoading(false);
-    }
+    // Force a re-render by updating change count
+    globalThreatLevelChangeCount++;
+    setChangeCount(globalThreatLevelChangeCount);
   }, [threatLevel]);
 
   // Get security statistics and record history
@@ -101,7 +86,7 @@ export const useSecurityState = (): SecurityStateContextType => {
     addScoreHistoryEntry(score, stats);
     
     return stats;
-  }, [categories, threatLevel, getOverallScore, changeCount]); // Add changeCount dependency
+  }, [categories, threatLevel, getOverallScore, changeCount]);
 
   return {
     categories: getFilteredCategories,
@@ -113,6 +98,6 @@ export const useSecurityState = (): SecurityStateContextType => {
     getOverallScore,
     getStats,
     isLoading,
-    changeCount, // Expose the change counter to components
+    changeCount,
   };
 };

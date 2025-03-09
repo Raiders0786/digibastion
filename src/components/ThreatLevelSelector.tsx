@@ -36,12 +36,20 @@ export const ThreatLevelSelector = () => {
     if (newThreatLevel === threatLevel || isLoading) return;
     
     const profile = threatProfiles.find(p => p.id === newThreatLevel);
+    
+    // Save the new threat level and show toast
     setThreatLevel(newThreatLevel);
     
-    toast.success(`Switched to ${profile?.name} profile`, {
-      description: "Your security items have been updated",
-      duration: 3000,
+    toast.success(`Switching to ${profile?.name} profile`, {
+      description: "The page will refresh with your updated security items",
+      duration: 1500,
     });
+    
+    // Set a short timeout to allow the toast to be shown before refresh
+    setTimeout(() => {
+      // Refresh the entire page after changing the threat level
+      window.location.reload();
+    }, 300);
   };
 
   return (
