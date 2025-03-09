@@ -15,6 +15,14 @@ interface CompletionState {
   [itemId: string]: boolean;
 }
 
+// Interface for score cache structure
+interface ScoreCache {
+  [threatLevel: string]: {
+    overall: number;
+    categories: { [categoryId: string]: number };
+  };
+}
+
 export const useSecurityState = () => {
   // Load threat level from localStorage or default to 'all'
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(() => {
@@ -65,12 +73,7 @@ export const useSecurityState = () => {
   });
 
   // Cache for calculated scores to prevent recalculation on every render
-  const [scoreCache, setScoreCache] = useState<{
-    [threatLevel: string]: {
-      overall: number;
-      categories: { [categoryId: string]: number };
-    }
-  }>({});
+  const [scoreCache, setScoreCache] = useState<ScoreCache>({});
 
   // Effect to apply completion state to categories
   useEffect(() => {
@@ -98,15 +101,19 @@ export const useSecurityState = () => {
     console.log(`Threat level changed to: ${threatLevel}`);
     
     // Clear score cache for the changed threat level to force recalculation
-    setScoreCache(prev => ({
-      ...prev,
-      [threatLevel]: undefined
-    }));
+    setScoreCache(prev => {
+      const newCache = { ...prev };
+      delete newCache[threatLevel];
+      return newCache;
+    });
   }, [threatLevel]);
 
   // Save completion state to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(COMPLETION_KEY, JSON.stringify(completionState));
+    
+    // Invalidate all score caches when completion state changes
+    setScoreCache({});
   }, [completionState]);
 
   // Toggle item completion status
@@ -118,9 +125,6 @@ export const useSecurityState = () => {
       ...prev,
       [itemId]: !prev[itemId]
     }));
-    
-    // Clear score cache to force recalculation
-    setScoreCache({});
   }, []);
 
   // Handle threat level change with loading state
@@ -172,17 +176,28 @@ export const useSecurityState = () => {
     const completedItems = relevantItems.filter(item => item.completed).length;
     const score = Math.round((completedItems / relevantItems.length) * 100) || 0;
     
-    // Cache the result
-    setScoreCache(prev => ({
-      ...prev,
-      [threatLevel]: {
-        ...prev[threatLevel] || {},
-        categories: {
-          ...(prev[threatLevel]?.categories || {}),
-          [category.id]: score
-        }
+    // Cache the result with required properties
+    setScoreCache(prev => {
+      const updatedCache = { ...prev };
+      
+      // Initialize if not exists with all required properties
+      if (!updatedCache[threatLevel]) {
+        updatedCache[threatLevel] = {
+          overall: 0,
+          categories: {}
+        };
       }
-    }));
+      
+      // Make sure categories object exists
+      if (!updatedCache[threatLevel].categories) {
+        updatedCache[threatLevel].categories = {};
+      }
+      
+      // Update category score
+      updatedCache[threatLevel].categories[category.id] = score;
+      
+      return updatedCache;
+    });
     
     return score;
   }, [categories, threatLevel, scoreCache]);
@@ -215,14 +230,26 @@ export const useSecurityState = () => {
     
     const score = totalRelevantItems > 0 ? Math.round((totalCompletedItems / totalRelevantItems) * 100) : 0;
     
-    // Cache the result
-    setScoreCache(prev => ({
-      ...prev,
-      [threatLevel]: {
-        ...prev[threatLevel] || {},
-        overall: score
+    // Cache the result with required properties
+    setScoreCache(prev => {
+      const updatedCache = { ...prev };
+      
+      // Initialize if not exists with all required properties
+      if (!updatedCache[threatLevel]) {
+        updatedCache[threatLevel] = {
+          overall: score,
+          categories: {}
+        };
+      } else {
+        // Update overall score while keeping categories
+        updatedCache[threatLevel] = {
+          ...updatedCache[threatLevel],
+          overall: score
+        };
       }
-    }));
+      
+      return updatedCache;
+    });
     
     return score;
   }, [categories, threatLevel, scoreCache]);

@@ -68,6 +68,7 @@ export const ThreatLevelSelector = () => {
             className={`p-3 rounded-lg transition-all duration-300 flex flex-col items-center text-center ${getBackgroundStyle(profile.id)} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-pressed={profile.id === threatLevel}
             disabled={isLoading}
+            aria-label={`Select ${profile.name} security profile`}
           >
             <div className="mb-2">
               {getIcon(profile.id)}
