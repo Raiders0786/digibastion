@@ -51,11 +51,11 @@ export const categoryThreatMappings: CategoryThreatMapping[] = [
   },
   {
     categoryId: 'authentication',
-    basicItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7', 'auth-8', 'auth-9', 'auth-10', 'auth-11'],
-    developerItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7', 'auth-8', 'auth-9', 'auth-10', 'auth-11', 'auth-12', 'auth-13', 'auth-14', 'auth-15', 'auth-22'],
-    privacyItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7', 'auth-8', 'auth-9', 'auth-10', 'auth-11', 'auth-12', 'auth-13', 'auth-14', 'auth-15', 'auth-16', 'auth-17', 'auth-21', 'auth-22'],
-    highValueItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7', 'auth-8', 'auth-9', 'auth-10', 'auth-11', 'auth-12', 'auth-13', 'auth-14', 'auth-15', 'auth-16', 'auth-17', 'auth-18', 'auth-19', 'auth-21', 'auth-22'],
-    institutionItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7', 'auth-8', 'auth-9', 'auth-10', 'auth-11', 'auth-12', 'auth-13', 'auth-14', 'auth-15', 'auth-16', 'auth-17', 'auth-18', 'auth-19', 'auth-20', 'auth-21', 'auth-22']
+    basicItems: ['auth-1', 'auth-2', 'auth-3'],
+    developerItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5'],
+    privacyItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-6'],
+    highValueItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7'],
+    institutionItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5', 'auth-6', 'auth-7', 'auth-8']
   },
   {
     categoryId: 'developers',
@@ -116,41 +116,30 @@ export const categoryThreatMappings: CategoryThreatMapping[] = [
   },
   {
     categoryId: 'defi',
-    basicItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4'],
-    developerItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4', 'defi-5', 'defi-6'],
-    privacyItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4', 'defi-7', 'defi-8', 'defi-9'],
-    highValueItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4', 'defi-5', 'defi-6', 'defi-7', 'defi-8', 'defi-9', 'defi-10', 'defi-11', 'defi-12'],
-    institutionItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4', 'defi-5', 'defi-6', 'defi-7', 'defi-8', 'defi-9', 'defi-10', 'defi-11', 'defi-12', 'defi-13', 'defi-14', 'defi-15', 'defi-16', 'defi-17', 'defi-18']
+    basicItems: ['defi-1', 'defi-2'],
+    developerItems: ['defi-1', 'defi-2', 'defi-3'],
+    privacyItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4'],
+    highValueItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4', 'defi-5', 'defi-6'],
+    institutionItems: ['defi-1', 'defi-2', 'defi-3', 'defi-4', 'defi-5', 'defi-6', 'defi-7']
   }
 ];
 
 export const getItemsForThreatLevel = (categoryId: string, threatLevel: string): string[] => {
   const mapping = categoryThreatMappings.find(m => m.categoryId === categoryId);
-  if (!mapping) {
-    console.warn(`No threat mapping found for category: ${categoryId}`);
-    return [];
-  }
-  
-  console.log(`Getting items for category ${categoryId} with threat level ${threatLevel}`);
+  if (!mapping) return [];
   
   switch (threatLevel) {
     case 'basic':
-      console.log(`Basic items for ${categoryId}:`, mapping.basicItems);
       return mapping.basicItems;
     case 'developer':
-      console.log(`Developer items for ${categoryId}:`, mapping.developerItems);
       return mapping.developerItems;
     case 'privacy':
-      console.log(`Privacy items for ${categoryId}:`, mapping.privacyItems);
       return mapping.privacyItems;
     case 'highValue':
-      console.log(`High Value items for ${categoryId}:`, mapping.highValueItems);
       return mapping.highValueItems;
     case 'institution':
-      console.log(`Institution items for ${categoryId}:`, mapping.institutionItems);
       return mapping.institutionItems;
     default:
-      console.warn(`Unknown threat level: ${threatLevel}, defaulting to basic`);
-      return mapping.basicItems;
+      return [];
   }
 };

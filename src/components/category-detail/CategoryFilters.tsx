@@ -23,7 +23,6 @@ export const CategoryFilters = ({
   const essentialCount = items.filter(item => item.level === 'essential').length;
   const recommendedCount = items.filter(item => item.level === 'recommended').length;
   const optionalCount = items.filter(item => item.level === 'optional').length;
-  const advancedCount = items.filter(item => item.level === 'advanced').length;
 
   return (
     <div className="bg-card/50 backdrop-blur-sm p-4 sm:p-6 rounded-lg mb-6 border border-white/10">
@@ -58,12 +57,6 @@ export const CategoryFilters = ({
                 <div className="flex items-center gap-2">
                   <Info className="w-4 h-4 text-blue-500" />
                   Optional ({optionalCount})
-                </div>
-              </SelectItem>
-              <SelectItem value="advanced">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-purple-500" />
-                  Advanced ({advancedCount})
                 </div>
               </SelectItem>
             </SelectContent>
@@ -111,14 +104,6 @@ export const CategoryFilters = ({
           style={{ cursor: 'pointer' }}
         >
           Optional ({optionalCount})
-        </Badge>
-        <Badge 
-          variant="outline" 
-          className={`py-1 px-3 ${filterLevel === 'advanced' ? 'bg-purple-500/20' : ''} text-purple-500 border-purple-500/20 hover:bg-purple-500/10`}
-          onClick={() => setFilterLevel('advanced')}
-          style={{ cursor: 'pointer' }}
-        >
-          Advanced ({advancedCount})
         </Badge>
       </div>
     </div>
