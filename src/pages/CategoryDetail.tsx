@@ -25,22 +25,16 @@ const CategoryDetail = () => {
     return foundCategory;
   }, [categories, categoryId]);
   
-  // Add debugging logs
-  useEffect(() => {
-    if (category) {
-      console.log('Category found:', category.id);
-      console.log('Total items in category:', category.items.length);
-      console.log('Current threat level:', threatLevel);
-    } else if (!isLoading) {
-      console.log('No category found for id:', categoryId);
-    }
-  }, [category, categoryId, threatLevel, isLoading]);
-
-  // Reset loading state when threat level changes
+  // Reset loading state when threat level changes for visual feedback
   useEffect(() => {
     setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 300); // Brief loading period for visual feedback
+    const timer = setTimeout(() => setIsLoading(false), 500); // Brief loading period for visual feedback
     return () => clearTimeout(timer);
+  }, [threatLevel]);
+
+  // Reset to top of page when threat level changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }, [threatLevel]);
 
   if (isLoading) {
@@ -68,9 +62,6 @@ const CategoryDetail = () => {
     if (filterLevel !== 'all' && item.level !== filterLevel) return false;
     return true;
   });
-
-  // Add debugging log for filtered items
-  console.log('Filtered items:', filteredItems.length);
   
   const handleToggleItem = (itemId: string) => {
     console.log('Toggling item:', itemId);
@@ -85,7 +76,7 @@ const CategoryDetail = () => {
         type="website"
       />
       <Navbar />
-      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8 animate-fade-in">
         <div className="max-w-4xl mx-auto">
           <CategoryHeader
             title={category.title}
@@ -113,15 +104,16 @@ const CategoryDetail = () => {
           )}
 
           <div className="space-y-4">
-            {filteredItems.map(item => (
-              <CategoryItem
-                key={item.id}
-                item={item}
-                onToggle={() => handleToggleItem(item.id)}
-              />
+            {filteredItems.map((item, index) => (
+              <div key={item.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                <CategoryItem
+                  item={item}
+                  onToggle={() => handleToggleItem(item.id)}
+                />
+              </div>
             ))}
             {filteredItems.length === 0 && (
-              <div className="text-center py-8 text-foreground-secondary">
+              <div className="text-center py-8 text-foreground-secondary animate-fade-in">
                 No items match the current filters
               </div>
             )}

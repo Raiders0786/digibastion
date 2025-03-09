@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
@@ -7,13 +7,15 @@ import { SecurityScore } from '../components/SecurityScore';
 import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { Github, Heart } from 'lucide-react';
+import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { categories, toggleItem, getCategoryScore, getOverallScore, getStats } = useSecurityState();
+  const { categories, toggleItem, getCategoryScore, getOverallScore, getStats, threatLevel } = useSecurityState();
   const location = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Handle scroll to score section if needed
   useEffect(() => {
     if (location.state?.scrollTo === 'score') {
       const element = document.getElementById('score');
@@ -31,6 +33,23 @@ const Index = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Show loading state when threat level changes
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [threatLevel]);
+
+  // If loading, show a loading spinner
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="mt-4 text-foreground-secondary">Updating your security profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -89,16 +108,17 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
-            {categories.map(category => (
-              <SecurityCard
-                key={category.id}
-                category={category.id}
-                title={category.title}
-                description={category.description}
-                link={`/category/${category.id}`}
-                total={category.items.length}
-                completed={category.items.filter(item => item.completed).length}
-              />
+            {categories.map((category, index) => (
+              <div key={category.id} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                <SecurityCard
+                  category={category.id}
+                  title={category.title}
+                  description={category.description}
+                  link={`/category/${category.id}`}
+                  total={category.items.length}
+                  completed={category.items.filter(item => item.completed).length}
+                />
+              </div>
             ))}
           </div>
         </div>

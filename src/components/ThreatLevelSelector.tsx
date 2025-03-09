@@ -26,10 +26,10 @@ export const ThreatLevelSelector = () => {
     const profile = threatProfiles.find(p => p.id === profileId);
     
     if (isActive) {
-      return `bg-gradient-to-r ${profile?.color} text-white`;
+      return `bg-gradient-to-r ${profile?.color} text-white shadow-lg scale-105`;
     }
     
-    return 'bg-card hover:bg-card/80 border border-white/10';
+    return 'bg-card hover:bg-card/80 border border-white/10 hover:scale-[1.02] transition-transform duration-200';
   };
 
   const handleThreatLevelChange = (newThreatLevel: ThreatLevel) => {
@@ -45,7 +45,7 @@ export const ThreatLevelSelector = () => {
   };
 
   return (
-    <div className="mb-10 p-4 sm:p-6 bg-card rounded-lg border border-white/10">
+    <div className="mb-10 p-4 sm:p-6 bg-card rounded-lg border border-white/10 animate-fade-in">
       <h2 className="text-lg font-semibold mb-3">Select Threat Profile</h2>
       <p className="text-sm text-foreground-secondary mb-4">
         Choose your security focus based on your specific needs and threat model
@@ -57,6 +57,7 @@ export const ThreatLevelSelector = () => {
             key={profile.id}
             onClick={() => handleThreatLevelChange(profile.id as ThreatLevel)}
             className={`p-3 rounded-lg transition-all duration-300 flex flex-col items-center text-center ${getBackgroundStyle(profile.id)}`}
+            aria-pressed={profile.id === threatLevel}
           >
             <div className="mb-2">
               {getIcon(profile.id)}

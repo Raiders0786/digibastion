@@ -1,7 +1,8 @@
 
-import { AlertTriangle, Info, Zap } from 'lucide-react';
+import { AlertTriangle, Info, Zap, Shield, Code, EyeOff, Disc3, Building } from 'lucide-react';
 import { SecurityItem } from '../../types/security';
 import { Badge } from '../ui/badge';
+import { ThreatLevel } from '../../types/threatProfile';
 
 interface CategoryItemProps {
   item: SecurityItem;
@@ -39,6 +40,23 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
     }
   };
 
+  const getThreatLevelIcon = (level: ThreatLevel) => {
+    switch (level) {
+      case 'basic':
+        return <Shield className="w-3 h-3 text-blue-400" title="Basic" />;
+      case 'developer':
+        return <Code className="w-3 h-3 text-purple-400" title="Developer" />;
+      case 'privacy':
+        return <EyeOff className="w-3 h-3 text-green-400" title="Privacy" />;
+      case 'highValue':
+        return <Disc3 className="w-3 h-3 text-amber-400" title="High Value" />;
+      case 'institution':
+        return <Building className="w-3 h-3 text-red-400" title="Institution" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div 
       className={`group bg-card p-4 rounded-lg border border-white/10 
@@ -62,7 +80,7 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
           />
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 flex-wrap mb-2">
             <h3 className="text-base font-medium text-foreground transition-colors duration-300 group-hover:text-primary">
               {item.title}
             </h3>
@@ -76,6 +94,16 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
                 {item.level}
               </Badge>
             </div>
+            
+            {item.threatLevels && item.threatLevels.length > 0 && (
+              <div className="flex ml-auto gap-1">
+                {item.threatLevels.map((level) => (
+                  <div key={level} className="tooltip" data-tip={level}>
+                    {getThreatLevelIcon(level)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           <div>
