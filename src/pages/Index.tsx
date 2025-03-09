@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
 import { SecurityScore } from '../components/SecurityScore';
+import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Github, Heart } from 'lucide-react';
@@ -80,6 +81,8 @@ const Index = () => {
               </a>
             </div>
           </div>
+
+          <ThreatLevelSelector />
 
           <div className="mb-20">
             <SecurityScore score={getOverallScore()} stats={getStats()} />

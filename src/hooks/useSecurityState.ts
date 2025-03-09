@@ -2,8 +2,11 @@
 import { useState, useEffect } from 'react';
 import { SecurityCategory, SecurityItem, SecurityStats } from '../types/security';
 import { initialSecurityData } from '../data/securityData';
+import { ThreatLevel } from '../types/threatProfile';
+import { getItemsForThreatLevel } from '../data/threatProfiles';
 
 const STORAGE_KEY = 'security-checklist-state';
+const THREAT_LEVEL_KEY = 'security-threat-level';
 
 export const useSecurityState = () => {
   const [categories, setCategories] = useState<SecurityCategory[]>(() => {
@@ -32,9 +35,18 @@ export const useSecurityState = () => {
     return initialSecurityData;
   });
 
+  const [threatLevel, setThreatLevel] = useState<ThreatLevel>(() => {
+    const stored = localStorage.getItem(THREAT_LEVEL_KEY);
+    return (stored as ThreatLevel) || 'basic';
+  });
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
   }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem(THREAT_LEVEL_KEY, threatLevel);
+  }, [threatLevel]);
 
   const toggleItem = (categoryId: string, itemId: string) => {
     console.log(`Toggling item: ${categoryId} - ${itemId}`);
@@ -107,8 +119,28 @@ export const useSecurityState = () => {
     };
   };
 
+  const getFilteredCategories = () => {
+    return categories.map(category => {
+      // Get the relevant items for the current threat level
+      const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
+      
+      // Filter the items based on the threat level
+      const filteredItems = category.items.filter(item => 
+        relevantItemIds.includes(item.id)
+      );
+      
+      return {
+        ...category,
+        items: filteredItems
+      };
+    });
+  };
+
   return {
-    categories,
+    categories: getFilteredCategories(),
+    originalCategories: categories,
+    threatLevel,
+    setThreatLevel,
     toggleItem,
     getCategoryScore,
     getOverallScore,

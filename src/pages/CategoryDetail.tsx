@@ -7,11 +7,12 @@ import { Footer } from '../components/Footer';
 import { CategoryHeader } from '../components/category-detail/CategoryHeader';
 import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
+import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { MetaTags } from '../components/MetaTags';
 
 const CategoryDetail = () => {
   const { categoryId } = useParams();
-  const { categories, toggleItem } = useSecurityState();
+  const { categories, toggleItem, threatLevel } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
 
@@ -23,10 +24,11 @@ const CategoryDetail = () => {
       console.log('Category found:', category.id);
       console.log('Total items in category:', category.items.length);
       console.log('Items:', category.items);
+      console.log('Current threat level:', threatLevel);
     } else {
       console.log('No category found for id:', categoryId);
     }
-  }, [category, categoryId]);
+  }, [category, categoryId, threatLevel]);
 
   if (!category) {
     return <div>Category not found</div>;
@@ -64,6 +66,10 @@ const CategoryDetail = () => {
             completedCount={completedCount}
             totalItems={category.items.length}
           />
+
+          <div className="mb-6">
+            <ThreatLevelSelector />
+          </div>
 
           <CategoryFilters
             items={category.items}
