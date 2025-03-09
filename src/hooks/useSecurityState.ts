@@ -1,33 +1,32 @@
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { SecurityCategory, SecurityStats } from '../types/security';
-import { initialSecurityData } from '../data/securityData';
+import { useState, useEffect, useCallback } from 'react';
+import { SecurityStats } from '../types/security';
 import { ThreatLevel } from '../types/threatProfile';
 import { toast } from 'sonner';
-import { CompletionState, ScoreCache, SecurityStateContextType } from '../types/securityState';
+import { ScoreCache, SecurityStateContextType } from '../types/securityState';
 import { 
   loadThreatLevel, 
-  saveThreatLevel, 
-  loadCompletionState, 
-  saveCompletionState,
+  saveThreatLevel,
   addScoreHistoryEntry 
 } from '../utils/storageUtils';
-import { 
-  getRelevantItems, 
-  calculateSecurityStats,
-  getCategoryScoreById
-} from '../utils/scoringUtils';
+import { calculateSecurityStats } from '../utils/scoringUtils';
 import { useCategoryManagement } from './security/useCategoryManagement';
 import { useSecurityScoring } from './security/useSecurityScoring';
+import { useSecurityCompletion } from './security/useSecurityCompletion';
 
 export const useSecurityState = (): SecurityStateContextType => {
   // Load threat level from localStorage or default to 'all'
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(() => loadThreatLevel());
   const [isLoading, setIsLoading] = useState(false);
-  const [categories, setCategories] = useState<SecurityCategory[]>(() => initialSecurityData);
-  const [completionState, setCompletionState] = useState<CompletionState>(() => loadCompletionState());
   const [scoreCache, setScoreCache] = useState<ScoreCache>({});
   
+  // Use the new completion state hook
+  const { 
+    categories, 
+    completionState, 
+    toggleItem 
+  } = useSecurityCompletion();
+
   // Extract category management logic to a custom hook
   const { getFilteredCategories } = useCategoryManagement(
     categories, 
@@ -44,25 +43,6 @@ export const useSecurityState = (): SecurityStateContextType => {
     setScoreCache
   );
 
-  // Apply completion state to categories
-  useEffect(() => {
-    const updatedCategories = initialSecurityData.map(category => {
-      const updatedItems = category.items.map(item => {
-        return {
-          ...item,
-          completed: !!completionState[item.id]
-        };
-      });
-      
-      return {
-        ...category,
-        items: updatedItems
-      };
-    });
-    
-    setCategories(updatedCategories);
-  }, [completionState]);
-
   // Save threat level to localStorage
   useEffect(() => {
     saveThreatLevel(threatLevel);
@@ -75,22 +55,6 @@ export const useSecurityState = (): SecurityStateContextType => {
       return newCache;
     });
   }, [threatLevel]);
-
-  // Save completion state to localStorage
-  useEffect(() => {
-    saveCompletionState(completionState);
-    setScoreCache({}); // Invalidate all score caches
-  }, [completionState]);
-
-  // Toggle item completion status
-  const toggleItem = useCallback((categoryId: string, itemId: string) => {
-    console.log(`Toggling item: ${categoryId} - ${itemId}`);
-    
-    setCompletionState(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
-  }, []);
 
   // Handle threat level change with loading state
   const handleThreatLevelChange = useCallback((newThreatLevel: ThreatLevel) => {
