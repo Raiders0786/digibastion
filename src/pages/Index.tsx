@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
@@ -11,9 +11,8 @@ import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { categories, toggleItem, getCategoryScore, getOverallScore, getStats, threatLevel } = useSecurityState();
+  const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading } = useSecurityState();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
 
   // Handle scroll to score section if needed
   useEffect(() => {
@@ -34,19 +33,15 @@ const Index = () => {
     }
   }, [location.state]);
 
-  // Show loading state when threat level changes
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [threatLevel]);
-
   // If loading, show a loading spinner
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="mt-4 text-foreground-secondary">Updating your security profile...</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="mt-4 text-foreground-secondary">Updating your security profile...</p>
+        </div>
       </div>
     );
   }
@@ -103,13 +98,13 @@ const Index = () => {
 
           <ThreatLevelSelector />
 
-          <div className="mb-20">
+          <div className="mb-20" key={`score-${threatLevel}`}>
             <SecurityScore score={getOverallScore()} stats={getStats()} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
             {categories.map((category, index) => (
-              <div key={category.id} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+              <div key={`${category.id}-${threatLevel}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                 <SecurityCard
                   category={category.id}
                   title={category.title}

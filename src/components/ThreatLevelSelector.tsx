@@ -2,12 +2,12 @@
 import React from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { threatProfiles } from '../data/threatProfiles';
-import { Shield, Code, EyeOff, Disc3, Building, Layers } from 'lucide-react';
+import { Shield, Code, EyeOff, Disc3, Building, Layers, Loader2 } from 'lucide-react';
 import { ThreatLevel } from '../types/threatProfile';
 import { toast } from 'sonner';
 
 export const ThreatLevelSelector = () => {
-  const { threatLevel, setThreatLevel } = useSecurityState();
+  const { threatLevel, setThreatLevel, isLoading } = useSecurityState();
 
   const getIcon = (id: string) => {
     switch (id) {
@@ -33,7 +33,7 @@ export const ThreatLevelSelector = () => {
   };
 
   const handleThreatLevelChange = (newThreatLevel: ThreatLevel) => {
-    if (newThreatLevel === threatLevel) return;
+    if (newThreatLevel === threatLevel || isLoading) return;
     
     const profile = threatProfiles.find(p => p.id === newThreatLevel);
     setThreatLevel(newThreatLevel);
@@ -45,7 +45,16 @@ export const ThreatLevelSelector = () => {
   };
 
   return (
-    <div className="mb-10 p-4 sm:p-6 bg-card rounded-lg border border-white/10 animate-fade-in">
+    <div className="mb-10 p-4 sm:p-6 bg-card rounded-lg border border-white/10 animate-fade-in relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-card/90 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+          <div className="flex flex-col items-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="mt-2 text-sm text-foreground-secondary">Updating profile...</p>
+          </div>
+        </div>
+      )}
+
       <h2 className="text-lg font-semibold mb-3">Select Threat Profile</h2>
       <p className="text-sm text-foreground-secondary mb-4">
         Choose your security focus based on your specific needs and threat model
@@ -56,8 +65,9 @@ export const ThreatLevelSelector = () => {
           <button
             key={profile.id}
             onClick={() => handleThreatLevelChange(profile.id as ThreatLevel)}
-            className={`p-3 rounded-lg transition-all duration-300 flex flex-col items-center text-center ${getBackgroundStyle(profile.id)}`}
+            className={`p-3 rounded-lg transition-all duration-300 flex flex-col items-center text-center ${getBackgroundStyle(profile.id)} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-pressed={profile.id === threatLevel}
+            disabled={isLoading}
           >
             <div className="mb-2">
               {getIcon(profile.id)}

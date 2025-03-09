@@ -1,5 +1,5 @@
 
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { Navbar } from '../components/Navbar';
@@ -9,48 +9,70 @@ import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
 import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { MetaTags } from '../components/MetaTags';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const CategoryDetail = () => {
   const { categoryId } = useParams();
-  const { categories, toggleItem, threatLevel } = useSecurityState();
+  const navigate = useNavigate();
+  const { categories, toggleItem, threatLevel, isLoading } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [localLoading, setLocalLoading] = useState(true);
 
   // Find the category with memoization
   const category = useMemo(() => {
     const foundCategory = categories.find(c => c.id === categoryId);
-    setIsLoading(false);
+    setLocalLoading(false);
     return foundCategory;
   }, [categories, categoryId]);
   
   // Reset loading state when threat level changes for visual feedback
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 500); // Brief loading period for visual feedback
-    return () => clearTimeout(timer);
-  }, [threatLevel]);
+    if (isLoading) {
+      setLocalLoading(true);
+    }
+    
+    // If category doesn't exist and we're not loading, redirect to home
+    if (!category && !localLoading && !isLoading) {
+      navigate('/', { replace: true });
+    }
+  }, [category, isLoading, threatLevel, navigate, localLoading]);
 
   // Reset to top of page when threat level changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [threatLevel]);
 
-  if (isLoading) {
+  if (isLoading || localLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="mt-4 text-foreground-secondary">Loading security items...</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="mt-4 text-foreground-secondary">Loading security items...</p>
+        </div>
       </div>
     );
   }
 
   if (!category) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold">Category Not Found</h2>
-        <p className="mt-2 text-foreground-secondary">The requested category does not exist.</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <h2 className="text-2xl font-bold">Category Not Found</h2>
+          <p className="mt-2 text-foreground-secondary">The requested category does not exist.</p>
+          <Button
+            variant="ghost"
+            className="mt-6"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Overview
+          </Button>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -104,15 +126,16 @@ const CategoryDetail = () => {
           )}
 
           <div className="space-y-4">
-            {filteredItems.map((item, index) => (
-              <div key={item.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                <CategoryItem
-                  item={item}
-                  onToggle={() => handleToggleItem(item.id)}
-                />
-              </div>
-            ))}
-            {filteredItems.length === 0 && (
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item, index) => (
+                <div key={`${item.id}-${threatLevel}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                  <CategoryItem
+                    item={item}
+                    onToggle={() => handleToggleItem(item.id)}
+                  />
+                </div>
+              ))
+            ) : (
               <div className="text-center py-8 text-foreground-secondary animate-fade-in">
                 No items match the current filters
               </div>

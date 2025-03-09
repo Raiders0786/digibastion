@@ -1,8 +1,10 @@
+
 import { Progress } from './ui/progress';
 import { Shield, AlertTriangle, CheckCircle, Key, Globe, Mail, MessageSquare, Share2, Network, Smartphone, Laptop, Home, CreditCard, User, Building2, Wallet } from 'lucide-react';
 import { SecurityStats } from '../types/security';
 import { Card } from './ui/card';
 import { useSecurityState } from '../hooks/useSecurityState';
+import { useMemo } from 'react';
 
 interface SecurityScoreProps {
   score: number;
@@ -10,7 +12,34 @@ interface SecurityScoreProps {
 }
 
 export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
-  const { categories } = useSecurityState();
+  const { categories, threatLevel } = useSecurityState();
+  
+  // Handle and validate score
+  const validScore = useMemo(() => {
+    if (isNaN(score) || score < 0) return 0;
+    if (score > 100) return 100;
+    return score;
+  }, [score]);
+  
+  // Handle and validate stats
+  const validStats = useMemo(() => {
+    const validatePercentage = (num: number) => {
+      if (isNaN(num) || num < 0) return 0;
+      if (num > 100) return 100;
+      return num;
+    };
+    
+    return {
+      ...stats,
+      essential: validatePercentage(stats.essential),
+      optional: validatePercentage(stats.optional),
+      advanced: validatePercentage(stats.advanced),
+      total: stats.total || 0,
+      completed: stats.completed || 0,
+      criticalRemaining: stats.criticalRemaining || 0,
+      recommendedRemaining: stats.recommendedRemaining || 0
+    };
+  }, [stats]);
   
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
@@ -26,9 +55,17 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
 
   const getCategoryProgress = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
-    if (!category) return 0;
+    if (!category || category.items.length === 0) return 0;
     const completed = category.items.filter(item => item.completed).length;
     return Math.round((completed / category.items.length) * 100);
+  };
+
+  // validate category progress to catch NaN and Infinity
+  const getValidCategoryProgress = (categoryId: string) => {
+    const progress = getCategoryProgress(categoryId);
+    if (isNaN(progress) || progress < 0) return 0;
+    if (progress > 100) return 100;
+    return progress;
   };
 
   const categoryData = [
@@ -76,9 +113,9 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
   };
 
   const securityLevels = [
-    { label: 'Essential', value: stats.essential, color: 'green', description: 'Must-have security measures' },
-    { label: 'Recommended', value: stats.optional, color: 'yellow', description: 'Additional protection layers' },
-    { label: 'Advanced', value: stats.advanced, color: 'blue', description: 'Expert-level security' }
+    { label: 'Essential', value: validStats.essential, color: 'green', description: 'Must-have security measures' },
+    { label: 'Recommended', value: validStats.optional, color: 'yellow', description: 'Additional protection layers' },
+    { label: 'Advanced', value: validStats.advanced, color: 'blue', description: 'Expert-level security' }
   ];
 
   return (
@@ -89,17 +126,17 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
             <div>
               <h2 className="text-xl font-bold mb-1 text-foreground">Your Security Score</h2>
               <p className="text-sm text-foreground-secondary">
-                {stats.completed} out of {stats.total} items completed
+                {validStats.completed} out of {validStats.total} items completed
               </p>
             </div>
-            <span className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</span>
+            <span className={`text-3xl font-bold ${getScoreColor(validScore)}`}>{validScore}%</span>
           </div>
           
-          <Progress value={score} className="h-2 mb-6" />
+          <Progress value={validScore} className="h-2 mb-6" />
           
           <div className="grid grid-cols-3 gap-4 mb-6">
             {securityLevels.map(({ label, value, color, description }) => (
-              <div key={label} className="relative group">
+              <div key={`${label}-${threatLevel}`} className="relative group">
                 <div className="flex flex-col items-center">
                   <div className="relative">
                     <svg className="w-24 h-24 transform -rotate-90">
@@ -143,8 +180,8 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           <div className="mt-6 pt-6 border-t border-white/10">
             <h3 className="text-sm font-medium mb-2">Security Tips</h3>
             <div className="space-y-2">
-              {getSecurityTips(score).map((tip, index) => (
-                <div key={index} className="flex items-start gap-2 text-xs text-foreground-secondary">
+              {getSecurityTips(validScore).map((tip, index) => (
+                <div key={`${index}-${threatLevel}`} className="flex items-start gap-2 text-xs text-foreground-secondary">
                   <Shield className="w-3 h-3 text-primary shrink-0 mt-0.5" />
                   <span>{tip}</span>
                 </div>
@@ -162,9 +199,9 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
               {categoryData
                 .filter(cat => cat.priority === 'web3')
                 .map((category) => {
-                  const progress = getCategoryProgress(category.id);
+                  const progress = getValidCategoryProgress(category.id);
                   return (
-                    <div key={category.id} className="flex items-center gap-3">
+                    <div key={`${category.id}-${threatLevel}`} className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
                         {category.icon}
                       </div>
@@ -192,9 +229,9 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
               {categoryData
                 .filter(cat => cat.priority === 'web2')
                 .map((category) => {
-                  const progress = getCategoryProgress(category.id);
+                  const progress = getValidCategoryProgress(category.id);
                   return (
-                    <div key={category.id} className="flex items-center gap-3">
+                    <div key={`${category.id}-${threatLevel}`} className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
                         {category.icon}
                       </div>
@@ -219,11 +256,11 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           <div className="mt-6 pt-6 border-t border-white/10">
             <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
             {categoryData
-              .map(cat => ({ ...cat, progress: getCategoryProgress(cat.id) }))
+              .map(cat => ({ ...cat, progress: getValidCategoryProgress(cat.id) }))
               .filter(cat => cat.progress < 50)
               .slice(0, 3)
               .map(cat => (
-                <div key={cat.id} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
+                <div key={`${cat.id}-${threatLevel}`} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
                   <AlertTriangle className="w-3 h-3 text-yellow-400" />
                   <span>{cat.name} needs attention ({cat.progress}% complete)</span>
                 </div>
@@ -237,21 +274,21 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           <AlertTriangle className="text-red-400 w-4 h-4" />
           <div>
             <p className="text-sm font-medium text-foreground">Critical Tasks</p>
-            <p className="text-xs text-foreground-secondary">{stats.criticalRemaining} remaining</p>
+            <p className="text-xs text-foreground-secondary">{validStats.criticalRemaining} remaining</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
           <Shield className="text-yellow-400 w-4 h-4" />
           <div>
             <p className="text-sm font-medium text-foreground">Recommended</p>
-            <p className="text-xs text-foreground-secondary">{stats.recommendedRemaining} remaining</p>
+            <p className="text-xs text-foreground-secondary">{validStats.recommendedRemaining} remaining</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
           <CheckCircle className="text-green-400 w-4 h-4" />
           <div>
             <p className="text-sm font-medium text-foreground">Completed</p>
-            <p className="text-xs text-foreground-secondary">{stats.completed} tasks done</p>
+            <p className="text-xs text-foreground-secondary">{validStats.completed} tasks done</p>
           </div>
         </div>
       </div>

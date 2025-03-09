@@ -10,11 +10,9 @@ const STORAGE_KEY = 'security-checklist-state';
 const THREAT_LEVEL_KEY = 'security-threat-level';
 const COMPLETION_KEY = 'security-completion-state';
 
-// Interface for storing completion state per threat profile
+// Interface for storing completion state - global completion status regardless of threat level
 interface CompletionState {
-  [threatLevel: string]: {
-    [itemId: string]: boolean;
-  }
+  [itemId: string]: boolean;
 }
 
 export const useSecurityState = () => {
@@ -24,38 +22,64 @@ export const useSecurityState = () => {
     return (stored as ThreatLevel) || 'all';
   });
 
-  // Load categories from localStorage or use initial data
+  // State for loading transitions
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Load categories from initial data
   const [categories, setCategories] = useState<SecurityCategory[]>(() => {
     return initialSecurityData;
   });
 
-  // Load completion state (per threat profile)
+  // Global completion state - single source of truth for all item completions
   const [completionState, setCompletionState] = useState<CompletionState>(() => {
     const stored = localStorage.getItem(COMPLETION_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      try {
+        const parsed = JSON.parse(stored);
+        
+        // Handle old format (per threat level) vs new format (global)
+        if (typeof parsed === 'object' && parsed !== null) {
+          if (parsed[threatLevel]) {
+            // Old format - migrate to new format
+            const allCompletions: CompletionState = {};
+            Object.keys(parsed).forEach(level => {
+              Object.keys(parsed[level]).forEach(itemId => {
+                if (parsed[level][itemId]) {
+                  allCompletions[itemId] = true;
+                }
+              });
+            });
+            return allCompletions;
+          } else {
+            // New format or empty
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing completion state:', e);
+      }
     }
-    // Initialize with empty completion state for each threat level
-    const initialState: CompletionState = {
-      'all': {},
-      'basic': {},
-      'developer': {},
-      'privacy': {},
-      'highValue': {},
-      'institution': {}
-    };
-    return initialState;
+    
+    // Initialize with empty completion state
+    return {};
   });
+
+  // Cache for calculated scores to prevent recalculation on every render
+  const [scoreCache, setScoreCache] = useState<{
+    [threatLevel: string]: {
+      overall: number;
+      categories: { [categoryId: string]: number };
+    }
+  }>({});
 
   // Effect to apply completion state to categories
   useEffect(() => {
-    // Map categories with completion state for current threat level
+    // Apply completion state to categories
     const updatedCategories = initialSecurityData.map(category => {
       const updatedItems = category.items.map(item => {
-        const isCompleted = completionState[threatLevel]?.[item.id] || false;
         return {
           ...item,
-          completed: isCompleted
+          completed: !!completionState[item.id]
         };
       });
       
@@ -66,12 +90,18 @@ export const useSecurityState = () => {
     });
     
     setCategories(updatedCategories);
-  }, [completionState, threatLevel]);
+  }, [completionState]);
 
   // Save threat level to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(THREAT_LEVEL_KEY, threatLevel);
     console.log(`Threat level changed to: ${threatLevel}`);
+    
+    // Clear score cache for the changed threat level to force recalculation
+    setScoreCache(prev => ({
+      ...prev,
+      [threatLevel]: undefined
+    }));
   }, [threatLevel]);
 
   // Save completion state to localStorage when it changes
@@ -83,97 +113,119 @@ export const useSecurityState = () => {
   const toggleItem = useCallback((categoryId: string, itemId: string) => {
     console.log(`Toggling item: ${categoryId} - ${itemId}`);
     
-    // Update completion state for current threat level
-    setCompletionState(prev => {
-      const currentState = prev[threatLevel] || {};
-      const newState = {
-        ...prev,
-        [threatLevel]: {
-          ...currentState,
-          [itemId]: !currentState[itemId]
-        }
-      };
-      return newState;
-    });
+    // Update global completion state
+    setCompletionState(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
     
-    // Also update categories for immediate UI feedback
-    setCategories(prev =>
-      prev.map(category =>
-        category.id === categoryId
-          ? {
-              ...category,
-              items: category.items.map(item =>
-                item.id === itemId
-                  ? { ...item, completed: !item.completed }
-                  : item
-              ),
-            }
-          : category
-      )
-    );
-  }, [threatLevel]);
+    // Clear score cache to force recalculation
+    setScoreCache({});
+  }, []);
 
   // Handle threat level change with loading state
   const handleThreatLevelChange = useCallback((newThreatLevel: ThreatLevel) => {
     if (newThreatLevel === threatLevel) return;
     
-    // Set the new threat level
-    setThreatLevel(newThreatLevel);
+    // Set loading state to provide visual feedback
+    setIsLoading(true);
     
-    // Force refresh the UI with a short timeout
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100);
+    try {
+      // Set the new threat level
+      setThreatLevel(newThreatLevel);
+      
+      // Force refresh with a short timeout to update UI
+      setTimeout(() => {
+        setIsLoading(false);
+        // Smooth scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 500);
+    } catch (error) {
+      console.error('Error changing threat level:', error);
+      toast.error('Error changing security profile', {
+        description: 'Please try again',
+      });
+      setIsLoading(false);
+    }
   }, [threatLevel]);
 
   // Get score for a specific category based on current threat level
   const getCategoryScore = useCallback((category: SecurityCategory) => {
-    // If all items are selected, calculate based on all items
-    if (threatLevel === 'all') {
-      const total = category.items.length;
-      const completed = category.items.filter(item => item.completed).length;
-      return Math.round((completed / total) * 100) || 0;
+    // Check cache first
+    if (scoreCache[threatLevel]?.categories?.[category.id] !== undefined) {
+      return scoreCache[threatLevel].categories[category.id];
     }
     
-    // Otherwise, calculate based on items relevant to the current threat level
-    const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
-    if (relevantItemIds.length === 0) return 0;
+    let relevantItems: SecurityItem[];
     
-    const relevantItems = category.items.filter(item => relevantItemIds.includes(item.id));
+    // If all items are selected, calculate based on all items
+    if (threatLevel === 'all') {
+      relevantItems = category.items;
+    } else {
+      // Otherwise, calculate based on items relevant to the current threat level
+      const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
+      relevantItems = category.items.filter(item => relevantItemIds.includes(item.id));
+    }
+    
+    if (relevantItems.length === 0) return 0;
+    
     const completedItems = relevantItems.filter(item => item.completed).length;
+    const score = Math.round((completedItems / relevantItems.length) * 100) || 0;
     
-    return Math.round((completedItems / relevantItems.length) * 100) || 0;
-  }, [threatLevel]);
+    // Cache the result
+    setScoreCache(prev => ({
+      ...prev,
+      [threatLevel]: {
+        ...prev[threatLevel] || {},
+        categories: {
+          ...(prev[threatLevel]?.categories || {}),
+          [category.id]: score
+        }
+      }
+    }));
+    
+    return score;
+  }, [categories, threatLevel, scoreCache]);
 
   // Get overall security score based on current threat level
   const getOverallScore = useCallback(() => {
-    // For 'all' threat level, consider all items
-    if (threatLevel === 'all') {
-      const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
-      if (totalItems === 0) return 0;
-      
-      const completedItems = categories.reduce(
-        (acc, cat) => acc + cat.items.filter(item => item.completed).length,
-        0
-      );
-      
-      return Math.round((completedItems / totalItems) * 100) || 0;
+    // Check cache first
+    if (scoreCache[threatLevel]?.overall !== undefined) {
+      return scoreCache[threatLevel].overall;
     }
     
-    // For specific threat levels, only consider relevant items
     let totalRelevantItems = 0;
     let totalCompletedItems = 0;
     
     categories.forEach(category => {
-      const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
-      const relevantItems = category.items.filter(item => relevantItemIds.includes(item.id));
+      let relevantItems: SecurityItem[];
+      
+      // If all items are selected, calculate based on all items
+      if (threatLevel === 'all') {
+        relevantItems = category.items;
+      } else {
+        // Otherwise, calculate based on items relevant to the current threat level
+        const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
+        relevantItems = category.items.filter(item => relevantItemIds.includes(item.id));
+      }
       
       totalRelevantItems += relevantItems.length;
       totalCompletedItems += relevantItems.filter(item => item.completed).length;
     });
     
-    return totalRelevantItems > 0 ? Math.round((totalCompletedItems / totalRelevantItems) * 100) : 0;
-  }, [categories, threatLevel]);
+    const score = totalRelevantItems > 0 ? Math.round((totalCompletedItems / totalRelevantItems) * 100) : 0;
+    
+    // Cache the result
+    setScoreCache(prev => ({
+      ...prev,
+      [threatLevel]: {
+        ...prev[threatLevel] || {},
+        overall: score
+      }
+    }));
+    
+    return score;
+  }, [categories, threatLevel, scoreCache]);
 
   // Get security statistics based on current threat level
   const getStats = useCallback((): SecurityStats => {
@@ -218,11 +270,15 @@ export const useSecurityState = () => {
       ).length;
     });
     
-    // Calculate percentages
-    const overallScore = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-    const essentialScore = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-    const optionalScore = totalItems > 0 ? Math.round((completedItems / (totalItems * 2)) * 100) : 0;
-    const advancedScore = totalItems > 0 ? Math.round((completedItems / (totalItems * 3)) * 100) : 0;
+    // Calculate percentages safely to avoid NaN
+    const calculatePercentage = (completed: number, total: number) => {
+      if (total === 0) return 0;
+      return Math.round((completed / total) * 100);
+    };
+    
+    const essentialScore = calculatePercentage(completedItems, totalItems);
+    const optionalScore = calculatePercentage(completedItems, totalItems);
+    const advancedScore = calculatePercentage(completedItems, totalItems);
     
     return {
       total: totalItems,
@@ -237,7 +293,8 @@ export const useSecurityState = () => {
 
   // Get filtered categories based on threat level
   const getFilteredCategories = useMemo(() => {
-    console.log(`Filtering categories for threat level: ${threatLevel}`);
+    // If app is in loading state, return current categories to avoid UI flash
+    if (isLoading) return categories;
     
     return categories.map(category => {
       // If "all" is selected, return all items
@@ -248,7 +305,7 @@ export const useSecurityState = () => {
       // Get the relevant items for the current threat level
       const relevantItemIds = getItemsForThreatLevel(category.id, threatLevel);
       
-      // If no mapping found, log warning and return all items
+      // If no mapping found, return all items
       if (!relevantItemIds.length) {
         console.warn(`No items found for category ${category.id} with threat level ${threatLevel}`);
         return category;
@@ -264,7 +321,7 @@ export const useSecurityState = () => {
         items: filteredItems
       };
     });
-  }, [categories, threatLevel]);
+  }, [categories, threatLevel, isLoading]);
 
   return {
     categories: getFilteredCategories,
@@ -275,5 +332,6 @@ export const useSecurityState = () => {
     getCategoryScore,
     getOverallScore,
     getStats,
+    isLoading,
   };
 };
