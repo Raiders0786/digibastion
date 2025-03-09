@@ -13,13 +13,13 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
   const getLevelIcon = (level: string) => {
     switch (level) {
       case 'essential':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+        return <AlertTriangle className="w-4 h-4 text-red-500" aria-label="Essential" />;
       case 'recommended':
-        return <Info className="w-4 h-4 text-yellow-500" />;
+        return <Info className="w-4 h-4 text-yellow-500" aria-label="Recommended" />;
       case 'optional':
-        return <Info className="w-4 h-4 text-blue-500" />;
+        return <Info className="w-4 h-4 text-blue-500" aria-label="Optional" />;
       case 'advanced':
-        return <Zap className="w-4 h-4 text-purple-500" />;
+        return <Zap className="w-4 h-4 text-purple-500" aria-label="Advanced" />;
       default:
         return null;
     }
@@ -43,15 +43,15 @@ export const CategoryItem = ({ item, onToggle }: CategoryItemProps) => {
   const getThreatLevelIcon = (level: ThreatLevel) => {
     switch (level) {
       case 'basic':
-        return <Shield className="w-3 h-3 text-blue-400" title="Basic" />;
+        return <Shield className="w-3 h-3 text-blue-400" aria-label="Basic" />;
       case 'developer':
-        return <Code className="w-3 h-3 text-purple-400" title="Developer" />;
+        return <Code className="w-3 h-3 text-purple-400" aria-label="Developer" />;
       case 'privacy':
-        return <EyeOff className="w-3 h-3 text-green-400" title="Privacy" />;
+        return <EyeOff className="w-3 h-3 text-green-400" aria-label="Privacy" />;
       case 'highValue':
-        return <Disc3 className="w-3 h-3 text-amber-400" title="High Value" />;
+        return <Disc3 className="w-3 h-3 text-amber-400" aria-label="High Value" />;
       case 'institution':
-        return <Building className="w-3 h-3 text-red-400" title="Institution" />;
+        return <Building className="w-3 h-3 text-red-400" aria-label="Institution" />;
       default:
         return null;
     }
