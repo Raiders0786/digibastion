@@ -16,17 +16,17 @@ import { Progress } from '@/components/ui/progress';
 const CategoryDetail = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
-  const { categories, toggleItem, threatLevel, isLoading, getCategoryScore } = useSecurityState();
+  const { categories, toggleItem, threatLevel, isLoading, getCategoryScore, changeCount } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
   const [localLoading, setLocalLoading] = useState(true);
 
-  // Find the category with memoization
+  // Find the category with memoization, adding changeCount to dependencies
   const category = useMemo(() => {
     const foundCategory = categories.find(c => c.id === categoryId);
     setLocalLoading(false);
     return foundCategory;
-  }, [categories, categoryId]);
+  }, [categories, categoryId, changeCount]);
   
   // Reset loading state when threat level changes for visual feedback
   useEffect(() => {
@@ -38,12 +38,12 @@ const CategoryDetail = () => {
     if (!category && !localLoading && !isLoading) {
       navigate('/', { replace: true });
     }
-  }, [category, isLoading, threatLevel, navigate, localLoading]);
+  }, [category, isLoading, threatLevel, navigate, localLoading, changeCount]);
 
   // Reset to top of page when threat level changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [threatLevel]);
+  }, [changeCount]); // Use changeCount instead of threatLevel
 
   if (isLoading || localLoading) {
     return (
@@ -166,7 +166,7 @@ const CategoryDetail = () => {
           <div className="space-y-4">
             {filteredItems.length > 0 ? (
               filteredItems.map((item, index) => (
-                <div key={`${item.id}-${threatLevel}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                <div key={`${item.id}-${threatLevel}-${changeCount}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                   <CategoryItem
                     item={item}
                     onToggle={() => handleToggleItem(item.id)}

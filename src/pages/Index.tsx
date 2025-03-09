@@ -11,7 +11,7 @@ import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading } = useSecurityState();
+  const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
   const location = useLocation();
 
   // Handle scroll to score section if needed
@@ -32,6 +32,11 @@ const Index = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Reset to top of page when threat level changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [changeCount]); // Use changeCount to detect threat level changes
 
   // If loading, show a loading spinner
   if (isLoading) {
@@ -98,13 +103,13 @@ const Index = () => {
 
           <ThreatLevelSelector />
 
-          <div className="mb-20" key={`score-${threatLevel}`}>
+          <div className="mb-20" key={`score-${threatLevel}-${changeCount}`}>
             <SecurityScore score={getOverallScore()} stats={getStats()} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
             {categories.map((category, index) => (
-              <div key={`${category.id}-${threatLevel}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+              <div key={`${category.id}-${threatLevel}-${changeCount}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                 <SecurityCard
                   category={category.id}
                   title={category.title}

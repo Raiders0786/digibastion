@@ -25,4 +25,5 @@ export interface SecurityStateContextType {
   getOverallScore: () => number;
   getStats: () => SecurityStats;
   isLoading: boolean;
+  changeCount: number; // Add change counter to force re-renders
 }

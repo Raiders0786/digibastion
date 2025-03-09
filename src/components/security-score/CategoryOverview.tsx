@@ -7,12 +7,14 @@ interface CategoryOverviewProps {
   threatLevel: ThreatLevel;
   getValidCategoryProgress: (categoryId: string) => number;
   getProgressColor: (progress: number) => string;
+  changeCount: number;
 }
 
 export const CategoryOverview = ({ 
   threatLevel, 
   getValidCategoryProgress, 
-  getProgressColor
+  getProgressColor,
+  changeCount
 }: CategoryOverviewProps) => {
   const categoryData = [
     { id: 'wallet', name: 'Crypto Wallet Security', icon: 'Wallet', priority: 'web3' },
@@ -44,6 +46,7 @@ export const CategoryOverview = ({
           getValidCategoryProgress={getValidCategoryProgress}
           getProgressColor={getProgressColor}
           bgColor="bg-indigo-500/10"
+          changeCount={changeCount}
         />
       </div>
       
@@ -55,13 +58,14 @@ export const CategoryOverview = ({
           getValidCategoryProgress={getValidCategoryProgress}
           getProgressColor={getProgressColor}
           bgColor="bg-blue-500/10"
+          changeCount={changeCount}
         />
       </div>
 
       <div className="mt-6 pt-6 border-t border-white/10">
         <h3 className="text-sm font-medium mb-2">Priority Categories</h3>
         {lowPerformingCategories.map(cat => (
-          <div key={`${cat.id}-${threatLevel}`} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
+          <div key={`${cat.id}-${threatLevel}-${changeCount}`} className="flex items-center gap-2 text-xs text-foreground-secondary mb-1">
             <AlertTriangle className="w-3 h-3 text-yellow-400" />
             <span>{cat.name} needs attention ({cat.progress}% complete)</span>
           </div>

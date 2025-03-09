@@ -15,6 +15,7 @@ interface CategoryProgressListProps {
   getValidCategoryProgress: (categoryId: string) => number;
   getProgressColor: (progress: number) => string;
   bgColor: string;
+  changeCount: number;
 }
 
 export const CategoryProgressList = ({
@@ -22,14 +23,15 @@ export const CategoryProgressList = ({
   threatLevel,
   getValidCategoryProgress,
   getProgressColor,
-  bgColor
+  bgColor,
+  changeCount
 }: CategoryProgressListProps) => {
   return (
     <div className="grid gap-3 pr-2">
       {categories.map((category) => {
         const progress = getValidCategoryProgress(category.id);
         return (
-          <div key={`${category.id}-${threatLevel}`} className="flex items-center gap-3">
+          <div key={`${category.id}-${threatLevel}-${changeCount}`} className="flex items-center gap-3">
             <div className={`w-7 h-7 rounded-lg ${bgColor} flex items-center justify-center`}>
               <CategoryIcon iconName={category.icon} />
             </div>

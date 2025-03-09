@@ -14,7 +14,7 @@ interface SecurityScoreProps {
 }
 
 export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
-  const { categories, threatLevel } = useSecurityState();
+  const { categories, threatLevel, changeCount } = useSecurityState();
   
   // Handle and validate score
   const validScore = useMemo(() => {
@@ -71,7 +71,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
   };
 
   return (
-    <div id="score" className="space-y-6 scroll-mt-24">
+    <div id="score" className="space-y-6 scroll-mt-24" key={`security-score-${threatLevel}-${changeCount}`}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card p-4 sm:p-6 rounded-lg shadow-md animate-slide-up border border-white/10">
           <ScoreOverview 
@@ -92,6 +92,7 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           threatLevel={threatLevel} 
           getValidCategoryProgress={getValidCategoryProgress} 
           getProgressColor={getProgressColor} 
+          changeCount={changeCount}
         />
       </div>
 

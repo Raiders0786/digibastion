@@ -7,7 +7,7 @@ import { ThreatLevel } from '../types/threatProfile';
 import { toast } from 'sonner';
 
 export const ThreatLevelSelector = () => {
-  const { threatLevel, setThreatLevel, isLoading } = useSecurityState();
+  const { threatLevel, setThreatLevel, isLoading, changeCount } = useSecurityState();
 
   const getIcon = (id: string) => {
     switch (id) {
@@ -45,7 +45,7 @@ export const ThreatLevelSelector = () => {
   };
 
   return (
-    <div className="mb-10 p-4 sm:p-6 bg-card rounded-lg border border-white/10 animate-fade-in relative">
+    <div className="mb-10 p-4 sm:p-6 bg-card rounded-lg border border-white/10 animate-fade-in relative" key={`threat-selector-${changeCount}`}>
       {isLoading && (
         <div className="absolute inset-0 bg-card/90 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
           <div className="flex flex-col items-center">
@@ -63,7 +63,7 @@ export const ThreatLevelSelector = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {threatProfiles.map((profile) => (
           <button
-            key={profile.id}
+            key={`${profile.id}-${changeCount}`}
             onClick={() => handleThreatLevelChange(profile.id as ThreatLevel)}
             className={`p-3 rounded-lg transition-all duration-300 flex flex-col items-center text-center ${getBackgroundStyle(profile.id)} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-pressed={profile.id === threatLevel}
