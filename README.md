@@ -1,84 +1,88 @@
 
-<div align="center">
-  <img src="public/og-image.png" alt="Digibastion Logo" width="300" />
-  <h1>Digibastion - Digital Security Platform</h1>
-  <p>
-    <strong>Comprehensive security checklists, tools, and resources for personal digital protection</strong>
-  </p>
-  <p>
-    <a href="https://digibastion.com">Website</a>
-    ·
-    <a href="https://digibastion.com/about">About</a>
-    ·
-    <a href="https://digibastion.com/tools">Tools</a>
-    ·
-    <a href="https://digibastion.com/articles">Articles</a>
-    ·
-    <a href="https://digibastion.com/support">Support Us</a>
-  </p>
-</div>
+# Digibastion - Web3 Security Checklist
 
-## 🛡️ About Digibastion
+![Digibastion Logo](public/og-image.png)
 
-Digibastion is a comprehensive digital security platform designed to help users protect their personal digital footprint across all online activities. With a special focus on Web3 security in response to the rise in blockchain-related attacks, our mission is to provide accessible, practical security guidance for users at all technical levels.
+Digibastion is an open-source, comprehensive Web3 security checklist designed to help users improve their personal digital security across crypto, Web3, and traditional web applications.
 
-### 🔍 Features
+## Features
 
-- **Security Checklists**: Comprehensive security checklists covering everyday digital activities, Web3 wallets, DeFi, smart contracts, and more
-- **Security Score Calculator**: Track and improve your security posture across multiple categories
-- **Curated Tools Directory**: A collection of essential security tools for both traditional and Web3 users
-- **Educational Resources**: Articles, guides, and resources to help you understand digital security concepts
-- **Community-Driven**: Continuously updated based on real-world security practices and community feedback
+- 🔒 **Comprehensive Security Checklist**: Covering everything from wallet security to OS hardening
+- 🎯 **Threat Profiles**: Customize security recommendations based on your specific needs
+- 📊 **Security Score**: Track your progress with a personalized security score
+- 📚 **Educational Resources**: Learn about security best practices with curated resources
+- 🛠️ **Tool Recommendations**: Find the right tools for your security needs
 
-## 🚀 Getting Started
+## Getting Started
 
-Visit [digibastion.com](https://digibastion.com) to start improving your digital security posture. Begin by:
+### Prerequisites
 
-1. Calculate your personalized security score
-2. Explore specialized security checklists based on your needs
-3. Check out recommended tools for additional security measures
-4. Learn from our articles and educational resources
+- Node.js (v18 or later)
+- npm or yarn
 
-## 🛠️ Technologies
+### Installation
 
-Digibastion is built with:
+1. Clone the repository
+   ```bash
+   git clone https://github.com/Raiders0786/digibastion.git
+   cd digibastion
+   ```
 
-- React + TypeScript
-- Tailwind CSS
-- Shadcn UI Components
-- Vite
+2. Install dependencies
+   ```bash
+   npm install
+   ```
 
-## 👥 Contributing
+3. Start the development server
+   ```bash
+   npm run dev
+   ```
 
-We welcome contributions from the community! See our [contributing guidelines](CONTRIBUTING.md) for details on how to:
+4. Open your browser and navigate to `http://localhost:8080`
 
-- Add new security tools and resources
-- Contribute blog articles
-- Enhance security checklists
-- Suggest improvements
+## Contributing
 
-## 💖 Support Us
+We welcome contributions from the community! Check out our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on how to contribute.
 
-If you find Digibastion valuable, please consider supporting our work. Your contributions help us maintain and improve the platform.
+### Quick Start for Contributors
 
-We accept donations on various blockchains including Ethereum, BSC, Optimism, Polygon, and Base.
+- **Add a security item**: Add a new item to an existing category in `src/data/categories/`
+- **Add a new category**: Create a new file in `src/data/categories/` using the template
+- **Add a tool**: Add a new tool entry in `src/data/tools/categories.ts`
+- **Add an article**: Add a new article in `src/data/articles.tsx`
 
-Visit our [Support Page](https://digibastion.com/support) to contribute.
+## Project Structure
 
-## 📄 License
+```
+src/
+├── components/         # UI components
+├── data/               # Data files
+│   ├── categories/     # Security category definitions
+│   ├── links/          # Resource links
+│   ├── articles.tsx    # Blog articles
+│   ├── securityData.ts # Main security data
+│   ├── threatProfiles.ts # Threat profile definitions
+├── hooks/              # React hooks
+├── pages/              # Page components
+├── templates/          # Templates for contributors
+├── types/              # TypeScript type definitions
+├── utils/              # Utility functions
+```
 
-Digibastion is licensed under the [MIT License](LICENSE)
+## License
 
-## 🙏 Acknowledgements
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Special thanks to:
+## Support
 
-- [Raiders](https://twitter.com/__Raiders) - Project Founder
-- [Vladimir S. (Officer's Notes)](https://twitter.com/officer_cia) - Core Contributor
-- All community members who have contributed to the project
+If you find this project useful, please consider supporting its development:
 
----
+- Star the repository
+- Share with others
+- Contribute to the codebase
+- [Support us directly](https://www.digibastion.com/support)
 
-<div align="center">
-  <p>Made with ❤️ for a safer digital world</p>
-</div>
+## Acknowledgments
+
+- Thanks to all contributors who have helped make this project better
+- Special thanks to the Web3 security community for valuable feedback

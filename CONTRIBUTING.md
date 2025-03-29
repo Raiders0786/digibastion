@@ -1,143 +1,137 @@
 
 # Contributing to Digibastion
 
-We love your input! We want to make contributing to Digibastion as easy and transparent as possible, whether it's:
+Thank you for your interest in contributing to Digibastion! This document provides guidelines and instructions to help you get started.
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Adding new security tools and resources
-- Contributing blog articles
-- Enhancing security checklists
-- Becoming a maintainer
+## Table of Contents
 
-## Adding New Security Resources
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Adding New Security Items](#adding-new-security-items)
+- [Adding New Categories](#adding-new-categories)
+- [Adding Tools](#adding-tools)
+- [Adding Articles](#adding-articles)
+- [Contributing to the Codebase](#contributing-to-the-codebase)
+- [Pull Request Process](#pull-request-process)
 
-### Resource Format
-When adding new security tools or resources to our collection, please follow this format:
+## Getting Started
+
+1. **Fork and Clone the Repository**
+   ```bash
+   git clone https://github.com/YOUR-USERNAME/digibastion.git
+   cd digibastion
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the Development Server**
+   ```bash
+   npm run dev
+   ```
+
+## Project Structure
+
+```
+src/
+├── components/         # UI components
+├── data/               # Data files
+│   ├── categories/     # Security category definitions
+│   ├── links/          # Resource links
+│   ├── articles.tsx    # Blog articles
+│   ├── securityData.ts # Main security data
+│   ├── threatProfiles.ts # Threat profile definitions
+├── hooks/              # React hooks
+├── pages/              # Page components
+├── types/              # TypeScript type definitions
+├── utils/              # Utility functions
+```
+
+## Adding New Security Items
+
+Security items are organized by categories. To add a new security item:
+
+1. Find the appropriate category file in `src/data/categories/`
+2. Add your item following the existing pattern:
 
 ```typescript
 {
-  "title": "Tool Name",
-  "url": "https://tool-url.com",
-  "description": "A concise description of the tool (max 200 characters)",
-  "tags": ["relevant", "tags", "here"],
-  "lastReviewed": "YYYY-MM-DD",
-  "active": true
+  id: 'category-X', // Use a unique ID
+  title: 'Item Title',
+  priority: 'essential', // Options: 'essential', 'recommended', 'advanced'
+  description: 'Description of the item',
+  resources: [
+    { name: 'Resource Name', url: 'https://example.com' }
+  ],
+  actions: [
+    'Step 1 to complete this item',
+    'Step 2 to complete this item'
+  ],
+  additionalInfo: 'Any extra information'
 }
 ```
 
-### Categories
-Resources are organized into categories. Current categories include:
-- Application Security
-- Cloud Security
-- Personal Security
-- Corporate & IT Security
-- Cryptocurrency & Wallet Security
-- Smart Contract Security
-- Private Key Management
-- On-Chain Monitoring
-- Digital Identity Protection
-- Privacy Tools
-- Web3 Ecosystem Best Practices & Guides
+## Adding New Categories
 
-### Adding a New Resource
+To add a new security category:
 
-1. Fork the repository
-2. Navigate to `src/data/links/securityResources.ts`
-3. Add your resource to the appropriate category
-4. Ensure all required fields are filled out
-5. Submit a Pull Request
+1. Create a new file in `src/data/categories/` (e.g., `newCategory.ts`)
+2. Use the template file structure provided in `src/templates/categoryTemplate.ts`
+3. Add your category to `src/data/securityData.ts`
+4. Create threat level mappings in `src/data/threatProfiles.ts`
 
-### Resource Requirements
+## Adding Tools
 
-1. **Active Maintenance**: The resource should be actively maintained
-2. **Relevance**: Must be relevant to digital and/or Web3 security
-3. **Quality**: Should provide significant value to the community
-4. **Accessibility**: Should be accessible to the target audience
+To add new security tools:
 
-### Tags Guidelines
-
-- Use existing tags when possible
-- New tags should be:
-  - Lowercase
-  - Hyphen-separated if multiple words
-  - Descriptive and relevant
-  - Generic enough to be reusable
-
-## Contributing Blog Articles
-
-We welcome contributions to our blog section. To contribute an article:
-
-1. Fork the repository
-2. Create a new Markdown file in the `src/data/articles` directory
-3. Follow the article format structure
-4. Include relevant images and links
-5. Submit a Pull Request
-
-### Article Format
-
-Articles should be informative, well-researched, and provide actionable insights related to digital security. The format should include:
-
-- Title
-- Author
-- Date
-- Tags
-- Summary/Introduction
-- Main content (divided into sections)
-- Conclusion
-- References/Sources
-
-## Contributing to Security Checklists
-
-Our security checklists are a core part of Digibastion. To enhance existing checklists or add new ones:
-
-1. Review the current checklists in `src/data/categories/`
-2. Identify gaps or outdated information
-3. Fork the repository
-4. Make your changes
-5. Submit a Pull Request with a clear explanation of the additions or changes
-
-## Development Process
-
-1. Fork the repo and create your branch from `main`
-2. If you've added code that should be tested, add tests
-3. Ensure your code lints
-4. Issue that pull request!
-
-## Support Us
-
-Your contributions help us maintain and improve Digibastion. If you'd like to support us financially, we accept donations in various cryptocurrencies:
-
-Visit our [Support Page](https://digibastion.com/support) to contribute via Ethereum, BSC, Optimism, Polygon, Base, and other networks.
-or reach out to discuss at **raiders@digibastion.com**
-
-## License
-
-By contributing, you agree that your contributions will be licensed under its MIT License.
-
-## Examples
-
-Here's an example of adding a new tool:
+1. Open `src/data/tools/categories.ts`
+2. Add your tool to the appropriate category following the existing pattern:
 
 ```typescript
 {
-  name: "Security Tools",
-  description: "Essential security tools for digital protection",
-  tools: [
-    {
-      title: "New Security Tool",
-      url: "https://tool-url.com",
-      description: "A comprehensive security testing framework",
-      tags: ["security", "testing", "privacy"],
-      lastReviewed: "2024-02-26",
-      active: true
-    }
-  ]
+  name: 'Tool Name',
+  description: 'Tool description',
+  url: 'https://toolwebsite.com',
+  category: 'categoryId',
+  tags: ['tag1', 'tag2']
 }
 ```
 
-## Questions?
+## Adding Articles
 
-Feel free to contact us or open an issue with any questions about contributing!
+To add a new article:
+
+1. Open `src/data/articles.tsx`
+2. Add your article following the existing pattern:
+
+```typescript
+{
+  id: 'unique-slug',
+  title: 'Article Title',
+  summary: 'Brief description',
+  content: <ReactNode>, // JSX content
+  date: '2023-01-01',
+  category: 'category',
+  tags: ['tag1', 'tag2']
+}
+```
+
+## Contributing to the Codebase
+
+For code contributions:
+
+1. Create a feature branch: `git checkout -b feature/your-feature-name`
+2. Follow the code style of the project
+3. Write or update tests as necessary
+4. Update documentation as needed
+5. Submit a pull request
+
+## Pull Request Process
+
+1. Ensure your code passes all tests
+2. Update the README.md if necessary
+3. The PR should work for all supported browsers
+
+Thank you for contributing to make the web3 space more secure for everyone!
