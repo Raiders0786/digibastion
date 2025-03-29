@@ -46,7 +46,7 @@ export const validateAppData = () => {
         }
         
         // Check priority is valid
-        if (!['essential', 'recommended', 'advanced'].includes(item.priority as string)) {
+        if (!['essential', 'recommended', 'advanced'].includes(String(item.priority))) {
           errors.push(`Item ${item.id} has invalid priority: ${item.priority}`);
         }
       });
