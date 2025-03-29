@@ -22,7 +22,7 @@ export const items: SecurityItem[] = [
     priority: 'essential', // Options: 'essential', 'recommended', 'advanced'
     description: 'Detailed description of what this security item is about and why it matters',
     completed: false,
-    level: 'essential',
+    level: 'essential', // Must match priority for consistency
     details: 'Detailed description of what this security item is about and why it matters',
     resources: [
       { name: 'Official Documentation', url: 'https://example.com/docs' },
@@ -41,7 +41,7 @@ export const items: SecurityItem[] = [
     priority: 'recommended',
     description: 'Description of the second security item',
     completed: false,
-    level: 'recommended',
+    level: 'recommended', // Must match priority for consistency
     details: 'Description of the second security item',
     resources: [
       { name: 'Resource Name', url: 'https://example.com' }
