@@ -45,7 +45,7 @@ export const validateAppData = () => {
           errors.push(`Item ${item.id} in category ${category.id} has no title`);
         }
         
-        // Check priority is valid
+        // Check priority is valid - convert to string for comparison
         if (!['essential', 'recommended', 'advanced'].includes(String(item.priority))) {
           errors.push(`Item ${item.id} has invalid priority: ${item.priority}`);
         }

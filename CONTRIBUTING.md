@@ -11,6 +11,7 @@ Thank you for your interest in contributing to Digibastion! This document provid
 - [Adding New Categories](#adding-new-categories)
 - [Adding Tools](#adding-tools)
 - [Adding Articles](#adding-articles)
+- [Updating Existing Content](#updating-existing-content)
 - [Contributing to the Codebase](#contributing-to-the-codebase)
 - [Pull Request Process](#pull-request-process)
 
@@ -117,6 +118,22 @@ To add a new article:
   tags: ['tag1', 'tag2']
 }
 ```
+
+## Updating Existing Content
+
+To update or improve existing content:
+
+1. **For security items**: Locate the item in the appropriate category file in `src/data/categories/`
+2. **For tools**: Find the tool in `src/data/links/categories/`
+3. **For articles**: Locate the article in `src/data/articles.tsx`
+
+When updating content:
+- Preserve the existing ID values to maintain references
+- Ensure your changes follow the established data structure
+- Run validation with `npm run validate-updates` to check for common issues
+- Test your changes in the UI before submitting
+
+For detailed guidance on updating specific types of content, see [src/docs/UPDATING_CONTENT.md](src/docs/UPDATING_CONTENT.md).
 
 ## Contributing to the Codebase
 
