@@ -51,6 +51,13 @@ console.log('  - Add article to src/data/articles.tsx');
 console.log('  - Use JSX for formatting content');
 console.log('  - Test by viewing the articles page');
 
+// Important dependency note
+console.log('\n⚠️  Important Dependency Note:');
+console.log('  When installing dependencies, use the correct version of date-fns:');
+console.log('  - The project requires date-fns@^3.0.0 (but less than 4.0.0) for compatibility with react-day-picker');
+console.log('  - Run: npm install date-fns@3.6.0');
+console.log('  - Or use: npm install --legacy-peer-deps');
+
 console.log('\n✅ Ready to contribute!');
 console.log('Run npm run dev to start the development server and test your changes.');
 console.log('========================================');
