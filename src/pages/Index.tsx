@@ -7,6 +7,7 @@ import { SecurityScore } from '../components/SecurityScore';
 import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '../components/MetaTags';
 import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -43,8 +44,8 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <div className="flex-grow flex flex-col items-center justify-center">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <div className="flex-grow flex flex-col items-center justify-center" aria-live="polite" aria-busy="true">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" aria-hidden="true" />
           <p className="mt-4 text-foreground-secondary">Updating your security profile...</p>
         </div>
       </div>
@@ -53,18 +54,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title="Digibastion - Ultimate Web3 Security Checklist & Resources"
+        description="Protect your digital assets with our comprehensive Web3 security checklist. Follow expert-backed security practices for crypto, blockchain, and DeFi."
+      />
       <Navbar />
       <main className="flex-grow pt-24 pb-16 px-4 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20 animate-fade-in space-y-8">
-            <div className="space-y-4">
+          <section className="text-center mb-20 animate-fade-in space-y-8">
+            <header className="space-y-4">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight leading-tight max-w-4xl mx-auto bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent px-4">
                 The Ultimate Web3 Security Checklist
               </h1>
               <p className="text-xl sm:text-2xl lg:text-3xl text-foreground/80 font-medium">
                 for Personal Digital Protection
               </p>
-            </div>
+            </header>
             <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed mt-8 px-4">
               Protect your personal digital footprint with Digibastion. Our self-driven Web3 OpSec checklist lets you follow expert-backed security practices, earn a security score, and enhance your privacy across crypto, Web3, and beyond.
             </p>
@@ -74,12 +79,13 @@ const Index = () => {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-block"
+                aria-label="View project source code on GitHub"
               >
                 <Button 
                   size="lg" 
                   className="bg-primary hover:bg-primary/90 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-primary/25"
                 >
-                  <Github className="mr-2 h-5 w-5" />
+                  <Github className="mr-2 h-5 w-5" aria-hidden="true" />
                   View on GitHub
                 </Button>
               </a>
@@ -88,28 +94,36 @@ const Index = () => {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-block"
+                aria-label="Support our project"
               >
                 <Button 
                   size="lg" 
                   className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-[#8B5CF6]/25 border border-[#9B87F5]/30"
-                  aria-label="Support our project"
                 >
-                  <Heart className="mr-2 h-5 w-5 fill-white" />
+                  <Heart className="mr-2 h-5 w-5 fill-white" aria-hidden="true" />
                   Support Us
                 </Button>
               </a>
             </div>
-          </div>
+          </section>
 
-          <ThreatLevelSelector />
+          <section aria-labelledby="threat-level-selection">
+            <h2 id="threat-level-selection" className="sr-only">Select Threat Level</h2>
+            <ThreatLevelSelector />
+          </section>
 
-          <div className="mb-20" key={`score-${threatLevel}-${changeCount}`}>
+          <section className="mb-20" key={`score-${threatLevel}-${changeCount}`} id="score" aria-labelledby="security-score">
+            <h2 id="security-score" className="sr-only">Your Security Score</h2>
             <SecurityScore score={getOverallScore()} stats={getStats()} />
-          </div>
+          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
+          <section aria-label="Security Categories" className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
             {categories.map((category, index) => (
-              <div key={`${category.id}-${threatLevel}-${changeCount}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+              <article 
+                key={`${category.id}-${threatLevel}-${changeCount}`} 
+                className="animate-fade-in" 
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
                 <SecurityCard
                   category={category.id}
                   title={category.title}
@@ -118,9 +132,9 @@ const Index = () => {
                   total={category.items.length}
                   completed={category.items.filter(item => item.completed).length}
                 />
-              </div>
+              </article>
             ))}
-          </div>
+          </section>
         </div>
       </main>
       <Footer />

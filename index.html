@@ -3,11 +3,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     
     <!-- Dynamic Meta Tags (defaults, will be updated by components) -->
     <title>Digibastion - Web3 Security Checklist & Resources</title>
     <meta name="description" content="Enhance your Web3 security with our comprehensive checklist, tools, and resources. Learn best practices for crypto, DeFi, and blockchain security." />
+    <meta name="keywords" content="web3 security, blockchain security, crypto security, defi security, security checklist, digital security" />
+    <meta name="author" content="Digibastion Team" />
+    <meta name="robots" content="index, follow" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -15,6 +18,7 @@
     <meta property="og:title" content="Digibastion - Web3 Security Checklist & Resources" />
     <meta property="og:description" content="Enhance your Web3 security with our comprehensive checklist, tools, and resources. Learn best practices for crypto, DeFi, and blockchain security." />
     <meta property="og:image" content="https://digibastion.com/og-image.png" />
+    <meta property="og:site_name" content="Digibastion" />
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -22,6 +26,14 @@
     <meta name="twitter:title" content="Digibastion - Web3 Security Checklist & Resources" />
     <meta name="twitter:description" content="Enhance your Web3 security with our comprehensive checklist, tools, and resources. Learn best practices for crypto, DeFi, and blockchain security." />
     <meta name="twitter:image" content="https://digibastion.com/og-image.png" />
+    
+    <!-- Mobile app capable -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Digibastion" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://digibastion.com" />
     
     <!-- Cache Control -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -31,10 +43,48 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    
+    <!-- Preconnect to important domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
   <body>
     <div id="root"></div>
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Structured data for Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Digibastion",
+        "url": "https://digibastion.com",
+        "logo": "https://digibastion.com/logo.png",
+        "description": "Comprehensive Web3 security resources and checklists",
+        "sameAs": [
+          "https://github.com/Raiders0786/digibastion",
+          "https://twitter.com/digibastion"
+        ]
+      }
+    </script>
+    
+    <!-- Structured data for WebSite -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Digibastion",
+        "url": "https://digibastion.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://digibastion.com/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
   </body>
 </html>

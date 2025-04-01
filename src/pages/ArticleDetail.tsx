@@ -32,6 +32,8 @@ const ArticleDetail = () => {
     return <NotFoundView />;
   }
 
+  const articleUrl = `https://digibastion.com/articles/${slug}`;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
@@ -39,17 +41,25 @@ const ArticleDetail = () => {
         description={`Learn about ${article.title} in this comprehensive guide from Digibastion`}
         image={ogImage}
         type="article"
+        canonical={articleUrl}
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
-        <article className="max-w-3xl mx-auto">
+        <article className="max-w-3xl mx-auto" itemScope itemType="https://schema.org/Article">
           <Link 
             to="/articles"
             className="inline-flex items-center text-primary hover:text-primary-hover mb-6"
+            aria-label="Back to all articles"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
             Back to Articles
           </Link>
+          
+          <meta itemProp="headline" content={article.title} />
+          <meta itemProp="author" content="Digibastion Team" />
+          <meta itemProp="datePublished" content="2023-03-01" />
+          <meta itemProp="dateModified" content="2023-03-27" />
+          <link itemProp="mainEntityOfPage" href={articleUrl} />
           
           {ogImage && (
             <div className="mb-8 rounded-xl overflow-hidden shadow-xl border border-primary/20">
@@ -61,6 +71,7 @@ const ArticleDetail = () => {
                 fetchPriority="high"
                 width="1200"
                 height="630"
+                itemProp="image"
               />
             </div>
           )}
@@ -71,7 +82,7 @@ const ArticleDetail = () => {
             readTime={article.readTime}
           />
 
-          <div className="prose prose-invert max-w-none">
+          <div className="prose prose-invert max-w-none" itemProp="articleBody">
             <div className="text-foreground/80 space-y-6">
               {article.content}
             </div>

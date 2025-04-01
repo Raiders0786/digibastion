@@ -7,16 +7,19 @@ interface MetaTagsProps {
   description?: string;
   image?: string;
   type?: string;
+  canonical?: string;
 }
 
 export const MetaTags = ({ 
   title = "Digibastion - Digital Security Checklist & Resources",
   description = "Enhance your digital security with our comprehensive checklist, tools, and resources. Learn best practices for online safety, privacy, crypto, and Web3 security.",
   image = "https://digibastion.com/og-image.png",
-  type = "website"
+  type = "website",
+  canonical
 }: MetaTagsProps) => {
   const location = useLocation();
   const url = `https://digibastion.com${location.pathname}`;
+  const actualCanonical = canonical || url;
 
   useEffect(() => {
     // Update meta tags
@@ -49,7 +52,16 @@ export const MetaTags = ({
     updateTwitterTag("image", image);
     updateTwitterTag("url", url);
 
-  }, [title, description, image, type, url]);
+    // Update or create canonical link
+    let canonicalTag = document.querySelector('link[rel="canonical"]');
+    if (!canonicalTag) {
+      canonicalTag = document.createElement('link');
+      canonicalTag.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalTag);
+    }
+    canonicalTag.setAttribute('href', actualCanonical);
+
+  }, [title, description, image, type, url, actualCanonical]);
 
   return null;
 };

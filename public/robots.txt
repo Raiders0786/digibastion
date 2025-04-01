@@ -3,5 +3,12 @@
 User-agent: *
 Allow: /
 
+# Disallow staging environments
+User-agent: *
+Disallow: /staging/
+Disallow: /dev/
+Disallow: /test/
+
 # Sitemap location
 Sitemap: https://www.digibastion.com/sitemap.xml
+

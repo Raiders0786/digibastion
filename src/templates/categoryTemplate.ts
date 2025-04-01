@@ -19,7 +19,6 @@ export const items: SecurityItem[] = [
   {
     id: 'category-1', // Format should be 'categoryPrefix-number'
     title: 'First security item',
-    priority: 'essential', // Options: 'essential', 'recommended', 'advanced'
     description: 'Detailed description of what this security item is about and why it matters',
     completed: false,
     level: 'essential', // Must match priority for consistency
@@ -28,20 +27,14 @@ export const items: SecurityItem[] = [
       { text: 'Official Documentation', url: 'https://example.com/docs' },
       { text: 'Tutorial', url: 'https://example.com/tutorial' }
     ],
-    actions: [
-      'Step 1: First step to implement this security measure',
-      'Step 2: Second step to implement this security measure',
-      'Step 3: Final step to implement this security measure'
-    ],
     additionalInfo: 'Any additional information or context that might be helpful',
-    // Adding required numeric fields with default values to fix type errors
+    // Adding required numeric fields with correct types
     threatLevels: ['basic'],
-    priority: 1
+    priority: 1 // Use number for priority
   },
   {
     id: 'category-2',
     title: 'Second security item',
-    priority: 'recommended',
     description: 'Description of the second security item',
     completed: false,
     level: 'recommended', // Must match priority for consistency
@@ -49,14 +42,10 @@ export const items: SecurityItem[] = [
     links: [
       { text: 'Resource Name', url: 'https://example.com' }
     ],
-    actions: [
-      'Step 1: Action to take',
-      'Step 2: Follow-up action'
-    ],
     additionalInfo: 'Additional information about this security measure',
-    // Adding required numeric fields with default values to fix type errors
+    // Adding required numeric fields with correct types
     threatLevels: ['basic'],
-    priority: 2
+    priority: 2 // Use number for priority
   }
   // Add more items as needed
 ];
