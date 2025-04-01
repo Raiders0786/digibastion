@@ -18,10 +18,11 @@ window.addEventListener('load', () => {
     
     // Report Core Web Vitals if available
     if ('web-vitals' in window) {
-      import('web-vitals').then(({ getCLS, getFID, getLCP }) => {
-        getCLS(console.log);
-        getFID(console.log);
-        getLCP(console.log);
+      // Updated import to use named imports according to the current web-vitals API
+      import('web-vitals').then((webVitals) => {
+        webVitals.onCLS(console.log);
+        webVitals.onFID(console.log);
+        webVitals.onLCP(console.log);
       });
     }
     
