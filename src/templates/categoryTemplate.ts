@@ -27,8 +27,7 @@ export const items: SecurityItem[] = [
       { text: 'Official Documentation', url: 'https://example.com/docs' },
       { text: 'Tutorial', url: 'https://example.com/tutorial' }
     ],
-    additionalInfo: 'Any additional information or context that might be helpful',
-    // Adding required numeric fields with correct types
+    // Removed additionalInfo as it doesn't exist in the SecurityItem type
     threatLevels: ['basic'],
     priority: 1 // Use number for priority
   },
@@ -42,8 +41,7 @@ export const items: SecurityItem[] = [
     links: [
       { text: 'Resource Name', url: 'https://example.com' }
     ],
-    additionalInfo: 'Additional information about this security measure',
-    // Adding required numeric fields with correct types
+    // Removed additionalInfo as it doesn't exist in the SecurityItem type
     threatLevels: ['basic'],
     priority: 2 // Use number for priority
   }

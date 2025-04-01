@@ -65,6 +65,7 @@
     "terser": "^5.39.0",
     "vaul": "^0.9.3",
     "vitest": "^3.0.6",
+    "web-vitals": "^4.2.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {
