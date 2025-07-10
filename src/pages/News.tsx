@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
+import { NewsDetail } from '@/components/news/NewsDetail';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { NewsCategory, SeverityLevel } from '@/types/news';
+import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { mockNewsArticles, mockSecurityAlerts } from '@/data/newsData';
 import { Newspaper, Shield, AlertTriangle, TrendingUp, Bell } from 'lucide-react';
 
@@ -17,6 +18,7 @@ const News = () => {
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
   const [selectedTab, setSelectedTab] = useState('news');
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -48,8 +50,38 @@ const News = () => {
   const criticalAlerts = mockSecurityAlerts.filter(alert => alert.severity === 'critical');
   const highAlerts = mockSecurityAlerts.filter(alert => alert.severity === 'high');
 
+  const handleArticleClick = (article: NewsArticle) => {
+    setSelectedArticle(article);
+  };
+
+  const handleBackToNews = () => {
+    setSelectedArticle(null);
+  };
+
+  // If an article is selected, show the detail view
+  if (selectedArticle) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MetaTags 
+          title={`${selectedArticle.title} | Digibastion Security News`}
+          description={selectedArticle.summary}
+        />
+        
+        <Navbar />
+        
+        <main className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <NewsDetail article={selectedArticle} onBack={handleBackToNews} />
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background animated-gradient">
       <MetaTags 
         title="Security News & Alerts | Digibastion"
         description="Stay updated with the latest security news, vulnerability disclosures, and threat intelligence. Get personalized alerts for your technology stack."
@@ -73,7 +105,7 @@ const News = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card>
+            <Card className="glass-card glow-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
                   <Newspaper className="w-5 h-5 text-blue-500" />
@@ -85,7 +117,7 @@ const News = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="glass-card glow-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-red-500" />
@@ -97,7 +129,7 @@ const News = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="glass-card glow-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-orange-500" />
@@ -109,7 +141,7 @@ const News = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="glass-card glow-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-green-500" />
@@ -160,16 +192,11 @@ const News = () => {
                       <NewsCard 
                         key={article.id} 
                         article={article}
-                        onClick={() => {
-                          // Open article in new tab if sourceUrl exists
-                          if (article.sourceUrl) {
-                            window.open(article.sourceUrl, '_blank');
-                          }
-                        }}
+                        onClick={() => handleArticleClick(article)}
                       />
                     ))
                   ) : (
-                    <Card>
+                    <Card className="glass-card">
                       <CardContent className="p-8 text-center">
                         <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-medium mb-2">No articles match your filters</h3>
@@ -188,7 +215,7 @@ const News = () => {
 
             {/* Live Alerts Tab */}
             <TabsContent value="alerts" className="space-y-6">
-              <Card>
+              <Card className="glass-card glow">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-red-500" />

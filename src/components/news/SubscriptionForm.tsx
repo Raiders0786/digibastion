@@ -89,7 +89,7 @@ export const SubscriptionForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto glass-card glow">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="w-6 h-6 text-primary" />

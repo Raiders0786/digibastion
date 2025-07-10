@@ -99,3 +99,75 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Glassmorphism Effects */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-md border border-black/20;
+  }
+  
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  
+  .glass-hover {
+    @apply hover:bg-white/15 hover:border-white/30 transition-all duration-300;
+  }
+  
+  /* Gradient Backgrounds */
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 50%, hsl(var(--accent)) 100%);
+  }
+  
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  }
+  
+  /* Animated Gradients */
+  .animated-gradient {
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+  
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Glow Effects */
+  .glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  
+  .glow-hover:hover {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.5);
+    transition: box-shadow 0.3s ease;
+  }
+  
+  /* News Specific Styles */
+  .news-card {
+    @apply glass-card glow-hover transform hover:scale-[1.02] transition-all duration-300;
+  }
+  
+  .severity-critical {
+    @apply bg-red-500/10 border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.3)];
+  }
+  
+  .severity-high {
+    @apply bg-orange-500/10 border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.3)];
+  }
+  
+  .severity-medium {
+    @apply bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.3)];
+  }
+  
+  .severity-low {
+    @apply bg-blue-500/10 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.3)];
+  }
+}

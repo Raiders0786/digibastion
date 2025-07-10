@@ -31,7 +31,7 @@ export const NewsFilters = ({
   ];
 
   return (
-    <Card>
+    <Card className="glass-card sticky top-24">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">

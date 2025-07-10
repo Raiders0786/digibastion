@@ -39,9 +39,24 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
     }
   };
 
+  const getSeverityClass = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return 'severity-critical';
+      case 'high':
+        return 'severity-high';
+      case 'medium':
+        return 'severity-medium';
+      case 'low':
+        return 'severity-low';
+      default:
+        return 'glass-card';
+    }
+  };
+
   return (
     <Card 
-      className="cursor-pointer hover:bg-accent/50 transition-all duration-200 border-border/50 hover:border-primary/20 group"
+      className={`news-card cursor-pointer group ${getSeverityClass(article.severity)}`}
       onClick={onClick}
     >
       <CardHeader className="pb-3">

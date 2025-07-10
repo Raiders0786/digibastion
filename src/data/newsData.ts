@@ -1,6 +1,9 @@
 import { NewsArticle, SecurityAlert, TechnologyCategory } from '@/types/news';
+import { currentNewsArticles, currentSecurityAlerts } from './currentNewsData';
 
+// Combine current news with older mock data
 export const mockNewsArticles: NewsArticle[] = [
+  ...currentNewsArticles,
   {
     id: '1',
     title: 'Critical Vulnerability Found in Popular Wallet Extension',
@@ -41,6 +44,7 @@ export const mockNewsArticles: NewsArticle[] = [
 ];
 
 export const mockSecurityAlerts: SecurityAlert[] = [
+  ...currentSecurityAlerts,
   {
     id: 'alert-1',
     title: 'Immediate Action Required: Wallet Extension Update',

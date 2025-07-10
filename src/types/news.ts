@@ -24,6 +24,7 @@ export interface NewsArticle {
   affectedTechnologies?: string[];
   author?: string;
   imageUrl?: string;
+  cveId?: string;
 }
 
 export interface SecurityAlert {
