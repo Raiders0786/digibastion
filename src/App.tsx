@@ -18,6 +18,7 @@ import ArticleDetail from "./pages/ArticleDetail";
 import Links from "./pages/Links";
 import Contact from "./pages/Contact";
 import Support from "./pages/Support";
+import News from "./pages/News";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +41,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/category/:categoryId" element={<CategoryDetail />} />
+              <Route path="/news" element={<News />} />
               <Route path="/share" element={<Share />} />
               <Route path="/about" element={<About />} />
               <Route path="/license" element={<License />} />

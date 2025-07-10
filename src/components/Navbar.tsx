@@ -1,5 +1,5 @@
 
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Wallet2, Code, Briefcase, Heart } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Wallet2, Code, Briefcase, Heart, Newspaper } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -110,6 +110,7 @@ export const Navbar = () => {
                   <NavigationMenuContent>
                     <div className="w-[200px] sm:w-[220px] p-3 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
                       {[
+                        { route: '/news', icon: Newspaper, label: 'Security News' },
                         { route: '/tools', icon: Wrench, label: 'Tools' },
                         { route: '/articles', icon: Book, label: 'Articles' },
                         { route: '/links', icon: Link, label: 'Useful Links' },
