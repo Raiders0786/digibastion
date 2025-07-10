@@ -16,7 +16,7 @@ export const authenticationData: SecurityCategory = {
       level: "essential",
       details: "Create passwords with at least 12 characters, mixing letters, numbers, and symbols. Avoid common words to prevent brute-force and dictionary attacks.",
       links: [
-        { text: "HowSecureIsMyPassword", url: "https://howsecureismypassword.net/" }
+        { text: "Password Security Checker", url: "https://www.security.org/how-secure-is-my-password/" }
       ]
     },
     {
@@ -185,7 +185,7 @@ export const authenticationData: SecurityCategory = {
       level: "advanced",
       details: "Use U2F/FIDO2 security keys for direct, hardware-based authentication, ensuring secure and tamper-proof logins.",
       links: [
-        { text: "SoloKey", url: "https://solokey.io" },
+        { text: "SoloKeys", url: "https://solokeys.com" },
         { text: "NitroKey", url: "https://www.nitrokey.com" }
       ]
     },

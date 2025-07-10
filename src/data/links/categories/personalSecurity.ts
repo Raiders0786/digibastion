@@ -7,7 +7,7 @@ export const personalSecurity: SecurityCategory = {
   "tools": [
     {
       "title": "Google Advanced Protection Program",
-      "url": "https://landing.google.com/advancedprotection/",
+      "url": "https://landing.google.com/intl/en_uk/advancedprotection/",
       "description": "Enhances your Google account security with stricter 2FA and recovery options.",
       "tags": ["google", "2FA", "personal security"],
       "lastReviewed": "2025-02-26",

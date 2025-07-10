@@ -15,7 +15,7 @@ export const jobsData: SecurityCategory = {
       level: "essential",
       details: "Always verify the identity of potential employers and recruiters through official channels and community networks.",
       links: [
-        { text: "Verification Guide", url: "https://cryptojobslist.com/blog/how-to-spot-crypto-scams" }
+        { text: "Job Verification Guide", url: "https://cryptojobslist.com/blog/how-to-tell-if-a-job-post-is-real-or-fake" }
       ]
     },
     {

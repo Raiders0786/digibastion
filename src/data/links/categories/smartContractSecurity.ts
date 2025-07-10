@@ -22,10 +22,10 @@ export const smartContractSecurity: SecurityCategory = {
       "active": true
     },
     {
-      "title": "Oyente",
-      "url": "https://github.com/enzymefinance/oyente",
-      "description": "One of the earliest smart contract analyzers to detect potential security issues in Solidity code.",
-      "tags": ["solidity", "smart contract", "analysis"],
+      "title": "Manticore",
+      "url": "https://github.com/trailofbits/manticore",
+      "description": "A symbolic execution tool for analysis of smart contracts and binaries by Trail of Bits.",
+      "tags": ["solidity", "smart contract", "symbolic execution"],
       "lastReviewed": "2025-02-26",
       "active": true
     },

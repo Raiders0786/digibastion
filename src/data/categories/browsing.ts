@@ -41,7 +41,7 @@ export const browsingData: SecurityCategory = {
       level: 'essential',
       details: 'Opt for browsers like Firefox (with privacy tweaks) or Brave instead of data-hungry browsers such as Chrome, Edge, or Safari.',
       links: [
-        { text: 'Privacy Tools Browser List', url: 'https://privacytools.io/providers/browsers/' }
+        { text: 'Privacy Guides Browser List', url: 'https://www.privacyguides.org/en/desktop-browsers/' }
       ]
     },
     {
@@ -356,7 +356,7 @@ export const browsingData: SecurityCategory = {
       level: 'advanced',
       details: 'A reliable VPN hides your IP address and encrypts your data. Choose a reputable provider to ensure maximum privacy.',
       links: [
-        { text: 'PrivacyTools VPN List', url: 'https://www.privacytools.io/providers/vpn/' }
+        { text: 'Privacy Guides VPN List', url: 'https://www.privacyguides.org/en/vpn/' }
       ]
     },
     {

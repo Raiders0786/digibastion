@@ -181,7 +181,7 @@ export const mobileData: SecurityCategory = {
       level: "optional",
       details: "Utilize sandboxing solutions like Island to create isolated environments for apps, reducing their access to sensitive information.",
       links: [
-        { "text": "Island", "url": "https://island.ninja" }
+        { "text": "Shelter", "url": "https://gitea.angry.im/PeterCxy/Shelter" }
       ]
     },
     {

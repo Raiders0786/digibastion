@@ -1,5 +1,5 @@
 
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { SecurityScore } from '../SecurityScore';
 import { describe, it, expect, vi } from 'vitest';
 import { useSecurityState } from '../../hooks/useSecurityState';
@@ -48,11 +48,11 @@ describe('SecurityScore', () => {
   };
 
   it('renders correctly', () => {
-    render(<SecurityScore {...mockProps} />);
-    expect(screen.getByTestId('score-overview')).toBeInTheDocument();
-    expect(screen.getByTestId('score-circles')).toBeInTheDocument();
-    expect(screen.getByTestId('security-tips')).toBeInTheDocument();
-    expect(screen.getByTestId('category-overview')).toBeInTheDocument();
-    expect(screen.getByTestId('summary-cards')).toBeInTheDocument();
+    const { getByTestId } = render(<SecurityScore {...mockProps} />);
+    expect(getByTestId('score-overview')).toBeInTheDocument();
+    expect(getByTestId('score-circles')).toBeInTheDocument();
+    expect(getByTestId('security-tips')).toBeInTheDocument();
+    expect(getByTestId('category-overview')).toBeInTheDocument();
+    expect(getByTestId('summary-cards')).toBeInTheDocument();
   });
 });

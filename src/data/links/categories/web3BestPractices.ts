@@ -39,7 +39,7 @@ export const web3BestPractices: SecurityCategory = {
     },
     {
       "title": "PrivacyTools.io Blog",
-      "url": "https://www.privacytools.io/blog",
+      "url": "https://blog.privacyguides.org/",
       "description": "Insights and tips on digital privacy, security tools, and maintaining a secure online presence.",
       "tags": ["privacy", "blog", "digital protection"],
       "lastReviewed": "2025-02-26",
