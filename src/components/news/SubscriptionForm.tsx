@@ -140,11 +140,13 @@ export const SubscriptionForm = () => {
                     className={`p-3 border rounded-lg cursor-pointer transition-all hover:bg-accent/50 ${
                       isSelected ? 'border-primary bg-primary/5' : 'border-border'
                     }`}
-                    onClick={() => handleCategoryToggle(category)}
                   >
                     <div className="flex items-center space-x-2">
-                      <Checkbox checked={isSelected} />
-                      <div>
+                      <Checkbox 
+                        checked={isSelected} 
+                        onCheckedChange={() => handleCategoryToggle(category)}
+                      />
+                      <div onClick={() => handleCategoryToggle(category)} className="cursor-pointer flex-1">
                         <div className="font-medium">{categoryInfo.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {categoryInfo.description}
