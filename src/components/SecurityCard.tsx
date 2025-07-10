@@ -96,78 +96,50 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({
 
   return (
     <Card 
-      className="h-full feature-card cursor-pointer group relative overflow-hidden"
+      className="h-full border border-white/10 bg-card/70 backdrop-blur-sm overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
       onClick={handleClick}
     >
-      {/* Decorative gradient overlay */}
-      <div className="absolute top-0 right-0 h-24 w-24 -mt-12 -mr-12 bg-gradient-to-br from-primary/20 to-primary-glow/10 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
+      <div className="absolute top-0 right-0 h-20 w-20 -mt-10 -mr-10 bg-gradient-to-br opacity-20 rounded-full group-hover:opacity-40 transition-all duration-300" style={{ background: `linear-gradient(${color})` }}></div>
       
-      <CardHeader className="pb-3 relative z-10">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-300 group-hover:scale-110">
-            <CardIcon className="w-6 h-6 text-primary" />
+      <CardHeader className="pb-2">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-all duration-300">
+            <CardIcon className="w-5 h-5 text-primary" />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors duration-300 truncate">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
                 {title}
               </CardTitle>
               <Badge 
                 variant="outline" 
-                className={`${badgeColor} text-xs border-0 px-3 py-1 font-medium text-white transition-colors duration-300 flex-shrink-0 ml-3`}
+                className={`${badgeColor} text-xs border-0 px-2 py-0.5 h-5 ml-2 transition-colors duration-300`}
               >
                 {categoryType}
               </Badge>
             </div>
-            <CardDescription className="text-sm text-foreground-secondary leading-relaxed">
+            <CardDescription className="text-xs text-foreground-secondary mt-1">
               {description}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="pb-6 relative z-10">
-        {/* Enhanced Progress Bar */}
-        <div className="space-y-3">
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full transition-all duration-1000 ease-out rounded-full bg-gradient-to-r from-primary to-primary-glow shadow-sm" 
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-foreground">
-                {completed} / {total}
-              </span>
-              <span className="text-xs text-foreground-secondary">
-                completed
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-1 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-              <span className="text-sm font-medium">Explore</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Completion Status */}
-          {isComplete && (
-            <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              <span>Complete</span>
-            </div>
-          )}
+      <CardContent className="pb-4">
+        <div className="w-full h-1.5 bg-background rounded-full overflow-hidden mt-3 mb-2">
+          <div 
+            className="h-full transition-all duration-1000 ease-in-out rounded-full" 
+            style={{ 
+              width: `${progress}%`, 
+              background: `linear-gradient(to right, ${color})` 
+            }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-xs text-foreground-secondary">
+          <span>{completed} of {total} completed</span>
+          <span className="font-medium group-hover:text-primary transition-colors">View Details</span>
         </div>
       </CardContent>
-
-      {/* Hover effect overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
     </Card>
   );
 };
