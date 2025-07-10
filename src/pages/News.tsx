@@ -81,7 +81,7 @@ const News = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background animated-gradient">
+    <div className="min-h-screen bg-background">
       <MetaTags 
         title="Security News & Alerts | Digibastion"
         description="Stay updated with the latest security news, vulnerability disclosures, and threat intelligence. Get personalized alerts for your technology stack."
