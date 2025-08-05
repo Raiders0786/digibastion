@@ -136,7 +136,7 @@ const Index = () => {
             ))}
           </section>
 
-          <section className="mt-32 mb-20" aria-labelledby="roadmap-section">
+          <section id="roadmap" className="mt-32 mb-20 scroll-mt-20" aria-labelledby="roadmap-section">
             <div className="text-center mb-12">
               <h2 id="roadmap-section" className="text-3xl sm:text-4xl font-bold text-foreground mb-4 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
                 What's Coming Next
