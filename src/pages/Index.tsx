@@ -210,9 +210,30 @@ const Index = () => {
                         eta: "Q4 2025"
                       },
                       {
+                        title: "Source code analysis & vulnerability scanning",
+                        description: "AI-powered static analysis to detect security vulnerabilities, code smells, and potential exploits in your repositories",
+                        status: "In Progress",
+                        priority: "high",
+                        eta: "Q4 2025"
+                      },
+                      {
+                        title: "DevSecOps pipeline security integration",
+                        description: "Seamless CI/CD security scanning with GitHub Actions, GitLab CI, and Jenkins integration for automated security checks",
+                        status: "Planning",
+                        priority: "high",
+                        eta: "Q1 2026"
+                      },
+                      {
                         title: "Third-party dependency risk alerts",
                         description: "Get immediate notifications about critical vulnerabilities in your dependencies with fix recommendations",
                         status: "Planning", 
+                        priority: "high",
+                        eta: "Q1 2026"
+                      },
+                      {
+                        title: "GitHub repository security analysis",
+                        description: "Comprehensive scanning of public and private repositories for secrets, misconfigurations, and security anti-patterns",
+                        status: "Research",
                         priority: "high",
                         eta: "Q1 2026"
                       },
