@@ -67,7 +67,7 @@ const Index = () => {
           <div className="py-4 px-4 sm:px-8 lg:px-12">
             <div className="max-w-4xl mx-auto">
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center">
-                <span className="text-sm sm:text-base font-semibold text-foreground/90">
+                <span className="text-sm sm:text-base font-semibold text-foreground/90 bg-muted/30 px-3 py-1.5 rounded-lg">
                   Supported in 2025 with a small grant from
                 </span>
                 <a 
