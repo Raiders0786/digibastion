@@ -62,26 +62,25 @@ const Index = () => {
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16 px-4 sm:px-8 lg:px-12">
-        {/* ESP Support Announcement - Prominent validation highlight */}
-        <div className="relative bg-gradient-to-r from-primary/5 via-background/50 to-primary/5 backdrop-blur-sm border-b border-primary/20 -mx-4 sm:-mx-8 lg:-mx-12 mb-12">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent"></div>
-          <div className="relative py-4 px-4 sm:px-8 lg:px-12">
+        {/* ESP Support Announcement */}
+        <div className="mb-12">
+          <div className="py-4 px-4 sm:px-8 lg:px-12">
             <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-center gap-4 text-center">
-                <span className="text-sm font-semibold text-foreground/90 bg-gradient-to-r from-primary/10 to-primary/5 backdrop-blur-sm px-4 py-2 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center">
+                <span className="text-sm sm:text-base font-semibold text-foreground/90">
                   Supported in 2025 with a small grant from
                 </span>
                 <a 
                   href="https://esp.ethereum.foundation/" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="transition-all duration-200 hover:scale-105 hover:brightness-110"
+                  className="transition-all duration-200 hover:scale-105 hover:brightness-110 shrink-0"
                   aria-label="Ethereum Ecosystem Support Program"
                 >
                   <img 
                     src={espLogo} 
                     alt="Ethereum Ecosystem Support Program" 
-                    className="h-10 w-auto opacity-95 hover:opacity-100"
+                    className="h-8 sm:h-10 w-auto opacity-95 hover:opacity-100"
                   />
                 </a>
               </div>
