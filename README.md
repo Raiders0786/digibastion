@@ -156,9 +156,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Related Projects
 
-- [Web3 Security Library](https://github.com/OpenZeppelin/openzeppelin-contracts) - Smart contract security
-- [Awesome Web3 Security](https://github.com/Anugrahsr/Awesome-web3-Security) - Curated security resources
-- [DeFi Security Summit](https://defisecuritysummit.org/) - Community-driven security initiatives
+- [Web3 Security News](https://www.web3sec.news/) - Smart contract security News
+- [Web3 Security Resource Hub](https://github.com/Raiders0786/web3-security-resources) - Curated Web3 security resources
 
 ---
 
