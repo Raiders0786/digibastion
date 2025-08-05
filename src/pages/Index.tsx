@@ -146,124 +146,176 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="max-w-4xl mx-auto px-4">
-              <div className="glass-card p-8 sm:p-12 rounded-2xl border border-primary/20 shadow-2xl backdrop-blur-xl">
-                <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-primary to-primary/60 animate-pulse"></div>
-                    <h3 className="text-2xl font-bold text-foreground">Coming Soon: Complete Threat Protection</h3>
-                  </div>
-                  <div className="flex gap-3">
-                    <a 
-                      href="https://github.com/Raiders0786/digibastion/issues" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-block"
-                    >
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="glass-hover border-primary/30 text-primary hover:bg-primary/10"
-                      >
-                        View Issues
-                      </Button>
-                    </a>
-                    <a 
-                      href="https://github.com/Raiders0786/digibastion" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-block"
-                    >
-                      <Button 
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90 shadow-lg hover:shadow-primary/25"
-                      >
-                        Contribute
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[
-                    {
-                      title: "Real-time supply chain attack monitoring",
-                      description: "Detect malicious packages and compromised dependencies instantly",
-                      status: "In Progress"
-                    },
-                    {
-                      title: "Third-party dependency risk alerts",
-                      description: "Get notified about vulnerabilities in your tech stack",
-                      status: "Planning"
-                    },
-                    {
-                      title: "Instant website phishing & malware detection",
-                      description: "Scan URLs and domains for threats before you visit",
-                      status: "Research"
-                    },
-                    {
-                      title: "Compromised domain scanning",
-                      description: "Monitor for domain hijacking and DNS poisoning",
-                      status: "Planning"
-                    },
-                    {
-                      title: "Live threat intelligence feed",
-                      description: "Real-time updates on emerging security threats",
-                      status: "In Progress"
-                    }
-                  ].map((feature, index) => (
-                    <div 
-                      key={index}
-                      className="p-6 rounded-xl bg-gradient-to-br from-background/50 to-background/30 border border-primary/10 hover:border-primary/20 transition-all duration-300 hover:shadow-lg group"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                          {feature.title}
-                        </h4>
-                        <span className={`text-xs px-2 py-1 rounded-full border ${
-                          feature.status === 'In Progress' 
-                            ? 'bg-primary/10 text-primary border-primary/20' 
-                            : feature.status === 'Planning'
-                            ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
-                            : 'bg-muted/50 text-foreground-secondary border-border'
-                        }`}>
-                          {feature.status}
-                        </span>
+            <div className="max-w-5xl mx-auto px-4">
+              <div className="glass-card p-8 sm:p-12 rounded-3xl border border-primary/20 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+                {/* Background gradient effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-12 flex-wrap gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary to-secondary animate-pulse"></div>
+                          <div className="absolute inset-0 w-4 h-4 rounded-full bg-primary/30 animate-ping"></div>
+                        </div>
+                        <span className="text-sm font-medium text-primary tracking-wider uppercase">Roadmap 2024-2025</span>
                       </div>
-                      <p className="text-sm text-foreground-secondary leading-relaxed">
-                        {feature.description}
+                      <h3 className="text-3xl font-bold text-foreground">
+                        Complete Threat Protection
+                      </h3>
+                      <p className="text-foreground-secondary italic">
+                        Building the security infrastructure Web3 deserves - one unified platform for all your protection needs.
                       </p>
                     </div>
-                  ))}
-                </div>
-                
-                <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20">
-                  <div className="text-center">
-                    <p className="text-foreground font-medium mb-3">
-                      Want to help build the future of Web3 security?
-                    </p>
-                    <p className="text-sm text-foreground-secondary mb-4">
-                      Join our community of contributors. Check out open issues, suggest features, or submit pull requests.
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-3">
+                    <div className="flex gap-3">
                       <a 
-                        href="https://github.com/Raiders0786/digibastion/discussions" 
+                        href="https://github.com/Raiders0786/digibastion/issues" 
                         target="_blank" 
                         rel="noopener noreferrer"
+                        className="inline-block"
                       >
-                        <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
-                          Join Discussion
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="glass-hover border-primary/40 text-primary hover:bg-primary/15 hover:border-primary/60 transition-all duration-300"
+                        >
+                          <Github className="mr-2 h-4 w-4" />
+                          Issues
                         </Button>
                       </a>
                       <a 
-                        href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" 
+                        href="https://github.com/Raiders0786/digibastion" 
                         target="_blank" 
                         rel="noopener noreferrer"
+                        className="inline-block"
                       >
-                        <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
-                          Contributing Guide
+                        <Button 
+                          size="sm"
+                          className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-lg hover:shadow-primary/25 transition-all duration-300"
+                        >
+                          <Heart className="mr-2 h-4 w-4" />
+                          Contribute
                         </Button>
                       </a>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {[
+                      {
+                        title: "Real-time supply chain attack monitoring",
+                        description: "Detect malicious packages and compromised dependencies instantly across your entire tech stack",
+                        status: "In Progress",
+                        priority: "high",
+                        eta: "Q1 2025"
+                      },
+                      {
+                        title: "Third-party dependency risk alerts",
+                        description: "Get immediate notifications about critical vulnerabilities in your dependencies with fix recommendations",
+                        status: "Planning", 
+                        priority: "high",
+                        eta: "Q2 2025"
+                      },
+                      {
+                        title: "Instant website phishing & malware detection",
+                        description: "AI-powered URL scanning that protects you from malicious sites before you click",
+                        status: "Research",
+                        priority: "medium",
+                        eta: "Q2 2025"
+                      },
+                      {
+                        title: "Compromised domain scanning",
+                        description: "Continuous monitoring for domain hijacking, DNS poisoning, and certificate anomalies",
+                        status: "Planning",
+                        priority: "medium", 
+                        eta: "Q3 2025"
+                      },
+                      {
+                        title: "Live threat intelligence feed",
+                        description: "Real-time global threat intelligence with personalized risk assessments for your profile",
+                        status: "In Progress",
+                        priority: "high",
+                        eta: "Q1 2025"
+                      }
+                    ].map((feature, index) => (
+                      <div 
+                        key={index}
+                        className="group p-6 rounded-2xl bg-gradient-to-br from-card/80 to-card/60 border border-primary/15 hover:border-primary/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1">
+                              <div className={`w-2 h-2 rounded-full ${
+                                feature.status === 'In Progress' ? 'bg-green-500' :
+                                feature.status === 'Planning' ? 'bg-orange-500' : 'bg-gray-400'
+                              } animate-pulse`}></div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+                                {feature.title}
+                              </h4>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-foreground-secondary leading-relaxed mb-4">
+                          {feature.description}
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-2">
+                            <span className={`inline-flex items-center text-xs px-3 py-1 rounded-full font-medium ${
+                              feature.status === 'In Progress' 
+                                ? 'bg-green-500/15 text-green-600 border border-green-500/25' 
+                                : feature.status === 'Planning'
+                                ? 'bg-orange-500/15 text-orange-600 border border-orange-500/25'
+                                : 'bg-muted/60 text-foreground-secondary border border-border/50'
+                            }`}>
+                              {feature.status}
+                            </span>
+                            <span className={`inline-flex items-center text-xs px-3 py-1 rounded-full font-medium ${
+                              feature.priority === 'high'
+                                ? 'bg-red-500/15 text-red-600 border border-red-500/25'
+                                : 'bg-blue-500/15 text-blue-600 border border-blue-500/25'
+                            }`}>
+                              {feature.priority} priority
+                            </span>
+                          </div>
+                          <span className="text-xs text-foreground-secondary font-mono bg-muted/30 px-2 py-1 rounded">
+                            {feature.eta}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="p-8 rounded-2xl bg-gradient-to-r from-primary/8 via-primary/12 to-secondary/8 border border-primary/25 backdrop-blur-sm">
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-2 mb-4">
+                        <Heart className="h-5 w-5 text-primary" />
+                        <span className="text-lg font-semibold text-foreground">Join Our Security Mission</span>
+                      </div>
+                      <p className="text-foreground-secondary mb-6 max-w-2xl mx-auto">
+                        Help us build the most comprehensive Web3 security platform. Whether you're a security researcher, 
+                        developer, or just passionate about digital safety - there's a place for you in our community.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-4">
+                        <a href="https://github.com/Raiders0786/digibastion/discussions" target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/15 hover:border-primary/60">
+                            💬 Join Discussion
+                          </Button>
+                        </a>
+                        <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/15 hover:border-primary/60">
+                            📖 Contributing Guide
+                          </Button>
+                        </a>
+                        <a href="https://github.com/Raiders0786/digibastion/issues/new" target="_blank" rel="noopener noreferrer">
+                          <Button className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90">
+                            🚀 Suggest Feature
+                          </Button>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
