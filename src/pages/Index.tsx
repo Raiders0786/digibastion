@@ -135,6 +135,141 @@ const Index = () => {
               </article>
             ))}
           </section>
+
+          <section className="mt-32 mb-20" aria-labelledby="roadmap-section">
+            <div className="text-center mb-12">
+              <h2 id="roadmap-section" className="text-3xl sm:text-4xl font-bold text-foreground mb-4 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+                What's Coming Next
+              </h2>
+              <p className="text-lg text-foreground-secondary max-w-2xl mx-auto">
+                Building the security infrastructure Web3 deserves - one unified platform for all your protection needs.
+              </p>
+            </div>
+            
+            <div className="max-w-4xl mx-auto px-4">
+              <div className="glass-card p-8 sm:p-12 rounded-2xl border border-primary/20 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-primary to-primary/60 animate-pulse"></div>
+                    <h3 className="text-2xl font-bold text-foreground">Coming Soon: Complete Threat Protection</h3>
+                  </div>
+                  <div className="flex gap-3">
+                    <a 
+                      href="https://github.com/Raiders0786/digibastion/issues" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="glass-hover border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        View Issues
+                      </Button>
+                    </a>
+                    <a 
+                      href="https://github.com/Raiders0786/digibastion" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <Button 
+                        size="sm"
+                        className="bg-primary hover:bg-primary/90 shadow-lg hover:shadow-primary/25"
+                      >
+                        Contribute
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    {
+                      title: "Real-time supply chain attack monitoring",
+                      description: "Detect malicious packages and compromised dependencies instantly",
+                      status: "In Progress"
+                    },
+                    {
+                      title: "Third-party dependency risk alerts",
+                      description: "Get notified about vulnerabilities in your tech stack",
+                      status: "Planning"
+                    },
+                    {
+                      title: "Instant website phishing & malware detection",
+                      description: "Scan URLs and domains for threats before you visit",
+                      status: "Research"
+                    },
+                    {
+                      title: "Compromised domain scanning",
+                      description: "Monitor for domain hijacking and DNS poisoning",
+                      status: "Planning"
+                    },
+                    {
+                      title: "Live threat intelligence feed",
+                      description: "Real-time updates on emerging security threats",
+                      status: "In Progress"
+                    }
+                  ].map((feature, index) => (
+                    <div 
+                      key={index}
+                      className="p-6 rounded-xl bg-gradient-to-br from-background/50 to-background/30 border border-primary/10 hover:border-primary/20 transition-all duration-300 hover:shadow-lg group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                          {feature.title}
+                        </h4>
+                        <span className={`text-xs px-2 py-1 rounded-full border ${
+                          feature.status === 'In Progress' 
+                            ? 'bg-primary/10 text-primary border-primary/20' 
+                            : feature.status === 'Planning'
+                            ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                            : 'bg-muted/50 text-foreground-secondary border-border'
+                        }`}>
+                          {feature.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground-secondary leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20">
+                  <div className="text-center">
+                    <p className="text-foreground font-medium mb-3">
+                      Want to help build the future of Web3 security?
+                    </p>
+                    <p className="text-sm text-foreground-secondary mb-4">
+                      Join our community of contributors. Check out open issues, suggest features, or submit pull requests.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      <a 
+                        href="https://github.com/Raiders0786/digibastion/discussions" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
+                          Join Discussion
+                        </Button>
+                      </a>
+                      <a 
+                        href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
+                          Contributing Guide
+                        </Button>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
       <Footer />
