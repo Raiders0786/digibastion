@@ -71,7 +71,7 @@ const Index = () => {
               </p>
             </header>
             <p className="text-base sm:text-lg text-foreground-secondary max-w-2xl mx-auto leading-relaxed mt-8 px-4">
-              Protect your personal digital footprint with Digibastion. Our self-driven Web3 OpSec checklist lets you follow expert-backed security practices, earn a security score, and enhance your privacy across crypto, Web3, and beyond.
+              Stop jumping between 10+ scattered security tools. Protect your personal digital footprint with Digibastion's unified Web3 OpSec platform - follow expert-backed security practices, scan for live threats, monitor supply chain risks, and enhance your privacy across crypto, Web3, and beyond.
             </p>
             <div className="pt-6 flex flex-wrap justify-center gap-4">
               <a 
