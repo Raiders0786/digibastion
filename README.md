@@ -156,7 +156,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Related Projects
 
-- [Web3 Security News](https://www.web3sec.news/) - Smart contract security News
 - [Web3 Security Resource Hub](https://github.com/Raiders0786/web3-security-resources) - Curated Web3 security resources
 
 ---
