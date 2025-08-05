@@ -10,7 +10,7 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import espLogo from '../assets/esp-logo.svg';
+import espLogo from '../assets/esp-logo-white.svg';
 
 const Index = () => {
   const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
