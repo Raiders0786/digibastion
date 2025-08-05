@@ -111,15 +111,15 @@ const Index = () => {
           </section>
 
           {/* Support Announcement */}
-          <section className="mb-12">
-            <div className="flex items-center justify-center gap-4 text-center">
-              <span className="text-sm text-muted-foreground">
-                Supported in 2025 with a small grant from:
+          <section className="mb-8">
+            <div className="flex items-center justify-center gap-3 text-center">
+              <span className="text-sm font-medium text-foreground/80 bg-muted/50 px-3 py-1.5 rounded-full border">
+                Supported in 2025 with a small grant from
               </span>
               <img 
                 src={espLogo} 
                 alt="Ethereum Ecosystem Support Program" 
-                className="h-8 w-auto opacity-80"
+                className="h-7 w-auto opacity-90"
               />
             </div>
           </section>
