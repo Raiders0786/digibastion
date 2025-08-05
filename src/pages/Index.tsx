@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
@@ -8,11 +8,12 @@ import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
-import { Github, Heart, Loader2 } from 'lucide-react';
+import { Github, Heart, Loader2, Link, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
+  const [copied, setCopied] = useState(false);
   const location = useLocation();
 
   // Handle scroll to score section if needed
@@ -38,6 +39,18 @@ const Index = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [changeCount]); // Use changeCount to detect threat level changes
+
+  // Copy roadmap link to clipboard
+  const copyRoadmapLink = async () => {
+    try {
+      const url = `${window.location.origin}/#roadmap`;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
 
   // If loading, show a loading spinner
   if (isLoading) {
@@ -138,9 +151,30 @@ const Index = () => {
 
           <section id="roadmap" className="mt-32 mb-20 scroll-mt-20" aria-labelledby="roadmap-section">
             <div className="text-center mb-12">
-              <h2 id="roadmap-section" className="text-3xl sm:text-4xl font-bold text-foreground mb-4 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-                What's Coming Next
-              </h2>
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <h2 id="roadmap-section" className="text-3xl sm:text-4xl font-bold text-foreground bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+                  What's Coming Next
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyRoadmapLink}
+                  className="border-primary/40 text-primary hover:bg-primary/15 hover:border-primary/60 transition-all duration-300"
+                  title="Copy roadmap link"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Link className="h-4 w-4 mr-2" />
+                      Share
+                    </>
+                  )}
+                </Button>
+              </div>
               <p className="text-lg text-foreground-secondary max-w-2xl mx-auto">
                 Building the security infrastructure Web3 deserves - one unified platform for all your protection needs.
               </p>
