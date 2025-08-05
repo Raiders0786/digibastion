@@ -62,16 +62,16 @@ const Index = () => {
       <Navbar />
       
       {/* Support Announcement Banner */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-primary/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-4">
-          <div className="flex items-center justify-center gap-4 text-center">
-            <span className="text-sm text-foreground-secondary font-medium">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/15 to-primary/10 border-b border-primary/30 backdrop-blur-sm shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-6">
+          <div className="flex items-center justify-center gap-6 text-center">
+            <span className="text-base text-foreground font-medium">
               Supported in 2025 with a small grant from:
             </span>
             <img 
               src={espLogo} 
               alt="Ethereum Ecosystem Support Program" 
-              className="h-8 w-auto opacity-90 hover:opacity-100 transition-opacity duration-200"
+              className="h-12 w-auto opacity-95 hover:opacity-100 transition-opacity duration-200 drop-shadow-sm"
             />
           </div>
         </div>
