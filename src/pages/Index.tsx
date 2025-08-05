@@ -10,6 +10,7 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import espLogo from '../assets/esp-logo.png';
 
 const Index = () => {
   const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
@@ -59,6 +60,23 @@ const Index = () => {
         description="Protect your digital assets with our comprehensive Web3 security checklist. Follow expert-backed security practices for crypto, blockchain, and DeFi."
       />
       <Navbar />
+      
+      {/* Support Announcement Banner */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-primary/20 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-4">
+          <div className="flex items-center justify-center gap-4 text-center">
+            <span className="text-sm text-foreground-secondary font-medium">
+              Supported in 2025 with a small grant from:
+            </span>
+            <img 
+              src={espLogo} 
+              alt="Ethereum Ecosystem Support Program" 
+              className="h-8 w-auto opacity-90 hover:opacity-100 transition-opacity duration-200"
+            />
+          </div>
+        </div>
+      </div>
+      
       <main className="flex-grow pt-24 pb-16 px-4 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <section className="text-center mb-20 animate-fade-in space-y-8">
