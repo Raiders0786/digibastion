@@ -158,7 +158,7 @@ const Index = () => {
                           <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary to-secondary animate-pulse"></div>
                           <div className="absolute inset-0 w-4 h-4 rounded-full bg-primary/30 animate-ping"></div>
                         </div>
-                        <span className="text-sm font-medium text-primary tracking-wider uppercase">Roadmap 2024-2025</span>
+                        <span className="text-sm font-medium text-primary tracking-wider uppercase">Roadmap Q3 2025 - Q2 2026</span>
                       </div>
                       <h3 className="text-3xl font-bold text-foreground">
                         Complete Threat Protection
@@ -207,35 +207,35 @@ const Index = () => {
                         description: "Detect malicious packages and compromised dependencies instantly across your entire tech stack",
                         status: "In Progress",
                         priority: "high",
-                        eta: "Q1 2025"
+                        eta: "Q4 2025"
                       },
                       {
                         title: "Third-party dependency risk alerts",
                         description: "Get immediate notifications about critical vulnerabilities in your dependencies with fix recommendations",
                         status: "Planning", 
                         priority: "high",
-                        eta: "Q2 2025"
+                        eta: "Q1 2026"
                       },
                       {
                         title: "Instant website phishing & malware detection",
                         description: "AI-powered URL scanning that protects you from malicious sites before you click",
                         status: "Research",
                         priority: "medium",
-                        eta: "Q2 2025"
+                        eta: "Q1 2026"
                       },
                       {
                         title: "Compromised domain scanning",
                         description: "Continuous monitoring for domain hijacking, DNS poisoning, and certificate anomalies",
                         status: "Planning",
                         priority: "medium", 
-                        eta: "Q3 2025"
+                        eta: "Q2 2026"
                       },
                       {
                         title: "Live threat intelligence feed",
                         description: "Real-time global threat intelligence with personalized risk assessments for your profile",
                         status: "In Progress",
                         priority: "high",
-                        eta: "Q1 2025"
+                        eta: "Q4 2025"
                       }
                     ].map((feature, index) => (
                       <div 
@@ -300,7 +300,7 @@ const Index = () => {
                         developer, or just passionate about digital safety - there's a place for you in our community.
                       </p>
                       <div className="flex flex-wrap justify-center gap-4">
-                        <a href="https://github.com/Raiders0786/digibastion/discussions" target="_blank" rel="noopener noreferrer">
+                        <a href="https://t.me/digibastion" target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/15 hover:border-primary/60">
                             💬 Join Discussion
                           </Button>
