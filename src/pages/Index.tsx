@@ -10,7 +10,7 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import espLogo from '../assets/esp-logo.png';
+import espLogo from '../assets/esp-logo.svg';
 
 const Index = () => {
   const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
@@ -110,21 +110,17 @@ const Index = () => {
             </div>
           </section>
 
-          {/* Support Announcement Banner */}
+          {/* Support Announcement */}
           <section className="mb-12">
-            <div className="bg-gradient-to-r from-primary/10 via-primary/15 to-primary/10 border border-primary/30 backdrop-blur-sm shadow-lg rounded-2xl">
-              <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-6">
-                <div className="flex items-center justify-center gap-6 text-center">
-                  <span className="text-base text-foreground font-medium">
-                    Supported in 2025 with a small grant from:
-                  </span>
-                  <img 
-                    src={espLogo} 
-                    alt="Ethereum Ecosystem Support Program" 
-                    className="h-12 w-auto opacity-95 hover:opacity-100 transition-opacity duration-200 drop-shadow-sm"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center justify-center gap-4 text-center">
+              <span className="text-sm text-muted-foreground">
+                Supported in 2025 with a small grant from:
+              </span>
+              <img 
+                src={espLogo} 
+                alt="Ethereum Ecosystem Support Program" 
+                className="h-8 w-auto opacity-80"
+              />
             </div>
           </section>
 
