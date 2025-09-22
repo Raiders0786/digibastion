@@ -36,24 +36,23 @@ const App = () => {
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <MetaTags /> {/* Default meta tags */}
             <Toaster />
             <Sonner />
             <Analytics />
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/category/:categoryId" element={<CategoryDetail />} />
-              <Route path="/news" element={<News />} />
-              <Route path="/share" element={<Share />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/license" element={<License />} />
-              <Route path="/tools" element={<Tools />} />
-              <Route path="/articles" element={<Articles />} />
-              <Route path="/articles/:slug" element={<ArticleDetail />} />
-              <Route path="/links" element={<Links />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/" element={<><MetaTags /><Index /></>} />
+              <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
+              <Route path="/news" element={<><MetaTags /><News /></>} />
+              <Route path="/share" element={<><MetaTags /><Share /></>} />
+              <Route path="/about" element={<><MetaTags /><About /></>} />
+              <Route path="/license" element={<><MetaTags /><License /></>} />
+              <Route path="/tools" element={<><MetaTags /><Tools /></>} />
+              <Route path="/articles" element={<><MetaTags /><Articles /></>} />
+              <Route path="/articles/:slug" element={<><MetaTags /><ArticleDetail /></>} />
+              <Route path="/links" element={<><MetaTags /><Links /></>} />
+              <Route path="/contact" element={<><MetaTags /><Contact /></>} />
+              <Route path="/support" element={<><MetaTags /><Support /></>} />
+              <Route path="*" element={<><MetaTags /><NotFound /></>} />
             </Routes>
           </TooltipProvider>
         </QueryClientProvider>
