@@ -103,6 +103,18 @@ export const Navbar = () => {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
+                {/* Threat Intel - Direct Link */}
+                <NavigationMenuItem>
+                  <button
+                    onClick={() => navigate('/news')}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm sm:text-base font-medium text-foreground hover:text-primary transition-colors rounded-md hover:bg-accent/50"
+                  >
+                    <Newspaper className="w-4 h-4" />
+                    <span className="hidden sm:inline">Threat Intel</span>
+                    <span className="sm:hidden">Intel</span>
+                  </button>
+                </NavigationMenuItem>
+
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4 data-[state=open]:bg-accent/50">
                     Resources

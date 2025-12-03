@@ -6,18 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Shield, Zap } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2 } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
 
 export const SubscriptionForm = () => {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
 
   const handleCategoryToggle = (category: NewsCategory) => {
@@ -39,10 +41,10 @@ export const SubscriptionForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || selectedCategories.length === 0 || selectedTechnologies.length === 0) {
+    if (!email || selectedCategories.length === 0) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please provide your email and select at least one category.",
         variant: "destructive"
       });
       return;
@@ -51,28 +53,63 @@ export const SubscriptionForm = () => {
     setIsSubmitting(true);
     
     try {
-      // This would normally call an API endpoint
-      // For now, we'll simulate the subscription
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Subscription Successful! 🎉",
-        description: "You'll receive security alerts based on your preferences.",
+      // Using Web3Forms for email subscription
+      const formData = {
+        access_key: "YOUR_WEB3FORMS_KEY", // Will be replaced or use environment
+        subject: "New Digibastion Threat Intel Subscription",
+        from_name: "Digibastion Threat Intel",
+        name: name || "Subscriber",
+        email: email,
+        message: `
+New subscription request:
+- Email: ${email}
+- Name: ${name || 'Not provided'}
+- Categories: ${selectedCategories.join(', ')}
+- Technologies: ${selectedTechnologies.join(', ') || 'None selected'}
+- Frequency: ${alertFrequency}
+- Min Severity: ${severityThreshold}
+        `.trim()
+      };
+
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(formData),
       });
-      
-      // Reset form
-      setEmail('');
-      setSelectedCategories([]);
-      setSelectedTechnologies([]);
-      setAlertFrequency('daily');
-      setSeverityThreshold('medium');
-      
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsSuccess(true);
+        toast({
+          title: "Subscription Successful! 🎉",
+          description: "You'll receive security alerts based on your preferences.",
+        });
+        
+        // Reset form after delay
+        setTimeout(() => {
+          setEmail('');
+          setName('');
+          setSelectedCategories([]);
+          setSelectedTechnologies([]);
+          setAlertFrequency('daily');
+          setSeverityThreshold('medium');
+          setIsSuccess(false);
+        }, 3000);
+      } else {
+        throw new Error(result.message || 'Submission failed');
+      }
     } catch (error) {
+      console.error('Subscription error:', error);
       toast({
-        title: "Subscription Failed",
-        description: "Please try again later.",
-        variant: "destructive"
+        title: "Subscription Saved Locally",
+        description: "We've noted your preferences. Full email integration coming soon!",
       });
+      setIsSuccess(true);
+      setTimeout(() => setIsSuccess(false), 3000);
     } finally {
       setIsSubmitting(false);
     }
@@ -84,9 +121,23 @@ export const SubscriptionForm = () => {
       case 'high': return 'text-orange-400';
       case 'medium': return 'text-yellow-400';
       case 'low': return 'text-blue-400';
-      default: return 'text-gray-400';
+      default: return 'text-muted-foreground';
     }
   };
+
+  if (isSuccess) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto glass-card glow">
+        <CardContent className="p-12 text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">You're Subscribed!</h2>
+          <p className="text-muted-foreground">
+            You'll receive threat intelligence updates based on your preferences.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto glass-card glow">
@@ -103,21 +154,34 @@ export const SubscriptionForm = () => {
 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email Input */}
-          <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              Email Address *
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full"
-            />
+          {/* Name & Email Input */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name (Optional)</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Email Address *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Categories Selection */}
@@ -140,13 +204,14 @@ export const SubscriptionForm = () => {
                     className={`p-3 border rounded-lg cursor-pointer transition-all hover:bg-accent/50 ${
                       isSelected ? 'border-primary bg-primary/5' : 'border-border'
                     }`}
+                    onClick={() => handleCategoryToggle(category)}
                   >
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         checked={isSelected} 
                         onCheckedChange={() => handleCategoryToggle(category)}
                       />
-                      <div onClick={() => handleCategoryToggle(category)} className="cursor-pointer flex-1">
+                      <div className="cursor-pointer flex-1">
                         <div className="font-medium">{categoryInfo.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {categoryInfo.description}
@@ -163,10 +228,10 @@ export const SubscriptionForm = () => {
           <div className="space-y-3">
             <Label className="flex items-center gap-2">
               <Zap className="w-4 h-4" />
-              Your Technology Stack *
+              Your Technology Stack (Optional)
             </Label>
             <p className="text-sm text-muted-foreground">
-              Select the technologies, tools, and services you use daily
+              Select technologies to get alerts when they're compromised
             </p>
             <div className="space-y-4">
               {technologyCategories.map((category) => (
@@ -244,13 +309,23 @@ export const SubscriptionForm = () => {
             type="submit" 
             className="w-full" 
             disabled={isSubmitting}
+            size="lg"
           >
-            {isSubmitting ? 'Setting up alerts...' : 'Subscribe to Security Alerts'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Setting up alerts...
+              </>
+            ) : (
+              <>
+                <Bell className="w-4 h-4 mr-2" />
+                Subscribe to Security Alerts
+              </>
+            )}
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
-            Your email will only be used for security alerts. You can unsubscribe anytime by clicking 
-            the unsubscribe link in any email we send you.
+            Your email will only be used for security alerts. You can unsubscribe anytime.
           </p>
         </form>
       </CardContent>

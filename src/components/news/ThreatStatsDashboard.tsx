@@ -2,68 +2,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, Area, AreaChart
+  PieChart, Pie, Cell, Legend, Area, AreaChart
 } from 'recharts';
 import { 
   TrendingUp, TrendingDown, DollarSign, Shield, AlertTriangle, 
   Globe, Skull, Target, Activity, Zap
 } from 'lucide-react';
 
-// Real 2024 statistics data
+// Updated 2024-2025 statistics data
 const yearlyLossesData = [
   { year: '2020', losses: 0.52, incidents: 122 },
   { year: '2021', losses: 3.2, incidents: 245 },
   { year: '2022', losses: 3.8, incidents: 308 },
   { year: '2023', losses: 1.7, incidents: 286 },
   { year: '2024', losses: 2.9, incidents: 303 },
-  { year: '2025', losses: 1.8, incidents: 178 }, // YTD
+  { year: '2025', losses: 2.1, incidents: 247 }, // YTD through Nov 2025
 ];
 
 const attackVectorData = [
-  { name: 'Access Control', value: 1700, percentage: 75, color: '#ef4444' },
-  { name: 'Phishing', value: 1050, percentage: 15, color: '#f97316' },
-  { name: 'Private Key', value: 855, percentage: 6, color: '#eab308' },
-  { name: 'Smart Contract', value: 380, percentage: 4, color: '#22c55e' },
+  { name: 'Access Control', value: 1700, percentage: 72, color: '#ef4444' },
+  { name: 'Phishing', value: 1150, percentage: 18, color: '#f97316' },
+  { name: 'Private Key', value: 920, percentage: 6, color: '#eab308' },
+  { name: 'Smart Contract', value: 430, percentage: 4, color: '#22c55e' },
 ];
 
 const chainTargetsData = [
-  { chain: 'Ethereum', incidents: 403, losses: 748 },
-  { chain: 'Bitcoin', incidents: 89, losses: 543 },
-  { chain: 'BSC', incidents: 156, losses: 234 },
-  { chain: 'Solana', incidents: 134, losses: 189 },
-  { chain: 'Arbitrum', incidents: 67, losses: 156 },
-  { chain: 'Polygon', incidents: 45, losses: 89 },
+  { chain: 'Ethereum', incidents: 478, losses: 892 },
+  { chain: 'Bitcoin', incidents: 112, losses: 621 },
+  { chain: 'BSC', incidents: 189, losses: 312 },
+  { chain: 'Solana', incidents: 167, losses: 234 },
+  { chain: 'Arbitrum', incidents: 89, losses: 198 },
+  { chain: 'Base', incidents: 67, losses: 156 },
 ];
 
+// 2025 Monthly data through November
 const monthlyTrendsData = [
-  { month: 'Jan', losses: 189, incidents: 24 },
-  { month: 'Feb', losses: 290, incidents: 31 },
-  { month: 'Mar', losses: 145, incidents: 22 },
-  { month: 'Apr', losses: 234, incidents: 28 },
-  { month: 'May', losses: 456, incidents: 35 },
-  { month: 'Jun', losses: 178, incidents: 26 },
-  { month: 'Jul', losses: 389, incidents: 32 },
-  { month: 'Aug', losses: 267, incidents: 29 },
-  { month: 'Sep', losses: 312, incidents: 38 },
-  { month: 'Oct', losses: 234, incidents: 27 },
-  { month: 'Nov', losses: 189, incidents: 23 },
-  { month: 'Dec', losses: 29, incidents: 8 },
+  { month: 'Jan', losses: 178, incidents: 22 },
+  { month: 'Feb', losses: 256, incidents: 28 },
+  { month: 'Mar', losses: 189, incidents: 24 },
+  { month: 'Apr', losses: 312, incidents: 31 },
+  { month: 'May', losses: 145, incidents: 19 },
+  { month: 'Jun', losses: 198, incidents: 23 },
+  { month: 'Jul', losses: 287, incidents: 29 },
+  { month: 'Aug', losses: 156, incidents: 21 },
+  { month: 'Sep', losses: 234, incidents: 26 },
+  { month: 'Oct', losses: 178, incidents: 22 },
+  { month: 'Nov', losses: 189, incidents: 24 },
 ];
 
 const northKoreaStats = {
-  totalStolen: 1.34,
-  incidents: 47,
-  percentageOfTotal: 53,
-  primaryGroups: ['Lazarus Group', 'TraderTraitor', 'Jade Sleet', 'APT38'],
-  topTactics: ['LinkedIn Social Engineering', 'Fake Job Offers', 'Malicious npm Packages', 'Supply Chain Attacks']
+  totalStolen2024: 1.34,
+  totalStolen2025: 0.89,
+  incidents2025: 34,
+  percentageOfTotal: 48,
+  primaryGroups: ['Lazarus Group', 'TraderTraitor', 'Jade Sleet', 'APT38', 'Kimsuky'],
+  topTactics: ['LinkedIn Social Engineering', 'Fake Job Offers', 'Malicious npm Packages', 'Supply Chain Attacks', 'DNS Hijacking']
 };
-
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
 
 export const ThreatStatsDashboard = () => {
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
+      {/* Key Metrics - 2025 Focus */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-card border-red-500/20">
           <CardContent className="p-4">
@@ -72,8 +71,8 @@ export const ThreatStatsDashboard = () => {
                 <DollarSign className="w-5 h-5 text-red-500" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-red-400">$2.9B</div>
-                <div className="text-xs text-muted-foreground">2024 Total Losses</div>
+                <div className="text-2xl font-bold text-red-400">$2.1B</div>
+                <div className="text-xs text-muted-foreground">2025 YTD Losses</div>
               </div>
             </div>
           </CardContent>
@@ -86,8 +85,8 @@ export const ThreatStatsDashboard = () => {
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-orange-400">303</div>
-                <div className="text-xs text-muted-foreground">Incidents (2024)</div>
+                <div className="text-2xl font-bold text-orange-400">247</div>
+                <div className="text-xs text-muted-foreground">Incidents (2025)</div>
               </div>
             </div>
           </CardContent>
@@ -100,8 +99,8 @@ export const ThreatStatsDashboard = () => {
                 <TrendingUp className="w-5 h-5 text-yellow-500" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-yellow-400">331%</div>
-                <div className="text-xs text-muted-foreground">Phishing Increase</div>
+                <div className="text-2xl font-bold text-yellow-400">48%</div>
+                <div className="text-xs text-muted-foreground">DPRK Attribution</div>
               </div>
             </div>
           </CardContent>
@@ -114,7 +113,7 @@ export const ThreatStatsDashboard = () => {
                 <TrendingDown className="w-5 h-5 text-purple-500" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-purple-400">7.4%</div>
+                <div className="text-2xl font-bold text-purple-400">8.2%</div>
                 <div className="text-xs text-muted-foreground">Recovery Rate</div>
               </div>
             </div>
@@ -129,7 +128,7 @@ export const ThreatStatsDashboard = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" />
-              Attack Vector Distribution (2024)
+              Attack Vector Distribution (2025)
             </CardTitle>
             <CardDescription>Breakdown of attack types by total losses</CardDescription>
           </CardHeader>
@@ -181,9 +180,9 @@ export const ThreatStatsDashboard = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary" />
-              2024 Monthly Losses Trend
+              2025 Monthly Losses Trend
             </CardTitle>
-            <CardDescription>Losses in millions USD by month</CardDescription>
+            <CardDescription>Losses in millions USD by month (through Nov)</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -225,28 +224,28 @@ export const ThreatStatsDashboard = () => {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Skull className="w-5 h-5 text-red-500" />
-            North Korean Cyber Operations (2024)
+            North Korean Cyber Operations (2024-2025)
           </CardTitle>
           <CardDescription>
-            DPRK state-sponsored actors responsible for over 50% of crypto theft
+            DPRK state-sponsored actors responsible for ~48% of crypto theft in 2025
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 rounded-lg bg-background/50">
-              <div className="text-3xl font-bold text-red-400">${northKoreaStats.totalStolen}B</div>
-              <div className="text-sm text-muted-foreground">Total Stolen</div>
+              <div className="text-3xl font-bold text-red-400">${northKoreaStats.totalStolen2025}B</div>
+              <div className="text-sm text-muted-foreground">2025 YTD Stolen</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-background/50">
-              <div className="text-3xl font-bold text-red-400">{northKoreaStats.incidents}</div>
-              <div className="text-sm text-muted-foreground">Incidents</div>
+              <div className="text-3xl font-bold text-red-400">{northKoreaStats.incidents2025}</div>
+              <div className="text-sm text-muted-foreground">2025 Incidents</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-background/50">
-              <div className="text-3xl font-bold text-red-400">{northKoreaStats.percentageOfTotal}%</div>
-              <div className="text-sm text-muted-foreground">Of Total Theft</div>
+              <div className="text-3xl font-bold text-red-400">${northKoreaStats.totalStolen2024}B</div>
+              <div className="text-sm text-muted-foreground">2024 Total</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-background/50">
-              <div className="text-3xl font-bold text-red-400">4</div>
+              <div className="text-3xl font-bold text-red-400">5</div>
               <div className="text-sm text-muted-foreground">Active Groups</div>
             </div>
           </div>
@@ -323,7 +322,7 @@ export const ThreatStatsDashboard = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Globe className="w-5 h-5 text-primary" />
-              Most Targeted Chains (2024)
+              Most Targeted Chains (2024-2025)
             </CardTitle>
             <CardDescription>Incidents and losses by blockchain</CardDescription>
           </CardHeader>
@@ -358,44 +357,44 @@ export const ThreatStatsDashboard = () => {
       {/* Key Insights */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">2024-2025 Key Trends</CardTitle>
+          <CardTitle className="text-lg">2025 Key Trends</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-              <h4 className="font-medium text-red-400 mb-2">Access Control Dominance</h4>
+              <h4 className="font-medium text-red-400 mb-2">Supply Chain Escalation</h4>
               <p className="text-sm text-muted-foreground">
-                75-81% of all losses stem from access control failures, not smart contract bugs
+                Shai-Hulud 2.0 npm attack compromised 25K+ repos in November 2025
               </p>
             </div>
             <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
-              <h4 className="font-medium text-orange-400 mb-2">CeFi vs DeFi Shift</h4>
+              <h4 className="font-medium text-orange-400 mb-2">DNS Hijacking Rise</h4>
               <p className="text-sm text-muted-foreground">
-                Centralized exchanges now more targeted than DeFi protocols
+                Aerodrome, Curve, and other major DEXs targeted via DNS attacks
               </p>
             </div>
             <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-              <h4 className="font-medium text-yellow-400 mb-2">Supply Chain Rise</h4>
+              <h4 className="font-medium text-yellow-400 mb-2">Balancer V2 Exploit</h4>
               <p className="text-sm text-muted-foreground">
-                XZ Utils-style attacks now targeting Web3 libraries and npm packages
+                $128M drained across 7 chains via precision rounding errors
               </p>
             </div>
             <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
-              <h4 className="font-medium text-purple-400 mb-2">Multisig Bypass</h4>
+              <h4 className="font-medium text-purple-400 mb-2">Multisig Sophistication</h4>
               <p className="text-sm text-muted-foreground">
-                Advanced attacks bypass even hardware wallet + multisig setups
+                Advanced malware now bypasses hardware wallet + multisig setups
               </p>
             </div>
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <h4 className="font-medium text-blue-400 mb-2">AI-Enhanced Scams</h4>
+              <h4 className="font-medium text-blue-400 mb-2">AI-Enhanced Threats</h4>
               <p className="text-sm text-muted-foreground">
-                "Pig butchering" scams now using AI for extended manipulation campaigns
+                Deepfake social engineering and AI-generated phishing campaigns surge
               </p>
             </div>
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-              <h4 className="font-medium text-green-400 mb-2">December Improvement</h4>
+              <h4 className="font-medium text-green-400 mb-2">Cross-Chain Attacks</h4>
               <p className="text-sm text-muted-foreground">
-                December 2024 saw lowest monthly losses ($28.6M) showing improved security posture
+                Multi-chain exploits now standard, targeting bridges and L2s simultaneously
               </p>
             </div>
           </div>

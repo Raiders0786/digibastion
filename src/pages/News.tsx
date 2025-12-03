@@ -9,22 +9,21 @@ import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { mockNewsArticles, mockSecurityAlerts } from '@/data/newsData';
 import { 
-  Newspaper, Shield, AlertTriangle, TrendingUp, Bell, BarChart3, 
-  Search, Calendar, Clock, ExternalLink, ChevronRight
+  Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
+  Search, Calendar, Clock, ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const News = () => {
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
-  const [selectedTab, setSelectedTab] = useState('dashboard');
+  const [selectedTab, setSelectedTab] = useState('feed'); // Default to News Feed
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
@@ -53,7 +52,7 @@ const News = () => {
     setDateFilter('all');
   };
 
-  // Enhanced filtering with search and date
+  // Enhanced filtering with search, date, and proper sorting (newest first)
   const filteredArticles = useMemo(() => {
     let articles = [...mockNewsArticles];
 
@@ -86,20 +85,31 @@ const News = () => {
       articles = articles.filter(a => new Date(a.publishedAt) >= cutoff);
     }
 
-    // Sort
+    // Sort - ALWAYS by date descending first (newest first - Dec/Nov 2025 first)
     if (sortBy === 'date') {
       articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     } else {
       const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-      articles.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+      articles.sort((a, b) => {
+        const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+        if (severityDiff !== 0) return severityDiff;
+        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      });
     }
 
     return articles;
   }, [mockNewsArticles, selectedCategories, selectedSeverities, searchQuery, dateFilter, sortBy]);
 
-  const criticalAlerts = mockSecurityAlerts.filter(alert => alert.severity === 'critical');
-  const highAlerts = mockSecurityAlerts.filter(alert => alert.severity === 'high');
-  const actionRequiredAlerts = mockSecurityAlerts.filter(alert => alert.actionRequired);
+  // Sort alerts by date descending (newest first)
+  const sortedAlerts = useMemo(() => {
+    return [...mockSecurityAlerts].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [mockSecurityAlerts]);
+
+  const criticalAlerts = sortedAlerts.filter(alert => alert.severity === 'critical');
+  const highAlerts = sortedAlerts.filter(alert => alert.severity === 'high');
+  const actionRequiredAlerts = sortedAlerts.filter(alert => alert.actionRequired);
 
   // Calculate real statistics
   const stats = useMemo(() => {
@@ -107,9 +117,8 @@ const News = () => {
     const critical = mockNewsArticles.filter(a => a.severity === 'critical').length;
     const high = mockNewsArticles.filter(a => a.severity === 'high').length;
     const supplyChain = mockNewsArticles.filter(a => a.category === 'supply-chain').length;
-    const defi = mockNewsArticles.filter(a => a.category === 'defi-exploits').length;
     
-    return { total, critical, high, supplyChain, defi };
+    return { total, critical, high, supplyChain };
   }, [mockNewsArticles]);
 
   const handleArticleClick = (article: NewsArticle) => {
@@ -120,12 +129,20 @@ const News = () => {
     setSelectedArticle(null);
   };
 
+  // Tab configuration with better visibility
+  const tabs = [
+    { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
+    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: actionRequiredAlerts.length },
+    { id: 'dashboard', label: 'Analytics', icon: BarChart3 },
+    { id: 'subscribe', label: 'Subscribe', icon: Bell },
+  ];
+
   // If an article is selected, show the detail view
   if (selectedArticle) {
     return (
       <div className="min-h-screen bg-background">
         <MetaTags 
-          title={`${selectedArticle.title} | Digibastion Security News`}
+          title={`${selectedArticle.title} | Digibastion Threat Intel`}
           description={selectedArticle.summary}
         />
         <Navbar />
@@ -142,93 +159,87 @@ const News = () => {
   return (
     <div className="min-h-screen bg-background">
       <MetaTags 
-        title="Security News & Threat Intelligence | Digibastion"
-        description="Real-time Web3 security intelligence, vulnerability disclosures, and threat analysis. Track $2.9B+ in 2024 crypto losses and emerging attack vectors."
+        title="Threat Intelligence Feed | Digibastion Security News"
+        description="Real-time Web3 security intelligence, vulnerability disclosures, and threat analysis. Track supply chain attacks, DeFi exploits, and North Korean operations."
       />
       
       <Navbar />
       
       <main className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Hero Section */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
+          {/* Hero Section - Compact */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-3 mb-3">
               <Shield className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
             </div>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Real-time security intelligence covering $2.9B+ in 2024 crypto losses across 300+ incidents.
-              Track North Korean operations, supply chain attacks, and emerging threats.
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Real-time security intelligence covering Web3, DeFi, and supply chain threats.
             </p>
           </div>
 
-          {/* Quick Stats Banner */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+          {/* Quick Stats Banner - Compact */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6">
             <Card className="glass-card border-red-500/20">
-              <CardContent className="p-3 text-center">
-                <div className="text-xl font-bold text-red-400">{stats.critical}</div>
-                <div className="text-xs text-muted-foreground">Critical</div>
+              <CardContent className="p-2 sm:p-3 text-center">
+                <div className="text-lg sm:text-xl font-bold text-red-400">{stats.critical}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Critical</div>
               </CardContent>
             </Card>
             <Card className="glass-card border-orange-500/20">
-              <CardContent className="p-3 text-center">
-                <div className="text-xl font-bold text-orange-400">{stats.high}</div>
-                <div className="text-xs text-muted-foreground">High Priority</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-yellow-500/20">
-              <CardContent className="p-3 text-center">
-                <div className="text-xl font-bold text-yellow-400">{actionRequiredAlerts.length}</div>
-                <div className="text-xs text-muted-foreground">Action Required</div>
+              <CardContent className="p-2 sm:p-3 text-center">
+                <div className="text-lg sm:text-xl font-bold text-orange-400">{stats.high}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">High</div>
               </CardContent>
             </Card>
             <Card className="glass-card border-purple-500/20">
-              <CardContent className="p-3 text-center">
-                <div className="text-xl font-bold text-purple-400">{stats.supplyChain}</div>
-                <div className="text-xs text-muted-foreground">Supply Chain</div>
+              <CardContent className="p-2 sm:p-3 text-center">
+                <div className="text-lg sm:text-xl font-bold text-purple-400">{stats.supplyChain}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Supply Chain</div>
               </CardContent>
             </Card>
             <Card className="glass-card border-blue-500/20">
-              <CardContent className="p-3 text-center">
-                <div className="text-xl font-bold text-blue-400">{stats.total}</div>
-                <div className="text-xs text-muted-foreground">Total Articles</div>
+              <CardContent className="p-2 sm:p-3 text-center">
+                <div className="text-lg sm:text-xl font-bold text-blue-400">{stats.total}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Total</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Content */}
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </TabsTrigger>
-              <TabsTrigger value="news" className="flex items-center gap-2">
-                <Newspaper className="w-4 h-4" />
-                <span className="hidden sm:inline">News Feed</span>
-              </TabsTrigger>
-              <TabsTrigger value="alerts" className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="hidden sm:inline">Alerts</span>
-                {actionRequiredAlerts.length > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
-                    {actionRequiredAlerts.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="subscribe" className="flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                <span className="hidden sm:inline">Subscribe</span>
-              </TabsTrigger>
-            </TabsList>
+          {/* Enhanced Tab Navigation - More Visible */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                    selectedTab === tab.id
+                      ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <Badge 
+                      variant={selectedTab === tab.id ? "secondary" : "outline"} 
+                      className={`ml-1 h-5 min-w-5 px-1.5 text-xs ${
+                        tab.id === 'alerts' && tab.count > 0 ? 'bg-red-500 text-white border-0' : ''
+                      }`}
+                    >
+                      {tab.count}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Dashboard Tab */}
-            <TabsContent value="dashboard" className="space-y-6">
-              <ThreatStatsDashboard />
-            </TabsContent>
-
-            {/* Security News Tab */}
-            <TabsContent value="news" className="space-y-6">
+          {/* Tab Content */}
+          {selectedTab === 'feed' && (
+            <div className="space-y-6">
               {/* Search and Sort Bar */}
               <Card className="glass-card">
                 <CardContent className="p-4">
@@ -319,10 +330,11 @@ const News = () => {
                   )}
                 </div>
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Live Alerts Tab */}
-            <TabsContent value="alerts" className="space-y-6">
+          {selectedTab === 'alerts' && (
+            <div className="space-y-6">
               {/* Critical Alerts */}
               {criticalAlerts.length > 0 && (
                 <Card className="glass-card border-red-500/30 bg-red-500/5">
@@ -344,9 +356,7 @@ const News = () => {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-red-500 text-white">
-                                CRITICAL
-                              </Badge>
+                              <Badge className="bg-red-500 text-white">CRITICAL</Badge>
                               {alert.actionRequired && (
                                 <Badge variant="outline" className="border-red-500 text-red-400">
                                   Action Required
@@ -357,14 +367,10 @@ const News = () => {
                               )}
                             </div>
                             <h3 className="font-medium mb-1">{alert.title}</h3>
-                            <p className="text-sm text-muted-foreground mb-3">
-                              {alert.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground mb-3">{alert.description}</p>
                             <div className="flex flex-wrap gap-1">
                               {alert.affectedTechnologies.map((tech) => (
-                                <Badge key={tech} variant="secondary" className="text-xs">
-                                  {tech}
-                                </Badge>
+                                <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
                               ))}
                             </div>
                           </div>
@@ -382,68 +388,62 @@ const News = () => {
               )}
 
               {/* High Priority Alerts */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-orange-500" />
-                    High Priority Alerts ({highAlerts.length})
-                  </CardTitle>
-                  <CardDescription>
-                    Important security alerts requiring attention
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {highAlerts.map((alert) => (
-                    <div 
-                      key={alert.id}
-                      className="p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge className="bg-orange-500 text-white">
-                              HIGH
-                            </Badge>
-                            {alert.actionRequired && (
-                              <Badge variant="outline" className="border-orange-500 text-orange-400">
-                                Action Required
-                              </Badge>
-                            )}
+              {highAlerts.length > 0 && (
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-orange-500" />
+                      High Priority Alerts ({highAlerts.length})
+                    </CardTitle>
+                    <CardDescription>Important security alerts requiring attention</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {highAlerts.map((alert) => (
+                      <div 
+                        key={alert.id}
+                        className="p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge className="bg-orange-500 text-white">HIGH</Badge>
+                              {alert.actionRequired && (
+                                <Badge variant="outline" className="border-orange-500 text-orange-400">
+                                  Action Required
+                                </Badge>
+                              )}
+                            </div>
+                            <h3 className="font-medium mb-1">{alert.title}</h3>
+                            <p className="text-sm text-muted-foreground mb-3">{alert.description}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {alert.affectedTechnologies.map((tech) => (
+                                <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
+                              ))}
+                            </div>
                           </div>
-                          <h3 className="font-medium mb-1">{alert.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {alert.description}
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {alert.affectedTechnologies.map((tech) => (
-                              <Badge key={tech} variant="secondary" className="text-xs">
-                                {tech}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {format(new Date(alert.createdAt), 'MMM d, yyyy')}
+                          <div className="text-right">
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {format(new Date(alert.createdAt), 'MMM d, yyyy')}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* All Other Alerts */}
+              {/* Other Alerts */}
               <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5 text-primary" />
-                    All Active Alerts ({mockSecurityAlerts.length})
+                    Other Active Alerts
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {mockSecurityAlerts
+                  {sortedAlerts
                     .filter(a => a.severity !== 'critical' && a.severity !== 'high')
                     .map((alert) => (
                       <div 
@@ -464,19 +464,27 @@ const News = () => {
                             </Badge>
                             <span className="font-medium text-sm">{alert.title}</span>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(alert.createdAt), 'MMM d')}
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          </div>
                         </div>
                       </div>
                     ))}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Subscribe Tab */}
-            <TabsContent value="subscribe">
-              <SubscriptionForm />
-            </TabsContent>
-          </Tabs>
+          {selectedTab === 'dashboard' && (
+            <ThreatStatsDashboard />
+          )}
+
+          {selectedTab === 'subscribe' && (
+            <SubscriptionForm />
+          )}
         </div>
       </main>
 
