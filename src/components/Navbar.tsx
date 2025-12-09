@@ -45,7 +45,8 @@ export const Navbar = () => {
     { id: 'os', title: 'OS Security', description: 'System hardening' },
     { id: 'defi', title: 'DeFi Security', description: 'Secure DeFi interactions' },
     { id: 'developers', title: 'Developer Security', description: 'Web3 development security' },
-    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting' }
+    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting' },
+    { id: 'opsec', title: 'OpSec', description: 'Operational security practices' }
   ];
 
   return (
