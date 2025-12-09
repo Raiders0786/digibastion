@@ -3,10 +3,9 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { MetaTags } from '../components/MetaTags';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Sparkles, Twitter, ArrowRight } from 'lucide-react';
+import { Shield, Sparkles, ArrowRight } from 'lucide-react';
 
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
@@ -93,22 +92,50 @@ const QuizResult = () => {
   const config = getThreatLevelConfig(score);
   const badges = badgesParam ? badgesParam.split(',').map(b => decodeURIComponent(b)) : [];
   
-  // Generate OG image URL using a service or static image
-  const ogTitle = `${character.emoji} ${username}'s OpSec: ${character.name} (${score}/100)`;
-  const ogDescription = `"${character.description}" - Take the OpSec quiz at digibastion.com`;
+  // Dynamic OG image URL from edge function
+  const ogImageUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
   
   const getTwitterPfp = (handle: string) => {
     return `https://unavatar.io/twitter/${handle}`;
   };
 
+  // Set OG meta tags dynamically
+  useEffect(() => {
+    const ogTitle = `${username}'s OpSec Score: ${score}/100 | Digibastion`;
+    const ogDescription = `${character.emoji} ${character.name} - "${character.description}" Take the OpSec quiz at digibastion.com`;
+    
+    document.title = ogTitle;
+    
+    // Update OG meta tags
+    const updateMeta = (property: string, content: string, isName = false) => {
+      const selector = isName ? `meta[name="${property}"]` : `meta[property="${property}"]`;
+      let tag = document.querySelector(selector);
+      if (!tag) {
+        tag = document.createElement('meta');
+        if (isName) {
+          tag.setAttribute('name', property);
+        } else {
+          tag.setAttribute('property', property);
+        }
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', content);
+    };
+
+    updateMeta('og:title', ogTitle);
+    updateMeta('og:description', ogDescription);
+    updateMeta('og:image', ogImageUrl);
+    updateMeta('og:url', window.location.href);
+    updateMeta('og:type', 'website');
+    
+    updateMeta('twitter:card', 'summary_large_image', true);
+    updateMeta('twitter:title', ogTitle, true);
+    updateMeta('twitter:description', ogDescription, true);
+    updateMeta('twitter:image', ogImageUrl, true);
+  }, [username, score, character, ogImageUrl]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title={`${username}'s OpSec Score: ${score}/100 | Digibastion`}
-        description={ogDescription}
-        image="https://digibastion.com/og-image.png"
-        type="website"
-      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-lg mx-auto">
