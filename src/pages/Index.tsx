@@ -74,22 +74,19 @@ const Index = () => {
         <section className="section-container section-spacing">
           {/* ESP Support Badge */}
           <div className="flex justify-center mb-12 animate-fade-in">
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-muted/30 border border-border/50">
+            <a 
+              href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal"
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-muted/30 border border-border/50 transition-all duration-200 hover:bg-muted/50 hover:border-primary/30"
+            >
               <span className="text-sm text-muted-foreground">Supported in 2025 with a small grant from</span>
-              <a 
-                href="https://esp.ethereum.foundation/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="transition-all duration-200 hover:scale-105 hover:brightness-110"
-                aria-label="Ethereum Ecosystem Support Program"
-              >
-                <img 
-                  src={espLogo} 
-                  alt="Ethereum ESP" 
-                  className="h-7 w-auto opacity-90 hover:opacity-100"
-                />
-              </a>
-            </div>
+              <img 
+                src={espLogo} 
+                alt="Ethereum ESP" 
+                className="h-7 w-auto opacity-90 hover:opacity-100 transition-all duration-200 hover:scale-105"
+              />
+            </a>
           </div>
 
           {/* Hero Content */}

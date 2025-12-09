@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://esp.ethereum.foundation/"><img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" /></a>
+  <a href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal"><img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" /></a>
 </p>
 
 <p align="center">
@@ -188,12 +188,12 @@ src/
 ## 🙏 Acknowledgments
 
 <p align="center">
-  <a href="https://esp.ethereum.foundation/">
+  <a href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal">
     <img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" />
   </a>
 </p>
 
-- **Ethereum Foundation ESP** — For supporting this project with a 2025 grant
+- **[Ethereum Foundation ESP](https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal)** — For supporting this project with a 2025 grant
 - **Security Community** — Thanks to all security researchers and practitioners who contribute
 - **Open Source Contributors** — Every contribution makes the Web3 ecosystem safer
 - **Tool Makers** — Thanks to all the security tool creators we recommend and integrate
