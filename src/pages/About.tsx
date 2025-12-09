@@ -141,12 +141,12 @@ const About = () => {
                   </div>
                 </Card>
 
-                {/* Riddham Bhaggat */}
+                {/* Ridham Bhagat */}
                 <Card className="glass-card-hover p-5 cursor-pointer group"
                   onClick={() => window.open('https://x.com/RasenRhino', '_blank')}>
                   <div className="flex flex-col h-full">
                     <div className="mb-4">
-                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Riddham Bhaggat</h3>
+                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Ridham Bhagat</h3>
                       <p className="text-xs text-primary mb-2">DNS Security Scanner</p>
                       <p className="text-muted-foreground text-xs">
                         Core contributor specializing in DNS security scanning and network analysis tools.
