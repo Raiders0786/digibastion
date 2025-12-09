@@ -227,6 +227,18 @@ const Index = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
                 {[
                   {
+                    title: "OpSec shareable quiz & recommendations",
+                    description: "Interactive security assessment with personalized recommendations and shareable results",
+                    status: "Completed",
+                    eta: "Q4 2025"
+                  },
+                  {
+                    title: "Live threat intelligence feed",
+                    description: "Real-time global threat intelligence with personalized assessments",
+                    status: "Partial",
+                    eta: "Q4 2025"
+                  },
+                  {
                     title: "Real-time supply chain attack monitoring",
                     description: "Detect malicious packages and compromised dependencies instantly",
                     status: "In Progress",
@@ -239,6 +251,12 @@ const Index = () => {
                     eta: "Q4 2025"
                   },
                   {
+                    title: "DNS Security Scanner",
+                    description: "Comprehensive DNS security analysis and vulnerability detection",
+                    status: "Planning",
+                    eta: "Q1 2026"
+                  },
+                  {
                     title: "DevSecOps pipeline integration",
                     description: "Seamless CI/CD security scanning with GitHub Actions & GitLab CI",
                     status: "Planning",
@@ -247,32 +265,26 @@ const Index = () => {
                   {
                     title: "Third-party dependency risk alerts",
                     description: "Immediate notifications about critical vulnerabilities",
-                    status: "Planning", 
+                    status: "Planning",
                     eta: "Q1 2026"
                   },
                   {
                     title: "GitHub repository security analysis",
                     description: "Scanning for secrets, misconfigurations, and anti-patterns",
                     status: "Research",
-                    eta: "Q1 2026"
+                    eta: "Q2 2026"
                   },
                   {
                     title: "Phishing & malware detection",
                     description: "AI-powered URL scanning to protect from malicious sites",
                     status: "Research",
-                    eta: "Q1 2026"
+                    eta: "Q2 2026"
                   },
                   {
                     title: "Compromised domain scanning",
                     description: "Monitoring for domain hijacking and DNS poisoning",
                     status: "Planning",
                     eta: "Q2 2026"
-                  },
-                  {
-                    title: "Live threat intelligence feed",
-                    description: "Real-time global threat intelligence with personalized assessments",
-                    status: "In Progress",
-                    eta: "Q4 2025"
                   }
                 ].map((feature, index) => (
                   <div 
@@ -283,6 +295,8 @@ const Index = () => {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-1.5 h-1.5 rounded-full ${
+                          feature.status === 'Completed' ? 'bg-primary' :
+                          feature.status === 'Partial' ? 'bg-accent' :
                           feature.status === 'In Progress' ? 'bg-success' :
                           feature.status === 'Planning' ? 'bg-warning' : 'bg-muted-foreground'
                         }`} />
@@ -298,7 +312,11 @@ const Index = () => {
                     
                     <div className="flex items-center justify-between">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        feature.status === 'In Progress' 
+                        feature.status === 'Completed' 
+                          ? 'bg-primary/15 text-primary' 
+                          : feature.status === 'Partial'
+                          ? 'bg-accent/15 text-accent'
+                          : feature.status === 'In Progress' 
                           ? 'bg-success/15 text-success' 
                           : feature.status === 'Planning'
                           ? 'bg-warning/15 text-warning'
