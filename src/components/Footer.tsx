@@ -1,89 +1,78 @@
-
 import { Github, Copyright, Twitter, ExternalLink, MessageSquare, Heart } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full border-t border-primary/10 bg-secondary/5 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <footer className="w-full border-t border-border/50 bg-background/50 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col space-y-6">
-          <div className="flex justify-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-foreground/70 hover:text-primary hover:bg-primary/10 transition-all duration-300"
-              asChild
+          {/* Social Links */}
+          <div className="flex justify-center gap-3">
+            <a
+              href="https://t.me/digibastion"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50
+                transition-all duration-200"
             >
-              <a
-                href="https://t.me/digibastion"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Join Telegram
-              </a>
-            </Button>
+              <MessageSquare className="h-4 w-4" />
+              Telegram
+            </a>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-foreground/70 hover:text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition-all duration-300"
-              asChild
+            <a
+              href="https://www.digibastion.com/support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20
+                transition-all duration-200"
             >
-              <a
-                href="https://www.digibastion.com/support"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2"
-              >
-                <Heart className="h-4 w-4" />
-                Support Us
-              </a>
-            </Button>
+              <Heart className="h-4 w-4" />
+              Support Us
+            </a>
           </div>
           
-          <Separator className="bg-white/5" />
+          {/* Divider */}
+          <div className="divider" />
           
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-foreground/70">
-            <div className="flex items-center flex-wrap justify-center sm:justify-start gap-2">
-              <Copyright className="h-4 w-4" />
-              <span>{currentYear}</span>
-              <span className="hidden sm:inline">·</span>
+          {/* Bottom Row */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center flex-wrap justify-center sm:justify-start gap-x-4 gap-y-2">
+              <div className="flex items-center gap-1.5">
+                <Copyright className="h-3.5 w-3.5" />
+                <span>{currentYear}</span>
+              </div>
               <a 
                 href="https://github.com/Raiders0786/digibastion/blob/main/LICENSE" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hover:text-primary transition-colors inline-flex items-center"
+                className="hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
                 MIT License
-                <ExternalLink className="h-3 w-3 ml-1" />
+                <ExternalLink className="h-3 w-3" />
               </a>
-              <span className="hidden sm:inline">·</span>
               <a 
                 href="https://x.com/__Raiders" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hover:text-primary transition-colors inline-flex items-center"
+                className="hover:text-foreground transition-colors inline-flex items-center gap-1.5"
               >
-                <Twitter className="h-4 w-4 mr-1" />
+                <Twitter className="h-3.5 w-3.5" />
                 @__Raiders
               </a>
             </div>
-            <div className="flex items-center gap-2">
-              <a 
-                href="https://github.com/Raiders0786/digibastion" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-primary transition-colors inline-flex items-center"
-              >
-                <Github className="h-4 w-4 mr-1" />
-                View Source
-              </a>
-            </div>
+            
+            <a 
+              href="https://github.com/Raiders0786/digibastion" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+            >
+              <Github className="h-4 w-4" />
+              View Source
+            </a>
           </div>
         </div>
       </div>
