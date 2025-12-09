@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { PageTransition } from "./components/PageTransition";
 import { MetaTags } from "./components/MetaTags";
 import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
@@ -34,31 +35,35 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <React.StrictMode>
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Analytics />
-            <Routes>
-              <Route path="/" element={<><MetaTags /><Index /></>} />
-              <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
-              <Route path="/news" element={<><MetaTags /><News /></>} />
-              <Route path="/share" element={<><MetaTags /><Share /></>} />
-              <Route path="/quiz-result" element={<QuizResult />} />
-              <Route path="/about" element={<><MetaTags /><About /></>} />
-              <Route path="/license" element={<><MetaTags /><License /></>} />
-              <Route path="/tools" element={<><MetaTags /><Tools /></>} />
-              <Route path="/articles" element={<><MetaTags /><Articles /></>} />
-              <Route path="/articles/:slug" element={<><MetaTags /><ArticleDetail /></>} />
-              <Route path="/links" element={<><MetaTags /><Links /></>} />
-              <Route path="/contact" element={<><MetaTags /><Contact /></>} />
-              <Route path="/support" element={<><MetaTags /><Support /></>} />
-              <Route path="*" element={<><MetaTags /><NotFound /></>} />
-            </Routes>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </BrowserRouter>
+      <ThemeProvider defaultTheme="dark">
+        <BrowserRouter>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Analytics />
+              <PageTransition>
+                <Routes>
+                  <Route path="/" element={<><MetaTags /><Index /></>} />
+                  <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
+                  <Route path="/news" element={<><MetaTags /><News /></>} />
+                  <Route path="/share" element={<><MetaTags /><Share /></>} />
+                  <Route path="/quiz-result" element={<QuizResult />} />
+                  <Route path="/about" element={<><MetaTags /><About /></>} />
+                  <Route path="/license" element={<><MetaTags /><License /></>} />
+                  <Route path="/tools" element={<><MetaTags /><Tools /></>} />
+                  <Route path="/articles" element={<><MetaTags /><Articles /></>} />
+                  <Route path="/articles/:slug" element={<><MetaTags /><ArticleDetail /></>} />
+                  <Route path="/links" element={<><MetaTags /><Links /></>} />
+                  <Route path="/contact" element={<><MetaTags /><Contact /></>} />
+                  <Route path="/support" element={<><MetaTags /><Support /></>} />
+                  <Route path="*" element={<><MetaTags /><NotFound /></>} />
+                </Routes>
+              </PageTransition>
+            </TooltipProvider>
+          </QueryClientProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </React.StrictMode>
   );
 };
