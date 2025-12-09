@@ -18,17 +18,20 @@ const Index = () => {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.state?.scrollTo === 'score') {
-      const element = document.getElementById('score');
+    if (location.state?.scrollTo) {
+      const elementId = location.state.scrollTo;
+      const element = document.getElementById(elementId);
       if (element) {
         const offset = 80;
         const elementPosition = element.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - offset;
         
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
+        setTimeout(() => {
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }, 100);
       }
       window.history.replaceState({}, document.title);
     }

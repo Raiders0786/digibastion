@@ -1,4 +1,4 @@
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -7,6 +7,7 @@ import {
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
 import { useNavigate, useLocation } from 'react-router-dom';
+import { ThemeToggle } from './ThemeToggle';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -34,6 +35,24 @@ export const Navbar = () => {
     }
   };
 
+  const handleRoadmapClick = () => {
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollTo: 'roadmap' } });
+    } else {
+      const element = document.getElementById('roadmap');
+      if (element) {
+        const offset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }
+  };
+
   const categories = [
     { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
     { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing' },
@@ -49,7 +68,7 @@ export const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-background/80 backdrop-blur-xl border-b border-border/50 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50">
+    <nav className="bg-background/80 backdrop-blur-xl border-b border-border/50 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -69,11 +88,11 @@ export const Navbar = () => {
           </div>
           
           {/* Navigation */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <NavigationMenu>
-              <NavigationMenuList className="gap-1">
+              <NavigationMenuList className="gap-0.5">
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
+                  <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     <span className="hidden sm:inline">Checklists</span>
                     <span className="sm:hidden">Menu</span>
                   </NavigationMenuTrigger>
@@ -126,7 +145,7 @@ export const Navbar = () => {
                 <NavigationMenuItem>
                   <button
                     onClick={() => navigate('/news')}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
                       transition-colors rounded-lg hover:bg-muted/50"
                   >
                     <Newspaper className="w-4 h-4" />
@@ -136,12 +155,13 @@ export const Navbar = () => {
 
                 {/* Resources */}
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
+                  <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     Resources
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-[200px] p-2 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
                       {[
+                        { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
                         { route: '/tools', icon: Wrench, label: 'Tools' },
                         { route: '/articles', icon: Book, label: 'Articles' },
                         { route: '/links', icon: Link, label: 'Useful Links' },
@@ -152,8 +172,8 @@ export const Navbar = () => {
                         { route: '/share', icon: Share, label: 'Share' }
                       ].map(item => (
                         <button
-                          key={item.route}
-                          onClick={() => navigate(item.route)}
+                          key={item.label}
+                          onClick={() => item.action ? item.action() : navigate(item.route!)}
                           className="flex items-center gap-2.5 w-full p-2.5 text-sm rounded-lg 
                             hover:bg-muted/50 text-left transition-all duration-200 group"
                         >
@@ -168,6 +188,9 @@ export const Navbar = () => {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* GitHub */}
             <a 
