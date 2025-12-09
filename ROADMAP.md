@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://esp.ethereum.foundation/">
+  <a href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal">
     <img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" />
   </a>
 </p>
