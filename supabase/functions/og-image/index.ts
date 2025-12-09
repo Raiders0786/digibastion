@@ -6,29 +6,60 @@ const corsHeaders = {
   'Cache-Control': 'public, max-age=86400',
 };
 
-const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string } => {
-  if (score >= 90) return { name: "Satoshi-Level", emoji: "👻", title: "The Phantom Founder" };
-  if (score >= 75) return { name: "Whale Guard", emoji: "🐋", title: "The Protocol Protector" };
-  if (score >= 60) return { name: "Diamond Hands", emoji: "💎", title: "The Steady Holder" };
-  if (score >= 45) return { name: "Degen Defender", emoji: "🦍", title: "The Learning Ape" };
-  if (score >= 30) return { name: "Paper Hands", emoji: "📄", title: "The Vulnerable Holder" };
-  return { name: "Rekt Waiting", emoji: "💀", title: "One Click Away from Rekt" };
+const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; tip: string } => {
+  if (score >= 90) return { 
+    name: "Satoshi-Level", 
+    emoji: "👻", 
+    title: "The Phantom Founder",
+    tip: "You're in the top 1% of security-conscious users"
+  };
+  if (score >= 75) return { 
+    name: "Whale Guard", 
+    emoji: "🐋", 
+    title: "The Protocol Protector",
+    tip: "Your OpSec rivals institutional security"
+  };
+  if (score >= 60) return { 
+    name: "Diamond Hands", 
+    emoji: "💎", 
+    title: "The Steady Holder",
+    tip: "Solid foundation, ready for the next level"
+  };
+  if (score >= 45) return { 
+    name: "Degen Defender", 
+    emoji: "🦍", 
+    title: "The Learning Ape",
+    tip: "You're on the right path, keep improving"
+  };
+  if (score >= 30) return { 
+    name: "Paper Hands", 
+    emoji: "📄", 
+    title: "The Vulnerable Holder",
+    tip: "Time to strengthen your security posture"
+  };
+  return { 
+    name: "Rekt Waiting", 
+    emoji: "💀", 
+    title: "One Click Away from Rekt",
+    tip: "Urgent: Your assets need protection ASAP"
+  };
 };
 
-const getScoreColor = (score: number): string => {
-  if (score >= 80) return '#22c55e';
-  if (score >= 60) return '#3b82f6';
-  if (score >= 40) return '#eab308';
-  if (score >= 20) return '#f97316';
-  return '#ef4444';
+const getScoreGradient = (score: number): { start: string; end: string; glow: string } => {
+  if (score >= 80) return { start: '#22c55e', end: '#10b981', glow: '#34d399' };
+  if (score >= 60) return { start: '#3b82f6', end: '#6366f1', glow: '#818cf8' };
+  if (score >= 40) return { start: '#f59e0b', end: '#eab308', glow: '#fbbf24' };
+  if (score >= 20) return { start: '#f97316', end: '#ef4444', glow: '#fb923c' };
+  return { start: '#ef4444', end: '#dc2626', glow: '#f87171' };
 };
 
-const getScoreGradient = (score: number): { start: string; end: string } => {
-  if (score >= 80) return { start: '#22c55e', end: '#16a34a' };
-  if (score >= 60) return { start: '#3b82f6', end: '#2563eb' };
-  if (score >= 40) return { start: '#eab308', end: '#ca8a04' };
-  if (score >= 20) return { start: '#f97316', end: '#ea580c' };
-  return { start: '#ef4444', end: '#dc2626' };
+const getSecurityLevel = (score: number): { level: string; icon: string } => {
+  if (score >= 90) return { level: "ELITE", icon: "🏆" };
+  if (score >= 75) return { level: "ADVANCED", icon: "⭐" };
+  if (score >= 60) return { level: "SOLID", icon: "🔷" };
+  if (score >= 45) return { level: "MODERATE", icon: "🔶" };
+  if (score >= 30) return { level: "BASIC", icon: "⚠️" };
+  return { level: "CRITICAL", icon: "🚨" };
 };
 
 async function fetchAvatarAsBase64(username: string): Promise<string | null> {
@@ -66,112 +97,214 @@ serve(async (req) => {
     const badgesParam = url.searchParams.get('b') || '';
     
     const character = getCryptoCharacter(score);
-    const scoreColor = getScoreColor(score);
     const gradient = getScoreGradient(score);
-    const badges = badgesParam ? badgesParam.split(',').map(b => decodeURIComponent(b)).slice(0, 4) : [];
+    const securityLevel = getSecurityLevel(score);
+    const badges = badgesParam ? badgesParam.split(',').map(b => decodeURIComponent(b)).slice(0, 3) : [];
     
     console.log(`Generating OG image for @${username} with score ${score}`);
 
-    // Fetch avatar as base64
     const avatarBase64 = await fetchAvatarAsBase64(username);
     const hasAvatar = avatarBase64 !== null;
 
-    // Avatar rendering - use embedded image if available, otherwise placeholder
     const avatarContent = hasAvatar 
-      ? `<image x="60" y="170" width="120" height="120" href="${avatarBase64}" clip-path="url(#avatarClip)" preserveAspectRatio="xMidYMid slice"/>`
-      : `<circle cx="120" cy="230" r="60" fill="#334155"/>
-         <text x="120" y="245" font-family="system-ui, sans-serif" font-size="40" fill="#94a3b8" text-anchor="middle">👤</text>`;
+      ? `<image x="70" y="130" width="100" height="100" href="${avatarBase64}" clip-path="url(#avatarClip)" preserveAspectRatio="xMidYMid slice"/>`
+      : `<circle cx="120" cy="180" r="50" fill="#1e293b"/>
+         <text x="120" y="195" font-family="system-ui, sans-serif" font-size="36" fill="#64748b" text-anchor="middle">👤</text>`;
+
+    // Calculate score ring
+    const circumference = 2 * Math.PI * 70;
+    const progress = (score / 100) * circumference;
+    const dashOffset = circumference - progress;
 
     const svg = `
       <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs>
+          <!-- Main background gradient -->
           <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+            <stop offset="0%" style="stop-color:#030712"/>
+            <stop offset="50%" style="stop-color:#0f172a"/>
+            <stop offset="100%" style="stop-color:#1e1b4b"/>
           </linearGradient>
+          
+          <!-- Score gradient -->
           <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${gradient.start};stop-opacity:1" />
-            <stop offset="100%" style="stop-color:${gradient.end};stop-opacity:1" />
+            <stop offset="0%" style="stop-color:${gradient.start}"/>
+            <stop offset="100%" style="stop-color:${gradient.end}"/>
           </linearGradient>
-          <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${gradient.start};stop-opacity:0.15" />
-            <stop offset="100%" style="stop-color:${gradient.end};stop-opacity:0.05" />
+          
+          <!-- Card glass effect -->
+          <linearGradient id="cardGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(255,255,255,0.1)"/>
+            <stop offset="100%" style="stop-color:rgba(255,255,255,0.02)"/>
           </linearGradient>
+          
+          <!-- Accent gradient -->
+          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#a78bfa"/>
+            <stop offset="50%" style="stop-color:#818cf8"/>
+            <stop offset="100%" style="stop-color:#6366f1"/>
+          </linearGradient>
+          
+          <!-- Glow filters -->
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
             <feMerge>
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
+          
+          <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          
+          <!-- Avatar clip -->
           <clipPath id="avatarClip">
-            <circle cx="120" cy="230" r="60"/>
+            <circle cx="120" cy="180" r="50"/>
           </clipPath>
+          
+          <!-- Decorative pattern -->
+          <pattern id="dots" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="rgba(148,163,184,0.1)"/>
+          </pattern>
         </defs>
         
         <!-- Background -->
         <rect width="1200" height="630" fill="url(#bgGradient)"/>
+        <rect width="1200" height="630" fill="url(#dots)"/>
         
-        <!-- Grid pattern overlay -->
-        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.05)" stroke-width="1"/>
-        </pattern>
-        <rect width="1200" height="630" fill="url(#grid)"/>
+        <!-- Decorative orbs -->
+        <circle cx="100" cy="500" r="200" fill="${gradient.start}" opacity="0.05" filter="url(#glow)"/>
+        <circle cx="1100" cy="100" r="150" fill="${gradient.end}" opacity="0.08" filter="url(#glow)"/>
+        <circle cx="600" cy="600" r="180" fill="#a78bfa" opacity="0.04" filter="url(#glow)"/>
         
-        <!-- Card background -->
-        <rect x="40" y="40" width="1120" height="550" rx="24" fill="url(#cardGradient)" stroke="${scoreColor}" stroke-opacity="0.3" stroke-width="2"/>
+        <!-- Main card -->
+        <rect x="50" y="50" width="1100" height="530" rx="32" fill="url(#cardGlass)" stroke="rgba(148,163,184,0.15)" stroke-width="1"/>
+        <rect x="50" y="50" width="1100" height="530" rx="32" fill="none" stroke="url(#scoreGradient)" stroke-width="2" stroke-opacity="0.3"/>
         
-        <!-- Logo/Brand -->
-        <text x="80" y="100" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#a78bfa">
-          🛡️ Digibastion
+        <!-- Top accent line -->
+        <rect x="50" y="50" width="1100" height="4" rx="2" fill="url(#accentGradient)"/>
+        
+        <!-- Header section -->
+        <text x="90" y="110" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="24" font-weight="800" fill="url(#accentGradient)">
+          DIGIBASTION
         </text>
-        <text x="260" y="100" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#94a3b8">
-          OpSec Assessment
+        <text x="270" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#64748b" font-weight="500">
+          OpSec Security Assessment
         </text>
         
-        <!-- Avatar with border -->
-        <circle cx="120" cy="230" r="65" fill="none" stroke="${scoreColor}" stroke-width="3" stroke-opacity="0.5"/>
+        <!-- Security level badge -->
+        <rect x="900" y="80" width="220" height="44" rx="22" fill="rgba(0,0,0,0.3)" stroke="${gradient.start}" stroke-width="2"/>
+        <text x="930" y="110" font-family="system-ui, sans-serif" font-size="20">${securityLevel.icon}</text>
+        <text x="960" y="109" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="${gradient.start}">
+          ${securityLevel.level} SECURITY
+        </text>
+        
+        <!-- Avatar section -->
+        <circle cx="120" cy="180" r="54" fill="none" stroke="${gradient.start}" stroke-width="3" filter="url(#softGlow)"/>
         ${avatarContent}
         
-        <!-- Username -->
-        <text x="200" y="210" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#f8fafc">
-          @${username.length > 15 ? username.substring(0, 15) + '...' : username}
+        <!-- User info -->
+        <text x="190" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#f8fafc">
+          @${username.length > 18 ? username.substring(0, 18) + '...' : username}
         </text>
-        <text x="200" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#94a3b8">
-          Security Level Assessment
+        <text x="190" y="200" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#94a3b8">
+          Security Level Assessment • ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
         </text>
         
-        <!-- Character emoji and name - centered -->
-        <text x="600" y="340" font-family="system-ui, sans-serif" font-size="80" text-anchor="middle">
+        <!-- Divider -->
+        <line x1="90" y1="240" x2="700" y2="240" stroke="rgba(148,163,184,0.1)" stroke-width="1"/>
+        
+        <!-- Character section -->
+        <text x="350" y="330" font-family="system-ui, sans-serif" font-size="72" text-anchor="middle" filter="url(#softGlow)">
           ${character.emoji}
         </text>
-        <text x="600" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="800" fill="#f8fafc" text-anchor="middle">
+        <text x="350" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="800" fill="#f8fafc" text-anchor="middle">
           ${character.name}
         </text>
-        <text x="600" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="${scoreColor}" text-anchor="middle">
+        <text x="350" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="${gradient.start}" text-anchor="middle" font-weight="600">
           ${character.title}
         </text>
-        
-        <!-- Score circle -->
-        <circle cx="1020" cy="280" r="90" fill="url(#scoreGradient)" filter="url(#glow)"/>
-        <text x="1020" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="800" fill="white" text-anchor="middle" dominant-baseline="central">
-          ${score}
-        </text>
-        <text x="1020" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#94a3b8" text-anchor="middle">
-          /100
+        <text x="350" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b" text-anchor="middle" font-style="italic">
+          "${character.tip}"
         </text>
         
-        <!-- Badges -->
-        ${badges.length > 0 ? badges.map((badge, i) => `
-          <rect x="${80 + i * 250}" y="490" width="230" height="40" rx="20" fill="#1e293b" stroke="${scoreColor}" stroke-opacity="0.3" stroke-width="1"/>
-          <text x="${195 + i * 250}" y="517" font-family="system-ui, sans-serif" font-size="16" fill="#e2e8f0" text-anchor="middle">
-            ${badge.length > 20 ? badge.substring(0, 20) + '...' : badge}
+        <!-- Score section -->
+        <g transform="translate(900, 350)">
+          <!-- Background ring -->
+          <circle cx="0" cy="0" r="75" fill="rgba(0,0,0,0.4)" stroke="rgba(148,163,184,0.1)" stroke-width="8"/>
+          
+          <!-- Progress ring -->
+          <circle 
+            cx="0" 
+            cy="0" 
+            r="70" 
+            fill="none" 
+            stroke="url(#scoreGradient)" 
+            stroke-width="12" 
+            stroke-linecap="round"
+            stroke-dasharray="${circumference}"
+            stroke-dashoffset="${dashOffset}"
+            transform="rotate(-90)"
+            filter="url(#softGlow)"
+          />
+          
+          <!-- Inner glow -->
+          <circle cx="0" cy="0" r="55" fill="${gradient.start}" opacity="0.1"/>
+          
+          <!-- Score text -->
+          <text x="0" y="8" font-family="system-ui, -apple-system, sans-serif" font-size="56" font-weight="800" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">
+            ${score}
           </text>
-        `).join('') : ''}
+          <text x="0" y="45" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#94a3b8" text-anchor="middle">
+            out of 100
+          </text>
+        </g>
+        
+        <!-- Stats bar -->
+        <g transform="translate(720, 280)">
+          <text x="0" y="0" font-family="system-ui, sans-serif" font-size="12" fill="#64748b" font-weight="600">BREAKDOWN</text>
+          
+          <!-- Stat items -->
+          <rect x="0" y="15" width="140" height="8" rx="4" fill="rgba(148,163,184,0.1)"/>
+          <rect x="0" y="15" width="${Math.min(score * 1.4, 140)}" height="8" rx="4" fill="${gradient.start}"/>
+          <text x="0" y="38" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">Authentication</text>
+          
+          <rect x="0" y="55" width="140" height="8" rx="4" fill="rgba(148,163,184,0.1)"/>
+          <rect x="0" y="55" width="${Math.min((score + 10) * 1.2, 140)}" height="8" rx="4" fill="${gradient.end}"/>
+          <text x="0" y="78" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">Wallet Security</text>
+          
+          <rect x="0" y="95" width="140" height="8" rx="4" fill="rgba(148,163,184,0.1)"/>
+          <rect x="0" y="95" width="${Math.min((score - 5) * 1.3, 140)}" height="8" rx="4" fill="#a78bfa"/>
+          <text x="0" y="118" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">OpSec Practices</text>
+        </g>
+        
+        <!-- Badges section -->
+        ${badges.length > 0 ? `
+          <text x="90" y="520" font-family="system-ui, sans-serif" font-size="12" fill="#64748b" font-weight="600">EARNED BADGES</text>
+          ${badges.map((badge, i) => `
+            <rect x="${90 + i * 180}" y="530" width="165" height="36" rx="18" fill="rgba(167,139,250,0.15)" stroke="#a78bfa" stroke-width="1" stroke-opacity="0.3"/>
+            <text x="${172 + i * 180}" y="554" font-family="system-ui, sans-serif" font-size="13" fill="#c4b5fd" text-anchor="middle" font-weight="500">
+              ✦ ${badge.length > 16 ? badge.substring(0, 16) + '..' : badge}
+            </text>
+          `).join('')}
+        ` : `
+          <rect x="90" y="520" width="200" height="36" rx="18" fill="rgba(99,102,241,0.1)" stroke="#6366f1" stroke-width="1" stroke-opacity="0.2"/>
+          <text x="190" y="544" font-family="system-ui, sans-serif" font-size="13" fill="#818cf8" text-anchor="middle">
+            🎯 Take quiz to earn badges
+          </text>
+        `}
         
         <!-- CTA -->
-        <text x="600" y="570" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#64748b" text-anchor="middle">
-          ✨ Think you can beat this? Take the quiz at digibastion.com
+        <text x="900" y="545" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b" text-anchor="middle">
+          🔐 Test your OpSec at
+        </text>
+        <text x="900" y="565" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a78bfa" text-anchor="middle" font-weight="700">
+          digibastion.com
         </text>
       </svg>
     `;
