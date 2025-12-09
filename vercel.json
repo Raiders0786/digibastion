@@ -1,6 +1,17 @@
 
 {
   "rewrites": [
+    { 
+      "source": "/quiz-result",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(twitterbot|facebookexternalhit|linkedinbot|slackbot|discordbot|telegrambot|whatsapp).*"
+        }
+      ],
+      "destination": "/api/og-tags"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
