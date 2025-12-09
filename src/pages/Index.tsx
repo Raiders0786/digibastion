@@ -9,6 +9,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { OpsecBanner } from '../components/opsec/OpsecBanner';
+import { SecurityBadges } from '../components/opsec/SecurityBadges';
 import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
@@ -149,6 +150,12 @@ const Index = () => {
           <section className="mb-20" key={`score-${threatLevel}-${changeCount}`} id="score" aria-labelledby="security-score">
             <h2 id="security-score" className="sr-only">Your Security Score</h2>
             <SecurityScore score={getOverallScore()} stats={getStats()} />
+          </section>
+
+          {/* Security Badges / Achievements */}
+          <section className="mb-20 px-4" aria-labelledby="security-badges">
+            <h2 id="security-badges" className="sr-only">Security Achievements</h2>
+            <SecurityBadges />
           </section>
 
           <section aria-label="Security Categories" className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
