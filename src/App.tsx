@@ -20,6 +20,7 @@ import Links from "./pages/Links";
 import Contact from "./pages/Contact";
 import Support from "./pages/Support";
 import News from "./pages/News";
+import QuizResult from "./pages/QuizResult";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ const App = () => {
               <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
               <Route path="/news" element={<><MetaTags /><News /></>} />
               <Route path="/share" element={<><MetaTags /><Share /></>} />
+              <Route path="/quiz-result" element={<QuizResult />} />
               <Route path="/about" element={<><MetaTags /><About /></>} />
               <Route path="/license" element={<><MetaTags /><License /></>} />
               <Route path="/tools" element={<><MetaTags /><Tools /></>} />

@@ -25,7 +25,7 @@ interface QuizQuestion {
   options: QuizOption[];
 }
 
-// Base questions - options will be shuffled
+// Extended question bank with more difficult/tricky questions - 8 will be randomly selected
 const baseQuestions: QuizQuestion[] = [
   {
     id: 1,
@@ -34,117 +34,197 @@ const baseQuestions: QuizQuestion[] = [
       { text: "Exchange wallet (Binance, Coinbase, etc.)", score: 10, category: "custody" },
       { text: "Software/hot wallet (MetaMask, Rainbow)", score: 30, category: "custody" },
       { text: "Hardware wallet (Ledger, Trezor)", score: 60, category: "custody" },
-      { text: "Multi-sig with hardware wallets", score: 100, category: "custody" }
+      { text: "Multi-sig with geographically distributed hardware wallets", score: 100, category: "custody" }
     ]
   },
   {
     id: 2,
-    question: "How do you manage your seed phrases?",
+    question: "A 'verified' project DMs you about an exclusive airdrop. What do you do?",
     options: [
-      { text: "Stored digitally (notes, cloud)", score: 5, category: "backup" },
-      { text: "Written on paper in one location", score: 30, category: "backup" },
-      { text: "Metal backup in secure location", score: 70, category: "backup" },
-      { text: "Split storage with multiple locations", score: 100, category: "backup" }
+      { text: "Click the link - it's verified!", score: 5, category: "social" },
+      { text: "Check their follower count before clicking", score: 15, category: "social" },
+      { text: "Ignore and block - legit projects don't DM first", score: 85, category: "social" },
+      { text: "Report, screenshot for CT, and warn others", score: 100, category: "social" }
     ]
   },
   {
     id: 3,
-    question: "What 2FA methods do you use?",
+    question: "Your MetaMask shows a pending transaction you didn't initiate. What's your first move?",
     options: [
-      { text: "SMS only", score: 10, category: "auth" },
-      { text: "Authenticator app (Google, Authy)", score: 50, category: "auth" },
-      { text: "Hardware key (Yubikey, Passkey)", score: 90, category: "auth" },
-      { text: "Multiple methods including hardware", score: 100, category: "auth" }
+      { text: "Approve it to see what happens", score: 5, category: "verification" },
+      { text: "Reject it and continue using the wallet", score: 25, category: "verification" },
+      { text: "Reject and transfer all funds to a fresh wallet immediately", score: 90, category: "verification" },
+      { text: "Reject, revoke all approvals, migrate to new seed, then investigate", score: 100, category: "verification" }
     ]
   },
   {
     id: 4,
-    question: "How do you verify transactions before signing?",
+    question: "How do you manage your seed phrase backup?",
     options: [
-      { text: "I just approve quickly", score: 5, category: "verification" },
-      { text: "Check the basic details", score: 30, category: "verification" },
-      { text: "Use simulation tools (Tenderly, etc.)", score: 70, category: "verification" },
-      { text: "Multiple verification + simulation", score: 100, category: "verification" }
+      { text: "Screenshot on phone / cloud notes", score: 5, category: "backup" },
+      { text: "Written on paper in one secure location", score: 30, category: "backup" },
+      { text: "Metal backup (Cryptosteel/Billfodl) in a safe", score: 70, category: "backup" },
+      { text: "Shamir Secret Sharing across multiple geographic locations", score: 100, category: "backup" }
     ]
   },
   {
     id: 5,
-    question: "How do you handle address management?",
+    question: "You find a USB drive at a crypto conference with 'Private Keys Backup' written on it. What do you do?",
     options: [
-      { text: "One address for everything", score: 10, category: "privacy" },
-      { text: "A few addresses for different purposes", score: 40, category: "privacy" },
-      { text: "Separate addresses for each use case", score: 75, category: "privacy" },
-      { text: "Full separation with privacy tools", score: 100, category: "privacy" }
+      { text: "Plug it in to see what's there - free alpha!", score: 5, category: "device" },
+      { text: "Plug it into an old laptop first", score: 15, category: "device" },
+      { text: "Hand it to security - someone lost their keys", score: 60, category: "device" },
+      { text: "Destroy it immediately - this is a classic BadUSB attack vector", score: 100, category: "device" }
     ]
   },
   {
     id: 6,
-    question: "How do you protect your devices?",
+    question: "What authentication do you use for your exchange accounts?",
     options: [
-      { text: "Basic password protection", score: 15, category: "device" },
-      { text: "Strong passwords + auto-lock", score: 40, category: "device" },
-      { text: "Full disk encryption + VPN", score: 70, category: "device" },
-      { text: "Encrypted + dedicated security devices", score: 100, category: "device" }
+      { text: "Strong password only", score: 10, category: "auth" },
+      { text: "Password + SMS 2FA", score: 25, category: "auth" },
+      { text: "Password + Authenticator app (Google/Authy)", score: 60, category: "auth" },
+      { text: "Password + Hardware key (Yubikey) + Authenticator backup", score: 100, category: "auth" }
     ]
   },
   {
     id: 7,
-    question: "What's your approach to public WiFi?",
+    question: "You receive an email from 'Uniswap' about unclaimed rewards. The link looks legit. What do you do?",
     options: [
-      { text: "Connect freely when needed", score: 5, category: "network" },
-      { text: "Use VPN sometimes", score: 30, category: "network" },
-      { text: "Always use VPN on public networks", score: 70, category: "network" },
-      { text: "Never use public WiFi for sensitive tasks", score: 100, category: "network" }
+      { text: "Click and claim - free money!", score: 5, category: "verification" },
+      { text: "Check the sender email domain", score: 30, category: "verification" },
+      { text: "Manually navigate to uniswap.org and check there", score: 85, category: "verification" },
+      { text: "Verify on official Discord/Twitter, never click email links", score: 100, category: "verification" }
     ]
   },
   {
     id: 8,
-    question: "How do you handle social media and travel?",
+    question: "You're connecting to mint an NFT. The site requests 'setApprovalForAll'. Your reaction?",
     options: [
-      { text: "Post real-time locations and activities", score: 5, category: "social" },
-      { text: "Sometimes delay posts", score: 30, category: "social" },
-      { text: "Always delay location posts", score: 70, category: "social" },
-      { text: "Minimal digital footprint", score: 100, category: "social" }
+      { text: "Approve - it's needed for the mint", score: 5, category: "verification" },
+      { text: "Check if others have minted successfully", score: 20, category: "verification" },
+      { text: "Decline - mints should never need unlimited approval", score: 85, category: "verification" },
+      { text: "Use a burner wallet and simulate the tx first", score: 100, category: "verification" }
     ]
   },
   {
     id: 9,
-    question: "How do you handle DMs from unknown accounts?",
+    question: "How do you handle addresses when sending large amounts?",
     options: [
-      { text: "Reply to all messages", score: 5, category: "social" },
-      { text: "Check profile before responding", score: 35, category: "social" },
-      { text: "Only reply to verified/known accounts", score: 70, category: "social" },
-      { text: "DMs disabled or heavily filtered", score: 100, category: "social" }
+      { text: "Copy-paste from wherever I have it saved", score: 10, category: "custody" },
+      { text: "Verify first and last characters match", score: 30, category: "custody" },
+      { text: "Send a small test transaction first", score: 70, category: "custody" },
+      { text: "Hardware wallet verification + test tx + clipboard malware check", score: 100, category: "custody" }
     ]
   },
   {
     id: 10,
-    question: "How do you interact with new smart contracts?",
+    question: "You're at a crypto conference. How do you handle hotel WiFi?",
     options: [
-      { text: "Ape first, verify never", score: 5, category: "verification" },
-      { text: "Check if others are using it", score: 25, category: "verification" },
-      { text: "Review audit reports and TVL", score: 65, category: "verification" },
-      { text: "Read code + check audits + small test first", score: 100, category: "verification" }
+      { text: "Use it normally - hotels are secure", score: 5, category: "network" },
+      { text: "Use it with a VPN enabled", score: 40, category: "network" },
+      { text: "Use mobile data only for anything crypto-related", score: 75, category: "network" },
+      { text: "Dedicated travel device + mobile hotspot + VPN", score: 100, category: "network" }
     ]
   },
   {
     id: 11,
-    question: "What do you do when receiving unexpected airdrops?",
+    question: "A friend's Discord account messages you a 'collab opportunity' with a link. What do you do?",
     options: [
-      { text: "Claim immediately - free money!", score: 5, category: "verification" },
-      { text: "Check the token contract quickly", score: 30, category: "verification" },
-      { text: "Research thoroughly before any interaction", score: 75, category: "verification" },
-      { text: "Never interact with unknown tokens", score: 100, category: "verification" }
+      { text: "Click it - I trust my friends", score: 5, category: "social" },
+      { text: "Ask them about it in Discord", score: 20, category: "social" },
+      { text: "Call or text them through a different channel to verify", score: 85, category: "social" },
+      { text: "Verify via call, warn them their account is compromised", score: 100, category: "social" }
     ]
   },
   {
     id: 12,
-    question: "How do you handle browser extensions?",
+    question: "How do you verify a smart contract before interacting?",
     options: [
-      { text: "Install whatever looks useful", score: 5, category: "device" },
-      { text: "Stick to popular extensions", score: 30, category: "device" },
-      { text: "Minimal extensions, review permissions", score: 70, category: "device" },
-      { text: "Dedicated browser for crypto, minimal extensions", score: 100, category: "device" }
+      { text: "If it's on a DEX, it's safe", score: 5, category: "verification" },
+      { text: "Check if contract is verified on Etherscan", score: 30, category: "verification" },
+      { text: "Check audit reports, TVL, and time deployed", score: 65, category: "verification" },
+      { text: "Read code, check audits, simulate tx, start with small test", score: 100, category: "verification" }
+    ]
+  },
+  {
+    id: 13,
+    question: "Your browser extension wallet suddenly shows a different balance. What happened?",
+    options: [
+      { text: "Probably a display bug, refresh and check later", score: 10, category: "device" },
+      { text: "Check transaction history on Etherscan", score: 40, category: "device" },
+      { text: "Immediately move remaining funds to a fresh wallet", score: 80, category: "device" },
+      { text: "Disconnect internet, use separate device to move funds, investigate malware", score: 100, category: "device" }
+    ]
+  },
+  {
+    id: 14,
+    question: "How do you protect your crypto activity from your ISP and network observers?",
+    options: [
+      { text: "I don't - nothing to hide", score: 5, category: "privacy" },
+      { text: "Use HTTPS everywhere", score: 25, category: "privacy" },
+      { text: "VPN for all crypto activities", score: 60, category: "privacy" },
+      { text: "VPN + Tor for sensitive ops + separate browser profile", score: 100, category: "privacy" }
+    ]
+  },
+  {
+    id: 15,
+    question: "You accidentally sent 0.1 ETH to a wrong address. It's a contract. What do you do?",
+    options: [
+      { text: "Email the contract owner to return it", score: 10, category: "verification" },
+      { text: "Try to interact with the contract to recover", score: 20, category: "verification" },
+      { text: "Accept the loss and document for taxes", score: 70, category: "verification" },
+      { text: "Verify if it's a recoverable proxy, else document and move on", score: 100, category: "verification" }
+    ]
+  },
+  {
+    id: 16,
+    question: "How do you handle social media when traveling for crypto events?",
+    options: [
+      { text: "Post real-time check-ins and event photos", score: 5, category: "social" },
+      { text: "Post same day but avoid exact locations", score: 25, category: "social" },
+      { text: "Delay all location posts by 24-48 hours", score: 75, category: "social" },
+      { text: "No location posts, minimal digital footprint, separate travel identity", score: 100, category: "social" }
+    ]
+  },
+  {
+    id: 17,
+    question: "A new dApp asks to connect your wallet. What's your protocol?",
+    options: [
+      { text: "Connect main wallet - convenient", score: 5, category: "custody" },
+      { text: "Check the URL matches before connecting", score: 30, category: "custody" },
+      { text: "Use a dedicated dApp wallet with limited funds", score: 70, category: "custody" },
+      { text: "Burner wallet + simulate first + revoke after use", score: 100, category: "custody" }
+    ]
+  },
+  {
+    id: 18,
+    question: "How many browser extensions do you have installed?",
+    options: [
+      { text: "10+ useful ones I've collected over time", score: 10, category: "device" },
+      { text: "5-10 popular, well-reviewed extensions", score: 30, category: "device" },
+      { text: "Less than 5, only essential ones", score: 70, category: "device" },
+      { text: "Minimal extensions + dedicated browser for crypto only", score: 100, category: "device" }
+    ]
+  },
+  {
+    id: 19,
+    question: "Someone offers to help you 'sync your wallet' to fix an issue. Your response?",
+    options: [
+      { text: "Follow their instructions - they seem knowledgeable", score: 5, category: "social" },
+      { text: "Ask for their credentials first", score: 15, category: "social" },
+      { text: "Politely decline - wallets don't need syncing", score: 80, category: "social" },
+      { text: "Block, report, and warn the community about the scammer", score: 100, category: "social" }
+    ]
+  },
+  {
+    id: 20,
+    question: "How do you secure your email associated with crypto accounts?",
+    options: [
+      { text: "Standard email with strong password", score: 15, category: "auth" },
+      { text: "Unique password + 2FA app", score: 40, category: "auth" },
+      { text: "Dedicated email address for crypto only + hardware 2FA", score: 80, category: "auth" },
+      { text: "ProtonMail/Tutanota + hardware key + aliases per service", score: 100, category: "auth" }
     ]
   }
 ];
@@ -377,16 +457,16 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
   const handleShare = async (platform: 'twitter' | 'copy') => {
     if (!result) return;
     
+    // Create shareable URL with params for OG tags
+    const badgesEncoded = result.badges.map(b => encodeURIComponent(b)).join(',');
+    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}`;
+    
     const shareText = `${result.character.emoji} My OpSec Level: ${result.character.name} (${result.score}/100)
 
 "${result.character.description}"
 
-@${username} just completed the Digibastion OpSec Assessment!
-
-Think you're more secure? Prove it 👇
-https://www.digibastion.com
-
-#OpSec #Web3Security #Digibastion #WAGMI`;
+Think you can beat my score? Take the quiz 👇
+${shareUrl}`;
     
     if (platform === 'twitter') {
       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
