@@ -23,6 +23,7 @@ export const CategoryOverview = ({
     { id: 'developers', name: 'Developer Security', icon: 'User', priority: 'web3' },
     { id: 'os', name: 'OS Security', icon: 'Laptop', priority: 'web3' },
     { id: 'jobs', name: 'Job Security', icon: 'Building2', priority: 'web3' },
+    { id: 'opsec', name: 'OpSec', icon: 'ShieldAlert', priority: 'opsec' },
     { id: 'browsing', name: 'Web Browsing', icon: 'Globe', priority: 'web2' },
     { id: 'email', name: 'Email', icon: 'Mail', priority: 'web2' },
     { id: 'mobile', name: 'Mobile Security', icon: 'Smartphone', priority: 'web2' },
@@ -46,6 +47,18 @@ export const CategoryOverview = ({
           getValidCategoryProgress={getValidCategoryProgress}
           getProgressColor={getProgressColor}
           bgColor="bg-indigo-500/10"
+          changeCount={changeCount}
+        />
+      </div>
+
+      <div className="mb-4">
+        <h4 className="text-sm font-medium text-orange-400 mb-2">Operational Security</h4>
+        <CategoryProgressList 
+          categories={categoryData.filter(cat => cat.priority === 'opsec')}
+          threatLevel={threatLevel}
+          getValidCategoryProgress={getValidCategoryProgress}
+          getProgressColor={getProgressColor}
+          bgColor="bg-orange-500/10"
           changeCount={changeCount}
         />
       </div>

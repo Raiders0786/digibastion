@@ -11,7 +11,8 @@ import {
   Smartphone, 
   Key,
   Globe,
-  CreditCard
+  CreditCard,
+  ShieldAlert
 } from 'lucide-react';
 
 interface CategoryIconProps {
@@ -42,6 +43,8 @@ export const CategoryIcon = ({ iconName }: CategoryIconProps) => {
       return <Globe className="w-4 h-4" />;
     case 'CreditCard':
       return <CreditCard className="w-4 h-4" />;
+    case 'ShieldAlert':
+      return <ShieldAlert className="w-4 h-4" />;
     default:
       return <Shield className="w-4 h-4" />;
   }

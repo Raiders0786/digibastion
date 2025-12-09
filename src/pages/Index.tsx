@@ -8,6 +8,7 @@ import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { OpsecBanner } from '../components/opsec/OpsecBanner';
 import { Github, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
@@ -61,7 +62,12 @@ const Index = () => {
       />
       <Navbar />
       
-      <main className="flex-grow pt-24 pb-16 px-4 sm:px-8 lg:px-12">
+      {/* OpSec Quiz Banner */}
+      <div className="pt-16">
+        <OpsecBanner />
+      </div>
+      
+      <main className="flex-grow pt-8 pb-16 px-4 sm:px-8 lg:px-12">
         {/* ESP Support Announcement */}
         <div className="mb-12">
           <div className="py-4 px-4 sm:px-8 lg:px-12">
