@@ -41,7 +41,15 @@ export const Footer = () => {
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">Digibastion — Secure the Stack</p>
             <p className="text-xs text-muted-foreground mt-1">
-              The Open-Source Web3 Security Platform • Supported by Ethereum Foundation ESP 2025
+              The Open-Source Web3 Security Platform • Supported by{' '}
+              <a 
+                href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline underline-offset-2"
+              >
+                Ethereum Foundation ESP 2025
+              </a>
             </p>
           </div>
           
