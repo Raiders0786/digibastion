@@ -56,6 +56,14 @@ const categoryThreatMappings: CategoryThreatMapping[] = [
     institutionItems: ['wallet-1', 'wallet-2', 'wallet-3', 'wallet-4', 'wallet-5', 'wallet-6', 'wallet-7']
   },
   {
+    categoryId: 'opsec',
+    basicItems: ['opsec-1', 'opsec-2', 'opsec-4', 'opsec-11', 'opsec-21', 'opsec-22', 'opsec-24', 'opsec-25', 'opsec-28', 'opsec-29'],
+    developerItems: ['opsec-1', 'opsec-2', 'opsec-4', 'opsec-5', 'opsec-6', 'opsec-7', 'opsec-11', 'opsec-12', 'opsec-13', 'opsec-14', 'opsec-15', 'opsec-16', 'opsec-17', 'opsec-18', 'opsec-19', 'opsec-28', 'opsec-29', 'opsec-30', 'opsec-31'],
+    privacyItems: ['opsec-1', 'opsec-2', 'opsec-3', 'opsec-4', 'opsec-7', 'opsec-11', 'opsec-12', 'opsec-20', 'opsec-21', 'opsec-22', 'opsec-23', 'opsec-24', 'opsec-25', 'opsec-26', 'opsec-27', 'opsec-28', 'opsec-29'],
+    highValueItems: ['opsec-1', 'opsec-2', 'opsec-3', 'opsec-4', 'opsec-5', 'opsec-6', 'opsec-7', 'opsec-8', 'opsec-9', 'opsec-10', 'opsec-11', 'opsec-12', 'opsec-20', 'opsec-21', 'opsec-22', 'opsec-23', 'opsec-24', 'opsec-25', 'opsec-26', 'opsec-27', 'opsec-28', 'opsec-29', 'opsec-30', 'opsec-31', 'opsec-32', 'opsec-33', 'opsec-34'],
+    institutionItems: ['opsec-1', 'opsec-2', 'opsec-3', 'opsec-4', 'opsec-5', 'opsec-6', 'opsec-7', 'opsec-8', 'opsec-9', 'opsec-10', 'opsec-11', 'opsec-12', 'opsec-13', 'opsec-14', 'opsec-15', 'opsec-16', 'opsec-17', 'opsec-18', 'opsec-19', 'opsec-20', 'opsec-21', 'opsec-22', 'opsec-23', 'opsec-24', 'opsec-25', 'opsec-26', 'opsec-27', 'opsec-28', 'opsec-29', 'opsec-30', 'opsec-31', 'opsec-32', 'opsec-33', 'opsec-34']
+  },
+  {
     categoryId: 'authentication',
     basicItems: ['auth-1', 'auth-2', 'auth-3'],
     developerItems: ['auth-1', 'auth-2', 'auth-3', 'auth-4', 'auth-5'],
