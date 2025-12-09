@@ -82,9 +82,14 @@ export const Navbar = () => {
               </div>
               <div className="absolute -inset-1 bg-primary/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <span className="text-lg sm:text-xl font-semibold text-foreground tracking-tight">
-              Digibastion
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg sm:text-xl font-semibold text-foreground tracking-tight leading-none">
+                Digibastion
+              </span>
+              <span className="text-[9px] text-muted-foreground/70 hidden sm:block tracking-wide">
+                Secure the Stack
+              </span>
+            </div>
           </div>
           
           {/* Navigation */}

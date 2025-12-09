@@ -1,113 +1,150 @@
-
-# 🛡️ Digibastion - The Ultimate Web3 Security Platform
+# 🛡️ Digibastion — Secure the Stack
 
 ![Digibastion Logo](public/og-image.png)
 
-**Stop jumping between 10+ scattered security tools.** Digibastion is an open-source, unified Web3 OpSec platform that helps you follow expert-backed security practices, scan for live threats, monitor supply chain risks, and enhance your privacy across crypto, Web3, and beyond.
+<p align="center">
+  <strong>The Open-Source Web3 Security Platform</strong>
+</p>
 
-[![GitHub stars](https://img.shields.io/github/stars/Raiders0786/digibastion?style=social)](https://github.com/Raiders0786/digibastion/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/Raiders0786/digibastion?style=social)](https://github.com/Raiders0786/digibastion/network)
-[![GitHub issues](https://img.shields.io/github/issues/Raiders0786/digibastion)](https://github.com/Raiders0786/digibastion/issues)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<p align="center">
+  Threat Intelligence • OpSec Assessments • Security Scanners • Community-Powered
+</p>
+
+<p align="center">
+  <a href="https://esp.ethereum.foundation/"><img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Raiders0786/digibastion/stargazers"><img src="https://img.shields.io/github/stars/Raiders0786/digibastion?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/Raiders0786/digibastion/network"><img src="https://img.shields.io/github/forks/Raiders0786/digibastion?style=social" alt="GitHub forks" /></a>
+  <a href="https://github.com/Raiders0786/digibastion/issues"><img src="https://img.shields.io/github/issues/Raiders0786/digibastion" alt="GitHub issues" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
+
+---
+
+## 🎯 What is Digibastion?
+
+**Stop jumping between scattered security tools.** Digibastion is a unified, open-source Web3 OpSec platform that helps you:
+
+- 📊 **Monitor Threats** — Real-time threat intelligence feed with 30+ incidents from 2024-2025
+- 🧠 **Assess Your OpSec** — Interactive quiz with personalized recommendations and shareable results
+- ✅ **Follow Best Practices** — 200+ expert-backed security items across 11 categories
+- 🔍 **Scan for Risks** — DNS security scanner and supply chain monitoring (coming soon)
+- 🤝 **Contribute & Learn** — Built in public by the community
+
+---
 
 ## ✨ Features
 
-- 🔒 **Comprehensive Security Checklist**: 200+ security items covering wallet security, DeFi protocols, OS hardening, and more
-- 🎯 **Threat Profile Customization**: Personalized recommendations based on your specific risk profile and threat model
-- 📊 **Dynamic Security Scoring**: Real-time security score tracking with progress analytics and historical data
-- 🛠️ **Curated Tool Recommendations**: Hand-picked security tools with integration guides and best practices
-- 📚 **Educational Resources**: In-depth security guides, tutorials, and up-to-date threat intelligence
-- 📱 **Mobile-Optimized**: Full responsive design for security management on-the-go
-- 🌙 **Dark/Light Mode**: Comfortable viewing in any environment
-- 📈 **Progress Analytics**: Visual insights into your security improvement journey
+### Live Features
+- 🎯 **OpSec Assessment Quiz** — 8-question interactive quiz with crypto-themed character rankings and shareable X/Twitter cards
+- 📰 **Threat Intelligence Feed** — Real incidents from WazirX ($235M), Solana Web3.js backdoor, North Korean activities, and more
+- 🔒 **Comprehensive Security Checklists** — 200+ items covering wallet security, DeFi protocols, OS hardening, developer security, and OpSec
+- 🎨 **Threat Profile Customization** — Personalized recommendations based on your specific risk profile
+- 📊 **Dynamic Security Scoring** — Real-time score tracking with progress analytics
+- 🛠️ **Curated Tool Recommendations** — Hand-picked security tools with integration guides
+- 📚 **Educational Resources** — In-depth security guides and tutorials
+- 📱 **Mobile-Optimized** — Full responsive design for security on-the-go
+- 🌙 **Dark/Light Mode** — Comfortable viewing in any environment
 
-## 🚀 What's Coming Next
-
-We're building the **Complete Threat Protection** platform. Check out our [detailed roadmap](ROADMAP.md) for upcoming features:
-
-### 🔥 Active Development (Q4 2025)
-- **Real-time Supply Chain Monitoring** - Detect malicious packages instantly
-- **Source Code Security Analysis** - AI-powered vulnerability scanning
-- **Live Threat Intelligence Feed** - Personalized risk assessments
-
-### 📅 Coming Soon (Q1-Q2 2026)
-- **DevSecOps Pipeline Integration** - CI/CD security automation
-- **GitHub Repository Analysis** - Comprehensive code security scanning
-- **Advanced Threat Detection** - Phishing, malware, and domain monitoring
+### Coming Soon (Q1-Q2 2026)
+- 🌐 **DNS Security Scanner** — Comprehensive DNS security analysis
+- ⚡ **Real-time Supply Chain Monitoring** — Detect malicious packages instantly
+- 🔔 **Third-party Dependency Risk Alerts** — Immediate vulnerability notifications
+- 🔧 **DevSecOps Pipeline Integration** — CI/CD security automation
+- 🔎 **GitHub Repository Analysis** — Comprehensive code security scanning
 
 [**📋 View Full Roadmap →**](ROADMAP.md)
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js (v18 or later)
 - npm, yarn, or bun
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Raiders0786/digibastion.git
-   cd digibastion
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/Raiders0786/digibastion.git
+cd digibastion
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   # or
-   bun install
-   ```
+# Install dependencies
+npm install
+# or: yarn install / bun install
 
-3. **Start the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   bun dev
-   ```
+# Start the development server
+npm run dev
+# or: yarn dev / bun dev
 
-4. **Open your browser** and navigate to `http://localhost:8080`
+# Open your browser to http://localhost:8080
+```
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18 + TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **Build Tool**: Vite
-- **State Management**: React Hooks + Context
-- **Testing**: Vitest + React Testing Library
-- **Backend**: Supabase (optional for advanced features)
+| Category | Technologies |
+|----------|-------------|
+| **Frontend** | React 18 + TypeScript |
+| **Styling** | Tailwind CSS + shadcn/ui |
+| **Build Tool** | Vite |
+| **State Management** | React Hooks + Context |
+| **Testing** | Vitest + React Testing Library |
+| **Backend** | Supabase (Edge Functions) |
+
+---
 
 ## 🤝 Contributing
 
-We welcome contributions from security researchers, developers, content creators, and anyone passionate about digital security!
+We welcome contributions from **everyone** — whether you're a security researcher, developer, content creator, or just passionate about digital security!
 
 ### 🔧 For Developers
-
-- **Add Security Items**: Contribute to `src/data/categories/`
-- **Create New Categories**: Use our templates in `src/templates/`
-- **Improve Tools Database**: Update `src/data/tools/categories.ts`
-- **Write Articles**: Add educational content in `src/data/articles.tsx`
+- **Add Security Items** → `src/data/categories/`
+- **Create New Categories** → Use templates in `src/templates/`
+- **Improve Tools Database** → `src/data/tools/categories.ts`
+- **Write Articles** → `src/data/articles.tsx`
 
 ### 🔍 For Security Experts
+- **Review Security Practices** — Audit and improve our recommendations
+- **Add Threat Intelligence** — Contribute to the threat feed
+- **Tool Recommendations** — Suggest and review security tools
 
-- **Review Security Practices**: Audit and improve our recommendations
-- **Add Threat Intelligence**: Contribute to threat profile definitions
-- **Tool Recommendations**: Suggest and review security tools
+### 📝 For Content Creators
+- **Documentation** — Improve guides and tutorials
+- **Educational Content** — Create security awareness materials
+- **Translations** — Help us reach more users
 
-### 📝 Quick Contribution Guide
+### 💡 Quick Start Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and test thoroughly
-4. Commit with clear messages: `git commit -m 'Add amazing feature'`
-5. Push to your branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
+```bash
+# 1. Fork the repository on GitHub
+
+# 2. Clone your fork
+git clone https://github.com/YOUR-USERNAME/digibastion.git
+cd digibastion
+
+# 3. Create a feature branch
+git checkout -b feature/amazing-feature
+
+# 4. Make your changes and test
+npm run dev
+
+# 5. Commit with clear messages
+git commit -m 'Add amazing feature'
+
+# 6. Push to your branch
+git push origin feature/amazing-feature
+
+# 7. Open a Pull Request
+```
 
 [**📖 Full Contributing Guide →**](CONTRIBUTING.md)
+
+---
 
 ## 📁 Project Structure
 
@@ -116,12 +153,13 @@ src/
 ├── components/           # Reusable UI components
 │   ├── ui/              # shadcn/ui component library
 │   ├── security-score/  # Security scoring components
-│   └── ...              # Feature-specific components
+│   ├── opsec/           # OpSec quiz & badges
+│   └── news/            # Threat intelligence components
 ├── data/                # Application data
 │   ├── categories/      # Security category definitions
 │   ├── links/           # Curated resource links
 │   ├── tools/           # Security tool database
-│   ├── articles.tsx     # Educational articles
+│   ├── newsData.ts      # Threat intelligence data
 │   └── threatProfiles.ts # Threat model definitions
 ├── hooks/               # Custom React hooks
 ├── pages/               # Page components (routing)
@@ -130,12 +168,14 @@ src/
 └── templates/           # Templates for contributors
 ```
 
+---
+
 ## 🌟 Community & Support
 
 ### 💬 Join the Community
 - **🐙 GitHub**: [Issues](https://github.com/Raiders0786/digibastion/issues) • [Discussions](https://github.com/Raiders0786/digibastion/discussions) • [Pull Requests](https://github.com/Raiders0786/digibastion/pulls)
 - **💬 Telegram**: [Join our community chat](https://t.me/digibastion)
-- **🐦 Updates**: Follow us for security tips and platform updates
+- **🐦 Twitter**: [@__Raiders](https://x.com/__Raiders)
 
 ### 💝 Support the Project
 - ⭐ **Star the repository** to show your support
@@ -143,16 +183,28 @@ src/
 - 💻 **Contribute** code, documentation, or security expertise
 - 💰 **Financial support**: [Support our mission](https://www.digibastion.com/support)
 
+---
+
+## 🙏 Acknowledgments
+
+<p align="center">
+  <a href="https://esp.ethereum.foundation/">
+    <img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" />
+  </a>
+</p>
+
+- **Ethereum Foundation ESP** — For supporting this project with a 2025 grant
+- **Security Community** — Thanks to all security researchers and practitioners who contribute
+- **Open Source Contributors** — Every contribution makes the Web3 ecosystem safer
+- **Tool Makers** — Thanks to all the security tool creators we recommend and integrate
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- **🔒 Security Community**: Thanks to all security researchers and practitioners who contribute
-- **🌍 Open Source Contributors**: Every contribution makes the Web3 ecosystem safer
-- **💡 Feedback Providers**: Community feedback drives our continuous improvement
-- **🛠️ Tool Makers**: Thanks to all the security tool creators we recommend and integrate
+---
 
 ## 🔗 Related Projects
 
@@ -161,6 +213,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**🛡️ Building the security infrastructure Web3 deserves - one unified platform for all your protection needs.**
+<p align="center">
+  <strong>🛡️ Digibastion — Secure the Stack</strong>
+</p>
 
-[**🚀 Get Started Now**](https://digibastion.com) • [**📋 View Roadmap**](ROADMAP.md) • [**💬 Join Community**](https://t.me/digibastion)
+<p align="center">
+  Building the security infrastructure Web3 deserves — one unified platform for all your protection needs.
+</p>
+
+<p align="center">
+  <a href="https://digibastion.com"><strong>🚀 Get Started</strong></a> • 
+  <a href="ROADMAP.md"><strong>📋 Roadmap</strong></a> • 
+  <a href="https://t.me/digibastion"><strong>💬 Community</strong></a>
+</p>
