@@ -10,6 +10,18 @@ import { Bell, Mail, Shield, Zap, CheckCircle, Loader2 } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from "@/integrations/supabase/client";
+import { z } from 'zod';
+
+// Input validation schema
+const subscriptionSchema = z.object({
+  name: z.string().max(100, "Name must be less than 100 characters").optional(),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  categories: z.array(z.string()).min(1, "Select at least one category").max(10),
+  technologies: z.array(z.string()).max(20).optional(),
+  frequency: z.enum(["immediate", "daily", "weekly"]),
+  severity: z.enum(["critical", "high", "medium", "low", "info"]),
+});
 
 export const SubscriptionForm = () => {
   const [email, setEmail] = useState('');
@@ -41,10 +53,22 @@ export const SubscriptionForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || selectedCategories.length === 0) {
+    const rawData = {
+      name: name || undefined,
+      email,
+      categories: selectedCategories,
+      technologies: selectedTechnologies,
+      frequency: alertFrequency,
+      severity: severityThreshold,
+    };
+
+    // Validate inputs
+    const validation = subscriptionSchema.safeParse(rawData);
+    if (!validation.success) {
+      const firstError = validation.error.errors[0]?.message || "Invalid input";
       toast({
-        title: "Missing Information",
-        description: "Please provide your email and select at least one category.",
+        title: "Validation Error",
+        description: firstError,
         variant: "destructive"
       });
       return;
@@ -53,36 +77,13 @@ export const SubscriptionForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Using Web3Forms for email subscription
-      const formData = {
-        access_key: "YOUR_WEB3FORMS_KEY", // Will be replaced or use environment
-        subject: "New Digibastion Threat Intel Subscription",
-        from_name: "Digibastion Threat Intel",
-        name: name || "Subscriber",
-        email: email,
-        message: `
-New subscription request:
-- Email: ${email}
-- Name: ${name || 'Not provided'}
-- Categories: ${selectedCategories.join(', ')}
-- Technologies: ${selectedTechnologies.join(', ') || 'None selected'}
-- Frequency: ${alertFrequency}
-- Min Severity: ${severityThreshold}
-        `.trim()
-      };
-
-      const response = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(formData),
+      const { data, error } = await supabase.functions.invoke("submit-form", {
+        body: { type: "subscription", data: validation.data },
       });
 
-      const result = await response.json();
+      if (error) throw error;
 
-      if (result.success) {
+      if (data?.success) {
         setIsSuccess(true);
         toast({
           title: "Subscription Successful! 🎉",
@@ -100,16 +101,15 @@ New subscription request:
           setIsSuccess(false);
         }, 3000);
       } else {
-        throw new Error(result.message || 'Submission failed');
+        throw new Error(data?.error || 'Submission failed');
       }
     } catch (error) {
       console.error('Subscription error:', error);
       toast({
-        title: "Subscription Saved Locally",
-        description: "We've noted your preferences. Full email integration coming soon!",
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
       });
-      setIsSuccess(true);
-      setTimeout(() => setIsSuccess(false), 3000);
     } finally {
       setIsSubmitting(false);
     }
@@ -164,6 +164,7 @@ New subscription request:
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                maxLength={100}
                 className="w-full"
               />
             </div>
@@ -179,6 +180,7 @@ New subscription request:
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                maxLength={255}
                 className="w-full"
               />
             </div>

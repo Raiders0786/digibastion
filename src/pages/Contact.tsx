@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -6,6 +5,8 @@ import { MetaTags } from '../components/MetaTags';
 import { Mail, MessageSquare, Twitter, Send, Handshake, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from 'zod';
 import {
   Select,
   SelectContent,
@@ -23,29 +24,60 @@ const INQUIRY_TYPES = [
   { value: 'meeting', label: 'Schedule a Meeting' },
 ];
 
+// Input validation schema
+const contactSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  inquiryType: z.string().optional(),
+  social: z.string().max(100, "Social handle must be less than 100 characters").optional(),
+  meetingLink: z.string().url("Invalid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
+  message: z.string().trim().min(1, "Message is required").max(2000, "Message must be less than 2000 characters"),
+});
+
 const Contact = () => {
   const [result, setResult] = useState("");
   const [inquiryType, setInquiryType] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSubmitting(true);
     setResult("Sending....");
-    const formData = new FormData(event.target as HTMLFormElement);
 
-    // Public Access Key - stored in environment variable for security
-    const accessKey = import.meta.env.VITE_WEB3FORMS_KEY || "fd8fc32b-444d-4b96-bb87-70c8ce806ba2";
-    formData.append("access_key", accessKey);
+    const formData = new FormData(event.target as HTMLFormElement);
+    
+    const rawData = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      inquiryType: inquiryType,
+      social: formData.get("social") as string || "",
+      meetingLink: formData.get("meetingLink") as string || "",
+      message: formData.get("message") as string,
+    };
+
+    // Validate inputs
+    const validation = contactSchema.safeParse(rawData);
+    if (!validation.success) {
+      const firstError = validation.error.errors[0]?.message || "Invalid input";
+      toast({
+        title: "Validation Error",
+        description: firstError,
+        variant: "destructive",
+      });
+      setResult("");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      const response = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        body: formData
+      const { data, error } = await supabase.functions.invoke("submit-form", {
+        body: { type: "contact", data: validation.data },
       });
 
-      const data = await response.json();
+      if (error) throw error;
 
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: "Success!",
           description: "Your message has been sent successfully.",
@@ -54,13 +86,12 @@ const Contact = () => {
         (event.target as HTMLFormElement).reset();
         setInquiryType("");
       } else {
-        console.log("Error", data);
-        setResult(data.message);
         toast({
           title: "Error",
-          description: "Something went wrong. Please try again.",
+          description: data?.error || "Something went wrong. Please try again.",
           variant: "destructive",
         });
+        setResult("");
       }
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -69,6 +100,9 @@ const Contact = () => {
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+      setResult("");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -128,6 +162,7 @@ const Contact = () => {
                     type="text"
                     name="name"
                     required
+                    maxLength={100}
                     className="w-full p-3 rounded-md bg-background border border-white/10"
                     placeholder="Your name"
                   />
@@ -138,6 +173,7 @@ const Contact = () => {
                     type="email"
                     name="email"
                     required
+                    maxLength={255}
                     className="w-full p-3 rounded-md bg-background border border-white/10"
                     placeholder="your@email.com"
                   />
@@ -170,6 +206,7 @@ const Contact = () => {
                   <input
                     type="text"
                     name="social"
+                    maxLength={100}
                     className="w-full p-3 rounded-md bg-background border border-white/10"
                     placeholder="Your Twitter or Telegram handle"
                   />
@@ -181,6 +218,7 @@ const Contact = () => {
                       type="url"
                       name="meetingLink"
                       required
+                      maxLength={500}
                       className="w-full p-3 rounded-md bg-background border border-white/10"
                       placeholder="Your Calendly/Cal.com link"
                     />
@@ -191,6 +229,7 @@ const Contact = () => {
                   <textarea
                     name="message"
                     required
+                    maxLength={2000}
                     className="w-full p-3 rounded-md bg-background border border-white/10 min-h-[120px]"
                     placeholder={inquiryType === 'meeting' ? 
                       "Please share some context about the meeting..." : 
@@ -200,8 +239,9 @@ const Contact = () => {
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90"
+                  disabled={isSubmitting}
                 >
-                  {inquiryType === 'meeting' ? 'Request Meeting' : 'Send Message'}
+                  {isSubmitting ? 'Sending...' : (inquiryType === 'meeting' ? 'Request Meeting' : 'Send Message')}
                 </Button>
               </form>
               {result && (
