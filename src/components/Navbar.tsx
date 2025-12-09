@@ -1,5 +1,4 @@
-
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, ExternalLink, Wrench, Wallet2, Code, Briefcase, Heart, Newspaper } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -50,53 +49,72 @@ export const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-card border-b border-white/10 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    <nav className="bg-background/80 backdrop-blur-xl border-b border-border/50 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <span className="text-lg sm:text-xl font-bold text-foreground">Digibastion</span>
+          {/* Logo */}
+          <div 
+            className="flex items-center gap-2.5 cursor-pointer group" 
+            onClick={() => navigate('/')}
+          >
+            <div className="relative">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-300">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              </div>
+              <div className="absolute -inset-1 bg-primary/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
+            <span className="text-lg sm:text-xl font-semibold text-foreground tracking-tight">
+              Digibastion
+            </span>
           </div>
           
-          <div className="flex items-center gap-4 sm:gap-6">
+          {/* Navigation */}
+          <div className="flex items-center gap-2 sm:gap-4">
             <NavigationMenu>
-              <NavigationMenuList>
+              <NavigationMenuList className="gap-1">
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4 data-[state=open]:bg-accent/50">
-                    <span className="hidden sm:inline">Security Checklists</span>
-                    <span className="sm:hidden">Checklist</span>
+                  <NavigationMenuTrigger className="text-sm font-medium px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
+                    <span className="hidden sm:inline">Checklists</span>
+                    <span className="sm:hidden">Menu</span>
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="w-[300px] sm:w-[400px] p-4 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
-                      <div className="mb-4">
-                        <button
-                          onClick={() => handleCategoryClick('score')}
-                          className="w-full rounded-lg bg-gradient-to-br from-[#6e59a5] to-[#9b87f5] p-6 text-left
-                            transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/20
-                            relative overflow-hidden group"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 
-                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"/>
-                          <h3 className="text-lg font-semibold text-white mb-2 relative z-10">
-                            Personal Security Score
+                    <div className="w-[320px] sm:w-[400px] p-4 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
+                      {/* Featured Card */}
+                      <button
+                        onClick={() => handleCategoryClick('score')}
+                        className="w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-5 text-left mb-4
+                          border border-primary/20 transition-all duration-300 hover:border-primary/40 hover:shadow-glow group relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 
+                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                        <div className="relative">
+                          <h3 className="text-base font-semibold text-foreground mb-1.5">
+                            Security Score
                           </h3>
-                          <p className="text-sm text-gray-200 relative z-10">
-                            Track and improve your security across all platforms
+                          <p className="text-sm text-muted-foreground">
+                            Track your security progress across all categories
                           </p>
-                        </button>
-                      </div>
-                      <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+                        </div>
+                      </button>
+                      
+                      {/* Category List */}
+                      <div className="space-y-0.5 max-h-[50vh] overflow-y-auto scrollbar-hide">
                         {categories.map(category => (
                           <button
                             key={category.id}
                             onClick={() => handleCategoryClick(category.id)}
-                            className="w-full p-3 text-left hover:bg-white/5 rounded-md transition-all duration-200
-                              hover:translate-x-1 hover:bg-accent/50 group"
+                            className="w-full p-3 text-left rounded-lg transition-all duration-200
+                              hover:bg-muted/50 group flex items-center justify-between"
                           >
-                            <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">
-                              {category.title}
+                            <div>
+                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {category.title}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {category.description}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-400">{category.description}</div>
+                            <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 opacity-0 group-hover:opacity-100 transition-all" />
                           </button>
                         ))}
                       </div>
@@ -104,24 +122,25 @@ export const Navbar = () => {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
-                {/* Threat Intel - Direct Link */}
+                {/* Threat Intel */}
                 <NavigationMenuItem>
                   <button
                     onClick={() => navigate('/news')}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm sm:text-base font-medium text-foreground hover:text-primary transition-colors rounded-md hover:bg-accent/50"
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
+                      transition-colors rounded-lg hover:bg-muted/50"
                   >
                     <Newspaper className="w-4 h-4" />
                     <span className="hidden sm:inline">Threat Intel</span>
-                    <span className="sm:hidden">Intel</span>
                   </button>
                 </NavigationMenuItem>
 
+                {/* Resources */}
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm sm:text-base px-2 sm:px-4 data-[state=open]:bg-accent/50">
+                  <NavigationMenuTrigger className="text-sm font-medium px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     Resources
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="w-[200px] sm:w-[220px] p-3 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
+                    <div className="w-[200px] p-2 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
                       {[
                         { route: '/tools', icon: Wrench, label: 'Tools' },
                         { route: '/articles', icon: Book, label: 'Articles' },
@@ -130,17 +149,18 @@ export const Navbar = () => {
                         { route: '/about', icon: Info, label: 'About Us' },
                         { route: '/support', icon: Heart, label: 'Support Us' },
                         { route: '/contact', icon: Mail, label: 'Contact' },
-                        { route: '/share', icon: Share, label: 'Share & Connect' }
+                        { route: '/share', icon: Share, label: 'Share' }
                       ].map(item => (
                         <button
                           key={item.route}
                           onClick={() => navigate(item.route)}
-                          className="flex items-center gap-2 w-full p-2 text-sm rounded-md 
-                            hover:bg-accent/50 text-left transition-all duration-200
-                            hover:translate-x-1 group"
+                          className="flex items-center gap-2.5 w-full p-2.5 text-sm rounded-lg 
+                            hover:bg-muted/50 text-left transition-all duration-200 group"
                         >
-                          <item.icon className="w-4 h-4 group-hover:text-primary transition-colors" />
-                          <span className="group-hover:text-primary transition-colors">{item.label}</span>
+                          <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <span className="text-foreground group-hover:text-primary transition-colors">
+                            {item.label}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -149,11 +169,13 @@ export const Navbar = () => {
               </NavigationMenuList>
             </NavigationMenu>
 
+            {/* GitHub */}
             <a 
               href="https://github.com/Raiders0786/digibastion"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground-secondary hover:text-foreground transition-colors"
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+              aria-label="View on GitHub"
             >
               <Github className="w-5 h-5" />
             </a>
