@@ -59,8 +59,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Digibastion - Ultimate Web3 Security Checklist & Resources"
-        description="Protect your digital assets with our comprehensive Web3 security checklist. Follow expert-backed security practices for crypto, blockchain, and DeFi."
+        title="Digibastion — The Open-Source Web3 Security Platform | Secure the Stack"
+        description="Open-source Web3 security platform with threat intelligence, OpSec assessments, security scanners, and community-powered checklists. Supported by Ethereum Foundation ESP grant 2025."
       />
       <Navbar />
       
@@ -95,16 +95,36 @@ const Index = () => {
           {/* Hero Content */}
           <div className="text-center max-w-4xl mx-auto space-y-6 animate-fade-in-up">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              <span className="text-foreground">The Ultimate </span>
+              <span className="text-foreground">The Open-Source </span>
               <span className="text-gradient">Web3 Security</span>
               <br />
-              <span className="text-foreground">Checklist</span>
+              <span className="text-foreground">Platform</span>
             </h1>
             
+            {/* Feature bullets */}
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-sm sm:text-base text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Threat Intelligence
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                OpSec Assessments
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Security Scanners
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Community-Powered
+              </span>
+            </div>
+            
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Stop jumping between scattered security tools. Protect your digital footprint with 
-              our unified OpSec platform — expert-backed practices, live threat monitoring, 
-              and supply chain risk alerts.
+              Stop jumping between scattered security tools. Unified OpSec platform with 
+              expert-backed practices, live threat monitoring, security scanners, and 
+              supply chain risk alerts — built in public by the community.
             </p>
 
             {/* CTA Buttons */}
@@ -116,20 +136,25 @@ const Index = () => {
               >
                 <Button size="lg" className="btn-primary gap-2">
                   <Github className="h-5 w-5" />
-                  View on GitHub
+                  Star on GitHub
                 </Button>
               </a>
               <a 
-                href="https://www.digibastion.com/support" 
+                href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" 
                 target="_blank" 
                 rel="noopener noreferrer"
               >
                 <Button size="lg" variant="outline" className="gap-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50">
-                  <Heart className="h-5 w-5 text-primary" />
-                  Support Us
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Contribute
                 </Button>
               </a>
             </div>
+            
+            {/* Tagline */}
+            <p className="text-xs text-muted-foreground/70 pt-2">
+              Digibastion — Secure the Stack
+            </p>
           </div>
         </section>
 

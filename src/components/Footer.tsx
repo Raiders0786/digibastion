@@ -37,6 +37,17 @@ export const Footer = () => {
           {/* Divider */}
           <div className="divider" />
           
+          {/* Tagline */}
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">Digibastion — Secure the Stack</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              The Open-Source Web3 Security Platform • Supported by Ethereum Foundation ESP 2025
+            </p>
+          </div>
+          
+          {/* Divider */}
+          <div className="divider" />
+          
           {/* Bottom Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center flex-wrap justify-center sm:justify-start gap-x-4 gap-y-2">
