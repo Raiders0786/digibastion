@@ -97,9 +97,11 @@ export const emailData: SecurityCategory = {
       description: "Use unique aliases for different services.",
       completed: false,
       level: "recommended",
-      details: "Generate unique aliases (or use anonymous forwarding) for each service you sign up for, so that any leak can be quickly identified and contained.",
+      details: "Generate unique aliases (or use anonymous forwarding) for each service you sign up for, so that any leak can be quickly identified and contained. Popular services include addy.io (unlimited aliases), SimpleLogin (open-source, Proton-owned), and Proton Mail's built-in aliases.",
       links: [
-        { "text": "SimpleLogin", "url": "https://simplelogin.io" }
+        { "text": "addy.io", "url": "https://addy.io" },
+        { "text": "SimpleLogin", "url": "https://simplelogin.io" },
+        { "text": "Proton Mail Aliases", "url": "https://proton.me/support/addresses-and-aliases" }
       ]
     },
     {

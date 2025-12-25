@@ -172,6 +172,61 @@ export const socialData: SecurityCategory = {
       completed: false,
       level: "optional",
       details: "Keep up with emerging threats and security tools to maintain strong protection.",
+    },
+    // New social media security items
+    {
+      id: "social-20",
+      title: "Use Email Aliases for Social Accounts",
+      description: "Create unique emails for each platform.",
+      completed: false,
+      level: "recommended",
+      details: "Use email aliasing services like addy.io, SimpleLogin, or Proton aliases to create unique email addresses for each social media platform. This prevents cross-platform tracking and reveals which platform leaked your data.",
+      links: [
+        { text: "addy.io", url: "https://addy.io" },
+        { text: "SimpleLogin", url: "https://simplelogin.io" }
+      ]
+    },
+    {
+      id: "social-21",
+      title: "Use Anonymous SMS for Verification",
+      description: "Avoid linking your real phone number.",
+      completed: false,
+      level: "advanced",
+      details: "Use anonymous or disposable SMS services for social media verification to prevent your real phone number from being linked to your accounts. Consider services like JMP.chat or MySudo.",
+      links: [
+        { text: "JMP.chat", url: "https://jmp.chat" }
+      ]
+    },
+    {
+      id: "social-22",
+      title: "Use Metadata Cleaner Before Uploads",
+      description: "Remove hidden data from files before sharing.",
+      completed: false,
+      level: "recommended",
+      details: "Before uploading images, documents, or videos to social media, use metadata cleaning tools to remove EXIF data, GPS coordinates, device information, and other hidden metadata that could reveal your location or identity.",
+      links: [
+        { text: "ExifCleaner", url: "https://exifcleaner.com" },
+        { text: "mat2", url: "https://0xacab.org/jvoisin/mat2" }
+      ]
+    },
+    {
+      id: "social-23",
+      title: "Use PWA Instead of Native Apps",
+      description: "Access social media via browser to limit tracking.",
+      completed: false,
+      level: "recommended",
+      details: "Instead of installing native social media apps that can access hardware identifiers, location, and contacts, use Progressive Web Apps (PWA) or the mobile browser. This significantly reduces the data apps can collect about you and your device.",
+    },
+    {
+      id: "social-24",
+      title: "Use LibRedirect for Privacy Frontends",
+      description: "View social content through privacy-focused alternatives.",
+      completed: false,
+      level: "advanced",
+      details: "Use the LibRedirect browser extension to automatically redirect social media links to privacy-focused frontends (e.g., Nitter for Twitter, Invidious for YouTube). Note: some frontends may be less secure than official sites.",
+      links: [
+        { text: "LibRedirect", url: "https://libredirect.github.io" }
+      ]
     }
   ],
   longDescription: "Comprehensive security measures for social media accounts covering account security, privacy settings, content sharing, permissions, location privacy, and advanced protection strategies."
