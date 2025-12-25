@@ -4,6 +4,7 @@ import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
 import { SecurityScore } from '../components/SecurityScore';
 import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
+import { SecurityPresets } from '../components/SecurityPresets';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
@@ -156,8 +157,11 @@ const Index = () => {
         </section>
 
         {/* Threat Level Selector */}
-        <section className="section-container pb-16">
+        <section className="section-container pb-8">
           <ThreatLevelSelector />
+          <div className="flex justify-center">
+            <SecurityPresets />
+          </div>
         </section>
 
         {/* Security Score */}
