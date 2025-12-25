@@ -269,6 +269,80 @@ export const mobileData: SecurityCategory = {
       links: [
         { "text": "GrapheneOS", "url": "https://grapheneos.org" }
       ]
+    },
+    // New mobile security items
+    {
+      id: "mob-25",
+      title: "Enable Per-Connection MAC Address Randomization",
+      description: "Randomize your MAC address for each network.",
+      completed: false,
+      level: "recommended",
+      details: "Enable per-connection (not just per-network) MAC address randomization to prevent tracking across different Wi-Fi networks. GrapheneOS and recent Android versions support this feature.",
+    },
+    {
+      id: "mob-26",
+      title: "Use Offline User Profiles",
+      description: "Create profiles that never connect to the internet.",
+      completed: false,
+      level: "advanced",
+      details: "Set up offline user profiles on your device for sensitive activities that don't require network access. This isolates data and prevents accidental leaks.",
+    },
+    {
+      id: "mob-27",
+      title: "Use Obtainium for Verified APKs",
+      description: "Fetch APKs directly from source repositories.",
+      completed: false,
+      level: "advanced",
+      details: "Use Obtainium to download and update apps directly from GitHub, GitLab, or official sources. Always verify the APK signature before first install to ensure authenticity.",
+      links: [
+        { "text": "Obtainium", "url": "https://github.com/ImranR98/Obtainium" }
+      ]
+    },
+    {
+      id: "mob-28",
+      title: "Use Aurora Store as Play Store Alternative",
+      description: "Access Play Store apps anonymously.",
+      completed: false,
+      level: "optional",
+      details: "Use Aurora Store to download apps from the Play Store without a Google account. Verify app signatures before first install, especially for security-critical apps.",
+      links: [
+        { "text": "Aurora Store", "url": "https://auroraoss.com" }
+      ]
+    },
+    {
+      id: "mob-29",
+      title: "Use Privacy-Focused Offline Maps",
+      description: "Navigate without sharing location data.",
+      completed: false,
+      level: "recommended",
+      details: "Use offline map applications like Magic Earth, CoMaps, or Organic Maps for navigation. These apps work without internet and don't track your location or send data to servers.",
+      links: [
+        { "text": "Magic Earth", "url": "https://www.magicearth.com" },
+        { "text": "Organic Maps", "url": "https://organicmaps.app" }
+      ]
+    },
+    {
+      id: "mob-30",
+      title: "Use Anonymous SMS Services",
+      description: "Receive SMS without revealing your real number.",
+      completed: false,
+      level: "advanced",
+      details: "Use privacy-focused SMS services like JMP.chat, Privacy.com (for US), or MySudo for receiving verification codes. These services help protect your real phone number from being linked to accounts.",
+      links: [
+        { "text": "JMP.chat", "url": "https://jmp.chat" },
+        { "text": "MySudo", "url": "https://mysudo.com" }
+      ]
+    },
+    {
+      id: "mob-31",
+      title: "Use Privacy-Focused Mobile Data",
+      description: "Get mobile connectivity without identity linkage.",
+      completed: false,
+      level: "advanced",
+      details: "Consider using anonymous mobile data services like Silent.link that provide eSIM connectivity without KYC requirements, accepting cryptocurrency payments for enhanced privacy.",
+      links: [
+        { "text": "Silent.link", "url": "https://silent.link" }
+      ]
     }
   ],
 };

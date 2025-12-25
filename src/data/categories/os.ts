@@ -325,6 +325,49 @@ export const osData: SecurityCategory = {
       links: [
         { text: "Canary Tokens", url: "https://canarytokens.org" }
       ]
+    },
+    // New advanced OS hardening items
+    {
+      id: "os-37",
+      title: "Use Qubes OS for Maximum Isolation",
+      description: "Run activities in separate virtual machines.",
+      completed: false,
+      level: "advanced",
+      details: "Qubes OS provides security through compartmentalization. Create separate VMs for networking (NetVM), VPN connections, crypto operations, social media, and email. Each VM is isolated, so a compromise in one doesn't affect others.",
+      links: [
+        { text: "Qubes OS", url: "https://www.qubes-os.org" }
+      ]
+    },
+    {
+      id: "os-38",
+      title: "Use Portmaster Application Firewall",
+      description: "Monitor and control application network access.",
+      completed: false,
+      level: "recommended",
+      details: "Install Portmaster by Safing.io for granular application-level firewall control. It provides per-app network rules, DNS filtering, and network monitoring with a user-friendly interface.",
+      links: [
+        { text: "Portmaster", url: "https://safing.io/portmaster" }
+      ]
+    },
+    {
+      id: "os-39",
+      title: "Consider Coreboot Firmware",
+      description: "Replace proprietary BIOS with open-source firmware.",
+      completed: false,
+      level: "advanced",
+      details: "For supported hardware, replace the proprietary BIOS/UEFI with Coreboot for transparency and reduced attack surface. This eliminates potential backdoors in proprietary firmware and enables faster boot times.",
+      links: [
+        { text: "Coreboot", url: "https://coreboot.org" },
+        { text: "Coreboot Supported Hardware", url: "https://coreboot.org/status/board-status.html" }
+      ]
+    },
+    {
+      id: "os-40",
+      title: "Implement VM Compartmentalization Strategy",
+      description: "Isolate different activities in dedicated VMs.",
+      completed: false,
+      level: "advanced",
+      details: "Create a structured VM strategy: dedicated NetVM for network interface, VPN VM for all traffic routing, Crypto VM for wallet operations, Social VM for social media, and Email VM for communications. Never mix sensitive operations.",
     }
   ],
 };

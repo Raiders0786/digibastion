@@ -370,6 +370,114 @@ export const browsingData: SecurityCategory = {
         { text: 'Quad9', url: 'https://www.quad9.net' },
         { text: 'NextDNS', url: 'https://nextdns.io' }
       ]
+    },
+    // New advanced security items
+    {
+      id: 'web-41',
+      title: 'Use Custom DNS Firewall Lists',
+      description: 'Block malicious domains at the DNS level.',
+      completed: false,
+      level: 'advanced',
+      details: 'Configure custom DNS firewall lists using services like NextDNS, Pi-hole, or RethinkDNS to block phishing, malware, and tracking domains. This provides network-wide protection for all devices.',
+      links: [
+        { text: 'RethinkDNS', url: 'https://rethinkdns.com' },
+        { text: 'Pi-hole', url: 'https://pi-hole.net' }
+      ]
+    },
+    {
+      id: 'web-42',
+      title: 'Add Crypto Phishing Filter Lists to uBlock Origin',
+      description: 'Block Web3 phishing and scam sites.',
+      completed: false,
+      level: 'recommended',
+      details: 'Add specialized filter lists to uBlock Origin to block crypto phishing attempts, scam domains, and malicious Web3 sites. Include lists from MetaMask\'s eth-phishing-detect and OpenPhish.',
+      links: [
+        { text: 'FilterLists.com', url: 'https://filterlists.com' },
+        { text: 'OpenPhish Feed', url: 'https://openphish.com/feed.txt' },
+        { text: 'MetaMask Phishing List', url: 'https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/master/src/hosts.txt' }
+      ]
+    },
+    {
+      id: 'web-43',
+      title: 'Enable Built-in Tracking Parameter Stripping',
+      description: 'Use browsers that automatically remove URL trackers.',
+      completed: false,
+      level: 'recommended',
+      details: 'Use browsers like LibreWolf or Brave that automatically strip tracking parameters from URLs. This prevents advertisers and analytics services from tracking your browsing across sites.',
+      links: [
+        { text: 'LibreWolf', url: 'https://librewolf.net' },
+        { text: 'Brave', url: 'https://brave.com' }
+      ]
+    },
+    {
+      id: 'web-44',
+      title: 'Use LibRedirect for Privacy-Friendly Frontends',
+      description: 'Redirect to privacy-respecting alternatives.',
+      completed: false,
+      level: 'advanced',
+      details: 'Use the LibRedirect extension to automatically redirect YouTube, Twitter, Reddit, and other sites to privacy-focused frontends like Invidious, Nitter, and Teddit. Note: Some frontends may have security trade-offs.',
+      links: [
+        { text: 'LibRedirect', url: 'https://libredirect.github.io' }
+      ]
+    },
+    {
+      id: 'web-45',
+      title: 'Use NoScript for JavaScript Control',
+      description: 'Granularly control which sites can run scripts.',
+      completed: false,
+      level: 'advanced',
+      details: 'Install NoScript (used by Mullvad Browser and Tor Browser) to block JavaScript by default and selectively enable it for trusted sites. This significantly reduces attack surface but requires manual site whitelisting.',
+      links: [
+        { text: 'NoScript', url: 'https://noscript.net' }
+      ]
+    },
+    {
+      id: 'web-46',
+      title: 'Use DNSCrypt or Oblivious DoH',
+      description: 'Encrypt DNS with advanced privacy protocols.',
+      completed: false,
+      level: 'advanced',
+      details: 'Use DNSCrypt or Oblivious DNS-over-HTTPS (ODoH) for enhanced DNS privacy. ODoH adds an additional proxy layer so the resolver never sees your IP address, providing superior privacy to standard DoH.',
+      links: [
+        { text: 'DNSCrypt', url: 'https://dnscrypt.info' },
+        { text: 'Cloudflare ODoH', url: 'https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/oblivious-dns-over-https' }
+      ]
+    },
+    {
+      id: 'web-47',
+      title: 'Use a Privacy-Focused VPN',
+      description: 'Choose VPNs with strong privacy guarantees.',
+      completed: false,
+      level: 'recommended',
+      details: 'Select VPN providers with proven no-log policies, owned infrastructure, and advanced features like post-quantum encryption and traffic analysis protection. Consider Mullvad with DAITA on owned-only EU servers, Safing.io, or Nym VPN mixnet for advanced anonymity.',
+      links: [
+        { text: 'Mullvad VPN', url: 'https://mullvad.net' },
+        { text: 'Safing.io', url: 'https://safing.io' },
+        { text: 'Nym VPN', url: 'https://nymtech.net/vpn' }
+      ]
+    },
+    {
+      id: 'web-48',
+      title: 'Harden Browser Fingerprinting Protection',
+      description: 'Enable advanced anti-fingerprinting in Brave.',
+      completed: false,
+      level: 'advanced',
+      details: 'In Brave, access brave://flags and enable additional fingerprinting protections. Consider disabling WebGL (may break some sites) and use extensions like Windscribe VPN extension for user agent randomization and system clock spoofing.',
+      links: [
+        { text: 'Brave Fingerprinting Protection', url: 'https://brave.com/privacy-features/' },
+        { text: 'Windscribe Extension', url: 'https://windscribe.com/extension' }
+      ]
+    },
+    {
+      id: 'web-49',
+      title: 'Use Browser Profiles for Isolation',
+      description: 'Create separate browser profiles for different activities.',
+      completed: false,
+      level: 'recommended',
+      details: 'Use Brave\'s multiple user profiles or LibreWolf\'s built-in container support to isolate different browsing contexts (work, personal, crypto). Each profile maintains separate cookies, history, and session data.',
+      links: [
+        { text: 'Firefox Containers Guide', url: 'https://support.mozilla.org/en-US/kb/containers' }
+      ]
     }
   ],
   longDescription: 'Your browser is your window to the internet, and it\'s also one of the most common attack vectors for hackers. Securing your browsing habits and setup is essential for maintaining privacy and security online. These measures help protect against tracking, data collection, and various web-based attacks including those targeting Web3 interactions.'

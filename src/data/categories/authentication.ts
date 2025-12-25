@@ -201,6 +201,18 @@ export const authenticationData: SecurityCategory = {
       ]
     },
     {
+      id: "auth-23",
+      title: "Use KeePassXC with Passkeys Support",
+      description: "Store passkeys in your local password manager.",
+      completed: false,
+      level: "recommended",
+      details: "KeePassXC now supports passkeys (WebAuthn/FIDO2) integration, allowing you to store passwordless credentials locally without relying on cloud-based authenticators. This provides the security benefits of passkeys with full local control.",
+      links: [
+        { text: "KeePassXC", url: "https://keepassxc.org" },
+        { text: "KeePassXC Browser Extension", url: "https://keepassxc.org/docs/KeePassXC_GettingStarted.html#_configure_browser_integration" }
+      ]
+    },
+    {
       id: "auth-21",
       title: "Consider Unique Usernames",
       description: "Use distinct identifiers for each service.",
