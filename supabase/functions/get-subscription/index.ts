@@ -3,16 +3,54 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-forwarded-for, x-real-ip",
 };
 
 // Validation constants
 const MAX_EMAIL_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 100;
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_ATTEMPTS_PER_IP = 10; // Max attempts per IP per hour
+const MAX_ATTEMPTS_PER_EMAIL = 5; // Max attempts per email per hour
+
+// In-memory rate limit store
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
 // Simple email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getClientIP(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+         req.headers.get("x-real-ip") ||
+         "unknown";
+}
+
+function checkRateLimit(key: string, maxAttempts: number): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+  
+  // Clean up expired entries
+  if (record && now > record.resetAt) {
+    rateLimitStore.delete(key);
+  }
+  
+  const current = rateLimitStore.get(key);
+  
+  if (!current) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: maxAttempts - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+  }
+  
+  if (current.count >= maxAttempts) {
+    return { allowed: false, remaining: 0, resetIn: current.resetAt - now };
+  }
+  
+  current.count++;
+  return { allowed: true, remaining: maxAttempts - current.count, resetIn: current.resetAt - now };
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -21,7 +59,29 @@ serve(async (req) => {
   }
 
   try {
+    const clientIP = getClientIP(req);
     const { email, token } = await req.json();
+
+    // Rate limit by IP first
+    const ipRateLimit = checkRateLimit(`get-sub:ip:${clientIP}`, MAX_ATTEMPTS_PER_IP);
+    if (!ipRateLimit.allowed) {
+      console.warn(`[get-subscription] Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Too many requests. Please try again later.",
+          retryAfter: Math.ceil(ipRateLimit.resetIn / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil(ipRateLimit.resetIn / 1000))
+          } 
+        }
+      );
+    }
 
     // Validate email
     if (!email || typeof email !== "string") {
@@ -45,6 +105,28 @@ serve(async (req) => {
       );
     }
 
+    // Rate limit by email (prevents brute-force on specific email)
+    const normalizedEmail = email.toLowerCase().trim();
+    const emailRateLimit = checkRateLimit(`get-sub:email:${normalizedEmail}`, MAX_ATTEMPTS_PER_EMAIL);
+    if (!emailRateLimit.allowed) {
+      console.warn(`[get-subscription] Rate limit exceeded for email: ${normalizedEmail}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Too many requests for this email. Please try again later.",
+          retryAfter: Math.ceil(emailRateLimit.resetIn / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil(emailRateLimit.resetIn / 1000))
+          } 
+        }
+      );
+    }
+
     // Validate token - REQUIRED for security
     if (!token || typeof token !== "string") {
       return new Response(
@@ -64,13 +146,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`[get-subscription] Looking up subscription with token`);
+    console.log(`[get-subscription] Looking up subscription with token from IP: ${clientIP}`);
 
     // Require BOTH email AND valid token to match - prevents enumeration
     const { data: subscription, error } = await supabase
       .from("subscriptions")
       .select("id, email, name, categories, technologies, frequency, severity_threshold, is_active, is_verified")
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", normalizedEmail)
       .eq("verification_token", token)
       .eq("is_active", true)
       .maybeSingle();
@@ -89,7 +171,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[get-subscription] Found subscription for ${email}`);
+    console.log(`[get-subscription] Found subscription for ${normalizedEmail}`);
     
     return new Response(
       JSON.stringify({ success: true, subscription }),
