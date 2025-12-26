@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
 import { ThreatStatsDashboard } from '@/components/news/ThreatStatsDashboard';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
@@ -17,11 +19,12 @@ import { mockSecurityAlerts } from '@/data/newsData';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
-  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles
+  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const News = () => {
+  const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
   const [selectedTab, setSelectedTab] = useState('feed');
@@ -362,9 +365,33 @@ const News = () => {
           )}
 
           {selectedTab === 'alerts' && (
-            <div className="space-y-6">
-              {/* Critical Alerts */}
-              {criticalAlerts.length > 0 && (
+            <ErrorBoundary>
+              <div className="space-y-6">
+                {/* Breadcrumb Navigation */}
+                <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/')}
+                    className="h-auto p-1 hover:text-foreground"
+                  >
+                    <Home className="w-4 h-4" />
+                  </Button>
+                  <span>/</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedTab('feed')}
+                    className="h-auto p-1 hover:text-foreground"
+                  >
+                    Threat Intel
+                  </Button>
+                  <span>/</span>
+                  <span className="text-foreground">Active Alerts</span>
+                </nav>
+
+                {/* Critical Alerts */}
+                {criticalAlerts.length > 0 && (
                 <Card className="glass-card border-red-500/30 bg-red-500/5">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-red-400">
@@ -503,15 +530,68 @@ const News = () => {
                     ))}
                 </CardContent>
               </Card>
-            </div>
+              </div>
+            </ErrorBoundary>
           )}
 
           {selectedTab === 'dashboard' && (
-            <ThreatStatsDashboard />
+            <ErrorBoundary>
+              <div className="space-y-4">
+                {/* Breadcrumb Navigation */}
+                <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/')}
+                    className="h-auto p-1 hover:text-foreground"
+                  >
+                    <Home className="w-4 h-4" />
+                  </Button>
+                  <span>/</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedTab('feed')}
+                    className="h-auto p-1 hover:text-foreground"
+                  >
+                    Threat Intel
+                  </Button>
+                  <span>/</span>
+                  <span className="text-foreground">Analytics</span>
+                </nav>
+                <ThreatStatsDashboard />
+              </div>
+            </ErrorBoundary>
           )}
 
           {selectedTab === 'subscribe' && (
-            <SubscriptionForm />
+            <ErrorBoundary>
+              <div className="space-y-4">
+                {/* Breadcrumb Navigation */}
+                <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/')}
+                    className="h-auto p-1 hover:text-foreground"
+                  >
+                    <Home className="w-4 h-4" />
+                  </Button>
+                  <span>/</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedTab('feed')}
+                    className="h-auto p-1 hover:text-foreground"
+                  >
+                    Threat Intel
+                  </Button>
+                  <span>/</span>
+                  <span className="text-foreground">Subscribe</span>
+                </nav>
+                <SubscriptionForm />
+              </div>
+            </ErrorBoundary>
           )}
         </div>
       </main>

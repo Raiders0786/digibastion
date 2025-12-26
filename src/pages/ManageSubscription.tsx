@@ -295,17 +295,17 @@ export default function ManageSubscription() {
                         const isSelected = selectedCategories.includes(category);
                         
                         return (
-                          <div
+                          <label
                             key={category}
+                            htmlFor={`manage-category-${category}`}
                             className={`p-3 border rounded-lg cursor-pointer transition-all hover:bg-accent/50 ${
                               isSelected ? 'border-primary bg-primary/5' : 'border-border'
                             }`}
-                            onClick={() => handleCategoryToggle(category)}
                           >
                             <div className="flex items-center space-x-2">
                               <Checkbox 
+                                id={`manage-category-${category}`}
                                 checked={isSelected} 
-                                onClick={(e) => e.stopPropagation()}
                                 onCheckedChange={() => handleCategoryToggle(category)}
                               />
                               <div className="flex-1">
@@ -315,7 +315,7 @@ export default function ManageSubscription() {
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </label>
                         );
                       })}
                     </div>
