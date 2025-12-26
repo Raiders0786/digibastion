@@ -37,6 +37,17 @@ const severityRank: Record<string, number> = {
   'info': 4,
 };
 
+// HTML escape function to prevent injection attacks
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function shouldNotify(article: CriticalArticle, subscription: Subscription): boolean {
   // Check severity threshold
   const articleRank = severityRank[article.severity] ?? 4;
@@ -69,26 +80,26 @@ function shouldNotify(article: CriticalArticle, subscription: Subscription): boo
 }
 
 function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null, subscriberEmail: string): string {
-  const name = subscriberName || 'Security Professional';
+  const name = escapeHtml(subscriberName || 'Security Professional');
   
   const articlesList = articles.map(article => `
     <tr>
       <td style="padding: 16px; border-bottom: 1px solid #333;">
         <div style="margin-bottom: 8px;">
           <span style="background: ${article.severity === 'critical' ? '#dc2626' : '#ea580c'}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase;">
-            ${article.severity}
+            ${escapeHtml(article.severity)}
           </span>
-          ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">${article.cve_id}</span>` : ''}
+          ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <h3 style="margin: 0 0 8px 0; color: #f3f4f6;">
-          <a href="${article.link}" style="color: #60a5fa; text-decoration: none;">${article.title}</a>
+          <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(article.title)}</a>
         </h3>
         <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">
-          ${article.summary || 'Click to read more...'}
+          ${escapeHtml(article.summary || 'Click to read more...')}
         </p>
         <div style="margin-top: 8px;">
           ${article.tags.slice(0, 5).map(tag => 
-            `<span style="background: #374151; color: #d1d5db; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;">#${tag}</span>`
+            `<span style="background: #374151; color: #d1d5db; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;">#${escapeHtml(tag)}</span>`
           ).join('')}
         </div>
       </td>

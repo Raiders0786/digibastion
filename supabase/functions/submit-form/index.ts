@@ -58,6 +58,17 @@ function sanitizeString(str: string, maxLength: number): string {
   return str.trim().slice(0, maxLength);
 }
 
+// HTML escape function to prevent injection attacks in emails
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function getClientIP(req: Request): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
          req.headers.get("x-real-ip") ||
@@ -363,8 +374,9 @@ New subscription request:
 serve(handler);
 
 function generateVerificationEmail(name: string | null, verifyUrl: string, categories: string[]): string {
-  const displayName = name || 'Security Professional';
-  const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</li>`).join('');
+  const displayName = escapeHtml(name || 'Security Professional');
+  const escapedVerifyUrl = escapeHtml(verifyUrl);
+  const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${escapeHtml(c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</li>`).join('');
   
   return `
 <!DOCTYPE html>
@@ -405,7 +417,7 @@ function generateVerificationEmail(name: string | null, verifyUrl: string, categ
                 <!-- Button -->
                 <tr>
                   <td align="center" style="padding: 24px 0;">
-                    <a href="${verifyUrl}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                    <a href="${escapedVerifyUrl}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
                       Verify Email Address
                     </a>
                   </td>
