@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
 import { ThreatStatsDashboard } from '@/components/news/ThreatStatsDashboard';
+import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
+import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -97,6 +99,12 @@ const News = () => {
     setSelectedArticle(null);
   };
 
+  // Handle new articles from realtime
+  const handleNewRealtimeArticle = useCallback(() => {
+    // Refetch to include the new article
+    refetch();
+  }, [refetch]);
+
   // Tab configuration with better visibility
   const tabs = [
     { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
@@ -130,6 +138,12 @@ const News = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Realtime Alert Listener */}
+      <RealtimeAlertListener 
+        onNewArticle={handleNewRealtimeArticle} 
+        enabled={true} 
+      />
+
       <MetaTags 
         title="Threat Intelligence Feed | Digibastion Security News"
         description="Real-time Web3 security intelligence, vulnerability disclosures, and threat analysis. Track supply chain attacks, DeFi exploits, and North Korean operations."
@@ -144,6 +158,7 @@ const News = () => {
             <div className="flex items-center justify-center gap-3 mb-3">
               <Shield className="w-8 h-8 text-primary" />
               <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
+              <RealtimeStatusIndicator />
             </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Real-time security intelligence covering Web3, DeFi, and supply chain threats.
