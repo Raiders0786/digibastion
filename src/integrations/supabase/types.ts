@@ -80,6 +80,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          article_id: string | null
+          error_message: string | null
+          id: string
+          sent_at: string
+          status: string
+          subscription_id: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          subscription_id?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_log_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_log_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rss_feeds: {
         Row: {
           category: string
@@ -131,6 +173,51 @@ export type Database = {
           id?: string
           keyword?: string
           weight?: number | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          categories: string[]
+          created_at: string
+          email: string
+          frequency: string
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          last_notified_at: string | null
+          name: string | null
+          severity_threshold: string
+          technologies: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          categories?: string[]
+          created_at?: string
+          email: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          last_notified_at?: string | null
+          name?: string | null
+          severity_threshold?: string
+          technologies?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          categories?: string[]
+          created_at?: string
+          email?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          last_notified_at?: string | null
+          name?: string | null
+          severity_threshold?: string
+          technologies?: string[] | null
+          updated_at?: string
         }
         Relationships: []
       }

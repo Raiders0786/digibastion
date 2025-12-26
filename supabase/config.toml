@@ -12,3 +12,9 @@ verify_jwt = false
 
 [functions.summarize-article]
 verify_jwt = false
+
+[functions.send-critical-alerts]
+verify_jwt = false
+
+[functions.submit-form]
+verify_jwt = false
