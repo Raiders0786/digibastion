@@ -2,21 +2,31 @@ import { NewsArticle } from '@/types/news';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2 } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useRelatedArticles } from '@/hooks/useRelatedArticles';
 
 interface NewsDetailProps {
   article: NewsArticle;
   onBack: () => void;
+  onArticleClick?: (article: NewsArticle) => void;
 }
 
-export const NewsDetail = ({ article, onBack }: NewsDetailProps) => {
+export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  const { relatedArticles, isLoading: isLoadingRelated } = useRelatedArticles({
+    currentArticleId: article.id,
+    category: article.category,
+    tags: article.tags,
+    limit: 4
+  });
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -259,18 +269,85 @@ export const NewsDetail = ({ article, onBack }: NewsDetailProps) => {
         </CardContent>
       </Card>
 
-      {/* Related Articles Section (placeholder) */}
+      {/* Related Articles Section */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">Related Security News</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Newspaper className="w-5 h-5 text-primary" />
+            Related Security News
+          </CardTitle>
           <CardDescription>
-            Similar articles you might be interested in
+            Similar articles based on category and tags
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Related articles will appear here once the news aggregation system is implemented.
-          </div>
+          {isLoadingRelated ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-4 p-3 border rounded-lg">
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : relatedArticles.length > 0 ? (
+            <div className="space-y-3">
+              {relatedArticles.map((related) => {
+                const relatedCategoryInfo = newsCategoryConfig[related.category];
+                return (
+                  <div
+                    key={related.id}
+                    className="group p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-all"
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (onArticleClick) {
+                        onArticleClick(related);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Badge 
+                            variant="outline"
+                            className={`text-xs ${
+                              related.severity === 'critical' ? 'border-red-500/50 text-red-400' :
+                              related.severity === 'high' ? 'border-orange-500/50 text-orange-400' :
+                              'border-muted'
+                            }`}
+                          >
+                            {related.severity.toUpperCase()}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {relatedCategoryInfo?.name || related.category}
+                          </Badge>
+                        </div>
+                        <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                          {related.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {related.summary}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDistanceToNow(related.publishedAt, { addSuffix: true })}</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Newspaper className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No related articles found</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
