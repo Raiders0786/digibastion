@@ -85,9 +85,12 @@ export const SubscriptionForm = () => {
 
       if (data?.success) {
         setIsSuccess(true);
+        const message = data?.needsVerification 
+          ? "Please check your email to verify your subscription."
+          : "You'll receive security alerts based on your preferences.";
         toast({
-          title: "Subscription Successful! 🎉",
-          description: "You'll receive security alerts based on your preferences.",
+          title: data?.needsVerification ? "Verification Email Sent! 📧" : "Subscription Updated! 🎉",
+          description: message,
         });
         
         // Reset form after delay
@@ -99,7 +102,7 @@ export const SubscriptionForm = () => {
           setAlertFrequency('daily');
           setSeverityThreshold('medium');
           setIsSuccess(false);
-        }, 3000);
+        }, 5000);
       } else {
         throw new Error(data?.error || 'Submission failed');
       }

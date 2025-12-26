@@ -190,6 +190,8 @@ export type Database = {
           severity_threshold: string
           technologies: string[] | null
           updated_at: string
+          verification_token: string | null
+          verification_token_expires_at: string | null
         }
         Insert: {
           categories?: string[]
@@ -204,6 +206,8 @@ export type Database = {
           severity_threshold?: string
           technologies?: string[] | null
           updated_at?: string
+          verification_token?: string | null
+          verification_token_expires_at?: string | null
         }
         Update: {
           categories?: string[]
@@ -218,6 +222,8 @@ export type Database = {
           severity_threshold?: string
           technologies?: string[] | null
           updated_at?: string
+          verification_token?: string | null
+          verification_token_expires_at?: string | null
         }
         Relationships: []
       }
