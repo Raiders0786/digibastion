@@ -2,10 +2,11 @@ import { NewsArticle } from '@/types/news';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface NewsDetailProps {
   article: NewsArticle;
@@ -15,6 +16,7 @@ interface NewsDetailProps {
 export const NewsDetail = ({ article, onBack }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -93,11 +95,34 @@ export const NewsDetail = ({ article, onBack }: NewsDetailProps) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Breadcrumb Navigation */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/')}
+          className="h-auto p-1 hover:text-foreground"
+        >
+          <Home className="w-4 h-4" />
+        </Button>
+        <span>/</span>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/news')}
+          className="h-auto p-1 hover:text-foreground"
+        >
+          Threat Intel
+        </Button>
+        <span>/</span>
+        <span className="text-foreground truncate max-w-[200px]">{article.title}</span>
+      </nav>
+
       {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
+      <div className="flex items-center gap-4 flex-wrap">
+        <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Back to News
+          Back to News Feed
         </Button>
         <div className="flex items-center gap-2 ml-auto">
           <Button variant="outline" size="sm" onClick={handleShare}>
