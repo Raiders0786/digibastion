@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.verify-email]
 verify_jwt = false
+
+[functions.request-management-link]
+verify_jwt = false
