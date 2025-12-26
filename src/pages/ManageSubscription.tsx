@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock, Send } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,9 @@ export default function ManageSubscription() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [unsubscribeSuccess, setUnsubscribeSuccess] = useState(false);
   const [authError, setAuthError] = useState(false);
+  const [requestLinkEmail, setRequestLinkEmail] = useState('');
+  const [isRequestingLink, setIsRequestingLink] = useState(false);
+  const [linkRequested, setLinkRequested] = useState(false);
   const { toast } = useToast();
 
   // Check if we have both email and token for secure access
@@ -90,6 +93,44 @@ export default function ManageSubscription() {
       loadSubscription();
     }
   }, [emailParam, tokenParam]);
+
+  const handleRequestLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!requestLinkEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsRequestingLink(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("request-management-link", {
+        body: { email: requestLinkEmail },
+      });
+
+      if (error) throw error;
+
+      setLinkRequested(true);
+      toast({
+        title: "Check Your Email",
+        description: "If an active subscription exists, a management link will be sent shortly.",
+      });
+    } catch (error) {
+      console.error('Request link error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send link. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRequestingLink(false);
+    }
+  };
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -262,21 +303,78 @@ export default function ManageSubscription() {
         <main className="min-h-screen bg-background pt-24 pb-12">
           <div className="container mx-auto px-4 max-w-2xl">
             <Card className="glass-card">
-              <CardContent className="p-12 text-center">
-                <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Secure Access Required</h2>
-                <p className="text-muted-foreground mb-6">
-                  To manage your subscription, please use the secure link from your email notifications.
-                  This protects your subscription from unauthorized changes.
-                </p>
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Can't find your email? Check your spam folder or subscribe again on the News page.
-                  </p>
-                  <Button variant="outline" onClick={() => window.location.href = '/news'}>
-                    Go to News Page
-                  </Button>
-                </div>
+              <CardContent className="p-8 md:p-12">
+                {linkRequested ? (
+                  <div className="text-center">
+                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold mb-2">Check Your Email</h2>
+                    <p className="text-muted-foreground mb-6">
+                      If an active subscription exists for <strong>{requestLinkEmail}</strong>, 
+                      a management link will be sent shortly. Please check your inbox and spam folder.
+                    </p>
+                    <div className="space-y-3">
+                      <Button variant="outline" onClick={() => setLinkRequested(false)}>
+                        Request Another Link
+                      </Button>
+                      <Button variant="ghost" onClick={() => window.location.href = '/news'}>
+                        Go to News Page
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold mb-2">Secure Access Required</h2>
+                    <p className="text-muted-foreground mb-6">
+                      To manage your subscription, please use the secure link from your email notifications.
+                      This protects your subscription from unauthorized changes.
+                    </p>
+                    
+                    {/* Request New Link Form */}
+                    <div className="mt-8 p-6 bg-muted/30 rounded-lg border border-border">
+                      <h3 className="font-semibold mb-2 flex items-center justify-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        Lost Your Link?
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Enter your email to receive a new management link.
+                      </p>
+                      <form onSubmit={handleRequestLink} className="space-y-3">
+                        <Input
+                          type="email"
+                          placeholder="your@email.com"
+                          value={requestLinkEmail}
+                          onChange={(e) => setRequestLinkEmail(e.target.value)}
+                          className="text-center"
+                          maxLength={255}
+                        />
+                        <Button 
+                          type="submit" 
+                          className="w-full"
+                          disabled={isRequestingLink || !requestLinkEmail}
+                        >
+                          {isRequestingLink ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-2" />
+                              Send Management Link
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </div>
+
+                    <div className="mt-6">
+                      <Button variant="ghost" onClick={() => window.location.href = '/news'}>
+                        Go to News Page
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
