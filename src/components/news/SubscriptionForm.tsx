@@ -204,17 +204,17 @@ export const SubscriptionForm = () => {
                 const isSelected = selectedCategories.includes(category);
                 
                 return (
-                  <div
+                  <label
                     key={category}
+                    htmlFor={`category-${category}`}
                     className={`p-3 border rounded-lg cursor-pointer transition-all hover:bg-accent/50 ${
                       isSelected ? 'border-primary bg-primary/5' : 'border-border'
                     }`}
-                    onClick={() => handleCategoryToggle(category)}
                   >
                     <div className="flex items-center space-x-2">
                       <Checkbox 
+                        id={`category-${category}`}
                         checked={isSelected} 
-                        onClick={(e) => e.stopPropagation()}
                         onCheckedChange={() => handleCategoryToggle(category)}
                       />
                       <div className="cursor-pointer flex-1">
@@ -224,7 +224,7 @@ export const SubscriptionForm = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </label>
                 );
               })}
             </div>
