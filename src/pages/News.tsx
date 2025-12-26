@@ -17,7 +17,7 @@ import { mockSecurityAlerts } from '@/data/newsData';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
-  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database
+  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -37,7 +37,9 @@ const News = () => {
     error,
     refetch,
     refreshFromRSS, 
+    summarizeArticles,
     isRefreshing,
+    isSummarizing,
     stats 
   } = useNewsArticles({
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -271,6 +273,20 @@ const News = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={summarizeArticles}
+                        disabled={isSummarizing || stats.total === 0}
+                        className="bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20"
+                      >
+                        {isSummarizing ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-1 text-purple-400" />
+                        )}
+                        {isSummarizing ? 'Summarizing...' : 'AI Summarize'}
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 

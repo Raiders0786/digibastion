@@ -302,6 +302,24 @@ serve(async (req) => {
 
     console.log(`[fetch-rss-news] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}`);
 
+    // Trigger AI summarization for new articles (fire and forget)
+    if (insertedCount > 0) {
+      console.log('[fetch-rss-news] Triggering AI summarization...');
+      try {
+        const summarizeUrl = `${supabaseUrl}/functions/v1/summarize-article`;
+        fetch(summarizeUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ limit: Math.min(insertedCount, 20) }),
+        }).catch(e => console.error('[fetch-rss-news] Summarize trigger error:', e));
+      } catch (e) {
+        console.error('[fetch-rss-news] Failed to trigger summarization:', e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

@@ -1,7 +1,7 @@
 import { NewsArticle } from '@/types/news';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExternalLink, Clock, AlertTriangle, Info, Zap } from 'lucide-react';
+import { ExternalLink, Clock, AlertTriangle, Info, Zap, Sparkles } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -91,9 +91,17 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
       </CardHeader>
 
       <CardContent className="pt-0">
-        <CardDescription className="text-sm text-foreground/70 leading-relaxed mb-3">
-          {article.summary}
-        </CardDescription>
+        <div className="mb-3">
+          {article.isProcessed && article.summary && article.summary.length > 50 && (
+            <Badge variant="outline" className="mb-2 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">
+              <Sparkles className="w-3 h-3 mr-1" />
+              AI Summary
+            </Badge>
+          )}
+          <CardDescription className="text-sm text-foreground/70 leading-relaxed">
+            {article.summary}
+          </CardDescription>
+        </div>
 
         {article.affectedTechnologies && article.affectedTechnologies.length > 0 && (
           <div className="mb-3">

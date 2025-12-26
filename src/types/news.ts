@@ -25,6 +25,8 @@ export interface NewsArticle {
   author?: string;
   imageUrl?: string;
   cveId?: string;
+  isProcessed?: boolean;
+  sourceName?: string;
 }
 
 export interface SecurityAlert {
