@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.submit-form]
 verify_jwt = false
+
+[functions.fetch-rss-news]
+verify_jwt = false

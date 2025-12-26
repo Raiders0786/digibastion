@@ -14,7 +14,126 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      news_articles: {
+        Row: {
+          affected_technologies: string[] | null
+          author: string | null
+          category: string
+          content: string | null
+          created_at: string
+          cve_id: string | null
+          id: string
+          is_processed: boolean | null
+          link: string
+          published_at: string
+          raw_content: string | null
+          severity: string
+          source_name: string | null
+          source_url: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string
+          uid: string
+          updated_at: string
+        }
+        Insert: {
+          affected_technologies?: string[] | null
+          author?: string | null
+          category?: string
+          content?: string | null
+          created_at?: string
+          cve_id?: string | null
+          id?: string
+          is_processed?: boolean | null
+          link: string
+          published_at: string
+          raw_content?: string | null
+          severity?: string
+          source_name?: string | null
+          source_url?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          uid: string
+          updated_at?: string
+        }
+        Update: {
+          affected_technologies?: string[] | null
+          author?: string | null
+          category?: string
+          content?: string | null
+          created_at?: string
+          cve_id?: string | null
+          id?: string
+          is_processed?: boolean | null
+          link?: string
+          published_at?: string
+          raw_content?: string | null
+          severity?: string
+          source_name?: string | null
+          source_url?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          uid?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rss_feeds: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_fetched_at: string | null
+          name: string
+          url: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_fetched_at?: string | null
+          name: string
+          url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_fetched_at?: string | null
+          name?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      security_keywords: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          keyword: string
+          weight: number | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          keyword: string
+          weight?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          keyword?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
