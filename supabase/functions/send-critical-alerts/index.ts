@@ -68,7 +68,7 @@ function shouldNotify(article: CriticalArticle, subscription: Subscription): boo
   return true;
 }
 
-function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null): string {
+function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null, subscriberEmail: string): string {
   const name = subscriberName || 'Security Professional';
   
   const articlesList = articles.map(article => `
@@ -94,6 +94,8 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
       </td>
     </tr>
   `).join('');
+
+  const encodedEmail = encodeURIComponent(subscriberEmail);
 
   return `
 <!DOCTYPE html>
@@ -138,7 +140,7 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
       <td style="padding: 16px 24px; background: #111827; text-align: center;">
         <p style="margin: 0; color: #6b7280; font-size: 12px;">
           You're receiving this because you subscribed to Digibastion Threat Intel alerts.<br>
-          <a href="https://digibastion.com/unsubscribe" style="color: #60a5fa;">Unsubscribe</a> or <a href="https://digibastion.com/news" style="color: #60a5fa;">manage preferences</a>
+          <a href="https://digibastion.com/manage-subscription?email=${encodedEmail}" style="color: #60a5fa;">Manage preferences</a> | <a href="https://digibastion.com/manage-subscription?email=${encodedEmail}" style="color: #60a5fa;">Unsubscribe</a>
         </p>
       </td>
     </tr>
@@ -266,7 +268,7 @@ serve(async (req) => {
 
       try {
         // Send email via Resend
-        const emailHtml = generateEmailHtml(newArticles as CriticalArticle[], sub.name);
+        const emailHtml = generateEmailHtml(newArticles as CriticalArticle[], sub.name, sub.email);
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',

@@ -22,6 +22,7 @@ import Contact from "./pages/Contact";
 import Support from "./pages/Support";
 import News from "./pages/News";
 import QuizResult from "./pages/QuizResult";
+import ManageSubscription from "./pages/ManageSubscription";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +58,8 @@ const App = () => {
                   <Route path="/links" element={<><MetaTags /><Links /></>} />
                   <Route path="/contact" element={<><MetaTags /><Contact /></>} />
                   <Route path="/support" element={<><MetaTags /><Support /></>} />
+                  <Route path="/manage-subscription" element={<ManageSubscription />} />
+                  <Route path="/unsubscribe" element={<ManageSubscription />} />
                   <Route path="*" element={<><MetaTags /><NotFound /></>} />
                 </Routes>
               </PageTransition>
