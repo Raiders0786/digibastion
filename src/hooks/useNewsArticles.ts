@@ -18,12 +18,15 @@ interface UseNewsArticlesResult {
   error: Error | null;
   refetch: () => Promise<void>;
   refreshFromRSS: () => Promise<void>;
+  summarizeArticles: () => Promise<void>;
   isRefreshing: boolean;
+  isSummarizing: boolean;
   stats: {
     total: number;
     critical: number;
     high: number;
     supplyChain: number;
+    aiSummarized: number;
   };
 }
 
@@ -31,6 +34,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
@@ -84,7 +88,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         publishedAt: new Date(row.published_at),
         affectedTechnologies: row.affected_technologies || [],
         author: row.author || row.source_name,
-        cveId: row.cve_id
+        cveId: row.cve_id,
+        isProcessed: row.is_processed || false,
+        sourceName: row.source_name
       }));
 
       // Apply search filter (client-side for flexibility)
@@ -148,6 +154,39 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     }
   }, [fetchArticles, toast]);
 
+  const summarizeArticles = useCallback(async () => {
+    try {
+      setIsSummarizing(true);
+      
+      const { data, error: summarizeError } = await supabase.functions.invoke('summarize-article', {
+        body: { limit: 10 }
+      });
+
+      if (summarizeError) {
+        throw summarizeError;
+      }
+
+      if (data?.success) {
+        toast({
+          title: 'AI Summarization Complete',
+          description: `Processed ${data.processed} articles${data.failed > 0 ? `, ${data.failed} failed` : ''}.`,
+        });
+        await fetchArticles();
+      } else {
+        throw new Error(data?.error || 'Failed to summarize articles');
+      }
+    } catch (err) {
+      console.error('Error summarizing articles:', err);
+      toast({
+        title: 'Summarization Failed',
+        description: err instanceof Error ? err.message : 'Failed to generate AI summaries',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSummarizing(false);
+    }
+  }, [fetchArticles, toast]);
+
   useEffect(() => {
     fetchArticles();
   }, [fetchArticles]);
@@ -158,6 +197,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     critical: articles.filter(a => a.severity === 'critical').length,
     high: articles.filter(a => a.severity === 'high').length,
     supplyChain: articles.filter(a => a.category === 'supply-chain').length,
+    aiSummarized: articles.filter(a => a.isProcessed).length,
   };
 
   return {
@@ -166,7 +206,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     error,
     refetch: fetchArticles,
     refreshFromRSS,
+    summarizeArticles,
     isRefreshing,
+    isSummarizing,
     stats,
   };
 }
