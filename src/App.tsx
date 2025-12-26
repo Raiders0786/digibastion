@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { PageTransition } from "./components/PageTransition";
 import { MetaTags } from "./components/MetaTags";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
 import NotFound from "./pages/NotFound";
@@ -36,37 +37,39 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <React.StrictMode>
-      <ThemeProvider defaultTheme="dark">
-        <BrowserRouter>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Analytics />
-              <PageTransition>
-                <Routes>
-                  <Route path="/" element={<><MetaTags /><Index /></>} />
-                  <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
-                  <Route path="/news" element={<><MetaTags /><News /></>} />
-                  <Route path="/share" element={<><MetaTags /><Share /></>} />
-                  <Route path="/quiz-result" element={<QuizResult />} />
-                  <Route path="/about" element={<><MetaTags /><About /></>} />
-                  <Route path="/license" element={<><MetaTags /><License /></>} />
-                  <Route path="/tools" element={<><MetaTags /><Tools /></>} />
-                  <Route path="/articles" element={<><MetaTags /><Articles /></>} />
-                  <Route path="/articles/:slug" element={<><MetaTags /><ArticleDetail /></>} />
-                  <Route path="/links" element={<><MetaTags /><Links /></>} />
-                  <Route path="/contact" element={<><MetaTags /><Contact /></>} />
-                  <Route path="/support" element={<><MetaTags /><Support /></>} />
-                  <Route path="/manage-subscription" element={<ManageSubscription />} />
-                  <Route path="/unsubscribe" element={<ManageSubscription />} />
-                  <Route path="*" element={<><MetaTags /><NotFound /></>} />
-                </Routes>
-              </PageTransition>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </BrowserRouter>
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider defaultTheme="dark">
+          <BrowserRouter>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Analytics />
+                <PageTransition>
+                  <Routes>
+                    <Route path="/" element={<><MetaTags /><Index /></>} />
+                    <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
+                    <Route path="/news" element={<><MetaTags /><News /></>} />
+                    <Route path="/share" element={<><MetaTags /><Share /></>} />
+                    <Route path="/quiz-result" element={<QuizResult />} />
+                    <Route path="/about" element={<><MetaTags /><About /></>} />
+                    <Route path="/license" element={<><MetaTags /><License /></>} />
+                    <Route path="/tools" element={<><MetaTags /><Tools /></>} />
+                    <Route path="/articles" element={<><MetaTags /><Articles /></>} />
+                    <Route path="/articles/:slug" element={<><MetaTags /><ArticleDetail /></>} />
+                    <Route path="/links" element={<><MetaTags /><Links /></>} />
+                    <Route path="/contact" element={<><MetaTags /><Contact /></>} />
+                    <Route path="/support" element={<><MetaTags /><Support /></>} />
+                    <Route path="/manage-subscription" element={<ManageSubscription />} />
+                    <Route path="/unsubscribe" element={<ManageSubscription />} />
+                    <Route path="*" element={<><MetaTags /><NotFound /></>} />
+                  </Routes>
+                </PageTransition>
+              </TooltipProvider>
+            </QueryClientProvider>
+          </BrowserRouter>
+        </ThemeProvider>
+      </ErrorBoundary>
     </React.StrictMode>
   );
 };

@@ -116,7 +116,11 @@ const News = () => {
         <Navbar />
         <main className="pt-20 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <NewsDetail article={selectedArticle} onBack={handleBackToNews} />
+            <NewsDetail 
+              article={selectedArticle} 
+              onBack={handleBackToNews} 
+              onArticleClick={handleArticleClick}
+            />
           </div>
         </main>
         <Footer />
