@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.request-management-link]
 verify_jwt = false
+
+[functions.send-digest-emails]
+verify_jwt = false
