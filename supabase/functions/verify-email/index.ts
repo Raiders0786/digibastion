@@ -62,13 +62,16 @@ serve(async (req) => {
       );
     }
 
-    // Mark as verified
+    // Generate a new permanent management token (different from verification token for security)
+    const managementToken = crypto.randomUUID();
+
+    // Mark as verified and set management token
     const { error: updateError } = await supabase
       .from("subscriptions")
       .update({ 
         is_verified: true,
-        verification_token: null,
-        verification_token_expires_at: null,
+        verification_token: managementToken, // New token for managing subscription
+        verification_token_expires_at: null, // No expiry for management token
         updated_at: new Date().toISOString()
       })
       .eq("id", subscription.id);
@@ -81,10 +84,13 @@ serve(async (req) => {
       );
     }
 
+    // Redirect to manage subscription page with the new management token
+    const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscription.email)}&token=${encodeURIComponent(managementToken)}&verified=true`;
+    
     console.log(`[verify-email] Successfully verified: ${subscription.email}`);
 
     return new Response(
-      generateHtmlResponse(true, `Your email ${subscription.email} has been verified! You'll now receive security alerts.`),
+      generateHtmlResponse(true, `Your email ${subscription.email} has been verified! You'll now receive security alerts.`, manageUrl),
       { headers: { "Content-Type": "text/html", ...corsHeaders } }
     );
 
@@ -97,10 +103,13 @@ serve(async (req) => {
   }
 });
 
-function generateHtmlResponse(success: boolean, message: string): string {
+function generateHtmlResponse(success: boolean, message: string, manageUrl?: string): string {
   const icon = success 
     ? '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
     : '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
+
+  const buttonUrl = success && manageUrl ? manageUrl : "https://digibastion.com/news";
+  const buttonText = success && manageUrl ? "Manage Preferences" : "Go to Threat Intel";
 
   return `
 <!DOCTYPE html>
@@ -142,6 +151,7 @@ function generateHtmlResponse(success: boolean, message: string): string {
       line-height: 1.6;
       margin-bottom: 32px;
     }
+    .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .button {
       display: inline-block;
       background: #8b5cf6;
@@ -153,6 +163,12 @@ function generateHtmlResponse(success: boolean, message: string): string {
       transition: background 0.2s;
     }
     .button:hover { background: #7c3aed; }
+    .button-secondary {
+      background: transparent;
+      border: 1px solid #8b5cf6;
+      color: #8b5cf6;
+    }
+    .button-secondary:hover { background: rgba(139, 92, 246, 0.1); }
   </style>
 </head>
 <body>
@@ -160,7 +176,10 @@ function generateHtmlResponse(success: boolean, message: string): string {
     <div class="icon">${icon}</div>
     <h1>${success ? 'Email Verified!' : 'Verification Failed'}</h1>
     <p>${message}</p>
-    <a href="https://digibastion.com/news" class="button">Go to Threat Intel</a>
+    <div class="buttons">
+      <a href="${buttonUrl}" class="button">${buttonText}</a>
+      ${success && manageUrl ? '<a href="https://digibastion.com/news" class="button button-secondary">View Threats</a>' : ''}
+    </div>
   </div>
 </body>
 </html>

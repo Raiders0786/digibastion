@@ -26,6 +26,7 @@ interface Subscription {
   technologies: string[];
   frequency: string;
   severity_threshold: string;
+  verification_token: string | null;
 }
 
 // Severity ranking for comparison
@@ -79,7 +80,7 @@ function shouldNotify(article: CriticalArticle, subscription: Subscription): boo
   return true;
 }
 
-function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null, subscriberEmail: string): string {
+function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null, subscriberEmail: string, verificationToken: string | null): string {
   const name = escapeHtml(subscriberName || 'Security Professional');
   
   const articlesList = articles.map(article => `
@@ -107,6 +108,10 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
   `).join('');
 
   const encodedEmail = encodeURIComponent(subscriberEmail);
+  const encodedToken = verificationToken ? encodeURIComponent(verificationToken) : '';
+  const manageUrl = verificationToken 
+    ? `https://digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
+    : `https://digibastion.com/manage-subscription?email=${encodedEmail}`;
 
   return `
 <!DOCTYPE html>
@@ -151,7 +156,7 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
       <td style="padding: 16px 24px; background: #111827; text-align: center;">
         <p style="margin: 0; color: #6b7280; font-size: 12px;">
           You're receiving this because you subscribed to Digibastion Threat Intel alerts.<br>
-          <a href="https://digibastion.com/manage-subscription?email=${encodedEmail}" style="color: #60a5fa;">Manage preferences</a> | <a href="https://digibastion.com/manage-subscription?email=${encodedEmail}" style="color: #60a5fa;">Unsubscribe</a>
+          <a href="${manageUrl}" style="color: #60a5fa;">Manage preferences</a> | <a href="${manageUrl}" style="color: #60a5fa;">Unsubscribe</a>
         </p>
       </td>
     </tr>
@@ -279,7 +284,7 @@ serve(async (req) => {
 
       try {
         // Send email via Resend
-        const emailHtml = generateEmailHtml(newArticles as CriticalArticle[], sub.name, sub.email);
+        const emailHtml = generateEmailHtml(newArticles as CriticalArticle[], sub.name, sub.email, sub.verification_token);
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
