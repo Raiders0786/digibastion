@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-forwarded-for, x-real-ip",
 };
 
 // Input validation schemas
@@ -12,6 +12,14 @@ const MAX_EMAIL_LENGTH = 255;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_SOCIAL_LENGTH = 100;
 const MAX_URL_LENGTH = 500;
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_SUBSCRIPTIONS_PER_EMAIL = 3; // Max subscription attempts per email per hour
+const MAX_CONTACTS_PER_IP = 5; // Max contact form submissions per IP per hour
+
+// In-memory rate limit store (resets on cold start, but provides basic protection)
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 interface ContactFormData {
   name: string;
@@ -47,6 +55,36 @@ function validateUrl(url: string): boolean {
 
 function sanitizeString(str: string, maxLength: number): string {
   return str.trim().slice(0, maxLength);
+}
+
+function getClientIP(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+         req.headers.get("x-real-ip") ||
+         "unknown";
+}
+
+function checkRateLimit(key: string, maxAttempts: number): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+  
+  // Clean up expired entries
+  if (record && now > record.resetAt) {
+    rateLimitStore.delete(key);
+  }
+  
+  const current = rateLimitStore.get(key);
+  
+  if (!current) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: maxAttempts - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+  }
+  
+  if (current.count >= maxAttempts) {
+    return { allowed: false, remaining: 0, resetIn: current.resetAt - now };
+  }
+  
+  current.count++;
+  return { allowed: true, remaining: maxAttempts - current.count, resetIn: current.resetAt - now };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -90,6 +128,29 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Rate limit by IP for contact forms
+      const clientIP = getClientIP(req);
+      const ipRateLimit = checkRateLimit(`contact:${clientIP}`, MAX_CONTACTS_PER_IP);
+      
+      if (!ipRateLimit.allowed) {
+        console.warn(`[submit-form] Rate limit exceeded for IP: ${clientIP}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Too many requests. Please try again later.",
+            retryAfter: Math.ceil(ipRateLimit.resetIn / 1000)
+          }),
+          { 
+            status: 429, 
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json",
+              "Retry-After": String(Math.ceil(ipRateLimit.resetIn / 1000))
+            } 
+          }
+        );
+      }
+
       // Validate meeting link if provided
       if (contactData.meetingLink && !validateUrl(contactData.meetingLink)) {
         return new Response(
@@ -97,6 +158,8 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      console.log(`[submit-form] Contact form from IP ${clientIP}, remaining: ${ipRateLimit.remaining}`);
 
       // Sanitize inputs
       formData = {
@@ -146,6 +209,34 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Rate limit by email for subscriptions (prevent spam signups)
+      const normalizedEmail = subData.email.toLowerCase().trim();
+      const emailRateLimit = checkRateLimit(`subscription:${normalizedEmail}`, MAX_SUBSCRIPTIONS_PER_EMAIL);
+      
+      // Also rate limit by IP as secondary protection
+      const clientIP = getClientIP(req);
+      const ipRateLimit = checkRateLimit(`subscription-ip:${clientIP}`, MAX_CONTACTS_PER_IP);
+      
+      if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+        const resetIn = Math.max(emailRateLimit.resetIn, ipRateLimit.resetIn);
+        console.warn(`[submit-form] Subscription rate limit exceeded for email: ${normalizedEmail}, IP: ${clientIP}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Too many subscription attempts. Please try again later.",
+            retryAfter: Math.ceil(resetIn / 1000)
+          }),
+          { 
+            status: 429, 
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json",
+              "Retry-After": String(Math.ceil(resetIn / 1000))
+            } 
+          }
+        );
+      }
+
       // Initialize Supabase client
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -161,7 +252,7 @@ const handler = async (req: Request): Promise<Response> => {
         is_verified: false, // Will be true after email verification
       };
 
-      console.log("[submit-form] Saving subscription to database:", subscriptionData.email);
+      console.log(`[submit-form] Subscription from IP ${clientIP}, email: ${subscriptionData.email}, remaining: ${emailRateLimit.remaining}`);
 
       // Upsert subscription (update if email exists)
       const { data: subscription, error: dbError } = await supabase
