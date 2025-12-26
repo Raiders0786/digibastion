@@ -211,6 +211,7 @@ export const SubscriptionForm = () => {
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         checked={isSelected} 
+                        onClick={(e) => e.stopPropagation()}
                         onCheckedChange={() => handleCategoryToggle(category)}
                       />
                       <div className="cursor-pointer flex-1">
