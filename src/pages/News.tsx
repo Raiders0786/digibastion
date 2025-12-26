@@ -13,21 +13,39 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
-import { mockNewsArticles, mockSecurityAlerts } from '@/data/newsData';
+import { mockSecurityAlerts } from '@/data/newsData';
+import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
-  Search, Calendar, Clock, ChevronRight
+  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const News = () => {
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
-  const [selectedTab, setSelectedTab] = useState('feed'); // Default to News Feed
+  const [selectedTab, setSelectedTab] = useState('feed');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
+
+  // Fetch articles from database
+  const { 
+    articles: dbArticles, 
+    isLoading, 
+    error,
+    refetch,
+    refreshFromRSS, 
+    isRefreshing,
+    stats 
+  } = useNewsArticles({
+    categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+    severities: selectedSeverities.length > 0 ? selectedSeverities : undefined,
+    searchQuery,
+    dateFilter,
+    sortBy,
+  });
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -52,74 +70,19 @@ const News = () => {
     setDateFilter('all');
   };
 
-  // Enhanced filtering with search, date, and proper sorting (newest first)
-  const filteredArticles = useMemo(() => {
-    let articles = [...mockNewsArticles];
-
-    // Category filter
-    if (selectedCategories.length > 0) {
-      articles = articles.filter(a => selectedCategories.includes(a.category));
-    }
-
-    // Severity filter
-    if (selectedSeverities.length > 0) {
-      articles = articles.filter(a => selectedSeverities.includes(a.severity));
-    }
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      articles = articles.filter(a => 
-        a.title.toLowerCase().includes(query) ||
-        a.summary.toLowerCase().includes(query) ||
-        a.tags.some(t => t.toLowerCase().includes(query)) ||
-        a.affectedTechnologies?.some(t => t.toLowerCase().includes(query))
-      );
-    }
-
-    // Date filter
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
-      const cutoff = new Date(now.getTime() - daysMap[dateFilter] * 24 * 60 * 60 * 1000);
-      articles = articles.filter(a => new Date(a.publishedAt) >= cutoff);
-    }
-
-    // Sort - ALWAYS by date descending first (newest first - Dec/Nov 2025 first)
-    if (sortBy === 'date') {
-      articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-    } else {
-      const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-      articles.sort((a, b) => {
-        const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
-        if (severityDiff !== 0) return severityDiff;
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-      });
-    }
-
-    return articles;
-  }, [mockNewsArticles, selectedCategories, selectedSeverities, searchQuery, dateFilter, sortBy]);
+  // Use database articles directly (filtering handled by hook)
+  const filteredArticles = dbArticles;
 
   // Sort alerts by date descending (newest first)
   const sortedAlerts = useMemo(() => {
     return [...mockSecurityAlerts].sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [mockSecurityAlerts]);
+  }, []);
 
   const criticalAlerts = sortedAlerts.filter(alert => alert.severity === 'critical');
   const highAlerts = sortedAlerts.filter(alert => alert.severity === 'high');
   const actionRequiredAlerts = sortedAlerts.filter(alert => alert.actionRequired);
-
-  // Calculate real statistics
-  const stats = useMemo(() => {
-    const total = mockNewsArticles.length;
-    const critical = mockNewsArticles.filter(a => a.severity === 'critical').length;
-    const high = mockNewsArticles.filter(a => a.severity === 'high').length;
-    const supplyChain = mockNewsArticles.filter(a => a.category === 'supply-chain').length;
-    
-    return { total, critical, high, supplyChain };
-  }, [mockNewsArticles]);
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -294,19 +257,52 @@ const News = () => {
 
                 {/* News Feed */}
                 <div className="lg:col-span-3 space-y-4">
-                  {/* Results count */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Showing {filteredArticles.length} of {mockNewsArticles.length} articles
-                    </span>
-                    {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery) && (
-                      <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                        Clear all filters
+                  {/* Results count and refresh button */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {isLoading ? 'Loading...' : `Showing ${filteredArticles.length} articles`}
+                      </span>
+                      {stats.total > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          <Database className="w-3 h-3 mr-1" />
+                          Live
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={refreshFromRSS}
+                        disabled={isRefreshing}
+                      >
+                        {isRefreshing ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                        )}
+                        {isRefreshing ? 'Fetching...' : 'Refresh'}
                       </Button>
-                    )}
+                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery) && (
+                        <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                          Clear filters
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
-                  {filteredArticles.length > 0 ? (
+                  {isLoading ? (
+                    <Card className="glass-card">
+                      <CardContent className="p-8 text-center">
+                        <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
+                        <h3 className="text-lg font-medium mb-2">Loading threat intelligence...</h3>
+                        <p className="text-muted-foreground">
+                          Fetching the latest security news
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : filteredArticles.length > 0 ? (
                     filteredArticles.map((article) => (
                       <NewsCard 
                         key={article.id} 
@@ -318,13 +314,29 @@ const News = () => {
                     <Card className="glass-card">
                       <CardContent className="p-8 text-center">
                         <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No articles match your filters</h3>
+                        <h3 className="text-lg font-medium mb-2">
+                          {stats.total === 0 ? 'No articles yet' : 'No articles match your filters'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                          Try adjusting your search, category, or severity filters
+                          {stats.total === 0 
+                            ? 'Click "Refresh" to fetch the latest security news from RSS feeds'
+                            : 'Try adjusting your search, category, or severity filters'
+                          }
                         </p>
-                        <Button variant="outline" onClick={handleClearFilters}>
-                          Clear Filters
-                        </Button>
+                        {stats.total === 0 ? (
+                          <Button onClick={refreshFromRSS} disabled={isRefreshing}>
+                            {isRefreshing ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            Fetch News
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={handleClearFilters}>
+                            Clear Filters
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   )}
