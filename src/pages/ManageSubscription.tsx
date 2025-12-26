@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
@@ -19,8 +19,10 @@ import { MetaTags } from '@/components/MetaTags';
 export default function ManageSubscription() {
   const [searchParams] = useSearchParams();
   const emailParam = searchParams.get('email') || '';
+  const tokenParam = searchParams.get('token') || '';
   
   const [email, setEmail] = useState(emailParam);
+  const [token] = useState(tokenParam); // Token from URL, not editable
   const [name, setName] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
@@ -32,20 +34,29 @@ export default function ManageSubscription() {
   const [subscriptionFound, setSubscriptionFound] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [unsubscribeSuccess, setUnsubscribeSuccess] = useState(false);
+  const [authError, setAuthError] = useState(false);
   const { toast } = useToast();
 
+  // Check if we have both email and token for secure access
+  const hasSecureAccess = Boolean(emailParam && tokenParam);
+
   const loadSubscription = async () => {
-    if (!email) return;
+    if (!email || !token) {
+      setAuthError(true);
+      return;
+    }
     
     setIsLoading(true);
+    setAuthError(false);
+    
     try {
       const { data, error } = await supabase.functions.invoke("get-subscription", {
-        body: { email },
+        body: { email, token },
       });
 
       if (error) throw error;
 
-      if (data?.subscription) {
+      if (data?.success && data?.subscription) {
         const sub = data.subscription;
         setName(sub.name || '');
         setSelectedCategories(sub.categories || []);
@@ -54,18 +65,19 @@ export default function ManageSubscription() {
         setSeverityThreshold(sub.severity_threshold || 'medium');
         setSubscriptionFound(true);
       } else {
-        setSubscriptionFound(false);
+        setAuthError(true);
         toast({
-          title: "Subscription Not Found",
-          description: "No subscription found for this email address.",
+          title: "Access Denied",
+          description: "Invalid or expired link. Please use the link from your email.",
           variant: "destructive"
         });
       }
     } catch (error) {
       console.error('Load subscription error:', error);
+      setAuthError(true);
       toast({
         title: "Error",
-        description: "Failed to load subscription. Please try again.",
+        description: "Failed to verify access. Please use the link from your email.",
         variant: "destructive"
       });
     } finally {
@@ -74,10 +86,10 @@ export default function ManageSubscription() {
   };
 
   useEffect(() => {
-    if (emailParam) {
+    if (hasSecureAccess) {
       loadSubscription();
     }
-  }, [emailParam]);
+  }, [emailParam, tokenParam]);
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -98,6 +110,15 @@ export default function ManageSubscription() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!token) {
+      toast({
+        title: "Access Denied",
+        description: "Missing authentication token.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (selectedCategories.length === 0) {
       toast({
         title: "Validation Error",
@@ -113,6 +134,7 @@ export default function ManageSubscription() {
       const { data, error } = await supabase.functions.invoke("update-subscription", {
         body: {
           email,
+          token,
           name: name || null,
           categories: selectedCategories,
           technologies: selectedTechnologies,
@@ -146,6 +168,15 @@ export default function ManageSubscription() {
   };
 
   const handleUnsubscribe = async () => {
+    if (!token) {
+      toast({
+        title: "Access Denied",
+        description: "Missing authentication token.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!confirm('Are you sure you want to unsubscribe? You will stop receiving all security alerts.')) {
       return;
     }
@@ -154,7 +185,7 @@ export default function ManageSubscription() {
     
     try {
       const { data, error } = await supabase.functions.invoke("unsubscribe", {
-        body: { email },
+        body: { email, token },
       });
 
       if (error) throw error;
@@ -219,6 +250,42 @@ export default function ManageSubscription() {
     );
   }
 
+  // Show secure access required message if no token
+  if (!hasSecureAccess || authError) {
+    return (
+      <>
+        <MetaTags 
+          title="Manage Subscription - ESP Security" 
+          description="Manage your security alert subscription preferences."
+        />
+        <Navbar />
+        <main className="min-h-screen bg-background pt-24 pb-12">
+          <div className="container mx-auto px-4 max-w-2xl">
+            <Card className="glass-card">
+              <CardContent className="p-12 text-center">
+                <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-2xl font-bold mb-2">Secure Access Required</h2>
+                <p className="text-muted-foreground mb-6">
+                  To manage your subscription, please use the secure link from your email notifications.
+                  This protects your subscription from unauthorized changes.
+                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Can't find your email? Check your spam folder or subscribe again on the News page.
+                  </p>
+                  <Button variant="outline" onClick={() => window.location.href = '/news'}>
+                    Go to News Page
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <MetaTags 
@@ -240,34 +307,18 @@ export default function ManageSubscription() {
             </CardHeader>
 
             <CardContent>
-              {!subscriptionFound ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="lookup-email" className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Enter Your Email to Manage Subscription
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="lookup-email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button onClick={loadSubscription} disabled={isLoading || !email}>
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
-                      </Button>
-                    </div>
-                  </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading your preferences...</span>
                 </div>
-              ) : (
+              ) : subscriptionFound ? (
                 <form onSubmit={handleUpdate} className="space-y-6">
                   {/* Email Display */}
                   <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-2">
                     <Mail className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">{email}</span>
+                    <Lock className="w-3 h-3 text-green-500 ml-auto" />
                   </div>
 
                   {/* Name Input */}
@@ -437,7 +488,7 @@ export default function ManageSubscription() {
                     </Button>
                   </div>
                 </form>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         </div>
