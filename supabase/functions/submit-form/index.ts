@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -240,6 +241,20 @@ const handler = async (req: Request): Promise<Response> => {
       // Initialize Supabase client
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+      // Check if this email already has a verified subscription
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id, is_verified')
+        .eq('email', sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase())
+        .maybeSingle();
+
+      const isNewSubscription = !existingSub;
+      const needsVerification = !existingSub?.is_verified;
+
+      // Generate new verification token
+      const verificationToken = crypto.randomUUID();
+      const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+
       // Sanitize and prepare subscription data
       const subscriptionData = {
         email: sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase(),
@@ -249,10 +264,12 @@ const handler = async (req: Request): Promise<Response> => {
         frequency: sanitizeString(subData.frequency, 20),
         severity_threshold: sanitizeString(subData.severity, 20),
         is_active: true,
-        is_verified: false, // Will be true after email verification
+        is_verified: existingSub?.is_verified || false, // Keep verified status if already verified
+        verification_token: needsVerification ? verificationToken : null,
+        verification_token_expires_at: needsVerification ? tokenExpiresAt : null,
       };
 
-      console.log(`[submit-form] Subscription from IP ${clientIP}, email: ${subscriptionData.email}, remaining: ${emailRateLimit.remaining}`);
+      console.log(`[submit-form] Subscription from IP ${clientIP}, email: ${subscriptionData.email}, isNew: ${isNewSubscription}, needsVerification: ${needsVerification}`);
 
       // Upsert subscription (update if email exists)
       const { data: subscription, error: dbError } = await supabase
@@ -267,6 +284,30 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       console.log("[submit-form] Subscription saved:", subscription.id);
+
+      // Send verification email if needed
+      if (needsVerification) {
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        if (resendApiKey) {
+          const resend = new Resend(resendApiKey);
+          const verifyUrl = `${supabaseUrl}/functions/v1/verify-email?token=${verificationToken}`;
+          
+          try {
+            await resend.emails.send({
+              from: "Digibastion Security <onboarding@resend.dev>",
+              to: [subscriptionData.email],
+              subject: "Verify your Digibastion Security Alert Subscription",
+              html: generateVerificationEmail(subscriptionData.name, verifyUrl, subscriptionData.categories),
+            });
+            console.log("[submit-form] Verification email sent to:", subscriptionData.email);
+          } catch (emailError) {
+            console.error("[submit-form] Failed to send verification email:", emailError);
+            // Don't fail the whole request if email fails
+          }
+        } else {
+          console.warn("[submit-form] RESEND_API_KEY not configured, skipping verification email");
+        }
+      }
 
       // Also send notification to admin via Web3Forms
       formData = {
@@ -283,6 +324,7 @@ New subscription request:
 - Technologies: ${subscriptionData.technologies.join(', ') || 'None selected'}
 - Frequency: ${subscriptionData.frequency}
 - Min Severity: ${subscriptionData.severity_threshold}
+- Verified: ${subscriptionData.is_verified ? 'Yes' : 'Pending verification'}
         `.trim()
       };
 
@@ -293,8 +335,12 @@ New subscription request:
         body: JSON.stringify(formData),
       }).catch(e => console.error("[submit-form] Web3Forms notification error:", e));
 
+      const responseMessage = needsVerification 
+        ? "Please check your email to verify your subscription."
+        : "Subscription updated successfully.";
+
       return new Response(
-        JSON.stringify({ success: true, message: "Subscription saved successfully" }),
+        JSON.stringify({ success: true, message: responseMessage, needsVerification }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 
@@ -315,3 +361,85 @@ New subscription request:
 };
 
 serve(handler);
+
+function generateVerificationEmail(name: string | null, verifyUrl: string, categories: string[]): string {
+  const displayName = name || 'Security Professional';
+  const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</li>`).join('');
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #1a1a2e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #1a1a2e;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(30, 30, 50, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(139, 92, 246, 0.3);">
+          <tr>
+            <td style="padding: 40px;">
+              <!-- Header -->
+              <table width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 30px;">
+                    <h1 style="color: #f3f4f6; margin: 0; font-size: 28px;">🛡️ Digibastion</h1>
+                    <p style="color: #9ca3af; margin: 8px 0 0 0; font-size: 14px;">Security Threat Intelligence</p>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Content -->
+              <table width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding-bottom: 24px;">
+                    <h2 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 22px;">Verify Your Email</h2>
+                    <p style="color: #d1d5db; margin: 0; font-size: 16px; line-height: 1.6;">
+                      Hi ${displayName},<br><br>
+                      Thanks for subscribing to Digibastion Security Alerts! Please verify your email address to start receiving threat intelligence updates.
+                    </p>
+                  </td>
+                </tr>
+                
+                <!-- Button -->
+                <tr>
+                  <td align="center" style="padding: 24px 0;">
+                    <a href="${verifyUrl}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                      Verify Email Address
+                    </a>
+                  </td>
+                </tr>
+                
+                <!-- Subscription Details -->
+                <tr>
+                  <td style="padding: 24px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; margin-top: 24px;">
+                    <h3 style="color: #f3f4f6; margin: 0 0 12px 0; font-size: 16px;">Your Subscription Includes:</h3>
+                    <ul style="color: #9ca3af; margin: 0; padding-left: 20px; font-size: 14px;">
+                      ${categoryList}
+                    </ul>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 32px;">
+                    <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.6;">
+                      This link will expire in 24 hours. If you didn't sign up for Digibastion alerts, you can safely ignore this email.
+                    </p>
+                    <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
+                      <a href="https://digibastion.com" style="color: #8b5cf6; text-decoration: none;">digibastion.com</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
