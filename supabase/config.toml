@@ -36,3 +36,6 @@ verify_jwt = false
 
 [functions.send-digest-emails]
 verify_jwt = false
+
+[functions.og-image]
+verify_jwt = false
