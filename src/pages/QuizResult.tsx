@@ -1,11 +1,12 @@
 
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Sparkles, ArrowRight } from 'lucide-react';
+import { Shield, Sparkles, ArrowRight, ExternalLink, Copy, Check, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
@@ -83,6 +84,7 @@ const getThreatLevelConfig = (score: number) => {
 const QuizResult = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
   
   const username = searchParams.get('u') || 'anon';
   const score = parseInt(searchParams.get('s') || '0', 10);
@@ -92,11 +94,25 @@ const QuizResult = () => {
   const config = getThreatLevelConfig(score);
   const badges = badgesParam ? badgesParam.split(',').map(b => decodeURIComponent(b)) : [];
   
-  // Dynamic OG image URL from edge function
+  // Dynamic OG image URL from edge function (PNG format for X compatibility)
   const ogImageUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
+  
+  // Server-rendered OG page URL for crawlers
+  const ogPageUrl = `https://digibastion.com/api/og-tags?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
   
   const getTwitterPfp = (handle: string) => {
     return `https://unavatar.io/twitter/${handle}`;
+  };
+
+  const handleCopyImageUrl = () => {
+    navigator.clipboard.writeText(ogImageUrl);
+    setCopied(true);
+    toast.success('OG Image URL copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePreviewXCard = () => {
+    window.open(ogPageUrl, '_blank');
   };
 
   // Set OG meta tags dynamically
@@ -195,15 +211,45 @@ const QuizResult = () => {
               )}
 
               {/* CTA */}
-              <div className="text-center pt-6 border-t border-border/30">
-                <p className="text-sm text-foreground-secondary flex items-center justify-center gap-1 mb-4">
+              <div className="pt-6 border-t border-border/30 space-y-4">
+                {/* Preview X Card Section */}
+                <div className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3">
+                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5" />
+                    Preview how your card appears on X
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handlePreviewXCard}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Preview X Card
+                    </Button>
+                    <Button 
+                      onClick={handleCopyImageUrl}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/70 break-all">
+                    {ogImageUrl}
+                  </p>
+                </div>
+
+                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                   <Sparkles className="w-4 h-4" />
                   Think you can beat this score?
                 </p>
                 <Button 
-                  onClick={() => navigate('/')} 
+                  onClick={() => navigate('/quiz')} 
                   size="lg"
-                  className="gap-2"
+                  className="gap-2 w-full"
                 >
                   <Shield className="w-5 h-5" />
                   Take the Quiz
