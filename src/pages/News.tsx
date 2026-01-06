@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
@@ -26,9 +26,23 @@ import { format } from 'date-fns';
 
 const News = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
-  const [selectedTab, setSelectedTab] = useState('feed');
+  const [selectedTab, setSelectedTab] = useState(() => searchParams.get('tab') || 'feed');
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['feed', 'alerts', 'dashboard', 'subscribe'].includes(tabFromUrl)) {
+      setSelectedTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId: string) => {
+    setSelectedTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
@@ -202,7 +216,7 @@ const News = () => {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setSelectedTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
                     selectedTab === tab.id
                       ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
@@ -390,27 +404,43 @@ const News = () => {
             <ErrorBoundary>
               <div className="space-y-6">
                 {/* Breadcrumb Navigation */}
-                <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                {/* Header with breadcrumb and refresh */}
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => navigate('/')}
+                      className="h-auto p-1 hover:text-foreground"
+                    >
+                      <Home className="w-4 h-4" />
+                    </Button>
+                    <span>/</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleTabChange('feed')}
+                      className="h-auto p-1 hover:text-foreground"
+                    >
+                      Threat Intel
+                    </Button>
+                    <span>/</span>
+                    <span className="text-foreground">Active Alerts</span>
+                  </nav>
                   <Button 
-                    variant="ghost" 
+                    variant="outline" 
                     size="sm" 
-                    onClick={() => navigate('/')}
-                    className="h-auto p-1 hover:text-foreground"
+                    onClick={() => refetch()}
+                    disabled={isLoading}
                   >
-                    <Home className="w-4 h-4" />
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                    )}
+                    Refresh Alerts
                   </Button>
-                  <span>/</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSelectedTab('feed')}
-                    className="h-auto p-1 hover:text-foreground"
-                  >
-                    Threat Intel
-                  </Button>
-                  <span>/</span>
-                  <span className="text-foreground">Active Alerts</span>
-                </nav>
+                </div>
 
                 {/* Critical Alerts */}
                 {criticalAlerts.length > 0 && (
