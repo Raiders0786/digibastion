@@ -24,12 +24,20 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+const AUTO_REFRESH_OPTIONS = [
+  { value: '0', label: 'Off' },
+  { value: '30', label: '30s' },
+  { value: '60', label: '1m' },
+  { value: '300', label: '5m' },
+];
+
 const News = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
   const [selectedTab, setSelectedTab] = useState(() => searchParams.get('tab') || 'feed');
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
 
   // Sync tab with URL
   useEffect(() => {
@@ -66,6 +74,17 @@ const News = () => {
     dateFilter,
     sortBy,
   });
+
+  // Auto-refresh for Active Alerts tab
+  useEffect(() => {
+    if (selectedTab !== 'alerts' || autoRefreshInterval === 0) return;
+    
+    const intervalId = setInterval(() => {
+      refetch();
+    }, autoRefreshInterval * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedTab, autoRefreshInterval, refetch]);
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -427,19 +446,43 @@ const News = () => {
                     <span>/</span>
                     <span className="text-foreground">Active Alerts</span>
                   </nav>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => refetch()}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-1" />
+                  <div className="flex items-center gap-2">
+                    {/* Auto-refresh selector */}
+                    <Select 
+                      value={autoRefreshInterval.toString()} 
+                      onValueChange={(v) => setAutoRefreshInterval(parseInt(v))}
+                    >
+                      <SelectTrigger className="w-24 h-8 text-xs">
+                        <Clock className="w-3 h-3 mr-1" />
+                        <SelectValue placeholder="Auto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AUTO_REFRESH_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {autoRefreshInterval > 0 && (
+                      <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30 text-green-400">
+                        Auto-refresh: {AUTO_REFRESH_OPTIONS.find(o => o.value === autoRefreshInterval.toString())?.label}
+                      </Badge>
                     )}
-                    Refresh Alerts
-                  </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => refetch()}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                      )}
+                      Refresh
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Critical Alerts */}
