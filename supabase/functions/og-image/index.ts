@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { render } from "https://deno.land/x/resvg_wasm/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -309,10 +310,23 @@ serve(async (req) => {
       </svg>
     `;
 
-    return new Response(svg, {
+    const format = (url.searchParams.get('format') || 'png').toLowerCase();
+
+    if (format === 'svg') {
+      return new Response(svg, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'image/svg+xml; charset=utf-8',
+        },
+      });
+    }
+
+    const png = await render(svg);
+
+    return new Response(png, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/png',
       },
     });
   } catch (error) {
