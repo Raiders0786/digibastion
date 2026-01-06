@@ -1,12 +1,14 @@
 
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Sparkles, ArrowRight, ExternalLink, Copy, Check, Eye } from 'lucide-react';
+import { ChallengeButton } from '@/components/quiz/ChallengeButton';
+import { Shield, Sparkles, ArrowRight, ExternalLink, Copy, Check, Eye, Share2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
@@ -85,6 +87,7 @@ const QuizResult = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const hasSubmittedScore = useRef(false);
   
   const username = searchParams.get('u') || 'anon';
   const score = parseInt(searchParams.get('s') || '0', 10);
@@ -113,6 +116,24 @@ const QuizResult = () => {
 
   const handlePreviewXCard = () => {
     window.open(ogPageUrl, '_blank');
+  };
+
+  const handleShareOnX = async () => {
+    // Save score to leaderboard (only once per page load)
+    if (!hasSubmittedScore.current && username !== 'anon') {
+      hasSubmittedScore.current = true;
+      await supabase.from('quiz_scores').insert({
+        username,
+        score,
+        badge_count: badges.length,
+        character_rank: character.name
+      });
+    }
+
+    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
+    const tweetText = `${character.emoji} I scored ${score}/100 on the @digibastion OpSec Quiz!\n\nMy rank: ${character.name}\n"${character.description}"\n\nThink you can beat me? Take the quiz 👇\n${shareUrl}`;
+    
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
   };
 
   // Set OG meta tags dynamically
@@ -212,6 +233,29 @@ const QuizResult = () => {
 
               {/* CTA */}
               <div className="pt-6 border-t border-border/30 space-y-4">
+                {/* Share on X Button */}
+                <Button 
+                  onClick={handleShareOnX}
+                  size="lg"
+                  className="w-full gap-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white"
+                >
+                  <Share2 className="w-5 h-5" />
+                  Share on X & Join Leaderboard
+                </Button>
+
+                {/* Challenge a Friend */}
+                <ChallengeButton score={score} variant="outline" className="w-full" />
+
+                {/* Leaderboard Link */}
+                <Button
+                  onClick={() => navigate('/leaderboard')}
+                  variant="ghost"
+                  className="w-full gap-2"
+                >
+                  <Trophy className="w-4 h-4" />
+                  View Leaderboard
+                </Button>
+
                 {/* Preview X Card Section */}
                 <div className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3">
                   <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">

@@ -122,6 +122,33 @@ export type Database = {
           },
         ]
       }
+      quiz_scores: {
+        Row: {
+          badge_count: number
+          character_rank: string
+          created_at: string
+          id: string
+          score: number
+          username: string
+        }
+        Insert: {
+          badge_count?: number
+          character_rank: string
+          created_at?: string
+          id?: string
+          score: number
+          username: string
+        }
+        Update: {
+          badge_count?: number
+          character_rank?: string
+          created_at?: string
+          id?: string
+          score?: number
+          username?: string
+        }
+        Relationships: []
+      }
       rss_feeds: {
         Row: {
           category: string

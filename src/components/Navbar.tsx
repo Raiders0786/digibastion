@@ -1,4 +1,4 @@
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap, Trophy } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -155,6 +155,18 @@ export const Navbar = () => {
                   >
                     <Zap className="w-4 h-4" />
                     <span className="hidden sm:inline">Quiz</span>
+                  </button>
+                </NavigationMenuItem>
+
+                {/* Leaderboard */}
+                <NavigationMenuItem>
+                  <button
+                    onClick={() => navigate('/leaderboard')}
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
+                      transition-colors rounded-lg hover:bg-muted/50"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    <span className="hidden lg:inline">Leaderboard</span>
                   </button>
                 </NavigationMenuItem>
 
