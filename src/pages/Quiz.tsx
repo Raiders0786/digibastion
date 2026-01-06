@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { OpsecQuiz } from '@/components/opsec/OpsecQuiz';
 import { Button } from '@/components/ui/button';
-import { Shield, Zap, Trophy, Share2, ArrowRight, Sparkles, Target, Award } from 'lucide-react';
+import { ChallengeButton } from '@/components/quiz/ChallengeButton';
+import { Shield, Zap, Trophy, Share2, ArrowRight, Sparkles, Target, Award, Medal } from 'lucide-react';
 
 const Quiz = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const navigate = useNavigate();
 
   const features = [
     {
@@ -66,14 +69,27 @@ const Quiz = () => {
               </p>
 
               {/* CTA Button */}
-              <Button 
-                onClick={() => setIsQuizOpen(true)}
-                size="lg"
-                className="gap-3 text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button 
+                  onClick={() => setIsQuizOpen(true)}
+                  size="lg"
+                  className="gap-3 text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+                >
+                  <Shield className="w-5 h-5" />
+                  <span>Take the Quiz</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <ChallengeButton variant="outline" className="px-6 py-6 text-lg" />
+              </div>
+
+              {/* Leaderboard link */}
+              <Button
+                onClick={() => navigate('/leaderboard')}
+                variant="ghost"
+                className="mt-4 gap-2 text-muted-foreground hover:text-primary"
               >
-                <Shield className="w-5 h-5" />
-                <span>Take the Quiz</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <Medal className="w-4 h-4" />
+                View Leaderboard
               </Button>
 
               {/* Stats */}

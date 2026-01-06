@@ -24,6 +24,7 @@ import Support from "./pages/Support";
 import News from "./pages/News";
 import QuizResult from "./pages/QuizResult";
 import Quiz from "./pages/Quiz";
+import Leaderboard from "./pages/Leaderboard";
 import ManageSubscription from "./pages/ManageSubscription";
 
 const queryClient = new QueryClient({
@@ -54,6 +55,7 @@ const App = () => {
                     <Route path="/share" element={<><MetaTags /><Share /></>} />
                     <Route path="/quiz" element={<Quiz />} />
                     <Route path="/quiz-result" element={<QuizResult />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/about" element={<><MetaTags /><About /></>} />
                     <Route path="/license" element={<><MetaTags /><License /></>} />
                     <Route path="/tools" element={<><MetaTags /><Tools /></>} />
