@@ -17,7 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
-import { mockSecurityAlerts } from '@/data/newsData';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
@@ -80,16 +79,20 @@ const News = () => {
   // Use database articles directly (filtering handled by hook)
   const filteredArticles = dbArticles;
 
-  // Sort alerts by date descending (newest first)
-  const sortedAlerts = useMemo(() => {
-    return [...mockSecurityAlerts].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, []);
+  // Filter articles by severity for alerts tab - using real database data
+  const criticalAlerts = useMemo(() => {
+    return dbArticles.filter(article => article.severity === 'critical');
+  }, [dbArticles]);
 
-  const criticalAlerts = sortedAlerts.filter(alert => alert.severity === 'critical');
-  const highAlerts = sortedAlerts.filter(alert => alert.severity === 'high');
-  const actionRequiredAlerts = sortedAlerts.filter(alert => alert.actionRequired);
+  const highAlerts = useMemo(() => {
+    return dbArticles.filter(article => article.severity === 'high');
+  }, [dbArticles]);
+
+  const actionRequiredAlerts = useMemo(() => {
+    return dbArticles.filter(article => 
+      article.severity === 'critical' || article.severity === 'high'
+    );
+  }, [dbArticles]);
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -425,25 +428,24 @@ const News = () => {
                     {criticalAlerts.map((alert) => (
                       <div 
                         key={alert.id}
-                        className="p-4 border border-red-500/20 rounded-lg bg-background/50 hover:bg-accent/50 transition-colors"
+                        className="p-4 border border-red-500/20 rounded-lg bg-background/50 hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => handleArticleClick(alert)}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge className="bg-red-500 text-white">CRITICAL</Badge>
-                              {alert.actionRequired && (
-                                <Badge variant="outline" className="border-red-500 text-red-400">
-                                  Action Required
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="border-red-500 text-red-400">
+                                Action Required
+                              </Badge>
                               {alert.cveId && (
                                 <Badge variant="secondary">{alert.cveId}</Badge>
                               )}
                             </div>
                             <h3 className="font-medium mb-1">{alert.title}</h3>
-                            <p className="text-sm text-muted-foreground mb-3">{alert.description}</p>
+                            <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
                             <div className="flex flex-wrap gap-1">
-                              {alert.affectedTechnologies.map((tech) => (
+                              {alert.affectedTechnologies?.map((tech) => (
                                 <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
                               ))}
                             </div>
@@ -451,7 +453,7 @@ const News = () => {
                           <div className="text-right">
                             <div className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {format(new Date(alert.createdAt), 'MMM d, yyyy')}
+                              {format(new Date(alert.publishedAt), 'MMM d, yyyy')}
                             </div>
                           </div>
                         </div>
@@ -475,22 +477,21 @@ const News = () => {
                     {highAlerts.map((alert) => (
                       <div 
                         key={alert.id}
-                        className="p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                        className="p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => handleArticleClick(alert)}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge className="bg-orange-500 text-white">HIGH</Badge>
-                              {alert.actionRequired && (
-                                <Badge variant="outline" className="border-orange-500 text-orange-400">
-                                  Action Required
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="border-orange-500 text-orange-400">
+                                Action Required
+                              </Badge>
                             </div>
                             <h3 className="font-medium mb-1">{alert.title}</h3>
-                            <p className="text-sm text-muted-foreground mb-3">{alert.description}</p>
+                            <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
                             <div className="flex flex-wrap gap-1">
-                              {alert.affectedTechnologies.map((tech) => (
+                              {alert.affectedTechnologies?.map((tech) => (
                                 <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
                               ))}
                             </div>
@@ -498,7 +499,7 @@ const News = () => {
                           <div className="text-right">
                             <div className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {format(new Date(alert.createdAt), 'MMM d, yyyy')}
+                              {format(new Date(alert.publishedAt), 'MMM d, yyyy')}
                             </div>
                           </div>
                         </div>
@@ -508,7 +509,8 @@ const News = () => {
                 </Card>
               )}
 
-              {/* Other Alerts */}
+              {/* Other Alerts (Medium/Low) */}
+              {dbArticles.filter(a => a.severity !== 'critical' && a.severity !== 'high').length > 0 && (
               <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -517,12 +519,13 @@ const News = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {sortedAlerts
+                  {dbArticles
                     .filter(a => a.severity !== 'critical' && a.severity !== 'high')
                     .map((alert) => (
                       <div 
                         key={alert.id}
-                        className="p-3 border rounded-lg bg-card/50 hover:bg-accent/30 transition-colors"
+                        className="p-3 border rounded-lg bg-card/50 hover:bg-accent/30 transition-colors cursor-pointer"
+                        onClick={() => handleArticleClick(alert)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -540,7 +543,7 @@ const News = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">
-                              {format(new Date(alert.createdAt), 'MMM d')}
+                              {format(new Date(alert.publishedAt), 'MMM d')}
                             </span>
                             <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </div>
@@ -549,6 +552,23 @@ const News = () => {
                     ))}
                 </CardContent>
               </Card>
+              )}
+
+              {/* Empty state */}
+              {dbArticles.length === 0 && (
+                <Card className="glass-card">
+                  <CardContent className="p-8 text-center">
+                    <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No alerts available</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Click "Refresh" on the News Feed tab to fetch the latest security alerts
+                    </p>
+                    <Button onClick={() => setSelectedTab('feed')}>
+                      Go to News Feed
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
               </div>
             </ErrorBoundary>
           )}
