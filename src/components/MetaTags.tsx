@@ -14,16 +14,15 @@ interface MetaTagsProps {
 export const MetaTags = ({ 
   title = "Digibastion — Protect Your Crypto from Phishing, Hacks & Scams",
   description = "Free, open-source Web3 security platform. Get real-time threat alerts, security checklists, and OpSec assessments to protect your crypto from phishing, wallet drains, and scams.",
-  image = "https://digibastion.com/og-image.png",
+  image = "https://www.digibastion.com/og-image.png",
   type = "website",
   canonical,
   keywords = "web3 security, crypto security, blockchain security, defi security, wallet security, phishing protection",
   noindex = false
 }: MetaTagsProps) => {
   const location = useLocation();
-  const url = `https://digibastion.com${location.pathname}`;
+  const url = `https://www.digibastion.com${location.pathname}`;
   const actualCanonical = canonical || url;
-
   useEffect(() => {
     // Update document title
     document.title = title;
