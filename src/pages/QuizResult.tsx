@@ -1,4 +1,3 @@
-
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { Navbar } from '../components/Navbar';
@@ -8,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { ChallengeButton } from '@/components/quiz/ChallengeButton';
 import { Shield, Sparkles, ArrowRight, ExternalLink, Copy, Check, Eye, Share2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
@@ -119,15 +117,37 @@ const QuizResult = () => {
   };
 
   const handleShareOnX = async () => {
-    // Save score to leaderboard (only once per page load)
+    // Save score to leaderboard via secure edge function (only once per page load)
     if (!hasSubmittedScore.current && username !== 'anon') {
       hasSubmittedScore.current = true;
-      await supabase.from('quiz_scores').insert({
-        username,
-        score,
-        badge_count: badges.length,
-        character_rank: character.name
-      });
+      
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              username,
+              score,
+              badge_count: badges.length,
+              character_rank: character.name
+            }),
+          }
+        );
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          console.error('Failed to submit score:', result.error);
+          // Don't show error to user - still allow them to share
+        }
+      } catch (error) {
+        console.error('Error submitting score:', error);
+        // Don't block sharing if score submission fails
+      }
     }
 
     const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
