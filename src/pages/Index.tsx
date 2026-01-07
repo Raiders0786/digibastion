@@ -10,7 +10,7 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { supabase } from '@/integrations/supabase/client';
-import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2 } from 'lucide-react';
+import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2, Map, ExternalLink, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
 import { formatDistanceToNow } from 'date-fns';
@@ -376,6 +376,116 @@ const Index = () => {
                   />
                 ))}
             </div>
+          </div>
+        </section>
+
+        {/* Roadmap Section */}
+        <section className="section-container pb-16" id="roadmap">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <Map className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-primary">Public Roadmap</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+              What's Coming Next
+            </h2>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              Building the security infrastructure Web3 deserves. Join us in shaping the future.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {/* Q4 2025 */}
+            <div className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-sm font-semibold text-foreground">Q4 2025</span>
+                <span className="text-xs text-green-500 ml-auto">In Progress</span>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <span>OpSec Assessment Quiz</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <span>Threat Intelligence Feed</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-primary shrink-0 mt-0.5" />
+                  <span>Supply Chain Monitoring</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Q1 2026 */}
+            <div className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                <span className="text-sm font-semibold text-foreground">Q1 2026</span>
+                <span className="text-xs text-yellow-500 ml-auto">Planning</span>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-yellow-500 shrink-0 mt-0.5" />
+                  <span>DNS Security Scanner</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-yellow-500 shrink-0 mt-0.5" />
+                  <span>DevSecOps Integration</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-yellow-500 shrink-0 mt-0.5" />
+                  <span>GitHub Repo Analysis</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Q2 2026 */}
+            <div className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-sm font-semibold text-foreground">Q2 2026</span>
+                <span className="text-xs text-blue-500 ml-auto">Research</span>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-blue-500 shrink-0 mt-0.5" />
+                  <span>Browser Extension</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-blue-500 shrink-0 mt-0.5" />
+                  <span>Domain Scanning</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-blue-500 shrink-0 mt-0.5" />
+                  <span>Mobile App</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-3 mt-8">
+            <a 
+              href="https://github.com/Raiders0786/digibastion/blob/main/ROADMAP.md" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" className="gap-2">
+                <ExternalLink className="w-4 h-4" />
+                View Full Roadmap
+              </Button>
+            </a>
+            <a 
+              href="https://t.me/digibastion" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" className="gap-2">
+                <MessageCircle className="w-4 h-4" />
+                Join Community
+              </Button>
+            </a>
           </div>
         </section>
 
