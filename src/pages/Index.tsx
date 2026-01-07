@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
 import { SecurityScore } from '../components/SecurityScore';
@@ -8,15 +8,15 @@ import { SecurityPresets } from '../components/SecurityPresets';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
-import { OpsecBanner } from '../components/opsec/OpsecBanner';
 import { SecurityBadges } from '../components/opsec/SecurityBadges';
-import { Github, Heart, Loader2, ArrowRight, MessageSquare, BookOpen, Sparkles } from 'lucide-react';
+import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
 
 const Index = () => {
   const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (location.state?.scrollTo) {
@@ -51,7 +51,7 @@ const Index = () => {
             <Loader2 className="w-10 h-10 animate-spin text-primary" aria-hidden="true" />
             <div className="absolute inset-0 blur-xl bg-primary/30 animate-pulse-soft" />
           </div>
-          <p className="mt-4 text-muted-foreground">Updating your security profile...</p>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -60,132 +60,231 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Digibastion — The Open-Source Web3 Security Platform | Secure the Stack"
-        description="Open-source Web3 security platform with threat intelligence, OpSec assessments, security scanners, and community-powered checklists. Supported by Ethereum Foundation ESP grant 2025."
+        title="Digibastion — Protect Your Crypto from Phishing, Hacks & Scams"
+        description="Free, open-source Web3 security platform. Get real-time threat alerts, security checklists, and OpSec assessments to protect your crypto from phishing, wallet drains, and scams."
       />
       <Navbar />
       
-      {/* OpSec Quiz Banner */}
-      <div className="pt-16">
-        <OpsecBanner />
-      </div>
-      
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="section-container section-spacing">
-          {/* ESP Support Badge */}
-          <div className="flex justify-center mb-12 animate-fade-in">
-            <a 
-              href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal"
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-muted/30 border border-border/50 transition-all duration-200 hover:bg-muted/50 hover:border-primary/30"
-            >
-              <span className="text-sm text-muted-foreground">Supported in 2025 with a small grant from</span>
-              <img 
-                src={espLogo} 
-                alt="Ethereum ESP" 
-                className="h-7 w-auto opacity-90 hover:opacity-100 transition-all duration-200 hover:scale-105"
-              />
-            </a>
-          </div>
+      <main className="flex-grow pt-16">
+        {/* Hero Section - Clear Value Prop */}
+        <section className="relative overflow-hidden">
+          {/* Background effects */}
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+          <div className="absolute top-20 left-1/4 w-72 h-72 bg-destructive/5 rounded-full blur-3xl" />
+          <div className="absolute top-40 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
-          {/* Hero Content */}
-          <div className="text-center max-w-4xl mx-auto space-y-6 animate-fade-in-up">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              <span className="text-foreground">The Open-Source </span>
-              <span className="text-gradient">Web3 Security</span>
-              <br />
-              <span className="text-foreground">Platform</span>
-            </h1>
-            
-            {/* Feature bullets */}
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-sm sm:text-base text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Threat Intelligence
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                OpSec Assessments
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Security Scanners
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Community-Powered
-              </span>
-            </div>
-            
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Stop jumping between scattered security tools. Unified OpSec platform with 
-              expert-backed practices, live threat monitoring, security scanners, and 
-              supply chain risk alerts — built in public by the community.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
+          <div className="relative section-container py-16 sm:py-20">
+            {/* ESP Badge */}
+            <div className="flex justify-center mb-10 animate-fade-in">
               <a 
-                href="https://github.com/Raiders0786/digibastion" 
+                href="https://blog.ethereum.org/2025/12/02/allocation-q3-25"
                 target="_blank" 
                 rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-muted/30 border border-border/50 transition-all duration-200 hover:bg-muted/50 hover:border-primary/30"
               >
-                <Button size="lg" className="btn-primary gap-2">
-                  <Github className="h-5 w-5" />
-                  Star on GitHub
-                </Button>
-              </a>
-              <a 
-                href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Button size="lg" variant="outline" className="gap-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  Contribute
-                </Button>
+                <span className="text-xs text-muted-foreground">Supported by</span>
+                <img 
+                  src={espLogo} 
+                  alt="Ethereum ESP" 
+                  className="h-6 w-auto opacity-90"
+                />
               </a>
             </div>
-            
-            {/* Tagline */}
-            <p className="text-xs text-muted-foreground/70 pt-2">
-              Digibastion — Secure the Stack
+
+            {/* Main Headline - Clear Problem/Solution */}
+            <div className="text-center max-w-3xl mx-auto space-y-6 animate-fade-in-up">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+                <span className="text-foreground">Don't Get </span>
+                <span className="text-destructive">Rekt</span>
+                <span className="text-foreground">.</span>
+                <br />
+                <span className="text-foreground">Protect Your Crypto from </span>
+                <span className="text-gradient">Phishing & Scams</span>
+              </h1>
+              
+              <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+                Free security checklists, real-time threat alerts, and OpSec assessments. 
+                Stay one step ahead of hackers.
+              </p>
+            </div>
+
+            {/* What You Get - Simple 3 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mt-12">
+              <button
+                onClick={() => navigate('/news?tab=alerts')}
+                className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 hover:border-destructive/40 hover:bg-destructive/10 transition-all group text-left"
+              >
+                <AlertTriangle className="w-6 h-6 text-destructive mb-2" />
+                <h3 className="font-semibold text-foreground text-sm">Live Threat Alerts</h3>
+                <p className="text-xs text-muted-foreground mt-1">Real-time crypto security threats delivered to your inbox</p>
+              </button>
+              
+              <button
+                onClick={() => navigate('/quiz')}
+                className="p-4 rounded-xl bg-primary/5 border border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all group text-left"
+              >
+                <Shield className="w-6 h-6 text-primary mb-2" />
+                <h3 className="font-semibold text-foreground text-sm">OpSec Quiz</h3>
+                <p className="text-xs text-muted-foreground mt-1">Test your security and get personalized recommendations</p>
+              </button>
+              
+              <button
+                onClick={() => {
+                  const element = document.getElementById('checklists');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+                className="p-4 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all group text-left"
+              >
+                <CheckCircle2 className="w-6 h-6 text-accent mb-2" />
+                <h3 className="font-semibold text-foreground text-sm">Security Checklists</h3>
+                <p className="text-xs text-muted-foreground mt-1">Step-by-step guides to secure wallets, devices & accounts</p>
+              </button>
+            </div>
+
+            {/* Primary CTAs */}
+            <div className="flex flex-wrap justify-center gap-3 mt-10">
+              <Button 
+                onClick={() => navigate('/news?tab=alerts')}
+                size="lg" 
+                className="gap-2 bg-destructive hover:bg-destructive/90"
+              >
+                <Bell className="h-4 w-4" />
+                Get Threat Alerts
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button 
+                onClick={() => navigate('/quiz')}
+                size="lg" 
+                variant="outline"
+                className="gap-2 border-primary/30 hover:bg-primary/10"
+              >
+                <Zap className="h-4 w-4 text-primary" />
+                Take Security Quiz
+              </Button>
+            </div>
+
+            {/* Trust Signal */}
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              100% free & open-source • No account required • Community-powered
             </p>
           </div>
         </section>
 
+        {/* Threat Intel Highlight */}
+        <section className="section-container py-12 border-y border-border/50 bg-muted/30">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+            <div className="flex-1 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20">
+                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                <span className="text-xs font-medium text-destructive">Live Threat Feed</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+                Real-Time Crypto Security Alerts
+              </h2>
+              <p className="text-muted-foreground">
+                Stay ahead of wallet drainers, phishing sites, and smart contract exploits. 
+                Get critical alerts delivered to your inbox before you become a victim.
+              </p>
+              <ul className="space-y-2">
+                {[
+                  'Critical exploit warnings',
+                  'Phishing site detections',
+                  'Wallet drainer alerts',
+                  'Supply chain attack notifications'
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => navigate('/news?tab=alerts')} className="gap-2">
+                  <Newspaper className="w-4 h-4" />
+                  View Threat Feed
+                </Button>
+                <Button onClick={() => navigate('/news?tab=subscribe')} variant="outline" className="gap-2">
+                  <Bell className="w-4 h-4" />
+                  Subscribe
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <div className="p-4 rounded-xl bg-background border border-border/50 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-medium text-foreground">Recent Alerts</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { severity: 'critical', title: 'New phishing site targeting MetaMask users', time: 'Just now' },
+                    { severity: 'high', title: 'Suspicious token approval detected in DeFi protocol', time: '2h ago' },
+                    { severity: 'medium', title: 'Wallet drainer script found on compromised frontend', time: '5h ago' }
+                  ].map((alert, idx) => (
+                    <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 ${
+                        alert.severity === 'critical' ? 'bg-destructive' : 
+                        alert.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
+                        <p className="text-xs text-muted-foreground">{alert.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="w-full mt-3 text-xs text-muted-foreground hover:text-primary"
+                  onClick={() => navigate('/news?tab=alerts')}
+                >
+                  View all alerts →
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Threat Level Selector */}
-        <section className="section-container pb-8">
+        <section className="section-container py-12">
+          <div className="text-center mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+              Choose Your Threat Profile
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Different users face different threats. Select your profile to see relevant security recommendations.
+            </p>
+          </div>
           <ThreatLevelSelector />
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-4">
             <SecurityPresets />
           </div>
         </section>
 
         {/* Security Score */}
-        <section className="section-container pb-20" key={`score-${threatLevel}-${changeCount}`} id="score">
+        <section className="section-container pb-16" key={`score-${threatLevel}-${changeCount}`} id="score">
           <SecurityScore score={getOverallScore()} stats={getStats()} />
         </section>
 
         {/* Security Badges */}
-        <section className="section-container pb-20">
+        <section className="section-container pb-16">
           <SecurityBadges />
         </section>
 
-        {/* Security Categories Grid */}
-        <section className="section-container pb-24">
-          <div className="text-center mb-12">
+        {/* Security Checklists */}
+        <section className="section-container pb-20" id="checklists">
+          <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
-              Security Categories
+              Security Checklists
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Comprehensive checklists covering every aspect of your digital security
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              Step-by-step guides to protect every aspect of your digital life. Check off items as you complete them.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 stagger-children">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {categories.map((category, index) => (
               <SecurityCard
                 key={`${category.id}-${threatLevel}-${changeCount}`}
@@ -200,196 +299,37 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Roadmap Section */}
-        <section id="roadmap" className="section-container section-spacing scroll-mt-20 border-t border-border/50">
-          <div className="text-center mb-12">
-            <div className="badge-primary mb-4 inline-flex">
-              <Sparkles className="w-3 h-3 mr-1.5" />
-              Roadmap
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              What's Coming Next
+        {/* GitHub CTA */}
+        <section className="section-container pb-20">
+          <div className="p-8 rounded-2xl bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 border border-border/50 text-center">
+            <Lock className="w-10 h-10 text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              Open Source & Community Powered
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Building the security infrastructure Web3 deserves — one unified platform for all your protection needs.
+            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+              Built in public by security researchers and the crypto community. 
+              Star us on GitHub or contribute to help keep the ecosystem safe.
             </p>
-          </div>
-          
-          <div className="max-w-5xl mx-auto">
-            <div className="glass-card p-8 sm:p-10">
-              {/* Roadmap Header */}
-              <div className="flex items-center justify-between mb-10 flex-wrap gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-success animate-pulse" />
-                      <div className="absolute w-2.5 h-2.5 rounded-full bg-success/50 animate-ping" />
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
-                      Q3 2025 — Q2 2026
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-foreground">
-                    Complete Threat Protection
-                  </h3>
-                </div>
-                <div className="flex gap-2">
-                  <a href="https://github.com/Raiders0786/digibastion/issues" target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:bg-muted/50">
-                      <Github className="h-4 w-4" />
-                      Issues
-                    </Button>
-                  </a>
-                  <a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" className="gap-2 btn-primary">
-                      <Heart className="h-4 w-4" />
-                      Contribute
-                    </Button>
-                  </a>
-                </div>
-              </div>
-              
-              {/* Feature Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
-                {[
-                  {
-                    title: "OpSec shareable quiz & recommendations",
-                    description: "Interactive security assessment with personalized recommendations and shareable results",
-                    status: "Completed",
-                    eta: "Q4 2025"
-                  },
-                  {
-                    title: "Live threat intelligence feed",
-                    description: "Real-time global threat intelligence with personalized assessments",
-                    status: "Partial",
-                    eta: "Q4 2025"
-                  },
-                  {
-                    title: "Real-time supply chain attack monitoring",
-                    description: "Detect malicious packages and compromised dependencies instantly",
-                    status: "In Progress",
-                    eta: "Q4 2025"
-                  },
-                  {
-                    title: "Source code analysis & vulnerability scanning",
-                    description: "AI-powered static analysis to detect security vulnerabilities",
-                    status: "In Progress",
-                    eta: "Q4 2025"
-                  },
-                  {
-                    title: "DNS Security Scanner",
-                    description: "Comprehensive DNS security analysis and vulnerability detection",
-                    status: "Planning",
-                    eta: "Q1 2026"
-                  },
-                  {
-                    title: "DevSecOps pipeline integration",
-                    description: "Seamless CI/CD security scanning with GitHub Actions & GitLab CI",
-                    status: "Planning",
-                    eta: "Q1 2026"
-                  },
-                  {
-                    title: "Third-party dependency risk alerts",
-                    description: "Immediate notifications about critical vulnerabilities",
-                    status: "Planning",
-                    eta: "Q1 2026"
-                  },
-                  {
-                    title: "GitHub repository security analysis",
-                    description: "Scanning for secrets, misconfigurations, and anti-patterns",
-                    status: "Research",
-                    eta: "Q2 2026"
-                  },
-                  {
-                    title: "Phishing & malware detection",
-                    description: "AI-powered URL scanning to protect from malicious sites",
-                    status: "Research",
-                    eta: "Q2 2026"
-                  },
-                  {
-                    title: "Compromised domain scanning",
-                    description: "Monitoring for domain hijacking and DNS poisoning",
-                    status: "Planning",
-                    eta: "Q2 2026"
-                  }
-                ].map((feature, index) => (
-                  <div 
-                    key={index}
-                    className="group p-5 rounded-xl bg-muted/20 border border-border/50 
-                      hover:border-primary/30 hover:bg-muted/30 transition-all duration-300"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          feature.status === 'Completed' ? 'bg-primary' :
-                          feature.status === 'Partial' ? 'bg-accent' :
-                          feature.status === 'In Progress' ? 'bg-success' :
-                          feature.status === 'Planning' ? 'bg-warning' : 'bg-muted-foreground'
-                        }`} />
-                        <h4 className="font-medium text-foreground group-hover:text-primary transition-colors text-sm">
-                          {feature.title}
-                        </h4>
-                      </div>
-                    </div>
-                    
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                      {feature.description}
-                    </p>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        feature.status === 'Completed' 
-                          ? 'bg-primary/15 text-primary' 
-                          : feature.status === 'Partial'
-                          ? 'bg-accent/15 text-accent'
-                          : feature.status === 'In Progress' 
-                          ? 'bg-success/15 text-success' 
-                          : feature.status === 'Planning'
-                          ? 'bg-warning/15 text-warning'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {feature.status}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {feature.eta}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Community CTA */}
-              <div className="p-6 rounded-xl bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 border border-primary/20">
-                <div className="text-center">
-                  <h4 className="text-lg font-semibold text-foreground mb-2">
-                    Join Our Security Mission
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-5 max-w-xl mx-auto">
-                    Help us build the most comprehensive Web3 security platform. Whether you're a security researcher, 
-                    developer, or passionate about digital safety.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    <a href="https://t.me/digibastion" target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:bg-muted/50">
-                        <MessageSquare className="h-4 w-4" />
-                        Join Discussion
-                      </Button>
-                    </a>
-                    <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:bg-muted/50">
-                        <BookOpen className="h-4 w-4" />
-                        Contributing Guide
-                      </Button>
-                    </a>
-                    <a href="https://github.com/Raiders0786/digibastion/issues/new" target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" className="gap-2 btn-primary">
-                        <ArrowRight className="h-4 w-4" />
-                        Suggest Feature
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              <a 
+                href="https://github.com/Raiders0786/digibastion" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button size="lg" className="gap-2">
+                  <Github className="h-5 w-5" />
+                  Star on GitHub
+                </Button>
+              </a>
+              <a 
+                href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button size="lg" variant="outline" className="gap-2">
+                  Contribute
+                </Button>
+              </a>
             </div>
           </div>
         </section>
