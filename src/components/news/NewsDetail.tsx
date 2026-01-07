@@ -119,7 +119,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => navigate('/news')}
+          onClick={() => navigate('/threat-intel')}
           className="h-auto p-1 hover:text-foreground"
         >
           Threat Intel

@@ -8,7 +8,7 @@
 <!-- Main pages -->
 <url>
   <loc>https://www.digibastion.com/</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>1.0</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -17,66 +17,86 @@
   </image:image>
 </url>
 <url>
-  <loc>https://www.digibastion.com/news</loc>
-  <lastmod>2025-12-09</lastmod>
+  <loc>https://www.digibastion.com/threat-intel</loc>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.95</priority>
   <changefreq>daily</changefreq>
   <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>Threat Intelligence Feed - Web3 Security News</image:caption>
+    <image:loc>https://www.digibastion.com/og-threat-intel.png</image:loc>
+    <image:caption>Threat Intelligence Feed - Web3 Security Alerts</image:caption>
+  </image:image>
+</url>
+<url>
+  <loc>https://www.digibastion.com/quiz</loc>
+  <lastmod>2026-01-07</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+  <image:image>
+    <image:loc>https://www.digibastion.com/og-quiz.png</image:loc>
+    <image:caption>OpSec Security Quiz - Test Your Crypto Security</image:caption>
   </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/quiz-result</loc>
-  <lastmod>2025-12-09</lastmod>
-  <priority>0.9</priority>
+  <lastmod>2026-01-07</lastmod>
+  <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
+  <loc>https://www.digibastion.com/leaderboard</loc>
+  <lastmod>2026-01-07</lastmod>
+  <priority>0.85</priority>
+  <changefreq>daily</changefreq>
+</url>
+<url>
   <loc>https://www.digibastion.com/about</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/tools</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.9</priority>
   <changefreq>weekly</changefreq>
+  <image:image>
+    <image:loc>https://www.digibastion.com/og-tools.png</image:loc>
+    <image:caption>Web3 Security Tools Directory</image:caption>
+  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/articles</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.9</priority>
   <changefreq>weekly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/links</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.85</priority>
   <changefreq>weekly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/support</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/contact</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/license</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.5</priority>
   <changefreq>yearly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/share</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
 </url>
@@ -84,7 +104,7 @@
 <!-- Security category pages -->
 <url>
   <loc>https://www.digibastion.com/category/opsec</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.9</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -94,7 +114,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/category/wallet</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.85</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -104,7 +124,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/category/defi</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.85</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -114,7 +134,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/category/developers</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.85</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -124,19 +144,19 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/category/authentication</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/browsing</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/email</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
   <image:image>
@@ -146,7 +166,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/category/social</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
   <image:image>
@@ -156,19 +176,19 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/category/os</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/mobile</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/jobs</loc>
-  <lastmod>2025-12-09</lastmod>
+  <lastmod>2026-01-07</lastmod>
   <priority>0.75</priority>
   <changefreq>monthly</changefreq>
 </url>

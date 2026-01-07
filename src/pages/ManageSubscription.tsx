@@ -279,8 +279,8 @@ export default function ManageSubscription() {
                 <p className="text-muted-foreground mb-6">
                   You will no longer receive security alerts at this email address.
                 </p>
-                <Button variant="outline" onClick={() => window.location.href = '/news'}>
-                  Back to News
+                <Button variant="outline" onClick={() => window.location.href = '/threat-intel'}>
+                  Back to Threat Intel
                 </Button>
               </CardContent>
             </Card>
@@ -316,8 +316,8 @@ export default function ManageSubscription() {
                       <Button variant="outline" onClick={() => setLinkRequested(false)}>
                         Request Another Link
                       </Button>
-                      <Button variant="ghost" onClick={() => window.location.href = '/news'}>
-                        Go to News Page
+                      <Button variant="ghost" onClick={() => window.location.href = '/threat-intel'}>
+                        Go to Threat Intel
                       </Button>
                     </div>
                   </div>
@@ -369,8 +369,8 @@ export default function ManageSubscription() {
                     </div>
 
                     <div className="mt-6">
-                      <Button variant="ghost" onClick={() => window.location.href = '/news'}>
-                        Go to News Page
+                      <Button variant="ghost" onClick={() => window.location.href = '/threat-intel'}>
+                        Go to Threat Intel
                       </Button>
                     </div>
                   </div>

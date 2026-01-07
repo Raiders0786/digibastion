@@ -51,7 +51,8 @@ const App = () => {
                   <Routes>
                     <Route path="/" element={<><MetaTags /><Index /></>} />
                     <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
-                    <Route path="/news" element={<><MetaTags /><News /></>} />
+                    <Route path="/threat-intel" element={<><MetaTags /><News /></>} />
+                    <Route path="/news" element={<><MetaTags /><News /></>} /> {/* Legacy redirect */}
                     <Route path="/share" element={<><MetaTags /><Share /></>} />
                     <Route path="/quiz" element={<Quiz />} />
                     <Route path="/quiz-result" element={<QuizResult />} />
