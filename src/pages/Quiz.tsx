@@ -33,8 +33,9 @@ const Quiz = () => {
   return (
     <>
       <MetaTags 
-        title="OpSec Assessment Quiz | Digibastion"
-        description="Test your Web3 security knowledge with our interactive OpSec quiz. Get a personalized security score, earn badges, and share your results on X."
+        title="Free Crypto OpSec Quiz — Test Your Web3 Security Knowledge | Digibastion"
+        description="Take the 2-minute OpSec quiz to assess your crypto security. Get personalized recommendations, earn your security character rank, and share results on X. 100% free."
+        keywords="crypto security quiz, opsec assessment, web3 security test, blockchain security quiz, wallet security test, crypto safety quiz"
       />
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />

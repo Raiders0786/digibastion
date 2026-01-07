@@ -59,8 +59,9 @@ const Leaderboard = () => {
   return (
     <>
       <MetaTags 
-        title="OpSec Leaderboard | Digibastion"
-        description="See the top OpSec quiz scores from the crypto community. Can you make it to the top?"
+        title="OpSec Leaderboard — Top Crypto Security Scores | Digibastion"
+        description="See the top OpSec quiz scores from the crypto community. Compare your security knowledge against other crypto users. Take the quiz and join the leaderboard!"
+        keywords="crypto security leaderboard, opsec quiz scores, web3 security ranking, blockchain security competition"
       />
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
