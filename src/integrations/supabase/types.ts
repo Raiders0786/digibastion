@@ -149,6 +149,27 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_submission_log: {
+        Row: {
+          id: string
+          ip_hash: string
+          submitted_at: string
+          username_hash: string
+        }
+        Insert: {
+          id?: string
+          ip_hash: string
+          submitted_at?: string
+          username_hash: string
+        }
+        Update: {
+          id?: string
+          ip_hash?: string
+          submitted_at?: string
+          username_hash?: string
+        }
+        Relationships: []
+      }
       rss_feeds: {
         Row: {
           category: string
@@ -259,7 +280,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_submission_logs: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
