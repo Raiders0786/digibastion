@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSecurityState } from '../hooks/useSecurityState';
 import { SecurityCard } from '../components/SecurityCard';
@@ -8,15 +8,41 @@ import { SecurityPresets } from '../components/SecurityPresets';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
-import { SecurityBadges } from '../components/opsec/SecurityBadges';
+import { supabase } from '@/integrations/supabase/client';
 import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
+import { formatDistanceToNow } from 'date-fns';
+
+interface RecentAlert {
+  id: string;
+  title: string;
+  severity: string;
+  published_at: string;
+}
 
 const Index = () => {
   const { categories, getCategoryScore, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
   const location = useLocation();
   const navigate = useNavigate();
+  const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
+
+  // Fetch recent alerts from database
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      const { data } = await supabase
+        .from('news_articles')
+        .select('id, title, severity, published_at')
+        .in('severity', ['critical', 'high', 'medium'])
+        .order('published_at', { ascending: false })
+        .limit(3);
+      
+      if (data) {
+        setRecentAlerts(data);
+      }
+    };
+    fetchAlerts();
+  }, []);
 
   useEffect(() => {
     if (location.state?.scrollTo) {
@@ -82,7 +108,7 @@ const Index = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-muted/30 border border-border/50 transition-all duration-200 hover:bg-muted/50 hover:border-primary/30"
               >
-                <span className="text-xs text-muted-foreground">Supported by</span>
+                <span className="text-xs text-muted-foreground">Supported in 2025 with a small grant from:</span>
                 <img 
                   src={espLogo} 
                   alt="Ethereum ESP" 
@@ -218,22 +244,24 @@ const Index = () => {
                   <span className="text-sm font-medium text-foreground">Recent Alerts</span>
                 </div>
                 <div className="space-y-3">
-                  {[
-                    { severity: 'critical', title: 'New phishing site targeting MetaMask users', time: 'Just now' },
-                    { severity: 'high', title: 'Suspicious token approval detected in DeFi protocol', time: '2h ago' },
-                    { severity: 'medium', title: 'Wallet drainer script found on compromised frontend', time: '5h ago' }
-                  ].map((alert, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                        alert.severity === 'critical' ? 'bg-destructive' : 
-                        alert.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
-                        <p className="text-xs text-muted-foreground">{alert.time}</p>
+                  {recentAlerts.length > 0 ? (
+                    recentAlerts.map((alert) => (
+                      <div key={alert.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 ${
+                          alert.severity === 'critical' ? 'bg-destructive' : 
+                          alert.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(alert.published_at), { addSuffix: true })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">Loading alerts...</p>
+                  )}
                 </div>
                 <Button 
                   variant="ghost" 
@@ -268,10 +296,6 @@ const Index = () => {
           <SecurityScore score={getOverallScore()} stats={getStats()} />
         </section>
 
-        {/* Security Badges */}
-        <section className="section-container pb-16">
-          <SecurityBadges />
-        </section>
 
         {/* Security Checklists */}
         <section className="section-container pb-20" id="checklists">
@@ -280,22 +304,77 @@ const Index = () => {
               Security Checklists
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto">
-              Step-by-step guides to protect every aspect of your digital life. Check off items as you complete them.
+              Step-by-step guides to protect every aspect of your digital life. Start with the essentials, then level up.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {categories.map((category, index) => (
-              <SecurityCard
-                key={`${category.id}-${threatLevel}-${changeCount}`}
-                category={category.id}
-                title={category.title}
-                description={category.description}
-                link={`/category/${category.id}`}
-                total={category.items.length}
-                completed={category.items.filter(item => item.completed).length}
-              />
-            ))}
+          {/* Priority Categories - Start Here */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Start Here — Essential Security</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categories
+                .filter(c => ['wallet', 'authentication', 'opsec'].includes(c.id))
+                .map((category) => (
+                  <SecurityCard
+                    key={`${category.id}-${threatLevel}-${changeCount}`}
+                    category={category.id}
+                    title={category.title}
+                    description={category.description}
+                    link={`/category/${category.id}`}
+                    total={category.items.length}
+                    completed={category.items.filter(item => item.completed).length}
+                  />
+                ))}
+            </div>
+          </div>
+
+          {/* Device & Network Security */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Lock className="w-5 h-5 text-accent" />
+              <h3 className="text-lg font-semibold text-foreground">Device & Network Security</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categories
+                .filter(c => ['os', 'browsing', 'mobile', 'email'].includes(c.id))
+                .map((category) => (
+                  <SecurityCard
+                    key={`${category.id}-${threatLevel}-${changeCount}`}
+                    category={category.id}
+                    title={category.title}
+                    description={category.description}
+                    link={`/category/${category.id}`}
+                    total={category.items.length}
+                    completed={category.items.filter(item => item.completed).length}
+                  />
+                ))}
+            </div>
+          </div>
+
+          {/* Web3 Specific */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-5 h-5 text-warning" />
+              <h3 className="text-lg font-semibold text-foreground">Web3 & DeFi Security</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categories
+                .filter(c => ['defi', 'developers', 'jobs', 'social'].includes(c.id))
+                .map((category) => (
+                  <SecurityCard
+                    key={`${category.id}-${threatLevel}-${changeCount}`}
+                    category={category.id}
+                    title={category.title}
+                    description={category.description}
+                    link={`/category/${category.id}`}
+                    total={category.items.length}
+                    completed={category.items.filter(item => item.completed).length}
+                  />
+                ))}
+            </div>
           </div>
         </section>
 
