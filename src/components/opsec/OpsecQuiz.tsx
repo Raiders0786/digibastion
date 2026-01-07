@@ -532,6 +532,16 @@ ${shareUrl}`;
                   </div>
                   <p className="text-xs text-foreground-secondary">Used to create your shareable results card with profile pic</p>
                 </div>
+
+                {/* Privacy Notice */}
+                <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
+                  <div className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                    <div className="text-xs text-foreground-secondary">
+                      <span className="font-medium text-warning">Privacy Notice:</span> If you share your results, your username and score will appear on the public leaderboard. Use "anon" to skip leaderboard submission.
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Preview badges */}
                 <div className="p-4 rounded-lg bg-muted/30 border border-border">

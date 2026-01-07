@@ -80,6 +80,11 @@ const Leaderboard = () => {
                 The top security-conscious individuals who've shared their quiz results. 
                 Take the quiz and share to join the leaderboard!
               </p>
+              {/* Privacy Notice */}
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50 text-xs text-muted-foreground">
+                <span>🔒</span>
+                <span>Only shared scores appear here. Use "anon" username to skip.</span>
+              </div>
             </div>
 
             {/* Leaderboard */}

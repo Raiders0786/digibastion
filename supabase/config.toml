@@ -42,3 +42,6 @@ verify_jwt = false
 
 [functions.og-image]
 verify_jwt = false
+
+[functions.cleanup-quiz-logs]
+verify_jwt = false
