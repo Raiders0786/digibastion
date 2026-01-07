@@ -138,7 +138,7 @@ const Index = () => {
             {/* What You Get - Simple 3 columns */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mt-12">
               <button
-                onClick={() => navigate('/news?tab=alerts')}
+                onClick={() => navigate('/threat-intel?tab=alerts')}
                 className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 hover:border-destructive/40 hover:bg-destructive/10 transition-all group text-left"
               >
                 <AlertTriangle className="w-6 h-6 text-destructive mb-2" />
@@ -173,7 +173,7 @@ const Index = () => {
             {/* Primary CTAs */}
             <div className="flex flex-wrap justify-center gap-3 mt-10">
               <Button 
-                onClick={() => navigate('/news?tab=alerts')}
+                onClick={() => navigate('/threat-intel?tab=alerts')}
                 size="lg" 
                 className="gap-2 bg-destructive hover:bg-destructive/90"
               >
@@ -228,11 +228,11 @@ const Index = () => {
                 ))}
               </ul>
               <div className="flex gap-3 pt-2">
-                <Button onClick={() => navigate('/news?tab=alerts')} className="gap-2">
+                <Button onClick={() => navigate('/threat-intel?tab=alerts')} className="gap-2">
                   <Newspaper className="w-4 h-4" />
                   View Threat Feed
                 </Button>
-                <Button onClick={() => navigate('/news?tab=subscribe')} variant="outline" className="gap-2">
+                <Button onClick={() => navigate('/threat-intel?tab=subscribe')} variant="outline" className="gap-2">
                   <Bell className="w-4 h-4" />
                   Subscribe
                 </Button>
@@ -267,7 +267,7 @@ const Index = () => {
                 <Button 
                   variant="ghost" 
                   className="w-full mt-3 text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => navigate('/news?tab=alerts')}
+                  onClick={() => navigate('/threat-intel?tab=alerts')}
                 >
                   View all alerts →
                 </Button>

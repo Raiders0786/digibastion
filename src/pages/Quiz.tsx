@@ -36,6 +36,7 @@ const Quiz = () => {
         title="Free Crypto OpSec Quiz — Test Your Web3 Security Knowledge | Digibastion"
         description="Take the 2-minute OpSec quiz to assess your crypto security. Get personalized recommendations, earn your security character rank, and share results on X. 100% free."
         keywords="crypto security quiz, opsec assessment, web3 security test, blockchain security quiz, wallet security test, crypto safety quiz"
+        image="https://www.digibastion.com/og-quiz.png"
       />
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />

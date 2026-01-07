@@ -15,6 +15,7 @@ const Tools = () => {
         title="Best Web3 Security Tools 2025 — Smart Contract Auditing, Wallet Security | Digibastion"
         description="Curated collection of 30+ essential Web3 security tools. Find smart contract auditors, wallet analyzers, transaction simulators, and blockchain security scanners. All vetted by security researchers."
         keywords="web3 security tools, smart contract auditing tools, wallet security tools, blockchain security scanner, defi security tools, crypto security software, transaction simulator"
+        image="https://www.digibastion.com/og-tools.png"
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

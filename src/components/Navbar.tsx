@@ -162,7 +162,7 @@ export const Navbar = () => {
                 {/* Threat Intel */}
                 <NavigationMenuItem>
                   <button
-                    onClick={() => navigate('/news')}
+                    onClick={() => navigate('/threat-intel')}
                     className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
                       transition-colors rounded-lg hover:bg-muted/50"
                   >

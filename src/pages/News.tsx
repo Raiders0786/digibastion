@@ -184,6 +184,7 @@ const News = () => {
         title="Crypto Threat Intelligence Feed — Real-Time Web3 Security Alerts | Digibastion"
         description="Stay ahead of crypto threats with real-time security alerts. Track DeFi exploits, wallet drainers, phishing attacks, and supply chain vulnerabilities. Free email alerts for critical threats."
         keywords="crypto security alerts, web3 threat intelligence, defi exploits, phishing detection, wallet drainer alerts, supply chain attacks, blockchain security news"
+        image="https://www.digibastion.com/og-threat-intel.png"
       />
       
       <Navbar />

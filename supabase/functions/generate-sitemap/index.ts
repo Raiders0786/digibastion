@@ -9,19 +9,19 @@ const SITE_URL = "https://www.digibastion.com";
 
 // Static routes with their priorities and change frequencies
 const staticRoutes = [
-  { path: "/", priority: 1.0, changefreq: "weekly" },
-  { path: "/news", priority: 0.95, changefreq: "daily" },
-  { path: "/quiz", priority: 0.9, changefreq: "monthly" },
-  { path: "/quiz-result", priority: 0.85, changefreq: "monthly" },
-  { path: "/leaderboard", priority: 0.85, changefreq: "daily" },
-  { path: "/tools", priority: 0.9, changefreq: "weekly" },
-  { path: "/articles", priority: 0.9, changefreq: "weekly" },
-  { path: "/links", priority: 0.85, changefreq: "weekly" },
-  { path: "/about", priority: 0.8, changefreq: "monthly" },
-  { path: "/support", priority: 0.7, changefreq: "monthly" },
-  { path: "/contact", priority: 0.7, changefreq: "monthly" },
-  { path: "/license", priority: 0.5, changefreq: "yearly" },
-  { path: "/share", priority: 0.7, changefreq: "monthly" },
+  { path: "/", priority: 1.0, changefreq: "weekly", image: "/og-image.png" },
+  { path: "/threat-intel", priority: 0.95, changefreq: "daily", image: "/og-threat-intel.png" },
+  { path: "/quiz", priority: 0.9, changefreq: "monthly", image: "/og-quiz.png" },
+  { path: "/quiz-result", priority: 0.85, changefreq: "monthly", image: "/og-quiz.png" },
+  { path: "/leaderboard", priority: 0.85, changefreq: "daily", image: "/og-quiz.png" },
+  { path: "/tools", priority: 0.9, changefreq: "weekly", image: "/og-tools.png" },
+  { path: "/articles", priority: 0.9, changefreq: "weekly", image: "/og-image.png" },
+  { path: "/links", priority: 0.85, changefreq: "weekly", image: "/og-image.png" },
+  { path: "/about", priority: 0.8, changefreq: "monthly", image: "/og-image.png" },
+  { path: "/support", priority: 0.7, changefreq: "monthly", image: "/og-image.png" },
+  { path: "/contact", priority: 0.7, changefreq: "monthly", image: "/og-image.png" },
+  { path: "/license", priority: 0.5, changefreq: "yearly", image: "/og-image.png" },
+  { path: "/share", priority: 0.7, changefreq: "monthly", image: "/og-image.png" },
 ];
 
 // Security category routes
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
   <priority>${route.priority}</priority>
   <changefreq>${route.changefreq}</changefreq>
   <image:image>
-    <image:loc>${SITE_URL}/og-image.png</image:loc>
+    <image:loc>${SITE_URL}${route.image}</image:loc>
     <image:caption>Digibastion - Web3 Security Platform</image:caption>
   </image:image>
 </url>
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
           : new Date(article.published_at).toISOString().split("T")[0];
         
         xml += `<url>
-  <loc>${SITE_URL}/news/${article.id}</loc>
+  <loc>${SITE_URL}/threat-intel/${article.id}</loc>
   <lastmod>${lastmod}</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
