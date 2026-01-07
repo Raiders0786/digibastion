@@ -8,6 +8,7 @@ import { SecurityPresets } from '../components/SecurityPresets';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { supabase } from '@/integrations/supabase/client';
 import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -415,6 +416,7 @@ const Index = () => {
       </main>
       
       <Footer />
+      <OnboardingTour />
     </div>
   );
 };
