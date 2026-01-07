@@ -44,9 +44,9 @@ const Articles = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Web3 Security Articles | Digibastion"
-        description="Explore our comprehensive collection of Web3 security articles. Learn about blockchain security, crypto safety, and DeFi best practices."
-        type="website"
+        title="Web3 Security Articles & Guides — Learn Crypto OpSec | Digibastion"
+        description="In-depth Web3 security articles covering wallet protection, smart contract safety, DeFi risks, and operational security. Expert guides for crypto users at all levels."
+        keywords="web3 security articles, crypto security guides, blockchain security tutorials, defi security tips, wallet security best practices, opsec for crypto"
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

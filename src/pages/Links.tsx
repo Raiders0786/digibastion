@@ -60,9 +60,9 @@ const Links = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Security Resources & Links | Digibastion"
-        description="Access our curated collection of Web3 security resources, tools, and educational materials. Find everything you need to enhance your blockchain security."
-        type="website"
+        title="Web3 Security Resources & Learning Materials — Guides, Tutorials | Digibastion"
+        description="Comprehensive collection of Web3 security resources. Find guides on wallet security, smart contract auditing, DeFi safety, and blockchain OpSec. Curated by security researchers."
+        keywords="web3 security resources, blockchain security guides, crypto security tutorials, defi security learning, wallet security guide, smart contract security resources"
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

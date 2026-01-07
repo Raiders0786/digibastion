@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -8,60 +7,60 @@ interface MetaTagsProps {
   image?: string;
   type?: string;
   canonical?: string;
+  keywords?: string;
+  noindex?: boolean;
 }
 
 export const MetaTags = ({ 
-  title = "Digibastion — The Open-Source Web3 Security Platform | Secure the Stack",
-  description = "Open-source Web3 security platform with threat intelligence, OpSec assessments, security scanners, and community-powered checklists. Supported by Ethereum Foundation ESP grant 2025.",
+  title = "Digibastion — Protect Your Crypto from Phishing, Hacks & Scams",
+  description = "Free, open-source Web3 security platform. Get real-time threat alerts, security checklists, and OpSec assessments to protect your crypto from phishing, wallet drains, and scams.",
   image = "https://digibastion.com/og-image.png",
   type = "website",
-  canonical
+  canonical,
+  keywords = "web3 security, crypto security, blockchain security, defi security, wallet security, phishing protection",
+  noindex = false
 }: MetaTagsProps) => {
   const location = useLocation();
   const url = `https://digibastion.com${location.pathname}`;
   const actualCanonical = canonical || url;
 
   useEffect(() => {
-    // Update meta tags
+    // Update document title
     document.title = title;
     
-    // Update standard meta tags
-    const descriptionTag = document.querySelector('meta[name="description"]');
-    if (descriptionTag) descriptionTag.setAttribute("content", description);
-
-    // Update OG meta tags
-    const updateOGTag = (property: string, content: string) => {
-      const tag = document.querySelector(`meta[property="og:${property}"]`);
-      if (tag) tag.setAttribute("content", content);
+    // Helper to update or create meta tag
+    const setMeta = (selector: string, content: string, attr = 'content') => {
+      let tag = document.querySelector(selector);
+      if (tag) {
+        tag.setAttribute(attr, content);
+      }
     };
 
-    updateOGTag("title", title);
-    updateOGTag("description", description);
-    updateOGTag("image", image);
-    updateOGTag("url", url);
-    updateOGTag("type", type);
+    // Standard meta tags
+    setMeta('meta[name="description"]', description);
+    setMeta('meta[name="keywords"]', keywords);
+    setMeta('meta[name="robots"]', noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large');
 
-    // Update Twitter meta tags
-    const updateTwitterTag = (name: string, content: string) => {
-      const tag = document.querySelector(`meta[name="twitter:${name}"]`);
-      if (tag) tag.setAttribute("content", content);
-    };
+    // Open Graph
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', description);
+    setMeta('meta[property="og:image"]', image);
+    setMeta('meta[property="og:url"]', url);
+    setMeta('meta[property="og:type"]', type);
 
-    updateTwitterTag("title", title);
-    updateTwitterTag("description", description);
-    updateTwitterTag("image", image);
-    updateTwitterTag("url", url);
+    // Twitter
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', description);
+    setMeta('meta[name="twitter:image"]', image);
+    setMeta('meta[name="twitter:url"]', url);
 
-    // Update or create canonical link
+    // Canonical
     let canonicalTag = document.querySelector('link[rel="canonical"]');
-    if (!canonicalTag) {
-      canonicalTag = document.createElement('link');
-      canonicalTag.setAttribute('rel', 'canonical');
-      document.head.appendChild(canonicalTag);
+    if (canonicalTag) {
+      canonicalTag.setAttribute('href', actualCanonical);
     }
-    canonicalTag.setAttribute('href', actualCanonical);
 
-  }, [title, description, image, type, url, actualCanonical]);
+  }, [title, description, image, type, url, actualCanonical, keywords, noindex]);
 
   return null;
 };
