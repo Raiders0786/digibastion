@@ -1,12 +1,14 @@
 
 import { SecurityStats } from '../types/security';
 import { useSecurityState } from '../hooks/useSecurityState';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { ScoreOverview } from './security-score/ScoreOverview';
 import { ScoreCircles } from './security-score/ScoreCircles';
 import { SecurityTips } from './security-score/SecurityTips';
 import { CategoryOverview } from './security-score/CategoryOverview';
 import { SummaryCards } from './security-score/SummaryCards';
+import { ScoreHistory } from './security-score/ScoreHistory';
+import { addScoreHistoryEntry } from '../utils/storageUtils';
 
 interface SecurityScoreProps {
   score: number;
@@ -69,6 +71,10 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
     if (progress > 100) return 100;
     return progress;
   };
+  // Record score history when component mounts or score changes
+  useEffect(() => {
+    addScoreHistoryEntry(validScore, validStats);
+  }, [validScore, validStats]);
 
   return (
     <div id="score" className="space-y-6 scroll-mt-24" key={`security-score-${threatLevel}-${changeCount}`}>
@@ -86,6 +92,8 @@ export const SecurityScore = ({ score, stats }: SecurityScoreProps) => {
           />
 
           <SecurityTips score={validScore} threatLevel={threatLevel} />
+          
+          <ScoreHistory />
         </div>
 
         <CategoryOverview 
