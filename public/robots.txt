@@ -1,4 +1,3 @@
-
 # www.digibastion.com robots.txt
 User-agent: *
 Allow: /
@@ -9,6 +8,5 @@ Disallow: /staging/
 Disallow: /dev/
 Disallow: /test/
 
-# Sitemap location
-Sitemap: https://www.digibastion.com/sitemap.xml
-
+# Sitemap locations
+Sitemap: https://www.digibastion.com/sitemap-index.xml
