@@ -140,13 +140,15 @@ const QuizResult = () => {
 
         const result = await response.json();
         
-        if (!response.ok) {
+        if (response.ok) {
+          toast.success('Score saved to leaderboard! 🏆');
+        } else if (result.error?.includes('rate limit')) {
+          toast.info('Score already submitted recently');
+        } else {
           console.error('Failed to submit score:', result.error);
-          // Don't show error to user - still allow them to share
         }
       } catch (error) {
         console.error('Error submitting score:', error);
-        // Don't block sharing if score submission fails
       }
     }
 
