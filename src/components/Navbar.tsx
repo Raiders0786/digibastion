@@ -1,4 +1,5 @@
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap, Menu, X } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -6,14 +7,19 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
+import { Button } from './ui/button';
+import { ScrollArea } from './ui/scroll-area';
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCategoryClick = (categoryId: string) => {
+    setMobileMenuOpen(false);
     if (categoryId === 'score') {
       if (location.pathname !== '/') {
         navigate('/', { state: { scrollTo: 'score' } });
@@ -36,6 +42,7 @@ export const Navbar = () => {
   };
 
   const handleRoadmapClick = () => {
+    setMobileMenuOpen(false);
     if (location.pathname !== '/') {
       navigate('/', { state: { scrollTo: 'roadmap' } });
     } else {
@@ -53,6 +60,11 @@ export const Navbar = () => {
     }
   };
 
+  const handleMobileNavigate = (route: string) => {
+    setMobileMenuOpen(false);
+    navigate(route);
+  };
+
   const categories = [
     { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
     { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing' },
@@ -65,6 +77,18 @@ export const Navbar = () => {
     { id: 'developers', title: 'Developer Security', description: 'Web3 development security' },
     { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting' },
     { id: 'opsec', title: 'OpSec', description: 'Operational security practices' }
+  ];
+
+  const resourceItems = [
+    { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
+    { route: '/tools', icon: Wrench, label: 'Tools' },
+    { route: '/articles', icon: Book, label: 'Articles' },
+    { route: '/links', icon: Link, label: 'Useful Links' },
+    { route: '/license', icon: FileText, label: 'License' },
+    { route: '/about', icon: Info, label: 'About Us' },
+    { route: '/support', icon: Heart, label: 'Support Us' },
+    { route: '/contact', icon: Mail, label: 'Contact' },
+    { route: '/share', icon: Share, label: 'Share' }
   ];
 
   return (
@@ -92,14 +116,13 @@ export const Navbar = () => {
             </div>
           </div>
           
-          {/* Navigation */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex items-center gap-1 sm:gap-2">
             <NavigationMenu>
               <NavigationMenuList className="gap-0.5">
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
-                    <span className="hidden sm:inline">Checklists</span>
-                    <span className="sm:hidden">Menu</span>
+                    Checklists
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-[320px] sm:w-[400px] p-4 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
@@ -154,10 +177,9 @@ export const Navbar = () => {
                       transition-colors rounded-lg hover:bg-muted/50"
                   >
                     <Zap className="w-4 h-4" />
-                    <span className="hidden sm:inline">Quiz</span>
+                    <span>Quiz</span>
                   </button>
                 </NavigationMenuItem>
-
 
                 {/* Threat Intel */}
                 <NavigationMenuItem>
@@ -167,28 +189,18 @@ export const Navbar = () => {
                       transition-colors rounded-lg hover:bg-muted/50"
                   >
                     <Newspaper className="w-4 h-4" />
-                    <span className="hidden sm:inline">Threat Intel</span>
+                    <span>Threat Intel</span>
                   </button>
                 </NavigationMenuItem>
 
                 {/* Resources */}
-                <NavigationMenuItem className="hidden sm:block">
+                <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     Resources
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-[200px] p-2 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
-                      {[
-                        { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
-                        { route: '/tools', icon: Wrench, label: 'Tools' },
-                        { route: '/articles', icon: Book, label: 'Articles' },
-                        { route: '/links', icon: Link, label: 'Useful Links' },
-                        { route: '/license', icon: FileText, label: 'License' },
-                        { route: '/about', icon: Info, label: 'About Us' },
-                        { route: '/support', icon: Heart, label: 'Support Us' },
-                        { route: '/contact', icon: Mail, label: 'Contact' },
-                        { route: '/share', icon: Share, label: 'Share' }
-                      ].map(item => (
+                      {resourceItems.map(item => (
                         <button
                           key={item.label}
                           onClick={() => item.action ? item.action() : navigate(item.route!)}
@@ -220,6 +232,124 @@ export const Navbar = () => {
             >
               <Github className="w-5 h-5" />
             </a>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="flex sm:hidden items-center gap-1">
+            {/* Quick actions on mobile */}
+            <button
+              onClick={() => navigate('/quiz')}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+              aria-label="Quiz"
+            >
+              <Zap className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => navigate('/threat-intel')}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+              aria-label="Threat Intel"
+            >
+              <Newspaper className="w-5 h-5" />
+            </button>
+            
+            <ThemeToggle />
+
+            {/* Hamburger Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="p-2">
+                  <Menu className="w-5 h-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0">
+                <SheetHeader className="p-4 border-b border-border/50">
+                  <SheetTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <span>Digibastion</span>
+                  </SheetTitle>
+                </SheetHeader>
+                
+                <ScrollArea className="h-[calc(100vh-80px)]">
+                  <div className="p-4 space-y-6">
+                    {/* Security Score */}
+                    <button
+                      onClick={() => handleCategoryClick('score')}
+                      className="w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-4 text-left
+                        border border-primary/20 transition-all duration-300 hover:border-primary/40"
+                    >
+                      <h3 className="text-sm font-semibold text-foreground mb-1">Security Score</h3>
+                      <p className="text-xs text-muted-foreground">Track your security progress</p>
+                    </button>
+
+                    {/* Checklists Section */}
+                    <div>
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Security Checklists
+                      </h4>
+                      <div className="space-y-1">
+                        {categories.map(category => (
+                          <button
+                            key={category.id}
+                            onClick={() => handleCategoryClick(category.id)}
+                            className="w-full p-3 text-left rounded-lg transition-all duration-200
+                              hover:bg-muted/50 flex items-center justify-between group"
+                          >
+                            <div>
+                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {category.title}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {category.description}
+                              </div>
+                            </div>
+                            <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Resources Section */}
+                    <div>
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Resources
+                      </h4>
+                      <div className="space-y-1">
+                        {resourceItems.map(item => (
+                          <button
+                            key={item.label}
+                            onClick={() => item.action ? item.action() : handleMobileNavigate(item.route!)}
+                            className="flex items-center gap-3 w-full p-3 text-sm rounded-lg 
+                              hover:bg-muted/50 text-left transition-all duration-200 group"
+                          >
+                            <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span className="text-foreground group-hover:text-primary transition-colors">
+                              {item.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* GitHub Link */}
+                    <div className="pt-4 border-t border-border/50">
+                      <a 
+                        href="https://github.com/Raiders0786/digibastion"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 w-full p-3 text-sm rounded-lg 
+                          hover:bg-muted/50 text-left transition-all duration-200 group"
+                      >
+                        <Github className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <span className="text-foreground group-hover:text-primary transition-colors">
+                          View on GitHub
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
