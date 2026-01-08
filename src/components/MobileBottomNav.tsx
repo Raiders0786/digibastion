@@ -1,82 +1,26 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Zap, Newspaper, Menu, Shield } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import { Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { ChevronDown, Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share } from 'lucide-react';
-import { useState, useRef } from 'react';
-
-interface RippleEffect {
-  x: number;
-  y: number;
-  id: number;
-}
-
-const RippleButton = ({ 
-  children, 
-  onClick, 
-  isActive,
-  className = '',
-  style
-}: { 
-  children: React.ReactNode; 
-  onClick: () => void; 
-  isActive?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
-}) => {
-  const [ripples, setRipples] = useState<RippleEffect[]>([]);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const button = buttonRef.current;
-    if (!button) return;
-
-    const rect = button.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now();
-
-    setRipples((prev) => [...prev, { x, y, id }]);
-
-    // Trigger haptic feedback if available
-    if ('vibrate' in navigator) {
-      navigator.vibrate(10);
-    }
-
-    setTimeout(() => {
-      setRipples((prev) => prev.filter((ripple) => ripple.id !== id));
-    }, 600);
-
-    onClick();
-  };
-
-  return (
-    <button
-      ref={buttonRef}
-      onClick={handleClick}
-      style={style}
-      className={`relative overflow-hidden ${className}`}
-    >
-      {ripples.map((ripple) => (
-        <span
-          key={ripple.id}
-          className="absolute rounded-full bg-primary/30 animate-ripple pointer-events-none"
-          style={{
-            left: ripple.x,
-            top: ripple.y,
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-      ))}
-      {children}
-    </button>
-  );
-};
+import { useState, useEffect } from 'react';
+import { SwipeableBottomSheet } from './mobile/SwipeableBottomSheet';
+import { TouchFeedback } from './mobile/TouchFeedback';
+import { NotificationBadge } from './mobile/NotificationBadge';
+import { useMobileNotifications } from '@/hooks/useMobileNotifications';
+import { cn } from '@/lib/utils';
 
 export const MobileBottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { alertCount, hasNewQuiz, markAlertsRead, markQuizVisited } = useMobileNotifications();
+
+  // Entrance animation
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleCategoryClick = (categoryId: string) => {
     setMenuOpen(false);
@@ -112,18 +56,28 @@ export const MobileBottomNav = () => {
     }
   };
 
+  const handleNavClick = (route: string) => {
+    // Mark notifications as read when navigating
+    if (route === '/threat-intel') {
+      markAlertsRead();
+    } else if (route === '/quiz') {
+      markQuizVisited();
+    }
+    navigate(route);
+  };
+
   const categories = [
-    { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
-    { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing' },
-    { id: 'email', title: 'Email Security', description: 'Protect communications' },
-    { id: 'mobile', title: 'Mobile Security', description: 'Device protection' },
-    { id: 'social', title: 'Social Media', description: 'Social account security' },
-    { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection' },
-    { id: 'os', title: 'OS Security', description: 'System hardening' },
-    { id: 'defi', title: 'DeFi Security', description: 'Secure DeFi interactions' },
-    { id: 'developers', title: 'Developer Security', description: 'Web3 development security' },
-    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting' },
-    { id: 'opsec', title: 'OpSec', description: 'Operational security practices' }
+    { id: 'authentication', title: 'Authentication', description: 'Secure account access', emoji: '🔐' },
+    { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing', emoji: '🌐' },
+    { id: 'email', title: 'Email Security', description: 'Protect communications', emoji: '📧' },
+    { id: 'mobile', title: 'Mobile Security', description: 'Device protection', emoji: '📱' },
+    { id: 'social', title: 'Social Media', description: 'Social account security', emoji: '👥' },
+    { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection', emoji: '💼' },
+    { id: 'os', title: 'OS Security', description: 'System hardening', emoji: '💻' },
+    { id: 'defi', title: 'DeFi Security', description: 'Secure DeFi interactions', emoji: '🔗' },
+    { id: 'developers', title: 'Developer Security', description: 'Web3 development security', emoji: '👨‍💻' },
+    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting', emoji: '💼' },
+    { id: 'opsec', title: 'OpSec', description: 'Operational security practices', emoji: '🛡️' }
   ];
 
   const resourceItems = [
@@ -139,154 +93,223 @@ export const MobileBottomNav = () => {
   ];
 
   const navItems = [
-    { route: '/', icon: Home, label: 'Home' },
-    { route: '/quiz', icon: Zap, label: 'Quiz' },
-    { route: '/threat-intel', icon: Newspaper, label: 'Alerts' },
+    { route: '/', icon: Home, label: 'Home', badge: undefined },
+    { route: '/quiz', icon: Zap, label: 'Quiz', badge: hasNewQuiz ? 'dot' : undefined },
+    { route: '/threat-intel', icon: Newspaper, label: 'Alerts', badge: alertCount > 0 ? alertCount : undefined },
   ];
 
   const isActive = (route: string) => location.pathname === route;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden">
+    <div 
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 sm:hidden",
+        "transition-all duration-500 ease-out",
+        mounted ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+      )}
+    >
       {/* Gradient fade effect at top */}
-      <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-background/90 to-transparent pointer-events-none" />
       
       {/* Navigation bar */}
-      <nav className="bg-background/95 backdrop-blur-xl border-t border-border/50 px-2 pb-safe">
+      <nav className="bg-background/95 backdrop-blur-xl border-t border-border/50 px-2 pb-safe shadow-2xl">
         <div className="flex items-center justify-around h-16">
-          {navItems.map((item) => (
-            <RippleButton
+          {navItems.map((item, idx) => (
+            <TouchFeedback
               key={item.route}
-              onClick={() => navigate(item.route)}
-              isActive={isActive(item.route)}
-              className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200
-                ${isActive(item.route) 
+              onClick={() => handleNavClick(item.route)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200",
+                isActive(item.route) 
                   ? 'text-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  : 'text-muted-foreground'
+              )}
+              rippleColor={isActive(item.route) ? 'bg-primary/20' : 'bg-muted-foreground/20'}
             >
               <div className="relative">
-                <item.icon className={`w-5 h-5 transition-transform duration-200 ${isActive(item.route) ? 'scale-110' : ''}`} />
+                <item.icon 
+                  className={cn(
+                    "w-5 h-5 transition-all duration-300",
+                    isActive(item.route) && "scale-110"
+                  )} 
+                />
+                {/* Notification badge */}
+                {item.badge !== undefined && (
+                  <NotificationBadge 
+                    count={typeof item.badge === 'number' ? item.badge : undefined}
+                    showDot={item.badge === 'dot'}
+                    pulse
+                  />
+                )}
+                {/* Active indicator */}
                 {isActive(item.route) && (
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary animate-pulse" />
                 )}
               </div>
-              <span className={`text-[10px] font-medium transition-all ${isActive(item.route) ? 'text-primary' : ''}`}>
+              <span 
+                className={cn(
+                  "text-[10px] font-medium transition-all duration-200",
+                  isActive(item.route) && "text-primary font-semibold"
+                )}
+              >
                 {item.label}
               </span>
-            </RippleButton>
+            </TouchFeedback>
           ))}
 
-          {/* Menu Button with Sheet */}
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <RippleButton
-                onClick={() => {}}
-                className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground transition-all duration-200"
-              >
-                <Menu className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Menu</span>
-              </RippleButton>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl px-0">
-              <SheetHeader className="px-6 pb-4 border-b border-border/50">
-                <SheetTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-primary" />
-                  <span>Digibastion Menu</span>
-                </SheetTitle>
-              </SheetHeader>
-              
-              <ScrollArea className="h-[calc(80vh-80px)]">
-                <div className="p-4 space-y-6">
-                  {/* Security Score */}
-                  <RippleButton
-                    onClick={() => handleCategoryClick('score')}
-                    className={`w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-4 text-left
-                      border transition-all duration-300 hover:border-primary/40 animate-fade-in
-                      ${location.pathname === '/' ? 'border-primary/60' : 'border-primary/20'}`}
-                  >
-                    <h3 className="text-sm font-semibold text-foreground mb-1">Security Score</h3>
-                    <p className="text-xs text-muted-foreground">Track your security progress</p>
-                  </RippleButton>
+          {/* Menu Button with Swipeable Sheet */}
+          <TouchFeedback
+            onClick={() => setMenuOpen(true)}
+            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl text-muted-foreground"
+            rippleColor="bg-muted-foreground/20"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Menu</span>
+          </TouchFeedback>
 
-                  {/* Checklists Section */}
-                  <div className="animate-fade-in" style={{ animationDelay: '50ms' }}>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
-                      Security Checklists
-                    </h4>
-                    <div className="space-y-1">
-                      {categories.map((category, idx) => {
-                        const active = location.pathname === `/category/${category.id}`;
-                        return (
-                          <RippleButton
-                            key={category.id}
-                            onClick={() => handleCategoryClick(category.id)}
-                            isActive={active}
-                            className={`w-full p-3 text-left rounded-lg transition-all duration-200
-                              flex items-center justify-between group animate-fade-in
-                              ${active 
-                                ? 'bg-primary/10 border border-primary/30' 
-                                : 'hover:bg-muted/50 border border-transparent'}`}
-                            style={{ animationDelay: `${100 + idx * 25}ms` } as React.CSSProperties}
-                          >
-                            <div>
-                              <div className={`text-sm font-medium transition-colors ${active ? 'text-primary' : 'text-foreground'}`}>
-                                {category.title}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {category.description}
-                              </div>
-                            </div>
-                            <ChevronDown className={`w-4 h-4 -rotate-90 transition-colors ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                          </RippleButton>
-                        );
-                      })}
+          <SwipeableBottomSheet 
+            open={menuOpen} 
+            onOpenChange={setMenuOpen}
+            className="h-[80vh]"
+          >
+            {/* Header */}
+            <div className="px-6 pb-4 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-foreground">Digibastion Menu</h2>
+                  <p className="text-xs text-muted-foreground">Secure the Stack</p>
+                </div>
+              </div>
+            </div>
+            
+            <ScrollArea className="h-[calc(80vh-100px)]">
+              <div className="p-4 space-y-6">
+                {/* Security Score - Featured Card */}
+                <TouchFeedback
+                  onClick={() => handleCategoryClick('score')}
+                  className={cn(
+                    "w-full rounded-2xl overflow-hidden",
+                    "bg-gradient-to-br from-primary/15 via-primary/10 to-accent/10",
+                    "p-4 text-left border transition-all duration-300",
+                    "animate-fade-in",
+                    location.pathname === '/' ? 'border-primary/40 shadow-glow' : 'border-primary/20'
+                  )}
+                  rippleColor="bg-primary/20"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Security Score</h3>
+                        <p className="text-xs text-muted-foreground">Track your security progress</p>
+                      </div>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
+                </TouchFeedback>
 
-                  {/* Resources Section */}
-                  <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
-                      Resources
-                    </h4>
-                    <div className="space-y-1">
-                      {resourceItems.map((item, idx) => {
-                        const active = item.route && location.pathname === item.route;
-                        return (
-                          <RippleButton
-                            key={item.label}
-                            onClick={() => {
-                              if (item.action) {
-                                item.action();
-                              } else {
-                                setMenuOpen(false);
-                                navigate(item.route!);
-                              }
-                            }}
-                            isActive={active || false}
-                            className={`flex items-center gap-3 w-full p-3 text-sm rounded-lg 
-                              text-left transition-all duration-200 group animate-fade-in
-                              ${active 
-                                ? 'bg-primary/10 border border-primary/30' 
-                                : 'hover:bg-muted/50 border border-transparent'}`}
-                            style={{ animationDelay: `${350 + idx * 25}ms` } as React.CSSProperties}
-                          >
-                            <item.icon className={`w-4 h-4 transition-colors ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <span className={`transition-colors ${active ? 'text-primary font-medium' : 'text-foreground'}`}>
-                              {item.label}
-                            </span>
-                            {active && (
-                              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                            )}
-                          </RippleButton>
-                        );
-                      })}
-                    </div>
+                {/* Checklists Section */}
+                <div className="animate-fade-in" style={{ animationDelay: '50ms' }}>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
+                    Security Checklists
+                  </h4>
+                  <div className="space-y-1.5">
+                    {categories.map((category, idx) => {
+                      const active = location.pathname === `/category/${category.id}`;
+                      return (
+                        <TouchFeedback
+                          key={category.id}
+                          onClick={() => handleCategoryClick(category.id)}
+                          className={cn(
+                            "w-full p-3.5 text-left rounded-xl transition-all duration-200",
+                            "flex items-center gap-3 group animate-fade-in",
+                            active 
+                              ? 'bg-primary/10 border border-primary/30' 
+                              : 'border border-transparent hover:bg-muted/50'
+                          )}
+                          style={{ animationDelay: `${100 + idx * 25}ms` } as React.CSSProperties}
+                          rippleColor={active ? 'bg-primary/25' : 'bg-muted-foreground/15'}
+                        >
+                          <span className="text-lg">{category.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className={cn(
+                              "text-sm font-medium transition-colors truncate",
+                              active ? 'text-primary' : 'text-foreground'
+                            )}>
+                              {category.title}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {category.description}
+                            </div>
+                          </div>
+                          {active && (
+                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          )}
+                          <ChevronRight className={cn(
+                            "w-4 h-4 transition-all duration-200",
+                            active ? 'text-primary' : 'text-muted-foreground/50 group-active:translate-x-0.5'
+                          )} />
+                        </TouchFeedback>
+                      );
+                    })}
                   </div>
                 </div>
-              </ScrollArea>
-            </SheetContent>
-          </Sheet>
+
+                {/* Resources Section */}
+                <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
+                    Resources
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {resourceItems.map((item, idx) => {
+                      const active = item.route && location.pathname === item.route;
+                      return (
+                        <TouchFeedback
+                          key={item.label}
+                          onClick={() => {
+                            if (item.action) {
+                              item.action();
+                            } else {
+                              setMenuOpen(false);
+                              navigate(item.route!);
+                            }
+                          }}
+                          className={cn(
+                            "flex flex-col items-center gap-2 p-3 rounded-xl",
+                            "transition-all duration-200 animate-fade-in",
+                            active 
+                              ? 'bg-primary/10 border border-primary/30' 
+                              : 'border border-border/50 hover:bg-muted/50'
+                          )}
+                          style={{ animationDelay: `${350 + idx * 25}ms` } as React.CSSProperties}
+                          rippleColor={active ? 'bg-primary/25' : 'bg-muted-foreground/15'}
+                        >
+                          <item.icon className={cn(
+                            "w-5 h-5 transition-colors",
+                            active ? 'text-primary' : 'text-muted-foreground'
+                          )} />
+                          <span className={cn(
+                            "text-[10px] font-medium text-center transition-colors",
+                            active ? 'text-primary' : 'text-foreground'
+                          )}>
+                            {item.label}
+                          </span>
+                        </TouchFeedback>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bottom safe area padding */}
+                <div className="h-4" />
+              </div>
+            </ScrollArea>
+          </SwipeableBottomSheet>
         </div>
       </nav>
     </div>
