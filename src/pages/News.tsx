@@ -12,6 +12,8 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { PullToRefresh } from '@/components/mobile/PullToRefresh';
+import { SwipeableTabs } from '@/components/mobile/SwipeableTabs';
+import { NewsListSkeleton, AlertListSkeleton, StatsSkeleton } from '@/components/news/NewsCardSkeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -150,6 +152,17 @@ const News = () => {
     { id: 'subscribe', label: 'Subscribe', icon: Bell },
   ];
 
+  // Get current tab index for swipe navigation
+  const currentTabIndex = tabs.findIndex(t => t.id === selectedTab);
+
+  // Handle swipe navigation
+  const handleSwipe = (direction: 'left' | 'right') => {
+    const newIndex = direction === 'left' 
+      ? Math.min(currentTabIndex + 1, tabs.length - 1)
+      : Math.max(currentTabIndex - 1, 0);
+    handleTabChange(tabs[newIndex].id);
+  };
+
   // If an article is selected, show the detail view
   if (selectedArticle) {
     return (
@@ -269,7 +282,12 @@ const News = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
+          {/* Tab Content - Swipeable on mobile */}
+          <SwipeableTabs
+            currentIndex={currentTabIndex}
+            tabCount={tabs.length}
+            onSwipe={handleSwipe}
+          >
           {selectedTab === 'feed' && (
             <div className="space-y-6">
               {/* Search and Sort Bar */}
@@ -376,15 +394,7 @@ const News = () => {
                   </div>
 
                   {isLoading ? (
-                    <Card className="glass-card">
-                      <CardContent className="p-8 text-center">
-                        <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
-                        <h3 className="text-lg font-medium mb-2">Loading threat intelligence...</h3>
-                        <p className="text-muted-foreground">
-                          Fetching the latest security news
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <NewsListSkeleton count={5} />
                   ) : filteredArticles.length > 0 ? (
                     filteredArticles.map((article) => (
                       <NewsCard 
@@ -714,6 +724,7 @@ const News = () => {
               </div>
             </ErrorBoundary>
           )}
+          </SwipeableTabs>
         </div>
       </main>
 
