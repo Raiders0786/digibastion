@@ -172,7 +172,7 @@ export const Navbar = () => {
                 </NavigationMenuItem>
 
                 {/* Resources */}
-                <NavigationMenuItem>
+                <NavigationMenuItem className="hidden sm:block">
                   <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     Resources
                   </NavigationMenuTrigger>

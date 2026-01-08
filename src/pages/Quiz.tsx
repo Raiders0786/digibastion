@@ -49,7 +49,7 @@ const Quiz = () => {
             <div className="absolute top-20 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
             <div className="absolute top-40 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
             
-            <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-16 sm:py-24">
+            <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-12 sm:py-16 lg:py-24">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
                 <Sparkles className="w-4 h-4 text-primary" />
@@ -57,7 +57,7 @@ const Quiz = () => {
               </div>
 
               {/* Main heading */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground mb-4 sm:mb-6 leading-tight">
                 How Secure Is Your{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent">
                   Crypto OpSec?
@@ -65,23 +65,23 @@ const Quiz = () => {
               </h1>
 
               {/* Subtitle */}
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
                 Take the 2-minute quiz to discover your security level, get personalized recommendations, 
                 and earn your crypto character ranking.
               </p>
 
               {/* CTA Button */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <Button 
                   onClick={() => setIsQuizOpen(true)}
                   size="lg"
-                  className="gap-3 text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+                  className="gap-2 sm:gap-3 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group w-full sm:w-auto"
                 >
                   <Shield className="w-5 h-5" />
                   <span>Take the Quiz</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-                <ChallengeButton variant="outline" className="px-6 py-6 text-lg" />
+                <ChallengeButton variant="outline" className="px-6 py-5 sm:py-6 text-base sm:text-lg w-full sm:w-auto" />
               </div>
 
               {/* Leaderboard link */}
@@ -95,18 +95,18 @@ const Quiz = () => {
               </Button>
 
               {/* Stats */}
-              <div className="flex items-center justify-center gap-8 mt-12 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mt-10 sm:mt-12 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-primary" />
                   <span>2 min</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-warning" />
-                  <span>6 Character Ranks</span>
+                  <span>6 Ranks</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-accent" />
-                  <span>Shareable Results</span>
+                  <span>Shareable</span>
                 </div>
               </div>
             </div>
@@ -141,7 +141,7 @@ const Quiz = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
               {[
                 { emoji: '👻', name: 'Satoshi-Level', score: '90+', color: 'from-green-500/20 to-emerald-500/20' },
                 { emoji: '🐋', name: 'Whale Guard', score: '75-89', color: 'from-blue-500/20 to-cyan-500/20' },
@@ -152,11 +152,11 @@ const Quiz = () => {
               ].map((char, idx) => (
                 <div 
                   key={idx}
-                  className={`p-4 rounded-xl bg-gradient-to-br ${char.color} border border-border/30 text-center hover:scale-105 transition-transform`}
+                  className={`p-3 sm:p-4 rounded-xl bg-gradient-to-br ${char.color} border border-border/30 text-center hover:scale-105 transition-transform`}
                 >
-                  <div className="text-3xl mb-2">{char.emoji}</div>
-                  <div className="text-xs font-semibold text-foreground truncate">{char.name}</div>
-                  <div className="text-xs text-muted-foreground">{char.score}</div>
+                  <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{char.emoji}</div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-foreground truncate">{char.name}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">{char.score}</div>
                 </div>
               ))}
             </div>
