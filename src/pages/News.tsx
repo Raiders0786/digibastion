@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { PullToRefresh } from '@/components/mobile/PullToRefresh';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -172,10 +173,16 @@ const News = () => {
     );
   }
 
+  // Pull to refresh handler
+  const handlePullToRefresh = async () => {
+    await refetch();
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Realtime Alert Listener */}
-      <RealtimeAlertListener 
+    <PullToRefresh onRefresh={handlePullToRefresh} isRefreshing={isLoading}>
+      <div className="min-h-screen bg-background">
+        {/* Realtime Alert Listener */}
+        <RealtimeAlertListener
         onNewArticle={handleNewRealtimeArticle} 
         enabled={true} 
       />
@@ -710,8 +717,9 @@ const News = () => {
         </div>
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </PullToRefresh>
   );
 };
 

@@ -10,6 +10,7 @@ import { PageTransition } from "./components/PageTransition";
 import { MetaTags } from "./components/MetaTags";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MobileBottomNav } from "./components/MobileBottomNav";
+import { FloatingActionButton } from "./components/mobile/FloatingActionButton";
 import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
 import NotFound from "./pages/NotFound";
@@ -72,6 +73,7 @@ const App = () => {
                   </Routes>
                 </PageTransition>
                 <MobileBottomNav />
+                <FloatingActionButton />
               </TooltipProvider>
             </QueryClientProvider>
           </BrowserRouter>
