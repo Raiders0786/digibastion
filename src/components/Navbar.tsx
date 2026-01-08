@@ -275,70 +275,89 @@ export const Navbar = () => {
                     {/* Security Score */}
                     <button
                       onClick={() => handleCategoryClick('score')}
-                      className="w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-4 text-left
-                        border border-primary/20 transition-all duration-300 hover:border-primary/40"
+                      className={`w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-4 text-left
+                        border transition-all duration-300 hover:border-primary/40 hover:scale-[1.02] active:scale-[0.98]
+                        animate-fade-in ${location.pathname === '/' && location.hash === '#score' ? 'border-primary/60 shadow-glow' : 'border-primary/20'}`}
+                      style={{ animationDelay: '50ms' }}
                     >
                       <h3 className="text-sm font-semibold text-foreground mb-1">Security Score</h3>
                       <p className="text-xs text-muted-foreground">Track your security progress</p>
                     </button>
 
                     {/* Checklists Section */}
-                    <div>
+                    <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                         Security Checklists
                       </h4>
                       <div className="space-y-1">
-                        {categories.map(category => (
-                          <button
-                            key={category.id}
-                            onClick={() => handleCategoryClick(category.id)}
-                            className="w-full p-3 text-left rounded-lg transition-all duration-200
-                              hover:bg-muted/50 flex items-center justify-between group"
-                          >
-                            <div>
-                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                {category.title}
+                        {categories.map((category, idx) => {
+                          const isActive = location.pathname === `/category/${category.id}`;
+                          return (
+                            <button
+                              key={category.id}
+                              onClick={() => handleCategoryClick(category.id)}
+                              className={`w-full p-3 text-left rounded-lg transition-all duration-200
+                                flex items-center justify-between group hover:scale-[1.01] active:scale-[0.99]
+                                animate-fade-in ${isActive 
+                                  ? 'bg-primary/10 border border-primary/30' 
+                                  : 'hover:bg-muted/50 border border-transparent'}`}
+                              style={{ animationDelay: `${150 + idx * 30}ms` }}
+                            >
+                              <div>
+                                <div className={`text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-foreground group-hover:text-primary'}`}>
+                                  {category.title}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {category.description}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {category.description}
-                              </div>
-                            </div>
-                            <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90" />
-                          </button>
-                        ))}
+                              <ChevronDown className={`w-4 h-4 -rotate-90 transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:translate-x-0.5'}`} />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Resources Section */}
-                    <div>
+                    <div className="animate-fade-in" style={{ animationDelay: '400ms' }}>
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                         Resources
                       </h4>
                       <div className="space-y-1">
-                        {resourceItems.map(item => (
-                          <button
-                            key={item.label}
-                            onClick={() => item.action ? item.action() : handleMobileNavigate(item.route!)}
-                            className="flex items-center gap-3 w-full p-3 text-sm rounded-lg 
-                              hover:bg-muted/50 text-left transition-all duration-200 group"
-                          >
-                            <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                            <span className="text-foreground group-hover:text-primary transition-colors">
-                              {item.label}
-                            </span>
-                          </button>
-                        ))}
+                        {resourceItems.map((item, idx) => {
+                          const isActive = item.route && location.pathname === item.route;
+                          return (
+                            <button
+                              key={item.label}
+                              onClick={() => item.action ? item.action() : handleMobileNavigate(item.route!)}
+                              className={`flex items-center gap-3 w-full p-3 text-sm rounded-lg 
+                                text-left transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]
+                                animate-fade-in ${isActive 
+                                  ? 'bg-primary/10 border border-primary/30' 
+                                  : 'hover:bg-muted/50 border border-transparent'}`}
+                              style={{ animationDelay: `${450 + idx * 30}ms` }}
+                            >
+                              <item.icon className={`w-4 h-4 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
+                              <span className={`transition-colors ${isActive ? 'text-primary font-medium' : 'text-foreground group-hover:text-primary'}`}>
+                                {item.label}
+                              </span>
+                              {isActive && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* GitHub Link */}
-                    <div className="pt-4 border-t border-border/50">
+                    <div className="pt-4 border-t border-border/50 animate-fade-in" style={{ animationDelay: '700ms' }}>
                       <a 
                         href="https://github.com/Raiders0786/digibastion"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 w-full p-3 text-sm rounded-lg 
-                          hover:bg-muted/50 text-left transition-all duration-200 group"
+                          hover:bg-muted/50 text-left transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]"
                       >
                         <Github className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         <span className="text-foreground group-hover:text-primary transition-colors">
