@@ -102,25 +102,25 @@ const Index = () => {
 
           <div className="relative section-container py-16 sm:py-20">
             {/* ESP Badge */}
-            <div className="flex justify-center mb-10 animate-fade-in">
+            <div className="flex justify-center mb-8 sm:mb-10 animate-fade-in px-2">
               <a 
                 href="https://blog.ethereum.org/2025/12/02/allocation-q3-25"
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-muted/30 border border-border/50 transition-all duration-200 hover:bg-muted/50 hover:border-primary/30"
+                className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full bg-muted/30 border border-border/50 transition-all duration-200 hover:bg-muted/50 hover:border-primary/30"
               >
-                <span className="text-xs text-muted-foreground">Supported in 2025 with a small grant from:</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground text-center">Supported in 2025 with a small grant from:</span>
                 <img 
                   src={espLogo} 
                   alt="Ethereum ESP" 
-                  className="h-6 w-auto opacity-90"
+                  className="h-5 sm:h-6 w-auto opacity-90"
                 />
               </a>
             </div>
 
             {/* Main Headline - Clear Problem/Solution */}
-            <div className="text-center max-w-3xl mx-auto space-y-6 animate-fade-in-up">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+            <div className="text-center max-w-3xl mx-auto space-y-4 sm:space-y-6 animate-fade-in-up px-2">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
                 <span className="text-foreground">Don't Get </span>
                 <span className="text-destructive">Rekt</span>
                 <span className="text-foreground">.</span>
@@ -129,7 +129,7 @@ const Index = () => {
                 <span className="text-gradient">Phishing & Scams</span>
               </h1>
               
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+              <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
                 Free security checklists, real-time threat alerts, and OpSec assessments. 
                 Stay one step ahead of hackers.
               </p>
@@ -171,11 +171,11 @@ const Index = () => {
             </div>
 
             {/* Primary CTAs */}
-            <div className="flex flex-wrap justify-center gap-3 mt-10">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 mt-8 sm:mt-10 px-4">
               <Button 
                 onClick={() => navigate('/threat-intel?tab=alerts')}
                 size="lg" 
-                className="gap-2 bg-destructive hover:bg-destructive/90"
+                className="gap-2 bg-destructive hover:bg-destructive/90 w-full sm:w-auto"
               >
                 <Bell className="h-4 w-4" />
                 Get Threat Alerts
@@ -185,7 +185,7 @@ const Index = () => {
                 onClick={() => navigate('/quiz')}
                 size="lg" 
                 variant="outline"
-                className="gap-2 border-primary/30 hover:bg-primary/10"
+                className="gap-2 border-primary/30 hover:bg-primary/10 w-full sm:w-auto"
               >
                 <Zap className="h-4 w-4 text-primary" />
                 Take Security Quiz
@@ -200,21 +200,21 @@ const Index = () => {
         </section>
 
         {/* Threat Intel Highlight */}
-        <section className="section-container py-12 border-y border-border/50 bg-muted/30">
-          <div className="flex flex-col lg:flex-row items-center gap-8">
-            <div className="flex-1 space-y-4">
+        <section className="section-container py-10 sm:py-12 border-y border-border/50 bg-muted/30">
+          <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8">
+            <div className="flex-1 space-y-4 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20">
                 <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
                 <span className="text-xs font-medium text-destructive">Live Threat Feed</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
                 Real-Time Crypto Security Alerts
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Stay ahead of wallet drainers, phishing sites, and smart contract exploits. 
                 Get critical alerts delivered to your inbox before you become a victim.
               </p>
-              <ul className="space-y-2">
+              <ul className="space-y-2 inline-block text-left">
                 {[
                   'Critical exploit warnings',
                   'Phishing site detections',
@@ -222,17 +222,17 @@ const Index = () => {
                   'Supply chain attack notifications'
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-success" />
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                     {item}
                   </li>
                 ))}
               </ul>
-              <div className="flex gap-3 pt-2">
-                <Button onClick={() => navigate('/threat-intel?tab=alerts')} className="gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start">
+                <Button onClick={() => navigate('/threat-intel?tab=alerts')} className="gap-2 w-full sm:w-auto">
                   <Newspaper className="w-4 h-4" />
                   View Threat Feed
                 </Button>
-                <Button onClick={() => navigate('/threat-intel?tab=subscribe')} variant="outline" className="gap-2">
+                <Button onClick={() => navigate('/threat-intel?tab=subscribe')} variant="outline" className="gap-2 w-full sm:w-auto">
                   <Bell className="w-4 h-4" />
                   Subscribe
                 </Button>

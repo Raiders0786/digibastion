@@ -193,18 +193,18 @@ const News = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section - Compact */}
           <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <Shield className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-3">
+              <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
               <RealtimeStatusIndicator />
             </div>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
               Real-time security intelligence covering Web3, DeFi, and supply chain threats.
             </p>
           </div>
 
           {/* Quick Stats Banner - Compact */}
-          <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
             <Card className="glass-card border-red-500/20">
               <CardContent className="p-2 sm:p-3 text-center">
                 <div className="text-lg sm:text-xl font-bold text-red-400">{stats.critical}</div>
@@ -232,25 +232,25 @@ const News = () => {
           </div>
 
           {/* Enhanced Tab Navigation - More Visible */}
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg">
+          <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
+            <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg min-w-max sm:min-w-0">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
                     selectedTab === tab.id
                       ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  <span className="hidden xs:inline sm:inline">{tab.label}</span>
+                  <span className="xs:hidden">{tab.label.split(' ')[0]}</span>
                   {tab.count !== undefined && tab.count > 0 && (
                     <Badge 
                       variant={selectedTab === tab.id ? "secondary" : "outline"} 
-                      className={`ml-1 h-5 min-w-5 px-1.5 text-xs ${
+                      className={`ml-0.5 sm:ml-1 h-5 min-w-5 px-1 sm:px-1.5 text-[10px] sm:text-xs ${
                         tab.id === 'alerts' && tab.count > 0 ? 'bg-red-500 text-white border-0' : ''
                       }`}
                     >
