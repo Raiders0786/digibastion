@@ -9,6 +9,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { PageTransition } from "./components/PageTransition";
 import { MetaTags } from "./components/MetaTags";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { MobileBottomNav } from "./components/MobileBottomNav";
 import Index from "./pages/Index";
 import CategoryDetail from "./pages/CategoryDetail";
 import NotFound from "./pages/NotFound";
@@ -70,6 +71,7 @@ const App = () => {
                     <Route path="*" element={<><MetaTags /><NotFound /></>} />
                   </Routes>
                 </PageTransition>
+                <MobileBottomNav />
               </TooltipProvider>
             </QueryClientProvider>
           </BrowserRouter>

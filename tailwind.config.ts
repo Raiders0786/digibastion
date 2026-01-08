@@ -136,6 +136,10 @@ export default {
           "0%, 100%": { opacity: "0.6" },
           "50%": { opacity: "1" },
         },
+        ripple: {
+          "0%": { width: "0", height: "0", opacity: "0.5" },
+          "100%": { width: "200px", height: "200px", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -146,6 +150,7 @@ export default {
         "scale-in": "scale-in 0.3s ease-out",
         shimmer: "shimmer 2s infinite",
         "pulse-soft": "pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        ripple: "ripple 0.6s ease-out forwards",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

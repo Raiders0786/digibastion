@@ -234,24 +234,8 @@ export const Navbar = () => {
             </a>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation - Only theme toggle and hamburger, bottom nav handles main actions */}
           <div className="flex sm:hidden items-center gap-1">
-            {/* Quick actions on mobile */}
-            <button
-              onClick={() => navigate('/quiz')}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-              aria-label="Quiz"
-            >
-              <Zap className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => navigate('/threat-intel')}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-              aria-label="Threat Intel"
-            >
-              <Newspaper className="w-5 h-5" />
-            </button>
-            
             <ThemeToggle />
 
             {/* Hamburger Menu */}
