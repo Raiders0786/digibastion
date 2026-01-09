@@ -87,12 +87,18 @@ export const TouchFeedback = ({
     ref: elementRef as any,
     className: cn(
       "relative overflow-hidden select-none",
-      scaleOnPress && "transition-transform duration-100",
-      scaleOnPress && isPressed && "scale-[0.97]",
+      // Use GPU-friendly transform without will-change to prevent blur
+      scaleOnPress && "transition-transform duration-100 ease-out",
+      scaleOnPress && isPressed && "scale-[0.98]",
       disabled && "opacity-50 pointer-events-none",
       className
     ),
-    style,
+    style: {
+      ...style,
+      // Prevent transform blur on mobile
+      backfaceVisibility: 'hidden' as const,
+      WebkitBackfaceVisibility: 'hidden' as const,
+    },
     onMouseDown: handlePointerDown,
     onMouseUp: handlePointerUp,
     onMouseLeave: handlePointerUp,

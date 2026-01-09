@@ -108,11 +108,11 @@ export const MobileBottomNav = () => {
         mounted ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
       )}
     >
-      {/* Gradient fade effect at top */}
-      <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-background/90 to-transparent pointer-events-none" />
+      {/* Gradient fade effect at top - no blur */}
+      <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none" />
       
-      {/* Navigation bar */}
-      <nav className="bg-background/95 backdrop-blur-xl border-t border-border/50 px-2 pb-safe shadow-2xl">
+      {/* Navigation bar - solid background to prevent blur issues */}
+      <nav className="bg-background border-t border-border/50 px-2 pb-safe shadow-2xl">
         <div className="flex items-center justify-around h-16">
           {navItems.map((item, idx) => (
             <TouchFeedback
