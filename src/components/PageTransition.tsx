@@ -1,138 +1,98 @@
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PageTransitionProps {
   children: ReactNode;
 }
 
-// Desktop page variants - subtle fade
+// Simplified desktop variants - just fade, no transform to avoid blur issues
 const desktopVariants: Variants = {
   initial: {
     opacity: 0,
-    y: 8,
   },
   enter: {
     opacity: 1,
-    y: 0,
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: 'easeOut',
     },
   },
   exit: {
     opacity: 0,
-    y: -8,
     transition: {
-      duration: 0.2,
+      duration: 0.15,
       ease: 'easeIn',
     },
   },
 };
 
-// Mobile page variants - smooth slide with scale
+// Mobile variants - minimal transform to prevent rendering issues
 const mobileVariants: Variants = {
   initial: {
     opacity: 0,
-    x: 20,
-    scale: 0.98,
   },
   enter: {
     opacity: 1,
-    x: 0,
-    scale: 1,
     transition: {
-      duration: 0.35,
-      ease: [0.25, 0.46, 0.45, 0.94], // Custom easing for smooth feel
+      duration: 0.25,
+      ease: 'easeOut',
     },
   },
   exit: {
     opacity: 0,
-    x: -20,
-    scale: 0.98,
     transition: {
-      duration: 0.25,
-      ease: [0.25, 0.46, 0.45, 0.94],
+      duration: 0.15,
+      ease: 'easeIn',
     },
   },
 };
 
-// Shared element animation for specific routes
-const getRouteAnimation = (pathname: string, isMobile: boolean): Variants => {
-  // Quiz-related routes get special treatment
-  if (pathname.includes('/quiz') || pathname.includes('/leaderboard')) {
-    return {
-      initial: {
-        opacity: 0,
-        scale: isMobile ? 0.95 : 0.98,
-        y: isMobile ? 30 : 10,
-      },
-      enter: {
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        transition: {
-          duration: isMobile ? 0.4 : 0.3,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        },
-      },
-      exit: {
-        opacity: 0,
-        scale: isMobile ? 0.95 : 0.98,
-        y: isMobile ? -30 : -10,
-        transition: {
-          duration: 0.2,
-          ease: 'easeIn',
-        },
-      },
-    };
-  }
-  
-  // Threat intel / alerts get urgent slide animation
-  if (pathname.includes('/threat-intel') || pathname.includes('/news')) {
-    return {
-      initial: {
-        opacity: 0,
-        x: isMobile ? 30 : 15,
-      },
-      enter: {
-        opacity: 1,
-        x: 0,
-        transition: {
-          duration: 0.3,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        },
-      },
-      exit: {
-        opacity: 0,
-        x: isMobile ? -30 : -15,
-        transition: {
-          duration: 0.2,
-          ease: 'easeIn',
-        },
-      },
-    };
-  }
-  
+// Get simple variants based on device - avoid transforms that cause blur
+const getVariants = (isMobile: boolean): Variants => {
   return isMobile ? mobileVariants : desktopVariants;
 };
 
 export const PageTransition = ({ children }: PageTransitionProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const [isAnimating, setIsAnimating] = useState(false);
   
-  const variants = getRouteAnimation(location.pathname, isMobile);
+  const variants = getVariants(isMobile);
+
+  // Force repaint after animation completes to fix blur on some mobile browsers
+  useEffect(() => {
+    if (!isAnimating) {
+      // Trigger a repaint by toggling a style
+      const timer = setTimeout(() => {
+        document.body.style.opacity = '0.999';
+        requestAnimationFrame(() => {
+          document.body.style.opacity = '1';
+        });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isAnimating, location.pathname]);
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence 
+      mode="wait" 
+      initial={false}
+      onExitComplete={() => setIsAnimating(false)}
+    >
       <motion.div
         key={location.pathname}
         initial="initial"
         animate="enter"
         exit="exit"
         variants={variants}
-        className="will-change-transform"
+        onAnimationStart={() => setIsAnimating(true)}
+        onAnimationComplete={() => setIsAnimating(false)}
+        style={{
+          // Avoid will-change on mobile as it can cause blur issues
+          willChange: isMobile ? 'auto' : 'opacity',
+        }}
       >
         {children}
       </motion.div>
