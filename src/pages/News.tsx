@@ -265,8 +265,7 @@ const News = () => {
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
-                  <span className="hidden xs:inline sm:inline">{tab.label}</span>
-                  <span className="xs:hidden">{tab.label.split(' ')[0]}</span>
+                  <span>{tab.label}</span>
                   {tab.count !== undefined && tab.count > 0 && (
                     <Badge 
                       variant={selectedTab === tab.id ? "secondary" : "outline"} 
