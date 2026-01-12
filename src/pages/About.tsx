@@ -166,6 +166,31 @@ const About = () => {
                   </div>
                 </Card>
 
+                {/* Cryptonian16 */}
+                <Card className="glass-card-hover p-5 cursor-pointer group"
+                  onClick={() => window.open('https://x.com/SolenyaResearch', '_blank')}>
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Cryptonian16</h3>
+                      <p className="text-xs text-primary mb-2">OpSec Guru</p>
+                      <p className="text-muted-foreground text-xs">
+                        Security expert specializing in operational security practices and threat mitigation.
+                      </p>
+                    </div>
+                    <div className="mt-auto pt-3 flex items-center gap-2">
+                      <a 
+                        href="https://x.com/SolenyaResearch" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Twitter className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                </Card>
+
                 {/* Open to Contributors */}
                 <Card className="glass-card-hover p-5 cursor-pointer group border-dashed"
                   onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md', '_blank')}>
