@@ -306,7 +306,7 @@ async function parseIncidents(markdown: string): Promise<any[]> {
       // Generate UID
       const uid = await generateUID(title, section.date);
       
-      // Clean content: remove images, archive links, attribution, and tag lines
+      // Clean content: remove images, archive links, attribution, tag lines, and ALL markdown links
       let cleanContent = content
         // Remove image markdown ![alt](url)
         .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
@@ -316,6 +316,17 @@ async function parseIncidents(markdown: string): Promise<any[]> {
         // Remove archive links and their markers
         .replace(/\[\[archive\]\]\([^)]+\)/g, '')
         .replace(/\[\\?\[archive\\?\]\]/g, '')
+        // Remove standalone archive URLs in parentheses
+        .replace(/\(https?:\/\/(?:web\.)?archive\.org[^)]*\)/g, '')
+        .replace(/\(https?:\/\/www\.web3isgoinggreat\.com\/archive[^)]*\)/g, '')
+        // Remove ALL markdown links - keep only the text, not the URL
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        // Remove any remaining standalone URLs in parentheses
+        .replace(/\(https?:\/\/[^)]+\)/g, '')
+        // Remove bullet points that are now empty or just have URLs
+        .replace(/^-\s*https?:\/\/[^\s]+\s*$/gm, '')
+        .replace(/^-\s*,?\s*_[^_]+_\s*$/gm, '')
+        .replace(/^-\s*$/gm, '')
         // Remove "Other entries related to..." lines
         .replace(/Other entries related to[^\n]+/gi, '')
         // Remove tag lines at the end
