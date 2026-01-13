@@ -18,8 +18,10 @@ interface UseNewsArticlesResult {
   error: Error | null;
   refetch: () => Promise<void>;
   refreshFromRSS: () => Promise<void>;
+  refreshFromWeb3: () => Promise<void>;
   summarizeArticles: () => Promise<void>;
   isRefreshing: boolean;
+  isRefreshingWeb3: boolean;
   isSummarizing: boolean;
   stats: {
     total: number;
@@ -27,6 +29,7 @@ interface UseNewsArticlesResult {
     high: number;
     supplyChain: number;
     aiSummarized: number;
+    web3Incidents: number;
   };
 }
 
@@ -34,6 +37,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshingWeb3, setIsRefreshingWeb3] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
@@ -154,6 +158,37 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     }
   }, [fetchArticles, toast]);
 
+  const refreshFromWeb3 = useCallback(async () => {
+    try {
+      setIsRefreshingWeb3(true);
+      
+      const { data, error: fetchError } = await supabase.functions.invoke('fetch-web3-incidents');
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (data?.success) {
+        toast({
+          title: 'Web3 Incidents Updated',
+          description: `Found ${data.incidentsFound} incidents, ${data.incidentsInserted} new.`,
+        });
+        await fetchArticles();
+      } else {
+        throw new Error(data?.error || 'Failed to fetch Web3 incidents');
+      }
+    } catch (err) {
+      console.error('Error fetching Web3 incidents:', err);
+      toast({
+        title: 'Web3 Fetch Failed',
+        description: err instanceof Error ? err.message : 'Failed to fetch Web3 incidents',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshingWeb3(false);
+    }
+  }, [fetchArticles, toast]);
+
   const summarizeArticles = useCallback(async () => {
     try {
       setIsSummarizing(true);
@@ -198,6 +233,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     high: articles.filter(a => a.severity === 'high').length,
     supplyChain: articles.filter(a => a.category === 'supply-chain').length,
     aiSummarized: articles.filter(a => a.isProcessed).length,
+    web3Incidents: articles.filter(a => a.sourceName === 'Web3 Is Going Great').length,
   };
 
   return {
@@ -206,8 +242,10 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     error,
     refetch: fetchArticles,
     refreshFromRSS,
+    refreshFromWeb3,
     summarizeArticles,
     isRefreshing,
+    isRefreshingWeb3,
     isSummarizing,
     stats,
   };

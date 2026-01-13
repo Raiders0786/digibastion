@@ -23,7 +23,7 @@ import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
-  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft
+  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -65,9 +65,11 @@ const News = () => {
     isLoading, 
     error,
     refetch,
-    refreshFromRSS, 
+    refreshFromRSS,
+    refreshFromWeb3,
     summarizeArticles,
     isRefreshing,
+    isRefreshingWeb3,
     isSummarizing,
     stats 
   } = useNewsArticles({
@@ -356,7 +358,7 @@ const News = () => {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -374,6 +376,21 @@ const News = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
+                        onClick={refreshFromWeb3}
+                        disabled={isRefreshingWeb3}
+                        className="bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20"
+                        title="Fetch latest Web3 security incidents"
+                      >
+                        {isRefreshingWeb3 ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <Flame className="w-4 h-4 mr-1 text-orange-400" />
+                        )}
+                        {isRefreshingWeb3 ? 'Fetching...' : 'Web3 Incidents'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
                         onClick={refreshFromRSS}
                         disabled={isRefreshing}
                       >
@@ -382,7 +399,7 @@ const News = () => {
                         ) : (
                           <RefreshCw className="w-4 h-4 mr-1" />
                         )}
-                        {isRefreshing ? 'Fetching...' : 'Refresh'}
+                        {isRefreshing ? 'Fetching...' : 'RSS Feeds'}
                       </Button>
                       {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery) && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
