@@ -9,7 +9,8 @@ interface UseNewsArticlesOptions {
   searchQuery?: string;
   dateFilter?: 'all' | '7d' | '30d' | '90d';
   sortBy?: 'date' | 'severity';
-  limit?: number;
+  page?: number;
+  pageSize?: number;
 }
 
 interface UseNewsArticlesResult {
@@ -31,6 +32,13 @@ interface UseNewsArticlesResult {
     aiSummarized: number;
     web3Incidents: number;
   };
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
 }
 
 export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsArticlesResult {
@@ -40,56 +48,103 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [isRefreshingWeb3, setIsRefreshingWeb3] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
 
-const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date', limit = 100 } = options;
+  const { 
+    categories, 
+    severities, 
+    searchQuery, 
+    dateFilter = 'all', 
+    sortBy = 'date', 
+    page = 1, 
+    pageSize = 20 
+  } = options;
 
   const fetchArticles = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('news_articles')
-        .select('*')
-        .order('published_at', { ascending: false });
-
-      // Apply category filter
-      if (categories && categories.length > 0) {
-        query = query.in('category', categories);
-      }
-
-      // Apply severity filter
-      if (severities && severities.length > 0) {
-        query = query.in('severity', severities);
-      }
-
-      // Apply date filter
+      // Calculate date filter
+      let dateFrom: string | null = null;
       if (dateFilter !== 'all') {
         const now = new Date();
         const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
         const cutoff = new Date(now.getTime() - daysMap[dateFilter] * 24 * 60 * 60 * 1000);
-        query = query.gte('published_at', cutoff.toISOString());
+        dateFrom = cutoff.toISOString();
       }
 
-      // Server-side search using ilike for better performance on all data
-      // This ensures search works across ALL articles, not just the limited set
-      if (searchQuery?.trim()) {
-        const searchTerm = `%${searchQuery.trim()}%`;
-        query = query.or(`title.ilike.${searchTerm},summary.ilike.${searchTerm}`);
-      }
+      // Prepare filters for RPC call
+      const categoryFilter = categories && categories.length > 0 ? categories : null;
+      const severityFilter = severities && severities.length > 0 ? severities : null;
+      const searchTerm = searchQuery?.trim() || null;
+      const offset = (page - 1) * pageSize;
 
-      // Apply limit after all filters (higher limit when searching to ensure results)
-      const effectiveLimit = searchQuery?.trim() ? 500 : limit;
-      query = query.limit(effectiveLimit);
-
-      const { data, error: fetchError } = await query;
+      // Use the full-text search RPC function
+      const { data, error: fetchError } = await supabase.rpc('search_news_articles', {
+        search_query: searchTerm,
+        category_filter: categoryFilter,
+        severity_filter: severityFilter,
+        date_from: dateFrom,
+        result_limit: pageSize,
+        result_offset: offset
+      });
 
       if (fetchError) {
-        throw fetchError;
+        console.error('RPC error, falling back to direct query:', fetchError);
+        // Fallback to direct query if RPC fails
+        let query = supabase
+          .from('news_articles')
+          .select('*', { count: 'exact' })
+          .order('published_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (categoryFilter) query = query.in('category', categoryFilter);
+        if (severityFilter) query = query.in('severity', severityFilter);
+        if (dateFrom) query = query.gte('published_at', dateFrom);
+        if (searchTerm) {
+          query = query.or(`title.ilike.%${searchTerm}%,summary.ilike.%${searchTerm}%`);
+        }
+
+        const { data: fallbackData, error: fallbackError, count } = await query;
+        if (fallbackError) throw fallbackError;
+        
+        setTotalCount(count || 0);
+        
+        const transformedArticles: NewsArticle[] = (fallbackData || []).map((row: any) => ({
+          id: row.id,
+          title: row.title,
+          content: row.content || row.summary || '',
+          summary: row.summary || '',
+          category: row.category as NewsCategory,
+          tags: row.tags || [],
+          severity: row.severity as SeverityLevel,
+          sourceUrl: row.source_url || null,
+          link: row.link || null,
+          publishedAt: new Date(row.published_at),
+          affectedTechnologies: row.affected_technologies || [],
+          author: row.author || null,
+          cveId: row.cve_id,
+          isProcessed: row.is_processed || false,
+          sourceName: row.source_name
+        }));
+        
+        setArticles(transformedArticles);
+        return;
       }
 
-      // Transform database records to NewsArticle format
+      // Get total count for pagination
+      const { data: countData } = await supabase.rpc('count_news_articles', {
+        search_query: searchTerm,
+        category_filter: categoryFilter,
+        severity_filter: severityFilter,
+        date_from: dateFrom
+      });
+
+      setTotalCount(countData || 0);
+
+      // Transform RPC results to NewsArticle format
       let transformedArticles: NewsArticle[] = (data || []).map((row: any) => ({
         id: row.id,
         title: row.title,
@@ -98,29 +153,17 @@ const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date'
         category: row.category as NewsCategory,
         tags: row.tags || [],
         severity: row.severity as SeverityLevel,
-        sourceUrl: row.source_url || null, // JSON sources or single URL
-        link: row.link || null, // Primary reference link
+        sourceUrl: row.source_url || null,
+        link: row.link || null,
         publishedAt: new Date(row.published_at),
         affectedTechnologies: row.affected_technologies || [],
-        author: row.author || null, // Don't fallback to source_name
+        author: row.author || null,
         cveId: row.cve_id,
         isProcessed: row.is_processed || false,
         sourceName: row.source_name
       }));
 
-      // Additional client-side filtering for tags and technologies
-      // (title/summary search is done server-side for efficiency)
-      if (searchQuery?.trim()) {
-        const query = searchQuery.toLowerCase();
-        transformedArticles = transformedArticles.filter(a =>
-          a.title.toLowerCase().includes(query) ||
-          a.summary.toLowerCase().includes(query) ||
-          a.tags.some(t => t.toLowerCase().includes(query)) ||
-          a.affectedTechnologies?.some(t => t.toLowerCase().includes(query))
-        );
-      }
-
-      // Apply sorting
+      // Apply sorting (RPC already sorts by rank + date, but apply severity if needed)
       if (sortBy === 'severity') {
         const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
         transformedArticles.sort((a, b) => {
@@ -137,7 +180,7 @@ const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date'
     } finally {
       setIsLoading(false);
     }
-  }, [categories, severities, searchQuery, dateFilter, sortBy, limit]);
+  }, [categories, severities, searchQuery, dateFilter, sortBy, page, pageSize]);
 
   const refreshFromRSS = useCallback(async () => {
     try {
@@ -238,14 +281,24 @@ const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date'
     fetchArticles();
   }, [fetchArticles]);
 
-  // Calculate stats
+  // Calculate stats from current page (for display purposes)
   const stats = {
-    total: articles.length,
+    total: totalCount,
     critical: articles.filter(a => a.severity === 'critical').length,
     high: articles.filter(a => a.severity === 'high').length,
     supplyChain: articles.filter(a => a.category === 'supply-chain').length,
     aiSummarized: articles.filter(a => a.isProcessed).length,
     web3Incidents: articles.filter(a => a.category === 'web3-security' || a.category === 'defi-exploits').length,
+  };
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const pagination = {
+    currentPage: page,
+    totalPages,
+    totalCount,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1
   };
 
   return {
@@ -260,5 +313,6 @@ const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date'
     isRefreshingWeb3,
     isSummarizing,
     stats,
+    pagination,
   };
 }

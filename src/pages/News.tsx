@@ -54,10 +54,17 @@ const News = () => {
     setSelectedTab(tabId);
     setSearchParams({ tab: tabId });
   };
-  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategories, selectedSeverities, searchQuery, dateFilter]);
 
   // Fetch articles from database
   const { 
@@ -71,13 +78,16 @@ const News = () => {
     isRefreshing,
     isRefreshingWeb3,
     isSummarizing,
-    stats 
+    stats,
+    pagination
   } = useNewsArticles({
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
     severities: selectedSeverities.length > 0 ? selectedSeverities : undefined,
     searchQuery,
     dateFilter,
     sortBy,
+    page: currentPage,
+    pageSize,
   });
 
   // Auto-refresh for Active Alerts tab
@@ -345,13 +355,17 @@ const News = () => {
 
                 {/* News Feed */}
                 <div className="lg:col-span-3 space-y-4">
-                  {/* Results count and refresh button */}
+{/* Results count and refresh button */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        {isLoading ? 'Loading...' : `Showing ${filteredArticles.length} articles`}
+                        {isLoading ? 'Loading...' : (
+                          pagination.totalCount > 0 
+                            ? `Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, pagination.totalCount)} of ${pagination.totalCount} articles`
+                            : 'No articles found'
+                        )}
                       </span>
-                      {stats.total > 0 && (
+                      {pagination.totalCount > 0 && (
                         <Badge variant="outline" className="text-xs">
                           <Database className="w-3 h-3 mr-1" />
                           Live
@@ -446,6 +460,85 @@ const News = () => {
                             Clear Filters
                           </Button>
                         )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Pagination Controls */}
+                  {!isLoading && pagination.totalPages > 1 && (
+                    <Card className="glass-card">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              Page {currentPage} of {pagination.totalPages}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(1)}
+                              disabled={!pagination.hasPrevPage}
+                            >
+                              First
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              disabled={!pagination.hasPrevPage}
+                            >
+                              <ChevronRight className="w-4 h-4 rotate-180" />
+                              Previous
+                            </Button>
+                            
+                            {/* Page numbers */}
+                            <div className="hidden sm:flex items-center gap-1">
+                              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                let pageNum: number;
+                                if (pagination.totalPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (currentPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (currentPage >= pagination.totalPages - 2) {
+                                  pageNum = pagination.totalPages - 4 + i;
+                                } else {
+                                  pageNum = currentPage - 2 + i;
+                                }
+                                return (
+                                  <Button
+                                    key={pageNum}
+                                    variant={currentPage === pageNum ? "default" : "outline"}
+                                    size="sm"
+                                    className="w-8 h-8 p-0"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                  >
+                                    {pageNum}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                              disabled={!pagination.hasNextPage}
+                            >
+                              Next
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(pagination.totalPages)}
+                              disabled={!pagination.hasNextPage}
+                            >
+                              Last
+                            </Button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
