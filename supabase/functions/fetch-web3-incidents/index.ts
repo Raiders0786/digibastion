@@ -316,19 +316,21 @@ async function parseIncidents(markdown: string): Promise<any[]> {
         // Remove archive links and their markers
         .replace(/\[\[archive\]\]\([^)]+\)/g, '')
         .replace(/\[\\?\[archive\\?\]\]/g, '')
-        // Remove entire bullet point lines that contain source links (before converting markdown)
-        .replace(/^-\s*\[[^\]]+\]\([^)]+\).*$/gm, '')
+        // Remove entire bullet point lines that start with "- [" (source links)
+        .replace(/^-\s*\[.+$/gm, '')
         // Remove standalone archive URLs in parentheses
         .replace(/\(https?:\/\/(?:web\.)?archive\.org[^)]*\)/g, '')
-        .replace(/\(https?:\/\/www\.web3isgoinggreat\.com\/archive[^)]*\)/g, '')
-        // Remove ALL markdown links - keep only the text, not the URL
+        .replace(/\(https?:\/\/www\.web3isgoinggreat\.com[^)]*\)/g, '')
+        // Convert ALL markdown links to just their text (remove URLs entirely)
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
         // Remove any remaining standalone URLs in parentheses
         .replace(/\(https?:\/\/[^)]+\)/g, '')
-        // Remove bullet points that are now empty or just have URLs or italicized source names
-        .replace(/^-\s*https?:\/\/[^\s]+.*$/gm, '')
+        // Remove any standalone URLs that might remain
+        .replace(/https?:\/\/\S+/g, '')
+        // Remove bullet points that are now empty or just have italicized source names
         .replace(/^-\s*"[^"]*",?\s*_[^_]+_.*$/gm, '')
         .replace(/^-\s*,?\s*_[^_]+_.*$/gm, '')
+        .replace(/^-\s*,?\s*$/gm, '')
         .replace(/^-\s*$/gm, '')
         // Remove "Other entries related to..." lines
         .replace(/Other entries related to[^\n]+/gi, '')
@@ -339,8 +341,9 @@ async function parseIncidents(markdown: string): Promise<any[]> {
         // Remove icon images and IDs at the end
         .replace(/!\[\]\([^)]+\/icons\/[^)]+\)/g, '')
         .replace(/id:[a-f0-9-]+/gi, '')
-        // Clean up excessive newlines
+        // Clean up excessive newlines and trailing whitespace
         .replace(/\n{3,}/g, '\n\n')
+        .replace(/\n\s*\n\s*$/g, '')
         .trim();
       
       // Extract clean summary (first paragraph, fully cleaned)
