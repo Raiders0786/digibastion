@@ -451,17 +451,17 @@ serve(async (req) => {
     const incidents = await parseIncidents(markdown);
     console.log(`[fetch-web3-incidents] Parsed ${incidents.length} incidents`);
     
-    // Calculate cutoff date (30 days ago for initial import, 7 days for regular)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Calculate cutoff date (90 days for broader historical coverage)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     
     // Filter recent incidents
     const recentIncidents = incidents.filter(incident => {
       const pubDate = new Date(incident.published_at);
-      return pubDate >= thirtyDaysAgo;
+      return pubDate >= ninetyDaysAgo;
     });
     
-    console.log(`[fetch-web3-incidents] ${recentIncidents.length} incidents within last 30 days`);
+    console.log(`[fetch-web3-incidents] ${recentIncidents.length} incidents within last 90 days`);
     
     // Insert incidents into database
     let insertedCount = 0;
