@@ -27,6 +27,7 @@ export type Database = {
           link: string
           published_at: string
           raw_content: string | null
+          search_vector: unknown
           severity: string
           source_name: string | null
           source_url: string | null
@@ -48,6 +49,7 @@ export type Database = {
           link: string
           published_at: string
           raw_content?: string | null
+          search_vector?: unknown
           severity?: string
           source_name?: string | null
           source_url?: string | null
@@ -69,6 +71,7 @@ export type Database = {
           link?: string
           published_at?: string
           raw_content?: string | null
+          search_vector?: unknown
           severity?: string
           source_name?: string | null
           source_url?: string | null
@@ -281,6 +284,54 @@ export type Database = {
     }
     Functions: {
       cleanup_old_submission_logs: { Args: never; Returns: undefined }
+      count_news_articles: {
+        Args: {
+          category_filter?: string[]
+          date_from?: string
+          search_query?: string
+          severity_filter?: string[]
+        }
+        Returns: number
+      }
+      news_articles_search_vector: {
+        Args: {
+          affected_technologies: string[]
+          content: string
+          cve_id: string
+          summary: string
+          tags: string[]
+          title: string
+        }
+        Returns: unknown
+      }
+      search_news_articles: {
+        Args: {
+          category_filter?: string[]
+          date_from?: string
+          result_limit?: number
+          result_offset?: number
+          search_query: string
+          severity_filter?: string[]
+        }
+        Returns: {
+          affected_technologies: string[]
+          author: string
+          category: string
+          content: string
+          cve_id: string
+          id: string
+          is_processed: boolean
+          link: string
+          published_at: string
+          rank: number
+          severity: string
+          source_name: string
+          source_url: string
+          summary: string
+          tags: string[]
+          title: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
