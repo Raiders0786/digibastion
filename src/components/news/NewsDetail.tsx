@@ -253,16 +253,60 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
             </div>
           )}
 
-          {/* External Source */}
+          {/* Source Links - parsed from sourceUrl JSON or single link */}
           {article.sourceUrl && (
+            <div className="pt-4 border-t">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 text-primary" />
+                Original Sources
+              </h3>
+              {(() => {
+                // Try to parse sourceUrl as JSON array of source links
+                let sources: { url: string; label: string }[] = [];
+                try {
+                  const parsed = JSON.parse(article.sourceUrl);
+                  if (Array.isArray(parsed)) {
+                    sources = parsed;
+                  }
+                } catch {
+                  // Not JSON, treat as single URL
+                  sources = [{ url: article.sourceUrl, label: 'Original Source' }];
+                }
+                
+                if (sources.length === 0 && article.link) {
+                  sources = [{ url: article.link, label: 'View Source' }];
+                }
+                
+                return (
+                  <div className="flex flex-col gap-2">
+                    {sources.map((source, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        className="justify-start gap-2 text-left"
+                        onClick={() => window.open(source.url, '_blank', 'noopener,noreferrer')}
+                      >
+                        <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{source.label || new URL(source.url).hostname}</span>
+                      </Button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          
+          {/* Fallback: Primary link if no sourceUrl */}
+          {!article.sourceUrl && article.link && (
             <div className="pt-4 border-t">
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={() => window.open(article.sourceUrl, '_blank')}
+                onClick={() => window.open(article.link, '_blank', 'noopener,noreferrer')}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Read Original Source
+                View Original Source
               </Button>
             </div>
           )}
