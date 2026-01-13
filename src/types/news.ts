@@ -20,6 +20,7 @@ export interface NewsArticle {
   tags: string[];
   severity: SeverityLevel;
   sourceUrl?: string;
+  link?: string;
   publishedAt: Date;
   affectedTechnologies?: string[];
   author?: string;
