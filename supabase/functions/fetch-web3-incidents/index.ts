@@ -316,6 +316,8 @@ async function parseIncidents(markdown: string): Promise<any[]> {
         // Remove archive links and their markers
         .replace(/\[\[archive\]\]\([^)]+\)/g, '')
         .replace(/\[\\?\[archive\\?\]\]/g, '')
+        // Remove entire bullet point lines that contain source links (before converting markdown)
+        .replace(/^-\s*\[[^\]]+\]\([^)]+\).*$/gm, '')
         // Remove standalone archive URLs in parentheses
         .replace(/\(https?:\/\/(?:web\.)?archive\.org[^)]*\)/g, '')
         .replace(/\(https?:\/\/www\.web3isgoinggreat\.com\/archive[^)]*\)/g, '')
@@ -323,9 +325,10 @@ async function parseIncidents(markdown: string): Promise<any[]> {
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
         // Remove any remaining standalone URLs in parentheses
         .replace(/\(https?:\/\/[^)]+\)/g, '')
-        // Remove bullet points that are now empty or just have URLs
-        .replace(/^-\s*https?:\/\/[^\s]+\s*$/gm, '')
-        .replace(/^-\s*,?\s*_[^_]+_\s*$/gm, '')
+        // Remove bullet points that are now empty or just have URLs or italicized source names
+        .replace(/^-\s*https?:\/\/[^\s]+.*$/gm, '')
+        .replace(/^-\s*"[^"]*",?\s*_[^_]+_.*$/gm, '')
+        .replace(/^-\s*,?\s*_[^_]+_.*$/gm, '')
         .replace(/^-\s*$/gm, '')
         // Remove "Other entries related to..." lines
         .replace(/Other entries related to[^\n]+/gi, '')
