@@ -25,6 +25,7 @@ export type Database = {
           id: string
           is_processed: boolean | null
           link: string
+          metadata: Json | null
           published_at: string
           raw_content: string | null
           search_vector: unknown
@@ -47,6 +48,7 @@ export type Database = {
           id?: string
           is_processed?: boolean | null
           link: string
+          metadata?: Json | null
           published_at: string
           raw_content?: string | null
           search_vector?: unknown
@@ -69,6 +71,7 @@ export type Database = {
           id?: string
           is_processed?: boolean | null
           link?: string
+          metadata?: Json | null
           published_at?: string
           raw_content?: string | null
           search_vector?: unknown
