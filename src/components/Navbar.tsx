@@ -118,8 +118,9 @@ export const Navbar = () => {
           
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-1 sm:gap-2">
+            {/* Checklists Dropdown - Separate NavigationMenu */}
             <NavigationMenu>
-              <NavigationMenuList className="gap-0.5">
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     Checklists
@@ -168,32 +169,32 @@ export const Navbar = () => {
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
-                {/* OpSec Quiz */}
-                <NavigationMenuItem>
-                  <button
-                    onClick={() => navigate('/quiz')}
-                    className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
-                      transition-colors rounded-lg hover:bg-muted/50"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>Quiz</span>
-                  </button>
-                </NavigationMenuItem>
+            {/* OpSec Quiz */}
+            <button
+              onClick={() => navigate('/quiz')}
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
+                transition-colors rounded-lg hover:bg-muted/50"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Quiz</span>
+            </button>
 
-                {/* Threat Intel */}
-                <NavigationMenuItem>
-                  <button
-                    onClick={() => navigate('/threat-intel')}
-                    className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
-                      transition-colors rounded-lg hover:bg-muted/50"
-                  >
-                    <Newspaper className="w-4 h-4" />
-                    <span>Threat Intel</span>
-                  </button>
-                </NavigationMenuItem>
+            {/* Threat Intel */}
+            <button
+              onClick={() => navigate('/threat-intel')}
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
+                transition-colors rounded-lg hover:bg-muted/50"
+            >
+              <Newspaper className="w-4 h-4" />
+              <span>Threat Intel</span>
+            </button>
 
-                {/* Resources */}
+            {/* Resources Dropdown - Separate NavigationMenu */}
+            <NavigationMenu>
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
                     Resources
