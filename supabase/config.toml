@@ -45,3 +45,12 @@ verify_jwt = false
 
 [functions.cleanup-quiz-logs]
 verify_jwt = false
+
+[functions.fetch-web3-incidents]
+verify_jwt = false
+
+[functions.firecrawl-scrape]
+verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false

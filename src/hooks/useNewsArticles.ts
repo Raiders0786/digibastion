@@ -42,7 +42,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date', limit = 100 } = options;
+const { categories, severities, searchQuery, dateFilter = 'all', sortBy = 'date', limit = 100 } = options;
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -52,8 +52,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       let query = supabase
         .from('news_articles')
         .select('*')
-        .order('published_at', { ascending: false })
-        .limit(limit);
+        .order('published_at', { ascending: false });
 
       // Apply category filter
       if (categories && categories.length > 0) {
@@ -72,6 +71,17 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         const cutoff = new Date(now.getTime() - daysMap[dateFilter] * 24 * 60 * 60 * 1000);
         query = query.gte('published_at', cutoff.toISOString());
       }
+
+      // Server-side search using ilike for better performance on all data
+      // This ensures search works across ALL articles, not just the limited set
+      if (searchQuery?.trim()) {
+        const searchTerm = `%${searchQuery.trim()}%`;
+        query = query.or(`title.ilike.${searchTerm},summary.ilike.${searchTerm}`);
+      }
+
+      // Apply limit after all filters (higher limit when searching to ensure results)
+      const effectiveLimit = searchQuery?.trim() ? 500 : limit;
+      query = query.limit(effectiveLimit);
 
       const { data, error: fetchError } = await query;
 
@@ -98,7 +108,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         sourceName: row.source_name
       }));
 
-      // Apply search filter (client-side for flexibility)
+      // Additional client-side filtering for tags and technologies
+      // (title/summary search is done server-side for efficiency)
       if (searchQuery?.trim()) {
         const query = searchQuery.toLowerCase();
         transformedArticles = transformedArticles.filter(a =>
