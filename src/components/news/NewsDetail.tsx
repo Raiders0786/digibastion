@@ -253,28 +253,37 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
             </div>
           )}
 
-          {/* Source Links - parsed from sourceUrl JSON or single link */}
-          {article.sourceUrl && (
+          {/* Source Links - use article.link as the primary source */}
+          {article.link && (
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-primary" />
-                Original Sources
+                Original Source
               </h3>
               {(() => {
-                // Try to parse sourceUrl as JSON array of source links
+                // First check if sourceUrl is a JSON array (for web3 incidents with multiple sources)
                 let sources: { url: string; label: string }[] = [];
-                try {
-                  const parsed = JSON.parse(article.sourceUrl);
-                  if (Array.isArray(parsed)) {
-                    sources = parsed;
+                
+                if (article.sourceUrl) {
+                  try {
+                    const parsed = JSON.parse(article.sourceUrl);
+                    if (Array.isArray(parsed)) {
+                      sources = parsed;
+                    }
+                  } catch {
+                    // Not JSON - sourceUrl is just the RSS feed URL, use article.link instead
                   }
-                } catch {
-                  // Not JSON, treat as single URL
-                  sources = [{ url: article.sourceUrl, label: 'Original Source' }];
                 }
                 
-                
-                // If no sources parsed, just show raw sourceUrl as fallback
+                // If no JSON sources found, use the article's direct link
+                if (sources.length === 0) {
+                  try {
+                    const hostname = new URL(article.link).hostname.replace('www.', '');
+                    sources = [{ url: article.link, label: article.sourceName || hostname }];
+                  } catch {
+                    sources = [{ url: article.link, label: article.sourceName || 'Original Source' }];
+                  }
+                }
                 
                 return (
                   <div className="flex flex-col gap-2">
