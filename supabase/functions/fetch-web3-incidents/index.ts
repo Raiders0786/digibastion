@@ -577,12 +577,98 @@ serve(async (req) => {
     
     console.log(`[fetch-web3-incidents] ${recentIncidents.length} incidents within last 90 days`);
     
-    // Insert incidents into database
-    let insertedCount = 0;
-    let duplicateCount = 0;
-    const errors: string[] = [];
+    // Deduplicate across sources: extract project name and check for similar incidents
+    function extractProjectName(title: string): string {
+      // Extract first meaningful part of title
+      return title
+        .split(' - ')[0]
+        .split(' exploited')[0]
+        .split(' suffers')[0]
+        .split(' loses')[0]
+        .split(' hit by')[0]
+        .toLowerCase()
+        .trim();
+    }
+    
+    // Group by project name + approximate date to find duplicates
+    const seenProjects = new Map<string, any>();
+    const deduplicatedIncidents: any[] = [];
     
     for (const incident of recentIncidents) {
+      const projectName = extractProjectName(incident.title);
+      const dateKey = new Date(incident.published_at).toISOString().slice(0, 10); // YYYY-MM-DD
+      const key = `${projectName}|${dateKey}`;
+      
+      // Check for existing within 7 days
+      let isDuplicate = false;
+      for (const [existingKey, existing] of seenProjects) {
+        const [existingProject, existingDate] = existingKey.split('|');
+        if (existingProject === projectName) {
+          const daysDiff = Math.abs(
+            (new Date(dateKey).getTime() - new Date(existingDate).getTime()) / (1000 * 60 * 60 * 24)
+          );
+          if (daysDiff <= 7) {
+            // Prefer feed-1 (primary) over feed-2, or longer content
+            const incidentSource = incident.metadata?.data_source || 'feed-1';
+            const existingSource = existing.metadata?.data_source || 'feed-1';
+            if (incidentSource === 'feed-2' && existingSource === 'feed-1') {
+              isDuplicate = true;
+              break;
+            }
+            if (incidentSource === 'feed-1' && existingSource === 'feed-2') {
+              // Replace with feed-1 version
+              seenProjects.delete(existingKey);
+              break;
+            }
+            // Same source - keep the one with more content
+            if ((incident.content?.length || 0) <= (existing.content?.length || 0)) {
+              isDuplicate = true;
+              break;
+            }
+            seenProjects.delete(existingKey);
+            break;
+          }
+        }
+      }
+      
+      if (!isDuplicate) {
+        seenProjects.set(key, incident);
+        deduplicatedIncidents.push(incident);
+      }
+    }
+    
+    console.log(`[fetch-web3-incidents] After dedup: ${deduplicatedIncidents.length} unique incidents`);
+    
+    // Check for existing similar entries in database before inserting
+    let insertedCount = 0;
+    let duplicateCount = 0;
+    let skippedSimilar = 0;
+    const errors: string[] = [];
+    
+    for (const incident of deduplicatedIncidents) {
+      const projectName = extractProjectName(incident.title);
+      const incidentDate = new Date(incident.published_at);
+      const dateMin = new Date(incidentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const dateMax = new Date(incidentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      // Check for similar existing entry
+      const { data: existing } = await supabase
+        .from('news_articles')
+        .select('id, title')
+        .gte('published_at', dateMin.toISOString())
+        .lte('published_at', dateMax.toISOString())
+        .limit(50);
+      
+      const hasSimilar = existing?.some(e => {
+        const existingProject = extractProjectName(e.title);
+        return existingProject === projectName;
+      });
+      
+      if (hasSimilar) {
+        skippedSimilar++;
+        continue;
+      }
+      
       const { error: insertError } = await supabase
         .from('news_articles')
         .upsert(incident, { onConflict: 'uid', ignoreDuplicates: true });
@@ -599,7 +685,7 @@ serve(async (req) => {
       }
     }
     
-    console.log(`[fetch-web3-incidents] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}`);
+    console.log(`[fetch-web3-incidents] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}, Similar: ${skippedSimilar}`);
     
     // Trigger AI summarization for new articles
     if (insertedCount > 0) {
