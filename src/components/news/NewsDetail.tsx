@@ -273,9 +273,8 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                   sources = [{ url: article.sourceUrl, label: 'Original Source' }];
                 }
                 
-                if (sources.length === 0 && article.link) {
-                  sources = [{ url: article.link, label: 'View Source' }];
-                }
+                
+                // If no sources parsed, just show raw sourceUrl as fallback
                 
                 return (
                   <div className="flex flex-col gap-2">
@@ -288,26 +287,12 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                         onClick={() => window.open(source.url, '_blank', 'noopener,noreferrer')}
                       >
                         <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{source.label || new URL(source.url).hostname}</span>
+                        <span className="truncate">{source.label || (() => { try { return new URL(source.url).hostname; } catch { return 'Source'; } })()}</span>
                       </Button>
                     ))}
                   </div>
                 );
               })()}
-            </div>
-          )}
-          
-          {/* Fallback: Primary link if no sourceUrl */}
-          {!article.sourceUrl && article.link && (
-            <div className="pt-4 border-t">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => window.open(article.link, '_blank', 'noopener,noreferrer')}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                View Original Source
-              </Button>
             </div>
           )}
         </CardContent>
