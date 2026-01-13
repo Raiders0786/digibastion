@@ -88,10 +88,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         category: row.category as NewsCategory,
         tags: row.tags || [],
         severity: row.severity as SeverityLevel,
-        sourceUrl: row.link,
+        sourceUrl: row.source_url || null, // JSON sources or single URL
+        link: row.link || null, // Primary reference link
         publishedAt: new Date(row.published_at),
         affectedTechnologies: row.affected_technologies || [],
-        author: row.author || row.source_name,
+        author: row.author || null, // Don't fallback to source_name
         cveId: row.cve_id,
         isProcessed: row.is_processed || false,
         sourceName: row.source_name
@@ -233,7 +234,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     high: articles.filter(a => a.severity === 'high').length,
     supplyChain: articles.filter(a => a.category === 'supply-chain').length,
     aiSummarized: articles.filter(a => a.isProcessed).length,
-    web3Incidents: articles.filter(a => a.sourceName === 'Web3 Is Going Great').length,
+    web3Incidents: articles.filter(a => a.category === 'web3-security' || a.category === 'defi-exploits').length,
   };
 
   return {
