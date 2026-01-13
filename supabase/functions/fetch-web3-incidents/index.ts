@@ -76,22 +76,59 @@ function determineSeverity(amount: number | null, title: string, content: string
   return 'low';
 }
 
-// Extract source links from content
-function extractSources(content: string): string[] {
-  const sources: string[] = [];
+// Extract source links from content with proper sanitization
+function extractSources(content: string): { url: string; label: string }[] {
+  const sources: { url: string; label: string }[] = [];
   
   // Match markdown links [text](url)
   const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
   let match;
   
   while ((match = linkPattern.exec(content)) !== null) {
-    const url = match[2];
-    // Filter out internal web3isgoinggreat links and archive links
-    if (!url.includes('web3isgoinggreat.com') && 
-        !url.includes('archive.org') && 
-        !url.includes('attribution') &&
-        (url.startsWith('http://') || url.startsWith('https://'))) {
-      sources.push(url);
+    const linkText = match[1].trim();
+    let url = match[2].trim();
+    
+    // Skip internal links, archive links, and attribution links
+    if (url.includes('web3isgoinggreat.com') || 
+        url.includes('archive.org') ||
+        url.includes('web.archive.org') ||
+        linkText.toLowerCase().includes('archive') ||
+        linkText.toLowerCase().includes('attribution') ||
+        !url.startsWith('http')) {
+      continue;
+    }
+    
+    // Remove any tracking parameters/referers from URLs
+    try {
+      const urlObj = new URL(url);
+      // Remove common tracking parameters
+      ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref_src', 'ref_url'].forEach(param => {
+        urlObj.searchParams.delete(param);
+      });
+      url = urlObj.toString();
+    } catch {
+      // If URL parsing fails, use as-is
+    }
+    
+    // Generate clean label
+    let label = linkText;
+    if (linkText.toLowerCase().includes('tweet')) {
+      // Extract source from tweet links
+      if (url.includes('x.com') || url.includes('twitter.com')) {
+        const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/([^/]+)/);
+        label = usernameMatch ? `@${usernameMatch[1]}` : 'Twitter/X';
+      }
+    } else if (url.includes('etherscan.io')) {
+      label = 'Etherscan';
+    } else if (url.includes('bscscan.com')) {
+      label = 'BscScan';
+    } else if (url.includes('polygonscan.com')) {
+      label = 'PolygonScan';
+    }
+    
+    // Avoid duplicate URLs
+    if (!sources.some(s => s.url === url)) {
+      sources.push({ url, label });
     }
   }
   
@@ -154,33 +191,49 @@ function extractTechnologies(title: string, content: string): string[] {
   return [...new Set(techs)].slice(0, 5);
 }
 
-// Extract tags from theme/tech tags in content
+// Extract tags from theme/tech/blockchain tags in content
 function extractTags(content: string): string[] {
   const tags: string[] = [];
   
-  // Look for theme tags
+  // Look for theme tags - "Theme tags: Hack or scam"
   const themeMatch = content.match(/Theme tags?:\s*([^\n]+)/i);
   if (themeMatch) {
-    tags.push(...themeMatch[1].split(',').map(t => t.trim().toLowerCase()));
+    const themeText = themeMatch[1].trim();
+    // Handle "Hack or scam" style tags
+    const themeTags = themeText.split(/,|or/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    tags.push(...themeTags);
   }
   
-  // Look for tech tags
+  // Look for tech tags - "Tech tags: DeFi"
   const techMatch = content.match(/Tech tags?:\s*([^\n]+)/i);
   if (techMatch) {
-    tags.push(...techMatch[1].split(',').map(t => t.trim().toLowerCase()));
+    const techText = techMatch[1].trim();
+    const techTags = techText.split(/,|or/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    tags.push(...techTags);
   }
   
-  // Add derived tags
-  const textLower = content.toLowerCase();
-  if (textLower.includes('exploit')) tags.push('exploit');
-  if (textLower.includes('hack')) tags.push('hack');
-  if (textLower.includes('scam')) tags.push('scam');
-  if (textLower.includes('rug pull')) tags.push('rug-pull');
-  if (textLower.includes('phishing')) tags.push('phishing');
-  if (textLower.includes('flash loan')) tags.push('flash-loan');
-  if (textLower.includes('supply chain')) tags.push('supply-chain');
+  // Look for blockchain tags - "Blockchain tags: Blockchain: Ethereum"
+  const blockchainMatch = content.match(/Blockchain tags?:\s*(?:Blockchain:\s*)?([^\n]+)/i);
+  if (blockchainMatch) {
+    const blockchainText = blockchainMatch[1].replace(/^Blockchain:\s*/i, '').trim();
+    const blockchainTags = blockchainText.split(/,|or/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    tags.push(...blockchainTags);
+  }
   
-  return [...new Set(tags)].slice(0, 10);
+  // Add derived tags based on content
+  const textLower = content.toLowerCase();
+  if (textLower.includes('exploit') && !tags.includes('exploit')) tags.push('exploit');
+  if (textLower.includes('hack') && !tags.includes('hack')) tags.push('hack');
+  if (textLower.includes('scam') && !tags.includes('scam')) tags.push('scam');
+  if (textLower.includes('rug pull') && !tags.includes('rug-pull')) tags.push('rug-pull');
+  if (textLower.includes('phishing') && !tags.includes('phishing')) tags.push('phishing');
+  if (textLower.includes('flash loan') && !tags.includes('flash-loan')) tags.push('flash-loan');
+  if (textLower.includes('supply chain') && !tags.includes('supply-chain')) tags.push('supply-chain');
+  if (textLower.includes('address poisoning') && !tags.includes('address-poisoning')) tags.push('address-poisoning');
+  if (textLower.includes('infinite mint') && !tags.includes('infinite-mint')) tags.push('infinite-mint');
+  
+  // Clean up and deduplicate
+  return [...new Set(tags.filter(t => t.length > 0 && t !== 'blockchain'))].slice(0, 10);
 }
 
 // Generate SHA256 hash for deduplication
@@ -248,31 +301,64 @@ async function parseIncidents(markdown: string): Promise<any[]> {
       const tags = extractTags(content);
       
       // Get the first source link as primary reference
-      const primarySource = sources[0] || '';
+      const primarySource = sources[0]?.url || '';
       
       // Generate UID
       const uid = await generateUID(title, section.date);
       
-      // Extract clean summary (first paragraph without links)
-      let summary = content
-        .split('\n\n')[0]
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove markdown links, keep text
-        .replace(/!\[[^\]]*\]\([^)]+\)/g, '') // Remove images
-        .replace(/\[\[archive\]\][^\n]*/g, '') // Remove archive references
+      // Clean content: remove images, archive links, attribution, and tag lines
+      let cleanContent = content
+        // Remove image markdown ![alt](url)
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+        // Remove attribution links
+        .replace(/\[\(attribution\)\]\([^)]+\)/g, '')
+        .replace(/\(attribution\)/gi, '')
+        // Remove archive links and their markers
+        .replace(/\[\[archive\]\]\([^)]+\)/g, '')
+        .replace(/\[\\?\[archive\\?\]\]/g, '')
+        // Remove "Other entries related to..." lines
+        .replace(/Other entries related to[^\n]+/gi, '')
+        // Remove tag lines at the end
+        .replace(/\n*Theme tags?:[^\n]+/gi, '')
+        .replace(/\n*Tech tags?:[^\n]+/gi, '')
+        .replace(/\n*Blockchain tags?:[^\n]+/gi, '')
+        // Remove icon images and IDs at the end
+        .replace(/!\[\]\([^)]+\/icons\/[^)]+\)/g, '')
+        .replace(/id:[a-f0-9-]+/gi, '')
+        // Clean up excessive newlines
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
+      
+      // Extract clean summary (first paragraph, fully cleaned)
+      let summary = cleanContent
+        .split('\n\n')[0]
+        // Remove any remaining markdown links, keep text
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .trim();
+      
+      // Ensure summary doesn't start with "!" or other artifacts
+      if (summary.startsWith('!') || summary.startsWith('[')) {
+        const parts = cleanContent.split('\n\n');
+        summary = parts.find(p => p.length > 50 && !p.startsWith('!') && !p.startsWith('[') && !p.startsWith('-')) || parts[0];
+        summary = summary.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
+      }
       
       if (summary.length > 500) {
         summary = summary.substring(0, 497) + '...';
       }
       
+      // Format source links for storage (JSON stringify the array)
+      const sourceLinks = sources.length > 0 ? JSON.stringify(sources) : null;
+      
       incidents.push({
         uid,
         title,
         summary,
-        content: content.substring(0, 2000),
+        content: cleanContent.substring(0, 2000),
         link: primarySource || `https://www.web3isgoinggreat.com/`,
-        source_url: 'https://www.web3isgoinggreat.com/',
-        source_name: 'Web3 Is Going Great',
+        source_url: sourceLinks, // Store all source links as JSON
+        source_name: null, // Remove "Web3 Is Going Great" attribution
+        author: null, // No author
         category,
         severity,
         tags,
