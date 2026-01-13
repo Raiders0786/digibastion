@@ -351,6 +351,15 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
       
       const sourceLinks = sources.length > 0 ? JSON.stringify(sources) : null;
       
+      // Build rich metadata for future analysis
+      const metadata = {
+        amount_lost_usd: amount ? amount * 1000000 : null, // Store in USD
+        amount_display: amount ? `$${amount}M` : null,
+        attack_type: tags[0] || null,
+        data_source: 'feed-1',
+        scraped_at: new Date().toISOString(),
+      };
+      
       incidents.push({
         uid,
         title,
@@ -367,7 +376,8 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         cve_id: null,
         published_at: pubDate.toISOString(),
         raw_content: content,
-        is_processed: false
+        is_processed: false,
+        metadata
       });
     }
   }
@@ -422,6 +432,19 @@ async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
         // Create summary
         const summary = `${name} suffered a ${issueType.toLowerCase()} attack, losing approximately ${amountStr}. The incident occurred on the ${chain} chain and affected the ${categoryStr} sector.`;
         
+        // Build rich metadata for future analysis
+        const metadata = {
+          project_name: name,
+          amount_lost_usd: amount ? amount * 1000000 : null,
+          amount_display: amountStr,
+          chain: chain,
+          attack_type: issueType,
+          project_category: categoryStr,
+          post_mortem_url: postMortemLink || null,
+          data_source: 'feed-2',
+          scraped_at: new Date().toISOString(),
+        };
+        
         incidents.push({
           uid,
           title: `${name} - ${issueType} (${amountStr})`,
@@ -438,7 +461,8 @@ async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
           cve_id: null,
           published_at: pubDate.toISOString(),
           raw_content: row,
-          is_processed: false
+          is_processed: false,
+          metadata
         });
       }
     }
