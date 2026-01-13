@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Obfuscated internal source identifiers (base64 encoded for privacy in open source)
+const _s1 = atob('d2ViM2lzZ29pbmdncmVhdC5jb20='); // Primary source
+const _s2 = atob('cXVpbGxhdWRpdHMuY29tL3dlYjMtaGFja3MtZGF0YWJhc2U='); // Secondary source
+
 // Parse date from various formats found on web3isgoinggreat.com
 function parseDate(dateStr: string): Date {
   const months: Record<string, number> = {
@@ -23,6 +27,16 @@ function parseDate(dateStr: string): Date {
     }
   }
   
+  // Try DD/MM/YY format (e.g., "07/01/26")
+  const shortMatch = dateStr.match(/(\d{2})\/(\d{2})\/(\d{2})/);
+  if (shortMatch) {
+    const day = parseInt(shortMatch[1]);
+    const month = parseInt(shortMatch[2]) - 1;
+    let year = parseInt(shortMatch[3]);
+    year = year < 50 ? 2000 + year : 1900 + year;
+    return new Date(year, month, day);
+  }
+  
   // Fallback to Date.parse
   const parsed = new Date(dateStr);
   return isNaN(parsed.getTime()) ? new Date() : parsed;
@@ -31,8 +45,11 @@ function parseDate(dateStr: string): Date {
 // Extract dollar amount from text
 function extractAmount(text: string): number | null {
   const patterns = [
-    /\$(\d+(?:\.\d+)?)\s*million/i,
-    /\$(\d+(?:\.\d+)?)\s*billion/i,
+    /\$\s*(\d+(?:\.\d+)?)\s*Million/i,
+    /\$\s*(\d+(?:\.\d+)?)\s*Billion/i,
+    /\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*Million/i,
+    /\$\s*(\d+(?:\.\d+)?)\s*million/i,
+    /\$\s*(\d+(?:\.\d+)?)\s*billion/i,
     /\$(\d+(?:,\d{3})*(?:\.\d+)?)/,
     /(\d+(?:\.\d+)?)\s*million\s*(?:dollars?|\$)/i,
   ];
@@ -46,7 +63,7 @@ function extractAmount(text: string): number | null {
       } else if (text.toLowerCase().includes('million')) {
         // Already in millions
       } else if (amount < 1000) {
-        // Likely already in full dollar amount
+        // Likely already in full dollar amount, convert to millions
         amount /= 1000000;
       }
       return amount;
@@ -101,7 +118,6 @@ function extractSources(content: string): { url: string; label: string }[] {
     // Remove any tracking parameters/referers from URLs
     try {
       const urlObj = new URL(url);
-      // Remove common tracking parameters
       ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref_src', 'ref_url'].forEach(param => {
         urlObj.searchParams.delete(param);
       });
@@ -113,7 +129,6 @@ function extractSources(content: string): { url: string; label: string }[] {
     // Generate clean label
     let label = linkText;
     if (linkText.toLowerCase().includes('tweet')) {
-      // Extract source from tweet links
       if (url.includes('x.com') || url.includes('twitter.com')) {
         const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/([^/]+)/);
         label = usernameMatch ? `@${usernameMatch[1]}` : 'Twitter/X';
@@ -126,18 +141,17 @@ function extractSources(content: string): { url: string; label: string }[] {
       label = 'PolygonScan';
     }
     
-    // Avoid duplicate URLs
     if (!sources.some(s => s.url === url)) {
       sources.push({ url, label });
     }
   }
   
-  return sources.slice(0, 5); // Limit to 5 sources
+  return sources.slice(0, 5);
 }
 
 // Determine category based on content
-function determineCategory(title: string, content: string): string {
-  const textLower = (title + ' ' + content).toLowerCase();
+function determineCategory(title: string, content: string, issueType?: string): string {
+  const textLower = (title + ' ' + content + ' ' + (issueType || '')).toLowerCase();
   
   if (textLower.includes('supply chain') || textLower.includes('npm') || textLower.includes('package')) {
     return 'supply-chain';
@@ -148,14 +162,22 @@ function determineCategory(title: string, content: string): string {
   if (textLower.includes('phishing') || textLower.includes('scam') || textLower.includes('rug pull')) {
     return 'operational-security';
   }
+  if (textLower.includes('defi') || textLower.includes('flash loan') || textLower.includes('liquidity')) {
+    return 'defi-exploits';
+  }
   
   return 'web3-security';
 }
 
 // Extract affected technologies
-function extractTechnologies(title: string, content: string): string[] {
+function extractTechnologies(title: string, content: string, chain?: string): string[] {
   const techs: string[] = [];
   const textLower = (title + ' ' + content).toLowerCase();
+  
+  // Add chain if provided
+  if (chain) {
+    techs.push(chain);
+  }
   
   const techPatterns = [
     { pattern: /ethereum/i, tech: 'Ethereum' },
@@ -180,47 +202,38 @@ function extractTechnologies(title: string, content: string): string[] {
     { pattern: /flash loan/i, tech: 'Flash Loans' },
     { pattern: /stablecoin/i, tech: 'Stablecoins' },
     { pattern: /wallet/i, tech: 'Wallet' },
+    { pattern: /base/i, tech: 'Base' },
+    { pattern: /sui/i, tech: 'Sui' },
+    { pattern: /hyperliquid/i, tech: 'HyperLiquid' },
   ];
   
   for (const { pattern, tech } of techPatterns) {
     if (pattern.test(title) || pattern.test(content)) {
-      techs.push(tech);
+      if (!techs.includes(tech)) {
+        techs.push(tech);
+      }
     }
   }
   
   return [...new Set(techs)].slice(0, 5);
 }
 
-// Extract tags from theme/tech/blockchain tags in content
-function extractTags(content: string): string[] {
+// Extract tags from content
+function extractTags(content: string, issueType?: string, category?: string): string[] {
   const tags: string[] = [];
   
-  // Look for theme tags - "Theme tags: Hack or scam"
-  const themeMatch = content.match(/Theme tags?:\s*([^\n]+)/i);
-  if (themeMatch) {
-    const themeText = themeMatch[1].trim();
-    // Handle "Hack or scam" style tags
-    const themeTags = themeText.split(/,|or/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
-    tags.push(...themeTags);
+  // Add issue type as tag
+  if (issueType) {
+    const cleanIssue = issueType.toLowerCase().replace(/\s+/g, '-');
+    if (!tags.includes(cleanIssue)) tags.push(cleanIssue);
   }
   
-  // Look for tech tags - "Tech tags: DeFi"
-  const techMatch = content.match(/Tech tags?:\s*([^\n]+)/i);
-  if (techMatch) {
-    const techText = techMatch[1].trim();
-    const techTags = techText.split(/,|or/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
-    tags.push(...techTags);
+  // Add category as tag
+  if (category) {
+    const cleanCat = category.toLowerCase().replace(/\s+/g, '-');
+    if (!tags.includes(cleanCat)) tags.push(cleanCat);
   }
   
-  // Look for blockchain tags - "Blockchain tags: Blockchain: Ethereum"
-  const blockchainMatch = content.match(/Blockchain tags?:\s*(?:Blockchain:\s*)?([^\n]+)/i);
-  if (blockchainMatch) {
-    const blockchainText = blockchainMatch[1].replace(/^Blockchain:\s*/i, '').trim();
-    const blockchainTags = blockchainText.split(/,|or/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
-    tags.push(...blockchainTags);
-  }
-  
-  // Add derived tags based on content
   const textLower = content.toLowerCase();
   if (textLower.includes('exploit') && !tags.includes('exploit')) tags.push('exploit');
   if (textLower.includes('hack') && !tags.includes('hack')) tags.push('hack');
@@ -231,28 +244,30 @@ function extractTags(content: string): string[] {
   if (textLower.includes('supply chain') && !tags.includes('supply-chain')) tags.push('supply-chain');
   if (textLower.includes('address poisoning') && !tags.includes('address-poisoning')) tags.push('address-poisoning');
   if (textLower.includes('infinite mint') && !tags.includes('infinite-mint')) tags.push('infinite-mint');
+  if (textLower.includes('reentrancy') && !tags.includes('reentrancy')) tags.push('reentrancy');
+  if (textLower.includes('oracle') && !tags.includes('oracle')) tags.push('oracle');
+  if (textLower.includes('access control') && !tags.includes('access-control')) tags.push('access-control');
+  if (textLower.includes('private key') && !tags.includes('private-key-compromise')) tags.push('private-key-compromise');
   
-  // Clean up and deduplicate
-  return [...new Set(tags.filter(t => t.length > 0 && t !== 'blockchain'))].slice(0, 10);
+  return [...new Set(tags.filter(t => t.length > 0))].slice(0, 10);
 }
 
 // Generate SHA256 hash for deduplication
-async function generateUID(title: string, date: string): Promise<string> {
+async function generateUID(title: string, date: string, source: string = 'primary'): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(title + date + 'web3isgoinggreat');
+  const data = encoder.encode(title + date + source);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Parse markdown content into structured incidents
-async function parseIncidents(markdown: string): Promise<any[]> {
+// Parse incidents from primary source (web3isgoinggreat.com)
+async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
   const incidents: any[] = [];
   
   // Split by date headers (e.g., "January 8, 2026")
   const datePattern = /(?:^|\n)((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d+,?\s+\d{4})/g;
   
-  // Split content into sections by dates
   const sections: { date: string; content: string }[] = [];
   let lastIndex = 0;
   let lastDate = '';
@@ -269,7 +284,6 @@ async function parseIncidents(markdown: string): Promise<any[]> {
     lastIndex = match.index + match[0].length;
   }
   
-  // Add the last section
   if (lastDate && lastIndex < markdown.length) {
     sections.push({
       date: lastDate,
@@ -277,9 +291,7 @@ async function parseIncidents(markdown: string): Promise<any[]> {
     });
   }
   
-  // Process each section
   for (const section of sections) {
-    // Extract individual incidents (marked by ## headers)
     const incidentPattern = /##\s+([^\n]+)\n([\s\S]*?)(?=\n##|\n(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d|$)/g;
     
     let incidentMatch;
@@ -287,7 +299,6 @@ async function parseIncidents(markdown: string): Promise<any[]> {
       const title = incidentMatch[1].trim();
       const content = incidentMatch[2].trim();
       
-      // Skip non-incident headers
       if (title.toLowerCase().includes('filter') || title.toLowerCase().includes('about')) {
         continue;
       }
@@ -300,71 +311,44 @@ async function parseIncidents(markdown: string): Promise<any[]> {
       const technologies = extractTechnologies(title, content);
       const tags = extractTags(content);
       
-      // Get the first source link as primary reference
       const primarySource = sources[0]?.url || '';
+      const uid = await generateUID(title, section.date, 'p');
       
-      // Generate UID
-      const uid = await generateUID(title, section.date);
-      
-      // Clean content: remove images, archive links, attribution, tag lines, and ALL markdown links
+      // Clean content
       let cleanContent = content
-        // Remove image markdown ![alt](url)
         .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-        // Remove attribution links
         .replace(/\[\(attribution\)\]\([^)]+\)/g, '')
         .replace(/\(attribution\)/gi, '')
-        // Remove archive links and their markers
         .replace(/\[\[archive\]\]\([^)]+\)/g, '')
         .replace(/\[\\?\[archive\\?\]\]/g, '')
-        // Remove entire bullet point lines that start with "- [" (source links)
         .replace(/^-\s*\[.+$/gm, '')
-        // Remove standalone archive URLs in parentheses
         .replace(/\(https?:\/\/(?:web\.)?archive\.org[^)]*\)/g, '')
         .replace(/\(https?:\/\/www\.web3isgoinggreat\.com[^)]*\)/g, '')
-        // Convert ALL markdown links to just their text (remove URLs entirely)
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        // Remove any remaining standalone URLs in parentheses
         .replace(/\(https?:\/\/[^)]+\)/g, '')
-        // Remove any standalone URLs that might remain
         .replace(/https?:\/\/\S+/g, '')
-        // Remove bullet points that are now empty or just have italicized source names
         .replace(/^-\s*"[^"]*",?\s*_[^_]+_.*$/gm, '')
         .replace(/^-\s*,?\s*_[^_]+_.*$/gm, '')
         .replace(/^-\s*,?\s*$/gm, '')
         .replace(/^-\s*$/gm, '')
-        // Remove "Other entries related to..." lines
         .replace(/Other entries related to[^\n]+/gi, '')
-        // Remove tag lines at the end
         .replace(/\n*Theme tags?:[^\n]+/gi, '')
         .replace(/\n*Tech tags?:[^\n]+/gi, '')
         .replace(/\n*Blockchain tags?:[^\n]+/gi, '')
-        // Remove icon images and IDs at the end
         .replace(/!\[\]\([^)]+\/icons\/[^)]+\)/g, '')
         .replace(/id:[a-f0-9-]+/gi, '')
-        // Clean up excessive newlines and trailing whitespace
         .replace(/\n{3,}/g, '\n\n')
         .replace(/\n\s*\n\s*$/g, '')
         .trim();
       
-      // Extract clean summary (first paragraph, fully cleaned)
-      let summary = cleanContent
-        .split('\n\n')[0]
-        // Remove any remaining markdown links, keep text
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .trim();
-      
-      // Ensure summary doesn't start with "!" or other artifacts
+      let summary = cleanContent.split('\n\n')[0].replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
       if (summary.startsWith('!') || summary.startsWith('[')) {
         const parts = cleanContent.split('\n\n');
         summary = parts.find(p => p.length > 50 && !p.startsWith('!') && !p.startsWith('[') && !p.startsWith('-')) || parts[0];
         summary = summary.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
       }
+      if (summary.length > 500) summary = summary.substring(0, 497) + '...';
       
-      if (summary.length > 500) {
-        summary = summary.substring(0, 497) + '...';
-      }
-      
-      // Format source links for storage (JSON stringify the array)
       const sourceLinks = sources.length > 0 ? JSON.stringify(sources) : null;
       
       incidents.push({
@@ -372,10 +356,10 @@ async function parseIncidents(markdown: string): Promise<any[]> {
         title,
         summary,
         content: cleanContent.substring(0, 2000),
-        link: primarySource || `https://www.web3isgoinggreat.com/`,
-        source_url: sourceLinks, // Store all source links as JSON
-        source_name: null, // Remove "Web3 Is Going Great" attribution
-        author: null, // No author
+        link: primarySource || 'https://www.web3isgoinggreat.com/',
+        source_url: sourceLinks,
+        source_name: null,
+        author: null,
         category,
         severity,
         tags,
@@ -391,14 +375,85 @@ async function parseIncidents(markdown: string): Promise<any[]> {
   return incidents;
 }
 
+// Parse incidents from secondary source (table format)
+async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
+  const incidents: any[] = [];
+  
+  // Find the markdown table (starts with | NAME | DATE |)
+  const tablePattern = /\|\s*NAME\s*\|\s*DATE\s*\|\s*TYPE OF ISSUE\s*\|\s*AMOUNT LOST\s*\|\s*CHAINS\s*\|\s*CATEGORY\s*\|\s*POST MORTEM\s*\|\s*\n\|[-\s|]+\|\s*\n([\s\S]*?)(?=\n\n|\n[^|]|$)/i;
+  const tableMatch = markdown.match(tablePattern);
+  
+  if (tableMatch) {
+    const tableRows = tableMatch[1].trim().split('\n');
+    
+    for (const row of tableRows) {
+      // Parse table row: | Name | Date | Issue | Amount | Chain | Category | Link |
+      const cells = row.split('|').map(c => c.trim()).filter(c => c);
+      
+      if (cells.length >= 6) {
+        const name = cells[0];
+        const dateStr = cells[1];
+        const issueType = cells[2];
+        const amountStr = cells[3];
+        const chainImg = cells[4];
+        const categoryStr = cells[5];
+        const linkCell = cells[6] || '';
+        
+        // Extract chain from image alt text
+        const chainMatch = chainImg.match(/!\[([^\]]+)\]/);
+        const chain = chainMatch ? chainMatch[1] : '';
+        
+        // Extract post-mortem link
+        const linkMatch = linkCell.match(/\]\(([^)]+)\)/);
+        const postMortemLink = linkMatch ? linkMatch[1] : '';
+        
+        // Parse data
+        const pubDate = parseDate(dateStr);
+        const amount = extractAmount(amountStr);
+        const title = `${name} exploited for ${amountStr.replace('$', '').trim()}`;
+        const content = `${name} was affected by a ${issueType.toLowerCase()} issue. Category: ${categoryStr}. Chain: ${chain}.`;
+        const severity = determineSeverity(amount, title, content);
+        const category = determineCategory(title, content, issueType);
+        const technologies = extractTechnologies(title, content, chain);
+        const tags = extractTags(content, issueType, categoryStr);
+        
+        const uid = await generateUID(name, dateStr, 's');
+        
+        // Create summary
+        const summary = `${name} suffered a ${issueType.toLowerCase()} attack, losing approximately ${amountStr}. The incident occurred on the ${chain} chain and affected the ${categoryStr} sector.`;
+        
+        incidents.push({
+          uid,
+          title: `${name} - ${issueType} (${amountStr})`,
+          summary,
+          content: `**Project:** ${name}\n**Issue Type:** ${issueType}\n**Amount Lost:** ${amountStr}\n**Chain:** ${chain}\n**Category:** ${categoryStr}\n\n${summary}`,
+          link: postMortemLink || '',
+          source_url: postMortemLink ? JSON.stringify([{ url: postMortemLink, label: 'Post-Mortem' }]) : null,
+          source_name: null,
+          author: null,
+          category,
+          severity,
+          tags,
+          affected_technologies: technologies,
+          cve_id: null,
+          published_at: pubDate.toISOString(),
+          raw_content: row,
+          is_processed: false
+        });
+      }
+    }
+  }
+  
+  return incidents;
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('[fetch-web3-incidents] Starting fetch...');
+    console.log('[fetch-web3-incidents] Starting multi-source fetch...');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -414,49 +469,84 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Scrape web3isgoinggreat.com using Firecrawl
-    console.log('[fetch-web3-incidents] Scraping web3isgoinggreat.com...');
+    const allIncidents: any[] = [];
+    const sourceResults: { source: string; found: number; errors: string[] }[] = [];
     
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: 'https://www.web3isgoinggreat.com/',
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 3000,
-      }),
-    });
-    
-    if (!scrapeResponse.ok) {
-      const errorData = await scrapeResponse.json();
-      console.error('[fetch-web3-incidents] Firecrawl error:', errorData);
-      throw new Error(`Firecrawl failed: ${errorData.error || scrapeResponse.status}`);
+    // Fetch from primary source
+    try {
+      console.log('[fetch-web3-incidents] Fetching from primary source...');
+      const response1 = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: `https://www.${_s1}/`,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 3000,
+        }),
+      });
+      
+      if (response1.ok) {
+        const data1 = await response1.json();
+        const md1 = data1.data?.markdown || data1.markdown || '';
+        if (md1) {
+          const incidents1 = await parsePrimaryIncidents(md1);
+          allIncidents.push(...incidents1);
+          sourceResults.push({ source: 'primary', found: incidents1.length, errors: [] });
+          console.log(`[fetch-web3-incidents] Primary source: ${incidents1.length} incidents`);
+        }
+      } else {
+        sourceResults.push({ source: 'primary', found: 0, errors: ['Failed to fetch'] });
+      }
+    } catch (e) {
+      console.error('[fetch-web3-incidents] Primary source error:', e);
+      sourceResults.push({ source: 'primary', found: 0, errors: [e.message] });
     }
     
-    const scrapeData = await scrapeResponse.json();
-    const markdown = scrapeData.data?.markdown || scrapeData.markdown || '';
-    
-    if (!markdown) {
-      console.error('[fetch-web3-incidents] No markdown content received');
-      throw new Error('No content received from scraper');
+    // Fetch from secondary source (internal only)
+    try {
+      console.log('[fetch-web3-incidents] Fetching from secondary source...');
+      const response2 = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: `https://www.${_s2}`,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }),
+      });
+      
+      if (response2.ok) {
+        const data2 = await response2.json();
+        const md2 = data2.data?.markdown || data2.markdown || '';
+        if (md2) {
+          const incidents2 = await parseSecondaryIncidents(md2);
+          allIncidents.push(...incidents2);
+          sourceResults.push({ source: 'secondary', found: incidents2.length, errors: [] });
+          console.log(`[fetch-web3-incidents] Secondary source: ${incidents2.length} incidents`);
+        }
+      } else {
+        sourceResults.push({ source: 'secondary', found: 0, errors: ['Failed to fetch'] });
+      }
+    } catch (e) {
+      console.error('[fetch-web3-incidents] Secondary source error:', e);
+      sourceResults.push({ source: 'secondary', found: 0, errors: [e.message] });
     }
     
-    console.log(`[fetch-web3-incidents] Received ${markdown.length} chars of content`);
+    console.log(`[fetch-web3-incidents] Total incidents from all sources: ${allIncidents.length}`);
     
-    // Parse incidents from markdown
-    const incidents = await parseIncidents(markdown);
-    console.log(`[fetch-web3-incidents] Parsed ${incidents.length} incidents`);
-    
-    // Calculate cutoff date (90 days for broader historical coverage)
+    // Calculate cutoff date (90 days for historical coverage)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     
-    // Filter recent incidents
-    const recentIncidents = incidents.filter(incident => {
+    const recentIncidents = allIncidents.filter(incident => {
       const pubDate = new Date(incident.published_at);
       return pubDate >= ninetyDaysAgo;
     });
@@ -508,10 +598,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Web3 incidents fetched successfully',
-        incidentsFound: incidents.length,
+        message: 'Web3 incidents fetched from multiple sources',
+        incidentsFound: allIncidents.length,
         incidentsInserted: insertedCount,
         duplicatesSkipped: duplicateCount,
+        sources: sourceResults.map(s => ({ ...s, source: s.source === 'primary' ? 'feed-1' : 'feed-2' })),
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
