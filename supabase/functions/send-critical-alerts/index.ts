@@ -147,7 +147,7 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
     </tr>
     <tr>
       <td style="padding: 24px; text-align: center; border-top: 1px solid #374151;">
-        <a href="https://digibastion.com/news" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+        <a href="https://digibastion.com/threat-intel" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
           View All Threats
         </a>
       </td>
