@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Resend } from 'npm:resend@4.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,11 +17,16 @@ interface CronJobStatus {
   recent_successes: number;
 }
 
-interface HttpResponseError {
-  id: number;
-  created: string;
-  error_msg: string;
-  status_code: number | null;
+interface HealthSnapshot {
+  id: string;
+  recorded_at: string;
+  health_status: string;
+  total_jobs: number;
+  active_jobs: number;
+  total_runs: number;
+  failed_runs: number;
+  timeout_errors: number;
+  success_rate: number;
 }
 
 Deno.serve(async (req) => {
@@ -41,6 +47,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
@@ -51,7 +58,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user JWT (do NOT log token)
+    // Verify user JWT
     const token = authHeader.replace('Bearer ', '').trim();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
@@ -63,7 +70,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check admin role (service role client; not subject to RLS)
+    // Check admin role
     const { data: roleData, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
@@ -92,7 +99,7 @@ Deno.serve(async (req) => {
     // Query notification_log for recent activity (last 24 hours)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
-    const { data: notificationLogs, error: notifError } = await supabase
+    const { data: notificationLogs } = await supabase
       .from('notification_log')
       .select('id, sent_at, status, error_message')
       .gte('sent_at', oneDayAgo)
@@ -100,7 +107,7 @@ Deno.serve(async (req) => {
       .limit(100);
 
     // Query news_articles for recent fetches
-    const { data: recentArticles, error: articlesError } = await supabase
+    const { data: recentArticles } = await supabase
       .from('news_articles')
       .select('id, created_at, source_name')
       .gte('created_at', oneDayAgo)
@@ -121,7 +128,6 @@ Deno.serve(async (req) => {
       let last_error: string | undefined;
 
       if (job.jobname.includes('digest') || job.jobname.includes('alert')) {
-        // Email-related jobs - check notification_log
         const relevantLogs = notificationLogs || [];
         recent_successes = relevantLogs.filter(n => n.status === 'sent').length;
         recent_failures = relevantLogs.filter(n => n.status === 'failed').length;
@@ -131,9 +137,8 @@ Deno.serve(async (req) => {
           last_error = relevantLogs[0].error_message || undefined;
         }
       } else if (job.jobname.includes('rss') || job.jobname.includes('web3') || job.jobname.includes('fetch')) {
-        // Fetch jobs - check news_articles
         const articleCount = recentArticles?.length || 0;
-        recent_successes = articleCount > 0 ? Math.ceil(articleCount / 10) : 0; // Estimate runs
+        recent_successes = articleCount > 0 ? Math.ceil(articleCount / 10) : 0;
         if (recentArticles && recentArticles.length > 0) {
           last_run = recentArticles[0].created_at;
           last_status = 'succeeded';
@@ -160,7 +165,141 @@ Deno.serve(async (req) => {
     // Calculate health score
     const totalRuns = successfulNotifs + failedNotifs + (recentArticles?.length || 0);
     const failedRuns = failedNotifs;
-    const successRate = totalRuns > 0 ? ((totalRuns - failedRuns) / totalRuns * 100).toFixed(1) : '100';
+    const successRate = totalRuns > 0 ? ((totalRuns - failedRuns) / totalRuns * 100) : 100;
+    const successRateStr = successRate.toFixed(1);
+
+    // Determine health status
+    const healthStatus = failedRuns === 0 && timeoutCount === 0 ? 'healthy' : 
+                        failedRuns > 5 || timeoutCount > 10 ? 'critical' : 'warning';
+    const healthMessage = failedRuns === 0 && timeoutCount === 0 
+      ? 'All cron jobs running normally' 
+      : `${failedRuns} failed runs, ${timeoutCount} timeouts in last 24h`;
+
+    // Store health snapshot (every request, will be deduplicated by cleanup)
+    const { error: snapshotError } = await supabase
+      .from('cron_health_snapshots')
+      .insert({
+        health_status: healthStatus,
+        total_jobs: enrichedJobs.length,
+        active_jobs: enrichedJobs.filter(j => j.active).length,
+        total_runs: totalRuns,
+        failed_runs: failedRuns,
+        timeout_errors: timeoutCount,
+        success_rate: parseFloat(successRateStr),
+        message: healthMessage,
+        alert_sent: false,
+      });
+
+    if (snapshotError) {
+      console.warn('[cron-monitor] Failed to store snapshot:', snapshotError.message);
+    }
+
+    // Check if we need to send a critical alert
+    if (healthStatus === 'critical' && resendApiKey) {
+      // Check if we already sent an alert in the last hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recentAlerts } = await supabase
+        .from('cron_health_snapshots')
+        .select('id')
+        .eq('health_status', 'critical')
+        .eq('alert_sent', true)
+        .gte('recorded_at', oneHourAgo)
+        .limit(1);
+
+      if (!recentAlerts || recentAlerts.length === 0) {
+        // Send critical alert email
+        try {
+          const resend = new Resend(resendApiKey);
+          await resend.emails.send({
+            from: 'DigiBastion Alerts <alerts@digibastion.com>',
+            to: [user.email || 'admin@digibastion.com'],
+            subject: '🚨 CRITICAL: Cron Job Health Alert',
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #dc2626;">🚨 Critical Cron Health Alert</h1>
+                <p style="font-size: 16px; color: #374151;">
+                  The cron job monitoring system has detected critical issues:
+                </p>
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 0; color: #991b1b;"><strong>Status:</strong> ${healthStatus.toUpperCase()}</p>
+                  <p style="margin: 8px 0 0 0; color: #991b1b;"><strong>Message:</strong> ${healthMessage}</p>
+                </div>
+                <h2 style="color: #374151; font-size: 18px;">Summary (Last 24h)</h2>
+                <ul style="color: #4b5563;">
+                  <li>Total Runs: ${totalRuns}</li>
+                  <li>Failed Runs: ${failedRuns}</li>
+                  <li>Timeout Errors: ${timeoutCount}</li>
+                  <li>Success Rate: ${successRateStr}%</li>
+                </ul>
+                <p style="font-size: 14px; color: #6b7280;">
+                  View the full dashboard at: <a href="https://digibastion.com/admin/cron">Cron Monitor</a>
+                </p>
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #9ca3af;">
+                  This is an automated alert from DigiBastion. You will not receive another alert for 1 hour.
+                </p>
+              </div>
+            `,
+          });
+
+          // Mark alert as sent
+          await supabase
+            .from('cron_health_snapshots')
+            .update({ alert_sent: true })
+            .eq('health_status', 'critical')
+            .gte('recorded_at', oneHourAgo);
+
+          console.log('[cron-monitor] Critical alert email sent to', user.email);
+        } catch (emailError) {
+          console.error('[cron-monitor] Failed to send alert email:', emailError);
+        }
+      }
+    }
+
+    // Get 7-day health history for chart
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: healthHistory } = await supabase
+      .from('cron_health_snapshots')
+      .select('id, recorded_at, health_status, total_runs, failed_runs, timeout_errors, success_rate')
+      .gte('recorded_at', sevenDaysAgo)
+      .order('recorded_at', { ascending: true })
+      .limit(200);
+
+    // Aggregate history by day for chart
+    const dailyHistory: Record<string, { date: string; healthy: number; warning: number; critical: number; avgSuccessRate: number; totalRuns: number; failedRuns: number }> = {};
+    
+    healthHistory?.forEach((snapshot: HealthSnapshot) => {
+      const date = snapshot.recorded_at.split('T')[0];
+      if (!dailyHistory[date]) {
+        dailyHistory[date] = { 
+          date, 
+          healthy: 0, 
+          warning: 0, 
+          critical: 0, 
+          avgSuccessRate: 0, 
+          totalRuns: 0, 
+          failedRuns: 0 
+        };
+      }
+      dailyHistory[date][snapshot.health_status as 'healthy' | 'warning' | 'critical']++;
+      dailyHistory[date].avgSuccessRate += snapshot.success_rate;
+      dailyHistory[date].totalRuns += snapshot.total_runs;
+      dailyHistory[date].failedRuns += snapshot.failed_runs;
+    });
+
+    // Calculate averages
+    const historyData = Object.values(dailyHistory).map(day => {
+      const totalSnapshots = day.healthy + day.warning + day.critical;
+      return {
+        date: day.date,
+        healthy: day.healthy,
+        warning: day.warning,
+        critical: day.critical,
+        successRate: totalSnapshots > 0 ? Math.round(day.avgSuccessRate / totalSnapshots) : 100,
+        totalRuns: day.totalRuns,
+        failedRuns: day.failedRuns,
+      };
+    });
 
     const response = {
       success: true,
@@ -170,7 +309,7 @@ Deno.serve(async (req) => {
         active_jobs: enrichedJobs.filter(j => j.active).length,
         total_runs_24h: totalRuns,
         failed_runs_24h: failedRuns,
-        success_rate: `${successRate}%`,
+        success_rate: `${successRateStr}%`,
         timeout_errors_24h: timeoutCount,
         http_errors_24h: failedRequests,
       },
@@ -182,15 +321,13 @@ Deno.serve(async (req) => {
         status_code: null,
       })),
       health: {
-        status: failedRuns === 0 && timeoutCount === 0 ? 'healthy' : 
-                failedRuns > 5 || timeoutCount > 10 ? 'critical' : 'warning',
-        message: failedRuns === 0 && timeoutCount === 0 
-          ? 'All cron jobs running normally' 
-          : `${failedRuns} failed runs, ${timeoutCount} timeouts in last 24h`,
-      }
+        status: healthStatus,
+        message: healthMessage,
+      },
+      history: historyData,
     };
 
-    console.log(`Cron monitor: ${response.health.status} - ${response.summary.success_rate} success rate`);
+    console.log(`[cron-monitor] ${response.health.status} - ${response.summary.success_rate} success rate`);
 
     return new Response(
       JSON.stringify(response),
@@ -198,7 +335,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Cron monitor error:', error);
+    console.error('[cron-monitor] Error:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to fetch cron status' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

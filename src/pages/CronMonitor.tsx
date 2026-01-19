@@ -14,8 +14,10 @@ import {
   Activity, 
   LogOut,
   BarChart3,
-  AlertCircle
+  AlertCircle,
+  TrendingUp
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { toast } from 'sonner';
 
 interface CronJob {
@@ -54,6 +56,15 @@ interface CronMonitorData {
     status: 'healthy' | 'warning' | 'critical';
     message: string;
   };
+  history?: Array<{
+    date: string;
+    healthy: number;
+    warning: number;
+    critical: number;
+    successRate: number;
+    totalRuns: number;
+    failedRuns: number;
+  }>;
 }
 
 const CronMonitor = () => {
@@ -285,6 +296,84 @@ const CronMonitor = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Health History Charts */}
+        {data?.history && data.history.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Success Rate Trend */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Success Rate Trend (7 Days)
+                </CardTitle>
+                <CardDescription>Daily average success rate</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data.history}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        className="text-xs"
+                      />
+                      <YAxis domain={[0, 100]} className="text-xs" />
+                      <Tooltip 
+                        labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                        formatter={(value: number) => [`${value}%`, 'Success Rate']}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="successRate" 
+                        stroke="#22c55e" 
+                        name="Success Rate" 
+                        strokeWidth={2}
+                        dot={{ fill: '#22c55e', strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Health Status Distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Health Status (7 Days)
+                </CardTitle>
+                <CardDescription>Distribution of health checks per day</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.history}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        className="text-xs"
+                      />
+                      <YAxis className="text-xs" />
+                      <Tooltip 
+                        labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Legend />
+                      <Bar dataKey="healthy" stackId="a" fill="#22c55e" name="Healthy" />
+                      <Bar dataKey="warning" stackId="a" fill="#eab308" name="Warning" />
+                      <Bar dataKey="critical" stackId="a" fill="#ef4444" name="Critical" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Jobs Table */}
         <Card>
