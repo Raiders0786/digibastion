@@ -199,6 +199,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_sessions: {
+        Row: {
+          completed_at: string | null
+          expires_at: string
+          id: string
+          ip_hash: string
+          question_ids: number[]
+          session_token: string
+          started_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_hash: string
+          question_ids: number[]
+          session_token: string
+          started_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_hash?: string
+          question_ids?: number[]
+          session_token?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
       quiz_submission_log: {
         Row: {
           id: string
@@ -368,6 +398,7 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_expired_quiz_sessions: { Args: never; Returns: undefined }
       cleanup_old_submission_logs: { Args: never; Returns: undefined }
       count_news_articles: {
         Args: {
