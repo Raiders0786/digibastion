@@ -258,12 +258,13 @@ const handler = async (req: Request): Promise<Response> => {
       // Check if this email already has a verified subscription
       const { data: existingSub } = await supabase
         .from('subscriptions')
-        .select('id, is_verified')
+        .select('id, is_verified, frequency, preferred_hour, timezone_offset, categories')
         .eq('email', sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase())
         .maybeSingle();
 
       const isNewSubscription = !existingSub;
-      const needsVerification = !existingSub?.is_verified;
+      const alreadyVerified = existingSub?.is_verified === true;
+      const needsVerification = !alreadyVerified;
 
       // Generate new verification token
       const verificationToken = crypto.randomUUID();
@@ -302,15 +303,15 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log("[submit-form] Subscription saved:", subscription.id);
 
-      // Send verification email if needed
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      
+      // Send appropriate email based on verification status
       if (needsVerification) {
-        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        // New or unverified user - send verification email
         if (resendApiKey) {
-          // Use branded URL - no infrastructure URLs exposed
           const verifyUrl = `https://digibastion.com/verify-email?token=${verificationToken}`;
           
           try {
-            // Use fetch directly for more control over headers
             const emailResponse = await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
@@ -335,10 +336,39 @@ const handler = async (req: Request): Promise<Response> => {
             }
           } catch (emailError) {
             console.error("[submit-form] Failed to send verification email:", emailError);
-            // Don't fail the whole request if email fails
           }
-        } else {
-          console.warn("[submit-form] RESEND_API_KEY not configured, skipping verification email");
+        }
+      } else {
+        // Already verified - send confirmation email with their current settings
+        if (resendApiKey) {
+          const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email)}&token=${existingSub?.id || subscription.verification_token}`;
+          
+          try {
+            const emailResponse = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'Digibastion Security <alerts@digibastion.com>',
+                reply_to: 'support@digibastion.com',
+                to: [subscriptionData.email],
+                subject: 'You\'re already subscribed! - Digibastion Security',
+                html: generateAlreadyVerifiedEmail(subscriptionData.name, subscriptionData.frequency, subscriptionData.preferred_hour, subscriptionData.timezone_offset, subscriptionData.categories, manageUrl),
+                text: generateAlreadyVerifiedEmailText(subscriptionData.name, subscriptionData.frequency, subscriptionData.preferred_hour, subscriptionData.timezone_offset, subscriptionData.categories, manageUrl),
+              }),
+            });
+
+            if (!emailResponse.ok) {
+              const errorText = await emailResponse.text();
+              console.error("[submit-form] Resend API error:", errorText);
+            } else {
+              console.log("[submit-form] Already verified email sent to:", subscriptionData.email);
+            }
+          } catch (emailError) {
+            console.error("[submit-form] Failed to send already verified email:", emailError);
+          }
         }
       }
 
@@ -370,10 +400,10 @@ New subscription request:
 
       const responseMessage = needsVerification 
         ? "Please check your email to verify your subscription."
-        : "Subscription updated successfully.";
+        : "You're already subscribed! We've sent a confirmation to your email.";
 
       return new Response(
-        JSON.stringify({ success: true, message: responseMessage, needsVerification }),
+        JSON.stringify({ success: true, message: responseMessage, needsVerification, alreadyVerified }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 
@@ -495,6 +525,162 @@ Your Subscription Includes:
 ${categoryList}
 
 This link will expire in 24 hours. If you didn't sign up for Digibastion alerts, you can safely ignore this email.
+
+---
+Digibastion Security Threat Intelligence
+https://digibastion.com
+  `.trim();
+}
+
+// Helper function to format delivery time
+function formatDeliveryTime(hour: number, offset: number): string {
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const sign = offset >= 0 ? '+' : '';
+  return `${displayHour}:00 ${period} UTC${sign}${offset}`;
+}
+
+function generateAlreadyVerifiedEmail(
+  name: string | null, 
+  frequency: string, 
+  preferredHour: number, 
+  timezoneOffset: number,
+  categories: string[],
+  manageUrl: string
+): string {
+  const displayName = escapeHtml(name || 'Security Professional');
+  const escapedManageUrl = escapeHtml(manageUrl);
+  const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${escapeHtml(c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</li>`).join('');
+  const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
+  const frequencyDisplay = frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Immediate';
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #1a1a2e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #1a1a2e;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(30, 30, 50, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(34, 197, 94, 0.3);">
+          <tr>
+            <td style="padding: 40px;">
+              <!-- Header -->
+              <table width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 30px;">
+                    <h1 style="color: #f3f4f6; margin: 0; font-size: 28px;">🛡️ Digibastion</h1>
+                    <p style="color: #9ca3af; margin: 8px 0 0 0; font-size: 14px;">Security Threat Intelligence</p>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Content -->
+              <table width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding-bottom: 24px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                      <span style="display: inline-block; background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                        ✓ Already Verified
+                      </span>
+                    </div>
+                    <h2 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 22px;">You're Already Subscribed!</h2>
+                    <p style="color: #d1d5db; margin: 0; font-size: 16px; line-height: 1.6;">
+                      Hi ${displayName},<br><br>
+                      Good news - your email is already verified and you're receiving our security alerts! Here's a reminder of your current settings:
+                    </p>
+                  </td>
+                </tr>
+                
+                <!-- Current Settings -->
+                <tr>
+                  <td style="padding: 24px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; margin-top: 24px;">
+                    <h3 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 16px;">Your Alert Settings:</h3>
+                    <table width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="color: #9ca3af; font-size: 14px; padding-bottom: 8px;">
+                          <strong style="color: #f3f4f6;">Frequency:</strong> ${frequencyDisplay} digest
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9ca3af; font-size: 14px; padding-bottom: 8px;">
+                          <strong style="color: #f3f4f6;">Delivery Time:</strong> ${deliveryTime}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9ca3af; font-size: 14px; padding-top: 8px;">
+                          <strong style="color: #f3f4f6;">Categories:</strong>
+                          <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                            ${categoryList}
+                          </ul>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                
+                <!-- Manage Button -->
+                <tr>
+                  <td align="center" style="padding: 24px 0;">
+                    <a href="${escapedManageUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                      Manage Preferences
+                    </a>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 32px;">
+                    <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.6;">
+                      You're receiving this because someone tried to subscribe with your email. If this wasn't you, you can safely ignore this message.
+                    </p>
+                    <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
+                      <a href="https://digibastion.com" style="color: #22c55e; text-decoration: none;">digibastion.com</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function generateAlreadyVerifiedEmailText(
+  name: string | null, 
+  frequency: string, 
+  preferredHour: number, 
+  timezoneOffset: number,
+  categories: string[],
+  manageUrl: string
+): string {
+  const displayName = name || 'Security Professional';
+  const categoryList = categories.slice(0, 5).map(c => `- ${c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n');
+  const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
+  const frequencyDisplay = frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Immediate';
+  
+  return `
+Digibastion Security - You're Already Subscribed!
+
+Hi ${displayName},
+
+Good news - your email is already verified and you're receiving our security alerts!
+
+YOUR CURRENT SETTINGS:
+- Frequency: ${frequencyDisplay} digest
+- Delivery Time: ${deliveryTime}
+- Categories:
+${categoryList}
+
+To update your preferences, visit: ${manageUrl}
 
 ---
 Digibastion Security Threat Intelligence
