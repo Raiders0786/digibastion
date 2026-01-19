@@ -306,17 +306,33 @@ const handler = async (req: Request): Promise<Response> => {
       if (needsVerification) {
         const resendApiKey = Deno.env.get("RESEND_API_KEY");
         if (resendApiKey) {
-          const resend = new Resend(resendApiKey);
-          const verifyUrl = `${supabaseUrl}/functions/v1/verify-email?token=${verificationToken}`;
+          // Use branded URL - no infrastructure URLs exposed
+          const verifyUrl = `https://digibastion.com/verify-email?token=${verificationToken}`;
           
           try {
-            await resend.emails.send({
-              from: "Digibastion Security <alerts@digibastion.com>",
-              to: [subscriptionData.email],
-              subject: "Verify your Digibastion Security Alert Subscription",
-              html: generateVerificationEmail(subscriptionData.name, verifyUrl, subscriptionData.categories),
+            // Use fetch directly for more control over headers
+            const emailResponse = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'Digibastion Security <alerts@digibastion.com>',
+                reply_to: 'support@digibastion.com',
+                to: [subscriptionData.email],
+                subject: 'Verify your email - Digibastion Security Alerts',
+                html: generateVerificationEmail(subscriptionData.name, verifyUrl, subscriptionData.categories),
+                text: generateVerificationEmailText(subscriptionData.name, verifyUrl, subscriptionData.categories),
+              }),
             });
-            console.log("[submit-form] Verification email sent to:", subscriptionData.email);
+
+            if (!emailResponse.ok) {
+              const errorText = await emailResponse.text();
+              console.error("[submit-form] Resend API error:", errorText);
+            } else {
+              console.log("[submit-form] Verification email sent to:", subscriptionData.email);
+            }
           } catch (emailError) {
             console.error("[submit-form] Failed to send verification email:", emailError);
             // Don't fail the whole request if email fails
@@ -460,4 +476,28 @@ function generateVerificationEmail(name: string | null, verifyUrl: string, categ
 </body>
 </html>
   `;
+}
+
+function generateVerificationEmailText(name: string | null, verifyUrl: string, categories: string[]): string {
+  const displayName = name || 'Security Professional';
+  const categoryList = categories.slice(0, 5).map(c => `- ${c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n');
+  
+  return `
+Digibastion Security - Verify Your Email
+
+Hi ${displayName},
+
+Thanks for subscribing to Digibastion Security Alerts! Please verify your email address to start receiving threat intelligence updates.
+
+Verify your email: ${verifyUrl}
+
+Your Subscription Includes:
+${categoryList}
+
+This link will expire in 24 hours. If you didn't sign up for Digibastion alerts, you can safely ignore this email.
+
+---
+Digibastion Security Threat Intelligence
+https://digibastion.com
+  `.trim();
 }
