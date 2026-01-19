@@ -71,7 +71,8 @@ serve(async (req) => {
     const [
       { data: events, error: eventsError },
       { data: dailyStats, error: dailyError },
-      { data: subscriptions, error: subsError }
+      { data: subscriptions, error: subsError },
+      { data: allEmailEvents, error: allEventsError }
     ] = await Promise.all([
       // Recent events
       supabase
@@ -89,15 +90,24 @@ serve(async (req) => {
         .gte("created_at", startDate)
         .lte("created_at", endDate),
       
-      // Subscription stats
+      // Full subscription details for subscriber table
       supabase
         .from("subscriptions")
-        .select("id, is_active, is_verified, frequency, created_at")
+        .select("id, email, name, is_active, is_verified, frequency, severity_threshold, categories, last_notified_at, created_at, preferred_hour, timezone_offset")
+        .order("created_at", { ascending: false }),
+      
+      // All email events with subscription_id for per-user stats
+      supabase
+        .from("email_events")
+        .select("subscription_id, event_type")
+        .gte("created_at", startDate)
+        .lte("created_at", endDate)
     ]);
 
     if (eventsError) console.error("[admin-analytics] Events error:", eventsError);
     if (dailyError) console.error("[admin-analytics] Daily error:", dailyError);
     if (subsError) console.error("[admin-analytics] Subs error:", subsError);
+    if (allEventsError) console.error("[admin-analytics] All events error:", allEventsError);
 
     // Calculate aggregated stats
     const allEvents = dailyStats || [];
@@ -123,6 +133,18 @@ serve(async (req) => {
       .map(([date, stats]) => ({ date, ...stats }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    // Build per-subscriber stats
+    const subscriberStats: Record<string, { sent: number; opens: number; clicks: number }> = {};
+    for (const event of (allEmailEvents || [])) {
+      if (!event.subscription_id) continue;
+      if (!subscriberStats[event.subscription_id]) {
+        subscriberStats[event.subscription_id] = { sent: 0, opens: 0, clicks: 0 };
+      }
+      if (event.event_type === "sent") subscriberStats[event.subscription_id].sent++;
+      else if (event.event_type === "open") subscriberStats[event.subscription_id].opens++;
+      else if (event.event_type === "click") subscriberStats[event.subscription_id].clicks++;
+    }
+
     // Subscription breakdown
     const subs = subscriptions || [];
     const subStats = {
@@ -137,6 +159,23 @@ serve(async (req) => {
       }
     };
 
+    // Build subscriber details with stats
+    const subscriberDetails = subs.map(sub => ({
+      id: sub.id,
+      email: sub.email,
+      name: sub.name,
+      is_active: sub.is_active,
+      is_verified: sub.is_verified,
+      frequency: sub.frequency,
+      severity_threshold: sub.severity_threshold,
+      categories: sub.categories,
+      preferred_hour: sub.preferred_hour,
+      timezone_offset: sub.timezone_offset,
+      last_notified_at: sub.last_notified_at,
+      created_at: sub.created_at,
+      stats: subscriberStats[sub.id] || { sent: 0, opens: 0, clicks: 0 }
+    }));
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -150,6 +189,7 @@ serve(async (req) => {
           },
           dailyData,
           subscriptions: subStats,
+          subscriberDetails,
           recentEvents: (events || []).slice(0, 50),
           dateRange: { startDate, endDate }
         }
