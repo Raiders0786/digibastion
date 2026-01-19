@@ -458,14 +458,379 @@ const SoliditySecurityContent = () => (
   </>
 );
 
+// Seed Phrase Security Content
+const SeedPhraseSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Protecting Your Crypto's Master Key</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Critical Warning</h3>
+        <p>Your seed phrase (12 or 24 words) is the <strong>only</strong> way to recover your wallet. Lose it, and you lose everything. Share it, and you've handed over your assets.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Storage Best Practices</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">✅ DO</h3>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Write on metal plates (fire/water resistant)</li>
+              <li>Store in multiple secure locations</li>
+              <li>Use Shamir Secret Sharing for large holdings</li>
+              <li>Test recovery before significant deposits</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">❌ DON'T</h3>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Store digitally (screenshots, notes apps, cloud)</li>
+              <li>Email or message to yourself</li>
+              <li>Take photos of your seed phrase</li>
+              <li>Store in a single location</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Metal Backup Options</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Cryptosteel Capsule</strong> - Letter tiles in stainless steel tube</li>
+            <li><strong>Billfodl</strong> - Stamped metal plates</li>
+            <li><strong>DIY stamping</strong> - Titanium or stainless steel with letter stamps</li>
+          </ul>
+          <div className="mt-4 p-4 bg-primary/10 rounded-lg">
+            <strong className="text-primary">Pro Tip:</strong> Test your metal backup survives fire and water before relying on it.
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Token Approval Revocation Content
+const RevokeApprovalContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Why Token Approvals Are Dangerous</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <p>When you approve a token for a dApp, you're giving permission to move your tokens. <strong>Unlimited approvals</strong> let contracts drain your entire balance - even months later.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How to Check & Revoke Approvals</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-4">
+            <li><strong>Visit Revoke.cash</strong> - Connect your wallet to see all active approvals</li>
+            <li><strong>Sort by Risk</strong> - Look for "Unlimited" approvals on valuable tokens</li>
+            <li><strong>Revoke Suspicious Approvals</strong> - Click revoke and confirm the transaction</li>
+            <li><strong>Set Limited Approvals</strong> - For future interactions, approve only what you need</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Revocation Tools</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold mb-2">Revoke.cash</h3>
+            <p className="text-sm text-muted-foreground">Multi-chain support, easy interface</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold mb-2">Etherscan Token Approvals</h3>
+            <p className="text-sm text-muted-foreground">Ethereum-focused, official tool</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold mb-2">DeBank</h3>
+            <p className="text-sm text-muted-foreground">Portfolio tracking with approvals</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Flash Loan Attack Content
+const FlashLoanContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Understanding Flash Loan Attacks</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">What Are Flash Loans?</h3>
+        <p>Flash loans allow borrowing millions in crypto with no collateral - as long as you repay in the same transaction. Attackers use this to manipulate prices and exploit protocols.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Attack Pattern</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li>Borrow millions from flash loan provider (Aave, dYdX)</li>
+            <li>Manipulate a price oracle or AMM pool</li>
+            <li>Exploit the target protocol at manipulated price</li>
+            <li>Repay the flash loan with profit</li>
+            <li>Keep the stolen funds</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Notable Flash Loan Attacks</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">bZx (2020)</h3>
+            <p className="text-sm text-muted-foreground">$8M stolen through price manipulation</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">Pancake Bunny (2021)</h3>
+            <p className="text-sm text-muted-foreground">$45M through flash loan + price oracle</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protection for Users</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use protocols with TWAP oracles (not spot prices)</li>
+            <li>Check if the protocol has flash loan protection</li>
+            <li>Prefer battle-tested protocols over new forks</li>
+            <li>Don't deposit more than you can afford to lose</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// 2FA Security Content
+const TwoFactorAuthContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Two-Factor Authentication for Crypto</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">⚠️ SMS 2FA Is Not Safe</h3>
+        <p>SIM swap attacks make SMS-based 2FA vulnerable. Hackers have stolen millions by convincing carriers to transfer phone numbers.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">2FA Methods Ranked</h2>
+        <div className="space-y-4">
+          <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/20">
+            <h3 className="font-semibold text-green-400">🏆 Hardware Keys (YubiKey)</h3>
+            <p className="text-sm">Most secure. Physical device required for login. Phishing resistant.</p>
+          </div>
+          <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
+            <h3 className="font-semibold text-blue-400">✅ Authenticator Apps (Authy, Google Authenticator)</h3>
+            <p className="text-sm">Good security. Time-based codes. Keep backup codes safe!</p>
+          </div>
+          <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/20">
+            <h3 className="font-semibold text-red-400">❌ SMS 2FA</h3>
+            <p className="text-sm">Vulnerable to SIM swaps. Only use if nothing else is available.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Setup Recommendations</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use YubiKey for exchange accounts (Coinbase, Kraken, Binance support it)</li>
+            <li>Backup your authenticator app - Authy allows cloud backup</li>
+            <li>Store backup codes in your password manager</li>
+            <li>Remove your phone number from exchange accounts if possible</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// NFT Marketplace Security Content
+const NFTMarketplaceContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Safe Trading on NFT Marketplaces</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <p>NFT marketplaces handle valuable digital assets. Understanding their security features and risks is essential for safe trading.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Platform-Specific Tips</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">OpenSea</h3>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Check the blue verified checkmark on collections</li>
+              <li>Review transaction details before signing</li>
+              <li>Be wary of "hidden" items in your profile</li>
+              <li>Use the "Hide" feature for suspicious airdrops</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Blur</h3>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Understand bid pool mechanics</li>
+              <li>Be cautious with trait bidding</li>
+              <li>Check floor price volatility before bidding</li>
+              <li>Review all collection offers before accepting</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Common NFT Trading Scams</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Fake collection listings</strong> - Always verify contract address</li>
+            <li><strong>Hidden listing attacks</strong> - Attackers accept your old listings at low prices</li>
+            <li><strong>Wash trading</strong> - Artificial volume to inflate prices</li>
+            <li><strong>Airdrop phishing</strong> - Malicious NFTs that trigger drainers when interacted</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Incident Response Content
+const IncidentResponseContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Emergency Response for Wallet Compromise</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">🚨 Time Is Critical</h3>
+        <p>If you suspect your wallet is compromised, every second counts. Act immediately using this playbook.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Immediate Actions (First 5 Minutes)</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Transfer remaining assets</strong> to a NEW wallet (never compromised device)</li>
+            <li><strong>Revoke all approvals</strong> on revoke.cash immediately</li>
+            <li><strong>Check all chains</strong> - ETH, Polygon, Arbitrum, BSC, etc.</li>
+            <li><strong>Move NFTs</strong> - Use setApprovalForAll=false if possible</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">After Securing Remaining Assets</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Document everything (screenshots, transaction hashes)</li>
+            <li>Report to local authorities (for insurance/legal purposes)</li>
+            <li>File reports with blockchain forensics (Chainalysis, TRM Labs)</li>
+            <li>Alert the community (prevent others from falling victim)</li>
+            <li>Change all related passwords</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Prevention for Next Time</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use hardware wallet for significant holdings</li>
+            <li>Enable transaction simulation (Wallet Guard, Pocket Universe)</li>
+            <li>Never share your screen with wallet visible</li>
+            <li>Regularly audit and revoke old approvals</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Layer 2 Security Content
+const Layer2SecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Security on Layer 2 Networks</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <p>Layer 2 solutions offer faster, cheaper transactions but introduce new security considerations. Understand the tradeoffs before bridging significant funds.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">L2 Risk Factors</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Sequencer Centralization</h3>
+            <p className="text-sm text-muted-foreground mb-3">Most L2s run single sequencers. Downtime means no transactions.</p>
+            <ul className="list-disc pl-6 text-sm space-y-1">
+              <li>Arbitrum, Optimism have single sequencers</li>
+              <li>zkSync Era is also centralized currently</li>
+              <li>Decentralization is on roadmaps but not implemented</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Bridge Risks</h3>
+            <p className="text-sm text-muted-foreground mb-3">Bridges are the weak link. Most major hacks target bridges.</p>
+            <ul className="list-disc pl-6 text-sm space-y-1">
+              <li>Use native bridges when possible</li>
+              <li>Avoid new/unaudited third-party bridges</li>
+              <li>Don't bridge more than you need</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">L2 Security Comparison</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="p-3 text-left">Network</th>
+                <th className="p-3 text-left">Type</th>
+                <th className="p-3 text-left">Withdrawal Time</th>
+                <th className="p-3 text-left">Risk Level</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-border/50">
+                <td className="p-3">Arbitrum</td>
+                <td className="p-3">Optimistic</td>
+                <td className="p-3">~7 days</td>
+                <td className="p-3">🟡 Medium</td>
+              </tr>
+              <tr className="border-t border-border/50">
+                <td className="p-3">Optimism</td>
+                <td className="p-3">Optimistic</td>
+                <td className="p-3">~7 days</td>
+                <td className="p-3">🟡 Medium</td>
+              </tr>
+              <tr className="border-t border-border/50">
+                <td className="p-3">zkSync Era</td>
+                <td className="p-3">ZK Rollup</td>
+                <td className="p-3">~24 hours</td>
+                <td className="p-3">🟡 Medium</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
 // Default placeholder content for articles not yet fully written
 const PlaceholderContent = ({ title }: { title: string }) => (
   <div className="mb-8">
     <div className="bg-card/50 p-6 rounded-lg">
       <h2 className="text-2xl font-bold mb-4">{title}</h2>
-      <p className="text-muted-foreground">This comprehensive guide is coming soon. Check back for the full article with detailed security insights, best practices, and actionable recommendations.</p>
-      <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-        <p className="text-sm">In the meantime, explore our other security guides or subscribe to our threat alerts to stay informed about the latest crypto security threats.</p>
+      <p className="text-muted-foreground mb-4">This comprehensive guide covers essential security practices and actionable recommendations for protecting your crypto assets.</p>
+      <div className="space-y-4">
+        <div className="bg-primary/10 p-4 rounded-lg">
+          <h3 className="font-semibold mb-2">What You'll Learn</h3>
+          <ul className="list-disc pl-6 space-y-1 text-sm">
+            <li>Key security concepts and best practices</li>
+            <li>Common attack vectors and how to avoid them</li>
+            <li>Practical steps to implement today</li>
+            <li>Tools and resources for ongoing protection</li>
+          </ul>
+        </div>
+        <p className="text-sm text-muted-foreground">Full content coming soon. In the meantime, explore our other security guides or subscribe to our threat alerts to stay informed.</p>
       </div>
     </div>
   </div>
@@ -478,6 +843,13 @@ const contentMap: Record<string, React.FC> = {
   'crypto-phishing-attacks-prevention': PhishingPreventionContent,
   'defi-hacks-2024-2025-analysis': DeFiHacksAnalysisContent,
   'solidity-security-best-practices': SoliditySecurityContent,
+  'seed-phrase-security-guide': SeedPhraseSecurityContent,
+  'revoke-token-approvals-guide': RevokeApprovalContent,
+  'flash-loan-attacks-explained': FlashLoanContent,
+  '2fa-crypto-security-guide': TwoFactorAuthContent,
+  'nft-marketplace-security': NFTMarketplaceContent,
+  'crypto-hack-response-playbook': IncidentResponseContent,
+  'layer-2-security-considerations': Layer2SecurityContent,
 };
 
 // Main content getter
