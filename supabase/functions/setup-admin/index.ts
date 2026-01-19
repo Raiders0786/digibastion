@@ -14,9 +14,21 @@ serve(async (req) => {
   try {
     const { email, password, setupKey } = await req.json();
 
-    // Security: require a one-time setup key
+    // Security: require a one-time setup key from env
     const expectedKey = Deno.env.get("ADMIN_SETUP_KEY");
-    if (!expectedKey || setupKey !== expectedKey) {
+    
+    console.log(`[setup-admin] Checking setup key...`);
+    console.log(`[setup-admin] Expected key exists: ${!!expectedKey}`);
+    console.log(`[setup-admin] Provided key exists: ${!!setupKey}`);
+    
+    if (!expectedKey) {
+      return new Response(
+        JSON.stringify({ error: "Setup key not configured in environment" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (setupKey !== expectedKey) {
       return new Response(
         JSON.stringify({ error: "Invalid setup key" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
