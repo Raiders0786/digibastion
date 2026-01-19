@@ -456,6 +456,11 @@ serve(async (req) => {
         const criticalCount = matchingArticles.filter(a => a.severity === 'critical').length;
         const subjectPrefix = criticalCount > 0 ? '🚨 ' : '📊 ';
         
+        // Build one-click unsubscribe URL for RFC 8058 compliance
+        const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
+        const encodedEmail = encodeURIComponent(sub.email);
+        const oneClickUnsubUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
+        
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -467,6 +472,10 @@ serve(async (req) => {
             to: [sub.email],
             subject: `${subjectPrefix}${periodLabel} Security Digest: ${matchingArticles.length} Threat${matchingArticles.length !== 1 ? 's' : ''} Detected`,
             html: emailHtml,
+            headers: {
+              'List-Unsubscribe': `<${oneClickUnsubUrl}>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
           }),
         });
 

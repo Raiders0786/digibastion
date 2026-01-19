@@ -286,6 +286,11 @@ serve(async (req) => {
         // Send email via Resend
         const emailHtml = generateEmailHtml(newArticles as CriticalArticle[], sub.name, sub.email, sub.verification_token);
         
+        // Build one-click unsubscribe URL for RFC 8058 compliance
+        const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
+        const encodedEmail = encodeURIComponent(sub.email);
+        const oneClickUnsubUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
+        
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -297,6 +302,10 @@ serve(async (req) => {
             to: [sub.email],
             subject: `🚨 ${newArticles.length} Critical Security Alert${newArticles.length > 1 ? 's' : ''} - Immediate Action Required`,
             html: emailHtml,
+            headers: {
+              'List-Unsubscribe': `<${oneClickUnsubUrl}>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
           }),
         });
 
