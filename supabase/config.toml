@@ -3,6 +3,9 @@ project_id = "sdszjqltoheqhfkeprrd"
 [functions.submit-quiz-score]
 verify_jwt = false
 
+[functions.start-quiz-session]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321
