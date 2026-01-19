@@ -94,7 +94,6 @@ npm run dev
 | **Build Tool** | Vite |
 | **State Management** | React Hooks + Context |
 | **Testing** | Vitest + React Testing Library |
-| **Backend** | Supabase (Edge Functions) |
 
 ---
 
@@ -155,17 +154,14 @@ src/
 │   ├── security-score/  # Security scoring components
 │   ├── opsec/           # OpSec quiz & badges
 │   └── news/            # Threat intelligence components
-├── data/                # Application data
-│   ├── categories/      # Security category definitions
+├── data/                # Application data (contribute here!)
+│   ├── categories/      # Security checklist items
 │   ├── links/           # Curated resource links
-│   ├── tools/           # Security tool database
-│   ├── newsData.ts      # Threat intelligence data
-│   └── threatProfiles.ts # Threat model definitions
+│   └── tools/           # Security tool database
 ├── hooks/               # Custom React hooks
-├── pages/               # Page components (routing)
-├── types/               # TypeScript type definitions
-├── utils/               # Helper functions
-└── templates/           # Templates for contributors
+├── pages/               # Page components
+├── types/               # TypeScript definitions
+└── templates/           # Contribution templates
 ```
 
 ---

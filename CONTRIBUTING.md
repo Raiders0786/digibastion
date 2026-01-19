@@ -83,16 +83,12 @@ src/
 ├── components/         # UI components
 │   ├── ui/            # shadcn/ui components
 │   ├── opsec/         # OpSec quiz components
-│   ├── news/          # Threat intel components
 │   └── security-score/ # Scoring components
 ├── data/               # Data files (easiest to contribute!)
-│   ├── categories/     # Security category definitions
+│   ├── categories/     # Security checklist items
 │   ├── links/          # Resource links
 │   ├── tools/          # Security tools
-│   ├── articles.tsx    # Blog articles
-│   ├── newsData.ts     # Threat intelligence
-│   └── threatProfiles.ts # Threat models
-├── hooks/              # React hooks
+│   └── articles.tsx    # Blog articles
 ├── pages/              # Page components
 ├── types/              # TypeScript types
 └── templates/          # Contribution templates
@@ -178,30 +174,6 @@ Security items are the core of our checklists. To add a new security item:
   date: '2025-01-15',
   category: 'opsec', // e.g., 'opsec', 'wallet', 'defi'
   tags: ['security', 'tutorial']
-}
-```
-
----
-
-### Adding Threat Intelligence
-
-**1. Open `src/data/newsData.ts`**
-
-**2. Add your incident:**
-
-```typescript
-{
-  id: 'unique-id',
-  title: 'Incident Title',
-  date: '2025-01-15',
-  category: 'supply-chain', // Options: 'supply-chain', 'exploit', 'phishing', etc.
-  severity: 'critical', // Options: 'critical', 'high', 'medium', 'low'
-  summary: 'Brief description of what happened',
-  impact: 'Financial or security impact',
-  mitigation: 'How to protect yourself',
-  sources: [
-    { name: 'Source Name', url: 'https://source.com' }
-  ]
 }
 ```
 

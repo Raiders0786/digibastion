@@ -47,7 +47,6 @@ Items can be associated with one or more threat profiles:
 1. Identify the appropriate category for your security item
 2. Add your item to the corresponding category file in `src/data/categories/`
 3. Follow the structure outlined above
-4. Update the threat level mappings in `src/data/threatProfiles.ts`
 
 ## Writing Guidelines
 

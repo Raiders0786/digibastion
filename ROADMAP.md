@@ -133,7 +133,7 @@ We believe in **community-driven security**! Here's how you can get involved:
 ---
 
 <p align="center">
-  <em>Last updated: December 2025</em>
+  <em>Last updated: January 2026</em>
 </p>
 
 <p align="center">

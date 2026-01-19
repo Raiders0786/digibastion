@@ -48,8 +48,6 @@ To improve an entire category:
 
 3. **Split or Combine Items**: If an item covers too many concepts, consider splitting it. If multiple items overlap significantly, consider combining them.
 
-4. **Update Threat Level Mappings**: After modifying items, check `src/data/threatProfiles.ts` to ensure threat level mappings are still appropriate.
-
 ## Enhancing Tool References
 
 To update tool references in the resource links:
@@ -117,8 +115,6 @@ Before submitting changes:
 
 3. **Visual Inspection**: Manually check how your changes look in the UI.
 
-4. **Data Integrity**: Use the validation utilities in `src/utils/validateData.ts` to check for data consistency issues.
-
-5. **Cross-Reference**: Ensure your changes don't conflict with related content in other sections.
+4. **Visual Inspection**: Manually check how your changes look in the UI.
 
 Thank you for contributing to making Digibastion more comprehensive and accurate!
