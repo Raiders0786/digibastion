@@ -160,13 +160,20 @@ export const SubscriptionForm = () => {
 
       if (data?.success) {
         setIsSuccess(true);
-        const message = data?.needsVerification 
-          ? "Please check your email to verify your subscription."
-          : "You'll receive security alerts based on your preferences.";
-        toast({
-          title: data?.needsVerification ? "Verification Email Sent! 📧" : "Subscription Updated! 🎉",
-          description: message,
-        });
+        
+        // Different messages for different scenarios
+        let title = "Verification Email Sent! 📧";
+        let message = "Please check your email to verify your subscription.";
+        
+        if (data.alreadyVerified) {
+          title = "Welcome Back! 👋";
+          message = "You're already subscribed. We've sent a confirmation with your current settings.";
+        } else if (!data.needsVerification) {
+          title = "Subscription Updated! 🎉";
+          message = "Your preferences have been saved.";
+        }
+        
+        toast({ title, description: message });
         
         // Reset form after delay
         setTimeout(() => {
@@ -203,14 +210,63 @@ export const SubscriptionForm = () => {
     }
   };
 
+  // Format delivery time for display
+  const formatDeliveryTime = (hour: number, offset: number): string => {
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const sign = offset >= 0 ? '+' : '';
+    return `${displayHour}:00 ${period} UTC${sign}${offset}`;
+  };
+
+  const getFrequencyLabel = () => {
+    switch (alertFrequency) {
+      case 'daily': return 'Daily';
+      case 'weekly': return `Weekly on ${dayOptions.find(d => d.value === preferredDay)?.label || 'Sunday'}s`;
+      case 'immediate': return 'Immediate (critical only)';
+    }
+  };
+
   if (isSuccess) {
     return (
-      <Card className="w-full max-w-4xl mx-auto glass-card glow">
-        <CardContent className="p-12 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">You're Subscribed!</h2>
-          <p className="text-muted-foreground">
-            You'll receive threat intelligence updates based on your preferences.
+      <Card className="w-full max-w-4xl mx-auto glass-card glow border-green-500/30">
+        <CardContent className="p-8 md:p-12">
+          <div className="text-center mb-8">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">You're Subscribed!</h2>
+            <p className="text-muted-foreground">
+              You'll receive threat intelligence updates based on your preferences.
+            </p>
+          </div>
+
+          {/* Summary of preferences */}
+          <div className="bg-muted/30 rounded-lg p-6 space-y-4 max-w-md mx-auto">
+            <h3 className="font-semibold text-center mb-4">Your Alert Settings</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Frequency</span>
+                <span className="font-medium">{getFrequencyLabel()}</span>
+              </div>
+              {alertFrequency !== 'immediate' && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Delivery Time</span>
+                  <span className="font-medium">{formatDeliveryTime(preferredHour, timezoneOffset)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Categories</span>
+                <span className="font-medium">{selectedCategories.length} selected</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Min Severity</span>
+                <span className={`font-medium ${getSeverityColor(severityThreshold)}`}>
+                  {severityThreshold.charAt(0).toUpperCase() + severityThreshold.slice(1)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            📧 Check your inbox for a verification email to activate your subscription.
           </p>
         </CardContent>
       </Card>
@@ -485,6 +541,9 @@ export const SubscriptionForm = () => {
                 frequency={alertFrequency}
                 severity={severityThreshold}
                 name={name}
+                preferredHour={preferredHour}
+                timezoneOffset={timezoneOffset}
+                preferredDay={preferredDay}
               />
             )}
           </div>

@@ -116,6 +116,15 @@ const VerifyEmail = () => {
             {result.message}
           </p>
 
+          {/* Show email if verified */}
+          {result.status === "success" && result.email && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Subscribed as: <strong className="text-foreground">{result.email}</strong>
+              </p>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-col gap-3">
             {result.status === "success" && (
@@ -136,7 +145,7 @@ const VerifyEmail = () => {
             {(result.status === "error" || result.status === "invalid") && (
               <>
                 <Button asChild className="w-full">
-                  <Link to="/threat-intel">View Threat Intel</Link>
+                  <Link to="/threat-intel?tab=subscribe">Subscribe Again</Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full">
                   <Link to="/">Back to Home</Link>
@@ -147,9 +156,17 @@ const VerifyEmail = () => {
 
           {/* Footer note for success */}
           {result.status === "success" && (
-            <p className="text-xs text-muted-foreground text-center mt-6">
-              You'll now receive security alerts based on your preferences.
-            </p>
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                You'll now receive security alerts based on your preferences.
+                <br />
+                Check your{' '}
+                <Link to={result.manageUrl?.replace("https://digibastion.com", "") || "/manage-subscription"} className="text-primary hover:underline">
+                  preferences
+                </Link>{' '}
+                to see your delivery schedule.
+              </p>
+            </div>
           )}
         </div>
       </div>
