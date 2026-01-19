@@ -262,30 +262,41 @@ function generateDigestEmailHtml(
 
 // Check if a subscriber should receive digest at this hour
 function shouldSendToSubscriber(sub: Subscription, currentUtcHour: number, currentUtcDay: number): boolean {
-  // Calculate subscriber's local hour when they want to receive
-  // preferred_hour is stored as their desired local hour
-  // timezone_offset is their UTC offset
-  // We need to check if NOW (in UTC) matches their preferred time
+  // Handle null/undefined values with defaults
+  const preferredHour = sub.preferred_hour ?? 9;
+  const timezoneOffset = sub.timezone_offset ?? 0;
+  const preferredDay = sub.preferred_day ?? 0;
   
   // Convert preferred local hour to UTC
-  const preferredUtcHour = (sub.preferred_hour - sub.timezone_offset + 24) % 24;
+  // preferred_hour is stored as subscriber's local time
+  // timezone_offset is their UTC offset (e.g., +5 for UTC+5)
+  // To find what UTC hour corresponds to their preferred local hour:
+  // UTC hour = local hour - timezone offset
+  let preferredUtcHour = preferredHour - timezoneOffset;
   
-  if (preferredUtcHour !== currentUtcHour) {
+  // Normalize to 0-23 range
+  while (preferredUtcHour < 0) preferredUtcHour += 24;
+  while (preferredUtcHour >= 24) preferredUtcHour -= 24;
+  
+  if (Math.floor(preferredUtcHour) !== currentUtcHour) {
     return false;
   }
   
   // For weekly digests, also check the day
   if (sub.frequency === 'weekly') {
-    // Calculate what day it is for the subscriber
-    let subscriberDay = currentUtcDay;
-    // Adjust day if timezone crosses midnight
-    if (sub.timezone_offset > 0 && currentUtcHour < sub.timezone_offset) {
-      subscriberDay = (subscriberDay - 1 + 7) % 7;
-    } else if (sub.timezone_offset < 0 && currentUtcHour >= (24 + sub.timezone_offset)) {
-      subscriberDay = (subscriberDay + 1) % 7;
+    // Calculate what day it is in subscriber's timezone when we send
+    // If timezone_offset is positive (ahead of UTC), and current UTC hour is small,
+    // they might already be on the next day
+    let subscriberLocalDay = currentUtcDay;
+    const subscriberLocalHour = currentUtcHour + timezoneOffset;
+    
+    if (subscriberLocalHour >= 24) {
+      subscriberLocalDay = (subscriberLocalDay + 1) % 7;
+    } else if (subscriberLocalHour < 0) {
+      subscriberLocalDay = (subscriberLocalDay - 1 + 7) % 7;
     }
     
-    if (subscriberDay !== sub.preferred_day) {
+    if (subscriberLocalDay !== preferredDay) {
       return false;
     }
   }

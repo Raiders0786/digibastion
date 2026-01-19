@@ -21,6 +21,9 @@ export function useSubscriberCount() {
           setData({ count: 0, label: 'Join our community' });
         } else if (result && typeof result === 'object' && 'count' in result && 'label' in result) {
           setData({ count: result.count as number, label: result.label as string });
+        } else {
+          // Handle unexpected result format
+          setData({ count: 0, label: 'Join our community' });
         }
       } catch (err) {
         console.error('Failed to fetch subscriber count:', err);
