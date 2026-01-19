@@ -153,7 +153,7 @@ src/
 │   ├── ui/              # shadcn/ui component library
 │   ├── security-score/  # Security scoring components
 │   ├── opsec/           # OpSec quiz & badges
-│   └── news/            # Threat intelligence components
+│   └── threat-intel/    # Threat intelligence components
 ├── data/                # Application data (contribute here!)
 │   ├── categories/      # Security checklist items
 │   ├── links/           # Curated resource links
@@ -177,7 +177,7 @@ src/
 - ⭐ **Star the repository** to show your support
 - 🔄 **Share** with your network and security-conscious friends  
 - 💻 **Contribute** code, documentation, or security expertise
-- 💰 **Financial support**: [Support our mission](https://www.digibastion.com/support)
+- 💰 **Financial support**: [Support our mission](https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00)
 
 ---
 

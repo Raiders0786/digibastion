@@ -83,6 +83,7 @@ src/
 ├── components/         # UI components
 │   ├── ui/            # shadcn/ui components
 │   ├── opsec/         # OpSec quiz components
+│   ├── threat-intel/  # Threat intelligence components
 │   └── security-score/ # Scoring components
 ├── data/               # Data files (easiest to contribute!)
 │   ├── categories/     # Security checklist items
