@@ -27,7 +27,8 @@ const subscriptionSchema = z.object({
   preferred_day: z.number().min(0).max(6).optional(),
 });
 
-// Timezone options
+// Timezone options - using whole hours only (DB stores integers)
+// For half-hour timezones, we round to nearest hour
 const timezoneOptions = [
   { value: -12, label: 'UTC-12' },
   { value: -11, label: 'UTC-11' },
@@ -38,22 +39,18 @@ const timezoneOptions = [
   { value: -6, label: 'UTC-6 (Central)' },
   { value: -5, label: 'UTC-5 (Eastern)' },
   { value: -4, label: 'UTC-4 (Atlantic)' },
-  { value: -3, label: 'UTC-3' },
-  { value: -2, label: 'UTC-2' },
-  { value: -1, label: 'UTC-1' },
+  { value: -3, label: 'UTC-3 (Brazil)' },
   { value: 0, label: 'UTC+0 (London)' },
   { value: 1, label: 'UTC+1 (Paris)' },
   { value: 2, label: 'UTC+2 (Cairo)' },
   { value: 3, label: 'UTC+3 (Moscow)' },
   { value: 4, label: 'UTC+4 (Dubai)' },
-  { value: 5, label: 'UTC+5 (Karachi)' },
-  { value: 5.5, label: 'UTC+5:30 (India)' },
+  { value: 5, label: 'UTC+5 (Karachi/India)' },
   { value: 6, label: 'UTC+6 (Dhaka)' },
   { value: 7, label: 'UTC+7 (Bangkok)' },
   { value: 8, label: 'UTC+8 (Singapore)' },
   { value: 9, label: 'UTC+9 (Tokyo)' },
   { value: 10, label: 'UTC+10 (Sydney)' },
-  { value: 11, label: 'UTC+11' },
   { value: 12, label: 'UTC+12 (Auckland)' },
 ];
 
@@ -85,6 +82,14 @@ const hourOptions = [
   { value: 20, label: '8:00 PM' },
 ];
 
+// Auto-detect user's timezone offset
+const getDefaultTimezoneOffset = (): number => {
+  const offsetMinutes = new Date().getTimezoneOffset();
+  const offsetHours = Math.round(-offsetMinutes / 60); // Convert to hours and invert sign
+  // Clamp to valid range
+  return Math.max(-12, Math.min(12, offsetHours));
+};
+
 export const SubscriptionForm = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -93,7 +98,7 @@ export const SubscriptionForm = () => {
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
   const [preferredHour, setPreferredHour] = useState<number>(9);
-  const [timezoneOffset, setTimezoneOffset] = useState<number>(0);
+  const [timezoneOffset, setTimezoneOffset] = useState<number>(() => getDefaultTimezoneOffset());
   const [preferredDay, setPreferredDay] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -127,7 +132,7 @@ export const SubscriptionForm = () => {
       frequency: alertFrequency,
       severity: severityThreshold,
       preferred_hour: preferredHour,
-      timezone_offset: Math.floor(timezoneOffset), // Handle .5 offsets
+      timezone_offset: timezoneOffset,
       preferred_day: preferredDay,
     };
 

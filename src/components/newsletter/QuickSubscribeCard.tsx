@@ -112,7 +112,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
               )}
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Daily digest of critical threats. Customize preferences after signup.
+              Daily digest of critical crypto security threats. Free, no account required.
             </p>
           </div>
           
