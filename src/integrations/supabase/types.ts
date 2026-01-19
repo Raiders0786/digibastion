@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      cron_health_snapshots: {
+        Row: {
+          active_jobs: number
+          alert_sent: boolean
+          failed_runs: number
+          health_status: string
+          id: string
+          message: string | null
+          recorded_at: string
+          success_rate: number
+          timeout_errors: number
+          total_jobs: number
+          total_runs: number
+        }
+        Insert: {
+          active_jobs?: number
+          alert_sent?: boolean
+          failed_runs?: number
+          health_status: string
+          id?: string
+          message?: string | null
+          recorded_at?: string
+          success_rate?: number
+          timeout_errors?: number
+          total_jobs?: number
+          total_runs?: number
+        }
+        Update: {
+          active_jobs?: number
+          alert_sent?: boolean
+          failed_runs?: number
+          health_status?: string
+          id?: string
+          message?: string | null
+          recorded_at?: string
+          success_rate?: number
+          timeout_errors?: number
+          total_jobs?: number
+          total_runs?: number
+        }
+        Relationships: []
+      }
       email_events: {
         Row: {
           created_at: string
@@ -399,6 +441,7 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_quiz_sessions: { Args: never; Returns: undefined }
+      cleanup_old_health_snapshots: { Args: never; Returns: undefined }
       cleanup_old_submission_logs: { Args: never; Returns: undefined }
       count_news_articles: {
         Args: {
