@@ -11,8 +11,6 @@ const MIN_USERNAME_LENGTH = 1;
 const MAX_SCORE = 100;
 const MIN_SCORE = 0;
 const MAX_BADGES = 10;
-const MAX_BADGE_LENGTH = 50;
-const MAX_RANK_LENGTH = 50;
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -40,13 +38,34 @@ function getClientIP(req: Request): string {
          'unknown';
 }
 
-// Simple hash function for rate limiting (not cryptographic)
+// Hash function
 async function hashString(str: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(str);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Verify HMAC signature
+async function verifyHMAC(data: string, signature: string, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(data);
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const expectedSignature = await crypto.subtle.sign('HMAC', key, messageData);
+  const expectedArray = Array.from(new Uint8Array(expectedSignature));
+  const expectedHex = expectedArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return expectedHex === signature;
 }
 
 // Sanitize username
@@ -79,7 +98,102 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { username, score, badge_count, character_rank } = body;
+    const { username, score, badge_count, character_rank, session_token } = body;
+    
+    // Validate session token is provided
+    if (!session_token || typeof session_token !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session. Please complete the quiz first.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase configuration');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Validate session token
+    const tokenParts = session_token.split('.');
+    if (tokenParts.length !== 2) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session token format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const [sessionId, signature] = tokenParts;
+
+    // Fetch session from database
+    const { data: session, error: sessionError } = await supabase
+      .from('quiz_sessions')
+      .select('*')
+      .eq('session_token', session_token)
+      .single();
+
+    if (sessionError || !session) {
+      console.log('Session lookup failed:', sessionError?.message || 'Not found');
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired session. Please take the quiz again.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if session is expired
+    if (new Date(session.expires_at) < new Date()) {
+      return new Response(
+        JSON.stringify({ error: 'Session has expired. Please take the quiz again.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if session was already used
+    if (session.completed_at) {
+      return new Response(
+        JSON.stringify({ error: 'This quiz session has already been submitted.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify HMAC signature
+    const tokenData = `${sessionId}:${session.question_ids.join(',')}:${session.ip_hash}`;
+    const isValidSignature = await verifyHMAC(tokenData, signature, supabaseServiceKey);
+
+    if (!isValidSignature) {
+      console.log('Invalid HMAC signature for session:', sessionId);
+      return new Response(
+        JSON.stringify({ error: 'Session verification failed.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify IP matches (optional - could be relaxed for mobile networks)
+    if (session.ip_hash !== ipHash) {
+      console.log('IP mismatch for session:', sessionId, 'Expected:', session.ip_hash, 'Got:', ipHash);
+      // Just log, don't reject - IPs can change on mobile networks
+    }
+
+    // Mark session as completed
+    const { error: updateSessionError } = await supabase
+      .from('quiz_sessions')
+      .update({ completed_at: new Date().toISOString() })
+      .eq('id', session.id);
+
+    if (updateSessionError) {
+      console.error('Error marking session complete:', updateSessionError);
+    }
+
+    console.log(`Session validated: ${sessionId}, questions: ${session.question_ids.join(',')}`);
+
 
     // Validate username
     if (!username || typeof username !== 'string') {
@@ -129,19 +243,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with service role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase configuration');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Hash username for rate limiting (supabase already initialized above)
 
     // Hash username for rate limiting
     const usernameHash = await hashString(sanitizedUsername);

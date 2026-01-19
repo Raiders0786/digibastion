@@ -90,6 +90,7 @@ const QuizResult = () => {
   const username = searchParams.get('u') || 'anon';
   const score = parseInt(searchParams.get('s') || '0', 10);
   const badgesParam = searchParams.get('b') || '';
+  const sessionToken = searchParams.get('t') || ''; // Session token for validation
   
   const character = getCryptoCharacter(score);
   const config = getThreatLevelConfig(score);
@@ -121,34 +122,43 @@ const QuizResult = () => {
     if (!hasSubmittedScore.current && username !== 'anon') {
       hasSubmittedScore.current = true;
       
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              username,
-              score,
-              badge_count: badges.length,
-              character_rank: character.name
-            }),
-          }
-        );
+      // Check if we have a valid session token
+      if (!sessionToken) {
+        console.log('No session token - score submission disabled for this session');
+        toast.info('Share your score on X!');
+      } else {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                username,
+                score,
+                badge_count: badges.length,
+                character_rank: character.name,
+                session_token: sessionToken
+              }),
+            }
+          );
 
-        const result = await response.json();
-        
-        if (response.ok) {
-          toast.success('Score saved to leaderboard! 🏆');
-        } else if (result.error?.includes('rate limit')) {
-          toast.info('Score already submitted recently');
-        } else {
-          console.error('Failed to submit score:', result.error);
+          const result = await response.json();
+          
+          if (response.ok) {
+            toast.success('Score saved to leaderboard! 🏆');
+          } else if (result.error?.includes('session')) {
+            toast.info('Session expired - score not saved to leaderboard');
+          } else if (result.error?.includes('rate limit')) {
+            toast.info('Score already submitted recently');
+          } else {
+            console.error('Failed to submit score:', result.error);
+          }
+        } catch (error) {
+          console.error('Error submitting score:', error);
         }
-      } catch (error) {
-        console.error('Error submitting score:', error);
       }
     }
 

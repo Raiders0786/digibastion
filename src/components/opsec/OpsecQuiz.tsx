@@ -374,17 +374,60 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
   const [username, setUsername] = useState('');
   const [result, setResult] = useState<QuizResult | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [serverQuestionIds, setServerQuestionIds] = useState<number[]>([]);
 
-  // Randomize questions and shuffle options on mount
+  // Fetch session token and question IDs from server when quiz starts
+  const startQuizSession = async () => {
+    setIsStartingSession(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-quiz-session`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      const data = await response.json();
+      if (response.ok && data.sessionToken) {
+        setSessionToken(data.sessionToken);
+        setServerQuestionIds(data.questionIds || []);
+        return data.questionIds || [];
+      } else {
+        console.error('Failed to start quiz session:', data.error);
+        toast.error('Failed to start quiz. Please try again.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error starting quiz session:', error);
+      toast.error('Failed to connect to server. Please try again.');
+      return null;
+    } finally {
+      setIsStartingSession(false);
+    }
+  };
+
+  // Use server-provided question IDs when available, otherwise use client-side selection
   const randomizedQuestions = useMemo(() => {
-    // Pick 8 random questions from the pool
-    const shuffledQuestions = shuffleArray(baseQuestions).slice(0, 8);
+    let selectedQuestions: QuizQuestion[];
+    
+    if (serverQuestionIds.length > 0) {
+      // Use server-provided question IDs
+      selectedQuestions = serverQuestionIds
+        .map(id => baseQuestions.find(q => q.id === id))
+        .filter((q): q is QuizQuestion => q !== undefined);
+    } else {
+      // Fallback to client-side random selection
+      selectedQuestions = shuffleArray(baseQuestions).slice(0, 8);
+    }
+    
     // Shuffle options within each question
-    return shuffledQuestions.map(q => ({
+    return selectedQuestions.map(q => ({
       ...q,
       options: shuffleArray(q.options)
     }));
-  }, [isOpen]); // Re-randomize when dialog opens
+  }, [serverQuestionIds, isOpen]);
 
   const progress = ((currentStep) / (randomizedQuestions.length + 1)) * 100;
 
@@ -432,11 +475,20 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     setShowResult(true);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 0 && !username.trim()) {
       toast.error("Please enter a username");
       return;
     }
+    
+    // When starting the quiz (step 0 -> step 1), fetch session token
+    if (currentStep === 0) {
+      const questionIds = await startQuizSession();
+      if (!questionIds) {
+        return; // Failed to start session
+      }
+    }
+    
     if (currentStep > 0 && !answers[randomizedQuestions[currentStep - 1]?.id]) {
       toast.error("Please select an answer");
       return;
@@ -459,7 +511,9 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     
     // Create shareable URL with params for OG tags
     const badgesEncoded = result.badges.map(b => encodeURIComponent(b)).join(',');
-    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}`;
+    // Include session token in share URL for validation
+    const tokenParam = sessionToken ? `&t=${encodeURIComponent(sessionToken)}` : '';
+    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}${tokenParam}`;
     
     const shareText = `${result.character.emoji} My OpSec Level: ${result.character.name} (${result.score}/100)
 
@@ -482,6 +536,8 @@ ${shareUrl}`;
     setUsername('');
     setResult(null);
     setShowResult(false);
+    setSessionToken(null);
+    setServerQuestionIds([]);
   };
 
   const handleClose = () => {
@@ -607,8 +663,8 @@ ${shareUrl}`;
                 <ArrowLeft className="w-4 h-4" />
                 Back
               </Button>
-              <Button onClick={handleNext} className="gap-2">
-                {currentStep === randomizedQuestions.length ? 'See Results' : 'Next'}
+              <Button onClick={handleNext} className="gap-2" disabled={isStartingSession}>
+                {isStartingSession ? 'Starting...' : currentStep === randomizedQuestions.length ? 'See Results' : currentStep === 0 ? 'Start Quiz' : 'Next'}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
