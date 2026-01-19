@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2 } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Clock, Users } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { z } from 'zod';
 
 // Input validation schema
@@ -21,7 +22,68 @@ const subscriptionSchema = z.object({
   technologies: z.array(z.string()).max(20).optional(),
   frequency: z.enum(["immediate", "daily", "weekly"]),
   severity: z.enum(["critical", "high", "medium", "low", "info"]),
+  preferred_hour: z.number().min(0).max(23).optional(),
+  timezone_offset: z.number().min(-12).max(14).optional(),
+  preferred_day: z.number().min(0).max(6).optional(),
 });
+
+// Timezone options
+const timezoneOptions = [
+  { value: -12, label: 'UTC-12' },
+  { value: -11, label: 'UTC-11' },
+  { value: -10, label: 'UTC-10 (Hawaii)' },
+  { value: -9, label: 'UTC-9 (Alaska)' },
+  { value: -8, label: 'UTC-8 (Pacific)' },
+  { value: -7, label: 'UTC-7 (Mountain)' },
+  { value: -6, label: 'UTC-6 (Central)' },
+  { value: -5, label: 'UTC-5 (Eastern)' },
+  { value: -4, label: 'UTC-4 (Atlantic)' },
+  { value: -3, label: 'UTC-3' },
+  { value: -2, label: 'UTC-2' },
+  { value: -1, label: 'UTC-1' },
+  { value: 0, label: 'UTC+0 (London)' },
+  { value: 1, label: 'UTC+1 (Paris)' },
+  { value: 2, label: 'UTC+2 (Cairo)' },
+  { value: 3, label: 'UTC+3 (Moscow)' },
+  { value: 4, label: 'UTC+4 (Dubai)' },
+  { value: 5, label: 'UTC+5 (Karachi)' },
+  { value: 5.5, label: 'UTC+5:30 (India)' },
+  { value: 6, label: 'UTC+6 (Dhaka)' },
+  { value: 7, label: 'UTC+7 (Bangkok)' },
+  { value: 8, label: 'UTC+8 (Singapore)' },
+  { value: 9, label: 'UTC+9 (Tokyo)' },
+  { value: 10, label: 'UTC+10 (Sydney)' },
+  { value: 11, label: 'UTC+11' },
+  { value: 12, label: 'UTC+12 (Auckland)' },
+];
+
+const dayOptions = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+];
+
+const hourOptions = [
+  { value: 6, label: '6:00 AM' },
+  { value: 7, label: '7:00 AM' },
+  { value: 8, label: '8:00 AM' },
+  { value: 9, label: '9:00 AM' },
+  { value: 10, label: '10:00 AM' },
+  { value: 11, label: '11:00 AM' },
+  { value: 12, label: '12:00 PM' },
+  { value: 13, label: '1:00 PM' },
+  { value: 14, label: '2:00 PM' },
+  { value: 15, label: '3:00 PM' },
+  { value: 16, label: '4:00 PM' },
+  { value: 17, label: '5:00 PM' },
+  { value: 18, label: '6:00 PM' },
+  { value: 19, label: '7:00 PM' },
+  { value: 20, label: '8:00 PM' },
+];
 
 export const SubscriptionForm = () => {
   const [email, setEmail] = useState('');
@@ -30,9 +92,13 @@ export const SubscriptionForm = () => {
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
+  const [preferredHour, setPreferredHour] = useState<number>(9);
+  const [timezoneOffset, setTimezoneOffset] = useState<number>(0);
+  const [preferredDay, setPreferredDay] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
+  const { data: subscriberCount } = useSubscriberCount();
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -60,6 +126,9 @@ export const SubscriptionForm = () => {
       technologies: selectedTechnologies,
       frequency: alertFrequency,
       severity: severityThreshold,
+      preferred_hour: preferredHour,
+      timezone_offset: Math.floor(timezoneOffset), // Handle .5 offsets
+      preferred_day: preferredDay,
     };
 
     // Validate inputs
@@ -145,10 +214,18 @@ export const SubscriptionForm = () => {
   return (
     <Card className="w-full max-w-4xl mx-auto glass-card glow">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="w-6 h-6 text-primary" />
-          Security Alert Subscription
-        </CardTitle>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-6 h-6 text-primary" />
+            Security Alert Subscription
+          </CardTitle>
+          {subscriberCount && subscriberCount.count > 0 && (
+            <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1">
+              <Users className="w-3.5 h-3.5" />
+              <span className="text-xs">{subscriberCount.label}</span>
+            </Badge>
+          )}
+        </div>
         <CardDescription>
           Get personalized security alerts based on your technology stack. No login required - 
           we'll send updates directly to your email.
@@ -309,6 +386,71 @@ export const SubscriptionForm = () => {
               </Select>
             </div>
           </div>
+
+          {/* Delivery Time Preferences */}
+          {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
+            <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border">
+              <Label className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Preferred Delivery Time
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Time</Label>
+                  <Select value={String(preferredHour)} onValueChange={(v) => setPreferredHour(Number(v))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hourOptions.map((hour) => (
+                        <SelectItem key={hour.value} value={String(hour.value)}>
+                          {hour.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Timezone</Label>
+                  <Select value={String(timezoneOffset)} onValueChange={(v) => setTimezoneOffset(Number(v))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timezoneOptions.map((tz) => (
+                        <SelectItem key={tz.value} value={String(tz.value)}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {alertFrequency === 'weekly' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Day</Label>
+                    <Select value={String(preferredDay)} onValueChange={(v) => setPreferredDay(Number(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dayOptions.map((day) => (
+                          <SelectItem key={day.value} value={String(day.value)}>
+                            {day.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {alertFrequency === 'weekly' 
+                  ? `You'll receive your digest every ${dayOptions.find(d => d.value === preferredDay)?.label} at ${hourOptions.find(h => h.value === preferredHour)?.label}`
+                  : `You'll receive your digest daily at ${hourOptions.find(h => h.value === preferredHour)?.label}`
+                }
+              </p>
+            </div>
+          )}
 
           {/* Submit Button */}
           <Button 

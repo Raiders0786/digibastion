@@ -38,6 +38,9 @@ interface SubscriptionFormData {
   technologies?: string[];
   frequency: string;
   severity: string;
+  preferred_hour?: number;
+  timezone_offset?: number;
+  preferred_day?: number;
 }
 
 function validateEmail(email: string): boolean {
@@ -274,6 +277,9 @@ const handler = async (req: Request): Promise<Response> => {
         technologies: (subData.technologies || []).slice(0, 20).map(t => sanitizeString(t, 50)),
         frequency: sanitizeString(subData.frequency, 20),
         severity_threshold: sanitizeString(subData.severity, 20),
+        preferred_hour: typeof subData.preferred_hour === 'number' ? Math.min(23, Math.max(0, subData.preferred_hour)) : 9,
+        timezone_offset: typeof subData.timezone_offset === 'number' ? Math.min(14, Math.max(-12, subData.timezone_offset)) : 0,
+        preferred_day: typeof subData.preferred_day === 'number' ? Math.min(6, Math.max(0, subData.preferred_day)) : 0,
         is_active: true,
         is_verified: existingSub?.is_verified || false, // Keep verified status if already verified
         verification_token: needsVerification ? verificationToken : null,

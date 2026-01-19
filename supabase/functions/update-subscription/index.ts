@@ -69,7 +69,7 @@ serve(async (req) => {
 
   try {
     const clientIP = getClientIP(req);
-    const { email, token, name, categories, technologies, frequency, severity_threshold } = await req.json();
+    const { email, token, name, categories, technologies, frequency, severity_threshold, preferred_hour, timezone_offset, preferred_day } = await req.json();
 
     // Rate limit by IP first
     const ipRateLimit = checkRateLimit(`update-sub:ip:${clientIP}`, MAX_ATTEMPTS_PER_IP);
@@ -197,7 +197,7 @@ serve(async (req) => {
     }
 
     // Sanitize and prepare update data
-    const updateData = {
+    const updateData: Record<string, unknown> = {
       name: name ? sanitizeString(String(name)).slice(0, MAX_NAME_LENGTH) : null,
       categories: categories.slice(0, MAX_CATEGORIES).map((c: unknown) => String(c).slice(0, 50)),
       technologies: (technologies || []).slice(0, MAX_TECHNOLOGIES).map((t: unknown) => String(t).slice(0, 50)),
@@ -206,13 +206,24 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
+    // Add time preferences if provided
+    if (typeof preferred_hour === 'number') {
+      updateData.preferred_hour = Math.min(23, Math.max(0, preferred_hour));
+    }
+    if (typeof timezone_offset === 'number') {
+      updateData.timezone_offset = Math.min(14, Math.max(-12, timezone_offset));
+    }
+    if (typeof preferred_day === 'number') {
+      updateData.preferred_day = Math.min(6, Math.max(0, preferred_day));
+    }
+
     console.log(`[update-subscription] Updating subscription: ${existingSubscription.id}`);
 
     const { data, error } = await supabase
       .from("subscriptions")
       .update(updateData)
       .eq("id", existingSubscription.id)
-      .select("id, email, name, categories, technologies, frequency, severity_threshold")
+      .select("id, email, name, categories, technologies, frequency, severity_threshold, preferred_hour, timezone_offset, preferred_day")
       .single();
 
     if (error) {
