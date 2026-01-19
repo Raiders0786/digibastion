@@ -115,13 +115,25 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
 
   if (isSuccess) {
     return (
-      <Card className={`glass-card border-primary/30 ${className}`}>
-        <CardContent className="p-6 text-center">
-          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+      <Card className={`glass-card border-green-500/30 ${className}`}>
+        <CardContent className="p-5 sm:p-6 text-center">
+          <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-foreground mb-1">You're Almost In!</h3>
-          <p className="text-sm text-muted-foreground">
-            Check your email to verify your subscription.
+          <p className="text-sm text-muted-foreground mb-3">
+            Check your inbox for a verification email.
           </p>
+          <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground space-y-1">
+            <p className="flex items-center justify-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>You'll receive daily alerts at <strong className="text-foreground">{deliveryTimeDisplay}</strong></span>
+            </p>
+            <p>
+              Want to customize?{' '}
+              <Link to="/threat-intel?tab=subscribe" className="text-primary hover:underline">
+                Adjust preferences
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -209,7 +221,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 <span>Detected: {formatTimezone(timezoneOffset)}</span>
               </div>
               <Link 
-                to="/news#subscribe" 
+                to="/threat-intel?tab=subscribe" 
                 className="flex items-center gap-1 text-primary hover:underline"
               >
                 <Settings className="w-3 h-3" />

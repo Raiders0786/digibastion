@@ -275,8 +275,8 @@ export default function ManageSubscription() {
     return (
       <>
         <MetaTags 
-          title="Unsubscribed - ESP Security" 
-          description="You have been unsubscribed from security alerts."
+          title="Unsubscribed - Digibastion" 
+          description="You have been unsubscribed from Digibastion security alerts."
         />
         <Navbar />
         <main className="min-h-screen bg-background pt-24 pb-12">
@@ -305,8 +305,8 @@ export default function ManageSubscription() {
     return (
       <>
         <MetaTags 
-          title="Manage Subscription - ESP Security" 
-          description="Manage your security alert subscription preferences."
+          title="Manage Subscription - Digibastion" 
+          description="Manage your Digibastion security alert subscription preferences."
         />
         <Navbar />
         <main className="min-h-screen bg-background pt-24 pb-12">
@@ -395,10 +395,10 @@ export default function ManageSubscription() {
 
   return (
     <>
-      <MetaTags 
-        title="Manage Subscription - ESP Security" 
-        description="Manage your security alert subscription preferences."
-      />
+        <MetaTags 
+          title="Manage Subscription - Digibastion" 
+          description="Manage your Digibastion security alert subscription preferences."
+        />
       <Navbar />
       <main className="min-h-screen bg-background pt-24 pb-12">
         <div className="container mx-auto px-4 max-w-4xl">

@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
+import { Eye, Clock } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { newsCategoryConfig } from '@/data/newsData';
 
@@ -9,6 +9,9 @@ interface EmailPreviewProps {
   frequency: 'immediate' | 'daily' | 'weekly';
   severity: SeverityLevel;
   name?: string;
+  preferredHour?: number;
+  timezoneOffset?: number;
+  preferredDay?: number;
 }
 
 // Mock articles for preview
@@ -79,7 +82,24 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export const EmailPreview = ({ categories, frequency, severity, name }: EmailPreviewProps) => {
+function formatDeliveryTime(hour: number, offset: number): string {
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const sign = offset >= 0 ? '+' : '';
+  return `${displayHour}:00 ${period} UTC${sign}${offset}`;
+}
+
+const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export const EmailPreview = ({ 
+  categories, 
+  frequency, 
+  severity, 
+  name,
+  preferredHour = 9,
+  timezoneOffset = 0,
+  preferredDay = 0
+}: EmailPreviewProps) => {
   // Filter mock articles based on preferences
   const thresholdRank = severityRank[severity] ?? 2;
   const filteredArticles = mockArticles.filter(article => {
@@ -98,6 +118,10 @@ export const EmailPreview = ({ categories, frequency, severity, name }: EmailPre
   const periodStart = new Date(Date.now() - (frequency === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
   const periodEnd = new Date();
   const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
+  const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
+  const deliverySchedule = frequency === 'weekly' 
+    ? `${dayNames[preferredDay]}s at ${deliveryTime}`
+    : `Daily at ${deliveryTime}`;
 
   const renderArticle = (article: typeof mockArticles[0]) => (
     <tr key={article.title}>
@@ -273,11 +297,18 @@ export const EmailPreview = ({ categories, frequency, severity, name }: EmailPre
             <span className="text-primary">ℹ️</span>
             <strong>This is a preview with sample data.</strong>
           </p>
-          <p className="text-xs">
-            Your actual digest will contain real security threats based on your selected categories 
-            ({categories.length > 0 ? categories.map(c => newsCategoryConfig[c]?.name).join(', ') : 'none selected'}) 
-            and severity threshold ({severity}).
-          </p>
+          <div className="space-y-1 text-xs">
+            <p className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>Delivery schedule: <strong className="text-foreground">{deliverySchedule}</strong></span>
+            </p>
+            <p>
+              Categories: {categories.length > 0 ? categories.map(c => newsCategoryConfig[c]?.name).join(', ') : 'none selected'}
+            </p>
+            <p>
+              Min severity: {severity}
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
