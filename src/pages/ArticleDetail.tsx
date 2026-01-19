@@ -8,6 +8,7 @@ import { getArticleContent } from '@/data/articleContent';
 import { ArticleHeader } from '@/components/article/ArticleHeader';
 import { NotFoundView } from '@/components/article/NotFoundView';
 import { MetaTags } from '../components/MetaTags';
+import { RelatedArticles } from '@/components/article/RelatedArticles';
 
 const ArticleDetail = () => {
   const { slug } = useParams();
@@ -31,6 +32,7 @@ const ArticleDetail = () => {
   const modifiedDate = newArticle ? newArticle.modifiedAt : '2025-01-15';
   const author = newArticle ? newArticle.author : 'Digibastion Security Team';
   const tags = newArticle ? newArticle.tags : ['web3 security', 'crypto security'];
+  const difficulty = newArticle ? newArticle.difficulty : 'intermediate';
 
   // JSON-LD structured data for article
   const articleSchema = {
@@ -103,6 +105,14 @@ const ArticleDetail = () => {
               {content}
             </div>
           </div>
+
+          {/* Internal Linking - Related Articles */}
+          <RelatedArticles 
+            currentSlug={slug || ''}
+            category={category}
+            tags={tags}
+            limit={4}
+          />
         </article>
       </main>
       <Footer />
