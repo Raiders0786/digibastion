@@ -38,15 +38,19 @@ const Support = () => {
                     Help us create more security tools, guides, and resources for the Web3 community
                   </p>
                   
-                  <div className="mb-8 bg-card/30 backdrop-blur-sm p-4 rounded-lg border border-white/10">
-                    <div className="aspect-w-16 aspect-h-9 mb-6">
-                      <iframe 
-                        src="https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00" 
-                        className="w-full h-[800px] border-0 rounded-md transition-all duration-300 hover:shadow-lg"
-                        title="Support Digibastion"
-                        allow="payment"
-                      ></iframe>
-                    </div>
+                  <div className="mb-8">
+                    <Button 
+                      size="lg"
+                      className="w-full text-lg py-6 bg-primary hover:bg-primary/90"
+                      onClick={() => window.open('https://buy.copperx.io/payment/payment-link/524b0e73-8733-4c99-8a55-8cf8ff7f2c00', '_blank')}
+                    >
+                      <Heart className="w-5 h-5 mr-2" />
+                      Support Digibastion
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                    <p className="text-sm text-foreground-secondary mt-3 text-center">
+                      Secure payment powered by Copperx
+                    </p>
                   </div>
                 </div>
 
