@@ -1716,6 +1716,1567 @@ const DaoGovernanceContent = () => (
   </>
 );
 
+// Oracle Manipulation Content
+const OracleManipulationContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Price Oracle Attacks in DeFi</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Oracle Problem</h3>
+        <p>DeFi protocols need accurate price data but blockchains can't access external information directly. Price oracles bridge this gap - and are prime attack targets.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Oracle Manipulation Works</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Identify vulnerable oracle:</strong> Protocol uses spot price from single DEX pool</li>
+            <li><strong>Flash loan capital:</strong> Borrow millions to manipulate price</li>
+            <li><strong>Manipulate pool:</strong> Large trade moves price significantly</li>
+            <li><strong>Exploit protocol:</strong> Borrow at fake collateral value or trigger liquidations</li>
+            <li><strong>Profit and repay:</strong> Extract value before price normalizes</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Oracle Types & Security</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-red-500/10 p-6 rounded-lg border border-red-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-red-400">❌ Vulnerable Oracles</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Single DEX spot prices</li>
+              <li>Low-liquidity pool references</li>
+              <li>Non-decentralized price feeds</li>
+              <li>Instant price updates</li>
+            </ul>
+          </div>
+          <div className="bg-green-500/10 p-6 rounded-lg border border-green-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-green-400">✅ Secure Oracles</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Chainlink decentralized feeds</li>
+              <li>TWAP (Time-Weighted Average Price)</li>
+              <li>Multiple source aggregation</li>
+              <li>Circuit breakers for anomalies</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Notable Oracle Attacks</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="p-3 text-left">Protocol</th>
+                <th className="p-3 text-left">Attack Vector</th>
+                <th className="p-3 text-left">Loss</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-border/50"><td className="p-3">Mango Markets</td><td className="p-3">Price manipulation</td><td className="p-3">$114M</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Cream Finance</td><td className="p-3">Oracle manipulation</td><td className="p-3">$130M</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Harvest Finance</td><td className="p-3">Flash loan + oracle</td><td className="p-3">$34M</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">User Protection</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Check what oracle a protocol uses before depositing</li>
+            <li>Prefer protocols using Chainlink or similar decentralized oracles</li>
+            <li>Be cautious with protocols on low-liquidity tokens</li>
+            <li>Monitor protocol documentation for oracle details</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Bridge Security Content
+const BridgeSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Cross-Chain Bridge Security</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">🌉 Bridges Are High-Value Targets</h3>
+        <p>Cross-chain bridges hold billions in locked assets and have complex security models. They've accounted for over $2.5B in hacks since 2021.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Why Bridges Are Vulnerable</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-3">
+            <li><strong>Complexity:</strong> Must verify state across different consensus mechanisms</li>
+            <li><strong>Trust assumptions:</strong> Often rely on multisig or validator sets</li>
+            <li><strong>Massive TVL:</strong> Single point of failure for billions in assets</li>
+            <li><strong>Immature technology:</strong> Cross-chain verification is still evolving</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Major Bridge Hacks</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">Ronin Bridge - $625M (2022)</h3>
+            <p className="text-sm mt-2">Lazarus Group compromised 5 of 9 validator keys through social engineering. Largest DeFi hack ever.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">Wormhole - $320M (2022)</h3>
+            <p className="text-sm mt-2">Smart contract bug allowed attacker to mint wrapped ETH without depositing real ETH.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">Nomad - $190M (2022)</h3>
+            <p className="text-sm mt-2">Faulty upgrade allowed anyone to drain funds - became a "free for all" exploit.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Safe Bridging Practices</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">✅ DO</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Use native bridges when possible</li>
+              <li>Bridge smaller amounts at a time</li>
+              <li>Check bridge audit history</li>
+              <li>Verify bridge TVL and track record</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">❌ DON'T</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Bridge life-changing amounts</li>
+              <li>Use new/unaudited bridges</li>
+              <li>Ignore bridge security news</li>
+              <li>Keep bridged funds you don't need</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Blockchain Privacy Tools Content
+const PrivacyToolsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Blockchain Privacy Solutions in 2025</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Privacy in a Transparent World</h3>
+        <p>Blockchain's transparency is a double-edged sword. While it enables trustless verification, it exposes your entire financial history. Privacy tools help you reclaim control.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Privacy Solution Categories</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">🔐 Zero-Knowledge Proofs</h3>
+            <p className="text-sm text-muted-foreground mb-3">Prove something is true without revealing the underlying data.</p>
+            <ul className="list-disc pl-6 text-sm space-y-1">
+              <li>zk-SNARKs (Zcash)</li>
+              <li>zk-STARKs (StarkNet)</li>
+              <li>zkSync shielded transfers</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">🌀 Mixing Services</h3>
+            <p className="text-sm text-muted-foreground mb-3">Break the link between source and destination addresses.</p>
+            <ul className="list-disc pl-6 text-sm space-y-1">
+              <li>Tornado Cash (sanctioned)</li>
+              <li>Railgun</li>
+              <li>Aztec Protocol</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">🪙 Privacy Coins</h3>
+            <p className="text-sm text-muted-foreground mb-3">Blockchains with built-in privacy features.</p>
+            <ul className="list-disc pl-6 text-sm space-y-1">
+              <li>Monero (ring signatures)</li>
+              <li>Zcash (shielded pools)</li>
+              <li>Secret Network (encrypted state)</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">🛡️ Private L2s</h3>
+            <p className="text-sm text-muted-foreground mb-3">Layer 2 solutions with privacy features.</p>
+            <ul className="list-disc pl-6 text-sm space-y-1">
+              <li>Aztec Connect</li>
+              <li>Polygon Nightfall</li>
+              <li>zkBob</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Legal Considerations</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <p className="mb-4">Privacy tools exist in a complex regulatory environment:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Tornado Cash was sanctioned by OFAC in 2022 - US users risk legal issues</li>
+            <li>Privacy coins are delisted from many exchanges</li>
+            <li>Regulations vary significantly by jurisdiction</li>
+            <li>Using privacy tools for legitimate purposes is generally legal</li>
+            <li>Always consult local regulations before using mixing services</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Wallet Deanonymization Content
+const DeanonymizationContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">How Your Wallet Gets Linked to Your Identity</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Pseudonymous ≠ Anonymous</h3>
+        <p>Your wallet address is a pseudonym, not a mask. Blockchain analysis firms can link most addresses to real identities through various techniques.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Deanonymization Techniques</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">📊 Cluster Analysis</h3>
+            <p className="text-sm mt-2">Grouping addresses that transact together or share common inputs. If one address is identified, all linked addresses are compromised.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">🏦 Exchange Deposits</h3>
+            <p className="text-sm mt-2">When you deposit to a KYC exchange, that address is linked to your identity forever. Analytics can trace backwards.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">📱 ENS & Social Links</h3>
+            <p className="text-sm mt-2">Registering an ENS name or posting your address on Twitter permanently links it to your identity.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">⏰ Timing Analysis</h3>
+            <p className="text-sm mt-2">Transaction patterns reveal timezone, activity hours, and correlation with real-world events.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Privacy Protection Strategies</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Address segregation:</strong> Use different addresses for different purposes</li>
+            <li><strong>Fresh addresses:</strong> Generate new addresses for each incoming transaction</li>
+            <li><strong>Avoid round numbers:</strong> $10,000 exactly is more traceable than $10,247</li>
+            <li><strong>Time delays:</strong> Don't withdraw immediately after deposits</li>
+            <li><strong>VPN/Tor:</strong> Hide IP when interacting with blockchain</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Major Analytics Firms</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">Chainalysis</h3>
+            <p className="text-xs text-muted-foreground">Law enforcement focused</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">Elliptic</h3>
+            <p className="text-xs text-muted-foreground">Bank compliance</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">TRM Labs</h3>
+            <p className="text-xs text-muted-foreground">Exchange KYC</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// VPN Tor for Crypto Content
+const VpnTorContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">VPN & Tor for Cryptocurrency Privacy</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Protecting Your Network Privacy</h3>
+        <p>Your IP address reveals your location and can be logged by RPC providers, dApps, and exchanges. VPNs and Tor help protect this layer of privacy.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">VPN vs Tor Comparison</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="p-3 text-left">Feature</th>
+                <th className="p-3 text-left">VPN</th>
+                <th className="p-3 text-left">Tor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-border/50"><td className="p-3">Speed</td><td className="p-3">Fast</td><td className="p-3">Slow</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Anonymity</td><td className="p-3">Medium</td><td className="p-3">High</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Trust</td><td className="p-3">VPN provider</td><td className="p-3">Network design</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Exchange access</td><td className="p-3">Usually works</td><td className="p-3">Often blocked</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Best for</td><td className="p-3">Daily trading</td><td className="p-3">Sensitive ops</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">VPN Best Practices</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Choose no-log VPN providers (Mullvad, ProtonVPN)</li>
+            <li>Pay with crypto for extra privacy</li>
+            <li>Enable kill switch to prevent IP leaks</li>
+            <li>Avoid free VPNs - you're the product</li>
+            <li>Connect to VPN before opening crypto apps</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Warnings & Limitations</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Some exchanges ban VPN/Tor connections</li>
+            <li>Using VPNs may violate exchange ToS</li>
+            <li>VPNs don't hide on-chain activity</li>
+            <li>Tor exit nodes can be monitored</li>
+            <li>Don't log into personal accounts over Tor</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Blockchain Forensics Content
+const BlockchainForensicsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Blockchain Forensics & Fund Tracing</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">When Crypto Gets Stolen</h3>
+        <p>Blockchain forensics can trace stolen funds, but recovery is rarely guaranteed. Understanding the process helps set realistic expectations.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Forensics Works</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Transaction mapping:</strong> Trace every hop from victim to current location</li>
+            <li><strong>Address clustering:</strong> Identify all addresses controlled by the attacker</li>
+            <li><strong>Exchange identification:</strong> Find where funds enter KYC platforms</li>
+            <li><strong>Evidence packaging:</strong> Prepare reports for law enforcement</li>
+            <li><strong>Cooperation requests:</strong> Work with exchanges to freeze funds</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">When to Hire a Forensics Firm</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-green-500/10 p-6 rounded-lg border border-green-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-green-400">✅ Worth It</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>$50K+ stolen</li>
+              <li>Insurance claim support needed</li>
+              <li>Legal action planned</li>
+              <li>Funds haven't been mixed yet</li>
+            </ul>
+          </div>
+          <div className="bg-red-500/10 p-6 rounded-lg border border-red-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-red-400">❌ Likely Not Worth It</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Small amounts (&lt;$10K)</li>
+              <li>Funds already mixed/bridged</li>
+              <li>Attacker in non-cooperative jurisdiction</li>
+              <li>Months have passed since theft</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Immediate Steps After Hack</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-2">
+            <li>Document all transaction hashes and addresses</li>
+            <li>Take screenshots with timestamps</li>
+            <li>Report to exchanges (may freeze attacker funds)</li>
+            <li>File police report (needed for legal action)</li>
+            <li>Contact forensics firm within 24-48 hours</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// NPM Supply Chain Content
+const NpmSupplyChainContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">NPM Supply Chain Attacks on Crypto</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Dependency Danger</h3>
+        <p>Modern crypto projects depend on hundreds of NPM packages. Compromising just one upstream dependency can steal private keys from thousands of applications.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Notable Supply Chain Attacks</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">event-stream (2018)</h3>
+            <p className="text-sm mt-2">Malicious code targeting Copay Bitcoin wallet was injected. Stole private keys from affected users.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">ua-parser-js (2021)</h3>
+            <p className="text-sm mt-2">Compromised maintainer account pushed cryptominer to millions of downloads per week.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">Ledger Connect Kit (2023)</h3>
+            <p className="text-sm mt-2">Compromised NPM package affected multiple DeFi frontends. $600K stolen in hours.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Developer Protection</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Lock file verification:</strong> Always review package-lock.json changes</li>
+            <li><strong>Version pinning:</strong> Use exact versions, not ranges</li>
+            <li><strong>npm audit:</strong> Run regularly and address vulnerabilities</li>
+            <li><strong>Dependency scanning:</strong> Use Snyk, Socket.dev, or similar tools</li>
+            <li><strong>Minimal dependencies:</strong> Every package is an attack vector</li>
+            <li><strong>Verify maintainers:</strong> Check who has publish rights</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">User Protection</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use hardware wallets - immune to frontend attacks</li>
+            <li>Verify dApp frontends against known-good sources</li>
+            <li>Watch for unusual transaction requests after site updates</li>
+            <li>Follow security researchers who track supply chain issues</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// RPC Endpoint Security Content
+const RpcSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">RPC Endpoint Security</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Your Gateway to the Blockchain</h3>
+        <p>Every blockchain interaction goes through an RPC endpoint. Public RPCs are convenient but have privacy and security implications you should understand.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">RPC Privacy Risks</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>IP logging:</strong> RPC providers see your IP with every transaction</li>
+            <li><strong>Transaction correlation:</strong> Your pending transactions reveal trading intent</li>
+            <li><strong>MEV exposure:</strong> Unencrypted RPCs expose you to sandwich attacks</li>
+            <li><strong>Censorship potential:</strong> Providers can choose not to broadcast your transactions</li>
+            <li><strong>Data aggregation:</strong> Your entire on-chain activity can be linked to your IP</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">RPC Provider Comparison</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Public RPCs (Infura, Alchemy)</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Free and convenient</li>
+              <li>High availability</li>
+              <li>IP logging by default</li>
+              <li>MEV vulnerable</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Private RPCs</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Flashbots Protect (MEV protection)</li>
+              <li>MEV Blocker</li>
+              <li>Private transaction submission</li>
+              <li>Reduced frontrunning risk</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Running Your Own Node</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">For maximum privacy and security, run your own Ethereum node:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Full privacy - no third party sees your transactions</li>
+            <li>Censorship resistant - no one can block your transactions</li>
+            <li>Requires 2TB+ SSD and reliable internet</li>
+            <li>Use Geth, Nethermind, or Besu</li>
+            <li>Pair with a consensus client (Prysm, Lighthouse)</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Frontend Attack Vectors Content
+const FrontendAttacksContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">DeFi Frontend Attacks</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Smart Contracts Are Secure, Frontends Aren't</h3>
+        <p>Many DeFi hacks don't touch smart contracts at all. Attackers compromise the website frontend to trick users into signing malicious transactions.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Frontend Attack Types</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">🌐 DNS Hijacking</h3>
+            <p className="text-sm mt-2">Attacker takes control of domain's DNS records, redirecting users to a malicious site that looks identical. (BadgerDAO hack)</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">📦 CDN Compromise</h3>
+            <p className="text-sm mt-2">Malicious code injected through compromised third-party scripts or CDN. (Ledger Connect Kit)</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">🔧 Build Pipeline</h3>
+            <p className="text-sm mt-2">Attacker compromises CI/CD system to inject malicious code during deployment.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-400">📧 Registrar Compromise</h3>
+            <p className="text-sm mt-2">Social engineering against domain registrar to transfer domain ownership.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">User Protection</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Use hardware wallet:</strong> Review transactions on device screen</li>
+            <li><strong>Transaction simulation:</strong> Wallet Guard, Pocket Universe show what you're signing</li>
+            <li><strong>Bookmark official sites:</strong> Don't rely on Google results</li>
+            <li><strong>Verify before major transactions:</strong> Check Discord/Twitter for compromise reports</li>
+            <li><strong>Use IPFS frontends:</strong> When available, more resistant to hijacking</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// NFT Scam Red Flags Content
+const NftScamFlagsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">NFT Scam Warning Signs</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The NFT Scam Playbook</h3>
+        <p>Most NFT rugs follow predictable patterns. Learning to spot these red flags can save you from significant losses.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">15 Red Flags</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ol className="list-decimal pl-6 space-y-2 text-sm">
+            <li><strong>Anonymous team</strong> - No real identities, stock photos</li>
+            <li><strong>Stolen art</strong> - Reverse image search reveals original</li>
+            <li><strong>Botted Discord</strong> - Thousands of members, no real chat</li>
+            <li><strong>Fake followers</strong> - High count, low engagement</li>
+            <li><strong>Paid-only influencer mentions</strong> - No organic excitement</li>
+            <li><strong>Unrealistic roadmap</strong> - Promises of games, metaverse, tokens</li>
+            <li><strong>High mint price + no track record</strong></li>
+            <li><strong>Constantly delayed mint</strong> - Building artificial scarcity</li>
+            <li><strong>No contract transparency</strong> - Hidden or unverified code</li>
+            <li><strong>FOMO marketing</strong> - Countdown timers everywhere</li>
+            <li><strong>Celebrity association without proof</strong></li>
+            <li><strong>Unoriginal derivative art</strong></li>
+            <li><strong>Suspicious mint contract</strong> - Owner can mint unlimited</li>
+            <li><strong>No utility explanation</strong> - Just "art" with no plan</li>
+            <li><strong>Aggressive banning of questions</strong> - Legit projects welcome scrutiny</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Due Diligence Steps</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Reverse image search the art</li>
+            <li>Check team LinkedIn profiles</li>
+            <li>Analyze follower quality with analytics tools</li>
+            <li>Review smart contract on Etherscan</li>
+            <li>Ask hard questions in Discord</li>
+            <li>Wait for verified secondary market activity</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// SetApprovalForAll Risks Content
+const SetApprovalForAllContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">The setApprovalForAll Danger</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">🚨 One Signature, All Your NFTs</h3>
+        <p>setApprovalForAll grants unlimited access to every NFT in a collection. One malicious approval can drain your entire collection instantly.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How It Works</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">When you call setApprovalForAll(operator, true), you give that operator address permission to:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Transfer any NFT you own from that collection</li>
+            <li>Transfer any NFT you acquire in the future</li>
+            <li>Do this without any further signatures from you</li>
+            <li>The permission persists until you explicitly revoke it</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">When It's Legitimate</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-green-500/10 p-6 rounded-lg border border-green-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-green-400">✅ Expected From</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>OpenSea Seaport contract</li>
+              <li>Blur marketplace</li>
+              <li>Known NFT staking protocols</li>
+              <li>Verified collection managers</li>
+            </ul>
+          </div>
+          <div className="bg-red-500/10 p-6 rounded-lg border border-red-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-red-400">❌ Never Sign For</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Random "free mint" sites</li>
+              <li>Unknown contracts</li>
+              <li>Airdrop claims</li>
+              <li>Anything from DMs</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Checking & Revoking</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-2">
+            <li>Visit revoke.cash and connect your wallet</li>
+            <li>Look for "NFT Approvals" section</li>
+            <li>Review each operator address</li>
+            <li>Revoke any approvals you don't recognize</li>
+            <li>Check regularly - new approvals get added over time</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Crypto Job Scams Content
+const CryptoJobScamsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Crypto Job Scams Targeting Professionals</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">When Job Offers Are Attack Vectors</h3>
+        <p>State-sponsored groups like Lazarus specifically target crypto developers and executives with fake job offers designed to install malware or steal credentials.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Common Attack Patterns</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">📋 Fake Coding Tests</h3>
+            <p className="text-sm mt-2">"Complete this take-home assignment" - repo contains malware that runs on npm install or git clone.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">📄 Malicious Documents</h3>
+            <p className="text-sm mt-2">"Review our company overview" - PDF or Word doc with embedded exploits.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">🔗 Trojanized Tools</h3>
+            <p className="text-sm mt-2">"Use our custom IDE/chat app for the interview" - actually malware.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-400">💼 LinkedIn Impersonation</h3>
+            <p className="text-sm mt-2">Fake profiles of real recruiters or executives reaching out with "opportunities."</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protection Strategies</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Verify recruiters:</strong> Contact the company directly through official channels</li>
+            <li><strong>Use VMs:</strong> Run any code assignments in isolated virtual machines</li>
+            <li><strong>Don't install custom tools:</strong> Use standard video calling and IDEs</li>
+            <li><strong>Separate devices:</strong> Keep work separate from crypto wallets</li>
+            <li><strong>Check job listings:</strong> Verify position exists on company's actual career page</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Romance Scams Content
+const RomanceScamsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Crypto Romance Scams & Pig Butchering</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">What is "Pig Butchering"?</h3>
+        <p>Named for "fattening the pig before slaughter," these scams build relationships over weeks or months before convincing victims to "invest" in fake crypto platforms.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">The Scam Timeline</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Initial contact:</strong> "Accidental" text, dating app match, or social media DM</li>
+            <li><strong>Relationship building:</strong> Weeks of friendly conversation, sharing life details</li>
+            <li><strong>Wealth display:</strong> Casually mention crypto trading profits, luxury lifestyle</li>
+            <li><strong>Investment introduction:</strong> "Let me show you how I make money"</li>
+            <li><strong>Fake platform:</strong> Direct to convincing fake exchange showing fake gains</li>
+            <li><strong>Increasing deposits:</strong> Early "withdrawals" work to build trust</li>
+            <li><strong>The rug:</strong> Can't withdraw, need to pay "taxes" or "fees" first</li>
+            <li><strong>Disappearance:</strong> Contact cuts off once victim stops paying</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Warning Signs</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Stranger reaches out first and is unusually friendly</li>
+            <li>Quickly moves conversation to WhatsApp or Telegram</li>
+            <li>Photos seem too perfect or model-like</li>
+            <li>Claims of easy, consistent crypto profits</li>
+            <li>Uses unfamiliar trading platforms</li>
+            <li>Encourages larger and larger deposits</li>
+            <li>Provides excuses for not video calling</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protect Vulnerable Friends & Family</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Educate elderly relatives about these scams</li>
+            <li>Anyone sending money to online relationships should verify identity</li>
+            <li>Use reverse image search on profile photos</li>
+            <li>Never invest on platforms recommended by online-only contacts</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Getting Started Web3 Security Content
+const GettingStartedContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Your First 10 Steps to Crypto Safety</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Welcome to Web3 Security</h3>
+        <p>New to crypto? These foundational security practices will protect you from the most common threats. Master these before exploring advanced strategies.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Essential Security Checklist</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-4">
+            <li><strong>Get a hardware wallet:</strong> Ledger or Trezor for anything over $1,000</li>
+            <li><strong>Secure your seed phrase:</strong> Write on metal, store safely, never digitize</li>
+            <li><strong>Use a password manager:</strong> Unique passwords for every exchange</li>
+            <li><strong>Enable 2FA everywhere:</strong> Authenticator app or hardware key, not SMS</li>
+            <li><strong>Bookmark official sites:</strong> Never use search results or links from messages</li>
+            <li><strong>Disable Discord DMs:</strong> Scammers' favorite attack vector</li>
+            <li><strong>Verify before signing:</strong> Read every transaction request</li>
+            <li><strong>Use burner wallets:</strong> For minting and testing new protocols</li>
+            <li><strong>Revoke old approvals:</strong> Check revoke.cash monthly</li>
+            <li><strong>Stay skeptical:</strong> If it seems too good to be true, it is</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Beginner Mistakes to Avoid</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Storing seed phrase in screenshots or cloud storage</li>
+            <li>Clicking links from Discord DMs or Twitter replies</li>
+            <li>FOMO buying into projects without research</li>
+            <li>Keeping all funds on exchanges</li>
+            <li>Using the same wallet for everything</li>
+            <li>Signing messages without understanding them</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Advanced Wallet Security Content
+const AdvancedWalletSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Defense-in-Depth for High-Value Holdings</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Security at Scale</h3>
+        <p>When you're holding significant assets, basic security isn't enough. This guide covers advanced strategies used by crypto institutions and high-net-worth individuals.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Multi-Wallet Architecture</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-semibold">🔥 Hot Wallet (1-5%)</h4>
+              <p className="text-sm text-muted-foreground">Daily transactions, dApp interactions. Expect potential compromise.</p>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-semibold">❄️ Cold Wallet (20-30%)</h4>
+              <p className="text-sm text-muted-foreground">Hardware wallet at home. Transactions when needed.</p>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-semibold">🏔️ Deep Cold Storage (50-70%)</h4>
+              <p className="text-sm text-muted-foreground">Multi-sig or geographically distributed. Rarely accessed.</p>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-semibold">🔥 Burner Wallet (Minimal)</h4>
+              <p className="text-sm text-muted-foreground">New protocols, mints, suspicious sites. Assume it will get drained.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Advanced Techniques</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Time-Locked Transactions</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Use Gnosis Safe with time delays</li>
+              <li>24-72 hour delays on large transfers</li>
+              <li>Guardians can cancel suspicious transactions</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Geographic Distribution</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Seed phrase parts in different locations</li>
+              <li>Bank safety deposit boxes</li>
+              <li>Trusted family or attorneys</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Exchange Hack Survival Content
+const ExchangeHackSurvivalContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Surviving an Exchange Hack</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">When Your Exchange Gets Hacked</h3>
+        <p>From Mt. Gox to FTX, exchange failures have cost billions. Know what to do before, during, and after an exchange incident.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Immediate Actions</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Verify the news:</strong> Check official channels, not just social media rumors</li>
+            <li><strong>Withdraw remaining funds:</strong> If withdrawals are open, move to self-custody</li>
+            <li><strong>Document everything:</strong> Screenshot balances, transaction history, account details</li>
+            <li><strong>Change passwords:</strong> If you reused the exchange password anywhere</li>
+            <li><strong>Revoke API keys:</strong> Any trading bots should be disconnected</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">If Funds Are Trapped</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>File a claim with the exchange's official process</li>
+            <li>Report to law enforcement in your jurisdiction</li>
+            <li>Join creditor groups for organized representation</li>
+            <li>Document all communications</li>
+            <li>Be patient - Mt. Gox creditors waited 10 years</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Prevention</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Never store more than you need for trading on exchanges</li>
+            <li>Diversify across multiple exchanges</li>
+            <li>Choose exchanges with proof-of-reserves</li>
+            <li>Self-custody for long-term holdings</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// CEX vs DEX Comparison Content
+const CexVsDexContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">CEX vs DEX Security Comparison</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Different Trade-offs</h3>
+        <p>Centralized and decentralized exchanges have fundamentally different security models. Understanding both helps you choose wisely.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Security Comparison</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="p-3 text-left">Aspect</th>
+                <th className="p-3 text-left">CEX</th>
+                <th className="p-3 text-left">DEX</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-border/50"><td className="p-3">Custody</td><td className="p-3">Exchange holds keys</td><td className="p-3">You hold keys</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Hack risk</td><td className="p-3">Exchange can be hacked</td><td className="p-3">Smart contract risks</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">KYC</td><td className="p-3">Required</td><td className="p-3">None</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Freezing risk</td><td className="p-3">Can freeze your account</td><td className="p-3">Cannot freeze</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Recovery</td><td className="p-3">Customer support</td><td className="p-3">Self-responsibility</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">MEV</td><td className="p-3">No MEV</td><td className="p-3">Sandwich attack risk</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">When to Use Each</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Use CEX For</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Fiat on/off ramps</li>
+              <li>High-frequency trading</li>
+              <li>Margin/leverage trading</li>
+              <li>Beginners who need support</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Use DEX For</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Privacy-focused trading</li>
+              <li>Early token access</li>
+              <li>Censorship resistance</li>
+              <li>Long-term self-custody</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Physical Security Content
+const PhysicalSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Physical Security for Crypto Holders</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">🔧 The $5 Wrench Attack</h3>
+        <p>No encryption can protect against physical coercion. If attackers know you have significant crypto and can reach you physically, you're vulnerable.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Threat Model</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Home invasion:</strong> Targeted attacks on known holders</li>
+            <li><strong>Kidnapping:</strong> Forced transfers under duress</li>
+            <li><strong>Social engineering:</strong> Gaining physical access through deception</li>
+            <li><strong>Device theft:</strong> Stealing hardware wallets or phones</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protection Strategies</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">OpSec</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Never publicly disclose holdings</li>
+              <li>Use pseudonymous profiles</li>
+              <li>Don't wear crypto merchandise</li>
+              <li>Be vague about investment success</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Technical</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Decoy wallets with small amounts</li>
+              <li>Time-locked transactions</li>
+              <li>Multi-sig requiring remote co-signers</li>
+              <li>Geographic distribution of keys</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Duress Protocol</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <p className="mb-4">Plan for worst-case scenarios:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Have a "decoy wallet" you can hand over</li>
+            <li>Ensure bulk of holdings require time delays or remote approval</li>
+            <li>Consider plausible deniability setups (hidden wallets)</li>
+            <li>Compliance may be safest - no amount of crypto is worth your life</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Account Abstraction Security Content
+const AccountAbstractionContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">ERC-4337 Account Abstraction Security</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Future of Wallet Security</h3>
+        <p>Account abstraction enables smart contract wallets with advanced features like social recovery, spending limits, and gas sponsorship. But new features mean new risks.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">New Security Considerations</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">🔄 Bundler Trust</h3>
+            <p className="text-sm mt-2">Bundlers submit your transactions. Malicious bundlers could censor or reorder your operations.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">⛽ Paymaster Risks</h3>
+            <p className="text-sm mt-2">Paymasters sponsoring gas could have access to your transaction data and potentially manipulate execution.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">🔑 Session Keys</h3>
+            <p className="text-sm mt-2">Delegated keys for dApp interactions - improper scoping could lead to unauthorized transactions.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">🔧 Upgrade Risks</h3>
+            <p className="text-sm mt-2">Smart wallets can be upgraded - malicious upgrades could drain funds.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Best Practices</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use reputable wallet implementations (Safe, Argent)</li>
+            <li>Configure recovery carefully - guardians need proper security too</li>
+            <li>Set appropriate spending limits and delays</li>
+            <li>Review session key permissions before granting</li>
+            <li>Understand upgrade mechanisms and who controls them</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// ERC-20 Vulnerabilities Content
+const Erc20VulnerabilitiesContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Common ERC-20 Token Vulnerabilities</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Not All Tokens Are Created Equal</h3>
+        <p>The ERC-20 standard is minimal. Many implementations contain vulnerabilities that can be exploited for theft or manipulation.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Critical Vulnerabilities</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">Integer Overflow/Underflow</h3>
+            <p className="text-sm mt-2">Pre-Solidity 0.8: math operations could wrap around, creating tokens from nothing.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">Approval Race Condition</h3>
+            <p className="text-sm mt-2">Changing approval from N to M allows attacker to spend N+M tokens.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">Missing Return Values</h3>
+            <p className="text-sm mt-2">Some tokens don't return bool on transfer - breaks DeFi protocol compatibility.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-400">Fee-on-Transfer</h3>
+            <p className="text-sm mt-2">Tokens that take fees break protocols assuming 1:1 transfer amounts.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Safe Implementation Patterns</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use OpenZeppelin's audited ERC-20 implementation</li>
+            <li>Use Solidity 0.8+ for built-in overflow protection</li>
+            <li>Implement approve() to require setting to 0 first</li>
+            <li>Always return bool from transfer/transferFrom</li>
+            <li>Use SafeERC20 when interacting with unknown tokens</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Smart Contract Fuzzing Content  
+const SmartContractFuzzingContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Fuzzing Smart Contracts</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Automated Bug Discovery</h3>
+        <p>Fuzzing bombards your contracts with random inputs to find edge cases that break invariants. It's one of the most effective security testing methods.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Fuzzing Tools</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Foundry (forge fuzz)</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Built into Foundry framework</li>
+              <li>Fast, Rust-based</li>
+              <li>Good for quick property testing</li>
+              <li>Configurable run count</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Echidna</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Coverage-guided fuzzing</li>
+              <li>Sequence generation</li>
+              <li>Property-based testing</li>
+              <li>Multi-contract support</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">What to Fuzz</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Invariants:</strong> "Total supply never exceeds cap"</li>
+            <li><strong>Access control:</strong> "Only owner can call admin functions"</li>
+            <li><strong>State transitions:</strong> "Balance only changes on transfer"</li>
+            <li><strong>Economic properties:</strong> "No profitable arbitrage paths"</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Impermanent Loss Content
+const ImpermanentLossContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Understanding Impermanent Loss</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Hidden Cost of Liquidity Providing</h3>
+        <p>Impermanent loss occurs when the price ratio of tokens in your LP position changes from when you deposited. It's called "impermanent" because it reverses if prices return - but often they don't.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How It Works</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">When you provide liquidity:</p>
+          <ol className="list-decimal pl-6 space-y-2">
+            <li>You deposit equal values of two tokens</li>
+            <li>AMM automatically rebalances as prices change</li>
+            <li>This means selling your winning token and buying your losing token</li>
+            <li>Result: Less gains than holding, or amplified losses</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Loss by Price Change</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="p-3 text-left">Price Change</th>
+                <th className="p-3 text-left">Impermanent Loss</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-border/50"><td className="p-3">1.25x (25% up or down)</td><td className="p-3">~0.6%</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">1.5x</td><td className="p-3">~2%</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">2x</td><td className="p-3">~5.7%</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">3x</td><td className="p-3">~13.4%</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">5x</td><td className="p-3">~25.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">When LP Still Makes Sense</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Stable pairs (USDC/USDT) - minimal IL</li>
+            <li>Trading fees exceed IL</li>
+            <li>You believe prices will revert</li>
+            <li>Additional farming rewards compensate</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Twitter Impersonation Content
+const TwitterImpersonationContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Twitter/X Crypto Impersonation Scams</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Fake Accounts, Real Losses</h3>
+        <p>Scammers create convincing copies of crypto influencer accounts to promote fake giveaways, airdrops, and investment opportunities.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Common Impersonation Tactics</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">🔵 Blue Check Fraud</h3>
+            <p className="text-sm mt-2">Since Twitter Blue allows paid verification, scammers buy checkmarks to appear legitimate.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">📝 Reply Scams</h3>
+            <p className="text-sm mt-2">Fake accounts reply to real influencer posts with scam links, appearing in high-visibility threads.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold">🎁 Giveaway Scams</h3>
+            <p className="text-sm mt-2">"I'm giving away 10 ETH! Send 0.1 ETH to receive 1 ETH back!" - It never works that way.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Verification Techniques</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Check follower count and account age</li>
+            <li>Look for subtle username differences (@vitalikbuterin vs @vltaIikbuterin)</li>
+            <li>Verify claims on official project websites</li>
+            <li>Real influencers don't DM asking for crypto</li>
+            <li>Cross-reference with Discord/Telegram channels</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Soft vs Hard Rug Content
+const SoftVsHardRugContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Soft Rug vs Hard Rug</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Two Types of Exit Scams</h3>
+        <p>Not all rugs are sudden. Understanding the difference helps identify projects before complete collapse.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Comparison</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-red-500/10 p-6 rounded-lg border border-red-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-red-400">Hard Rug</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Instant liquidity drain</li>
+              <li>Smart contract exploit</li>
+              <li>Team vanishes overnight</li>
+              <li>Token goes to zero instantly</li>
+              <li>Clear malicious intent</li>
+            </ul>
+          </div>
+          <div className="bg-yellow-500/10 p-6 rounded-lg border border-yellow-500/20">
+            <h3 className="text-xl font-semibold mb-3 text-yellow-400">Soft Rug</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Team slowly sells tokens</li>
+              <li>Development slows/stops</li>
+              <li>Promises not delivered</li>
+              <li>Gradual price decline</li>
+              <li>Plausible deniability</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Soft Rug Warning Signs</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Team wallets regularly selling large amounts</li>
+            <li>Missed roadmap deadlines with vague excuses</li>
+            <li>Developer activity on GitHub slowing</li>
+            <li>Community managers becoming less active</li>
+            <li>Increasing focus on token price over product</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Locked Liquidity Content
+const LockedLiquidityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Locked Liquidity: Does It Really Protect You?</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Lock Illusion</h3>
+        <p>Locked liquidity is often promoted as proof of safety, but it's just one factor. Scammers have found many ways to rug even with "locked" liquidity.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Locks Work</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">When a team "locks" liquidity, they send LP tokens to a time-locked contract (Unicrypt, Team.Finance). The tokens can't be withdrawn until the lock expires.</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Why Locks Don't Guarantee Safety</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Mint functions:</strong> Team can create infinite tokens, dumping on locked liquidity</li>
+            <li><strong>Short lock periods:</strong> 30-day locks are not meaningful</li>
+            <li><strong>Partial locks:</strong> Only locking 10% while keeping 90%</li>
+            <li><strong>Team token allocations:</strong> Large unlocked team holdings can still rug</li>
+            <li><strong>Smart contract backdoors:</strong> Hidden functions to drain funds</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">What to Actually Check</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Lock duration (1+ years is meaningful)</li>
+            <li>Percentage of liquidity locked (80%+ is good)</li>
+            <li>Token minting permissions</li>
+            <li>Team token vesting schedules</li>
+            <li>Overall contract permissions</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Smart Contract Audit Process Content
+const AuditProcessContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">The Smart Contract Audit Process</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">What Really Happens in an Audit</h3>
+        <p>Understanding the audit process helps you evaluate audit quality and know what auditors can and can't guarantee.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Typical Audit Phases</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Scoping:</strong> Define what's being audited, timeline, and cost</li>
+            <li><strong>Manual review:</strong> Auditors read every line of code</li>
+            <li><strong>Automated analysis:</strong> Tools like Slither, Mythril scan for patterns</li>
+            <li><strong>Finding documentation:</strong> Issues categorized by severity</li>
+            <li><strong>Initial report:</strong> Findings shared with team</li>
+            <li><strong>Remediation:</strong> Team fixes identified issues</li>
+            <li><strong>Final review:</strong> Auditors verify fixes</li>
+            <li><strong>Final report:</strong> Published publicly</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">What Audits Don't Cover</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Economic attacks and oracle manipulation</li>
+            <li>Off-chain components and frontends</li>
+            <li>Future code changes post-audit</li>
+            <li>100% bug-free guarantee</li>
+            <li>Business model viability</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// DeFi Audit Checklist Content
+const DefiAuditChecklistContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">DeFi Due Diligence Checklist</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Before You Deposit</h3>
+        <p>Use this checklist to evaluate any DeFi protocol before trusting it with your funds.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Security Checklist</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="space-y-3">
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Multiple audits from reputable firms</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Active bug bounty on Immunefi ($100K+ rewards)</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Time-locked admin functions</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Multi-sig controlled (3+ signers)</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> 6+ months without major incidents</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Verified contracts on block explorer</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Open-source code</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Doxxed or reputable team</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Uses reliable oracles (Chainlink)</li>
+            <li className="flex items-start gap-2"><span className="text-lg">☐</span> Reasonable TVL-to-insurance ratio</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Password Manager Content
+const PasswordManagerContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Password Managers for Crypto Security</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Foundation of Account Security</h3>
+        <p>Password managers are essential for managing the dozens of accounts crypto users accumulate. Here's how to set them up securely.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Recommended Options</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">1Password</h3>
+            <p className="text-sm text-muted-foreground">Best for teams, travel mode</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">Bitwarden</h3>
+            <p className="text-sm text-muted-foreground">Open source, self-hostable</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">KeePassXC</h3>
+            <p className="text-sm text-muted-foreground">Fully offline, local storage</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Crypto-Specific Setup</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Generate 20+ character random passwords for exchanges</li>
+            <li>Store exchange backup codes securely</li>
+            <li>Never store seed phrases in password managers</li>
+            <li>Use unique email aliases for each exchange</li>
+            <li>Enable 2FA on the password manager itself</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Formal Verification Content
+const FormalVerificationContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Formal Verification for Smart Contracts</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Mathematical Proof of Correctness</h3>
+        <p>Formal verification uses mathematical techniques to prove smart contracts behave correctly under all possible inputs and states.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Verification Tools</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Certora Prover</h3>
+            <p className="text-sm text-muted-foreground">Industry-leading formal verification, used by Aave, Compound</p>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Halmos</h3>
+            <p className="text-sm text-muted-foreground">Symbolic testing for Foundry, open source</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">What Can Be Verified</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Total supply invariants</li>
+            <li>Access control correctness</li>
+            <li>No overflow/underflow</li>
+            <li>No reentrancy paths</li>
+            <li>Economic properties</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
 // Default placeholder content for articles not yet fully written
 const PlaceholderContent = ({ title }: { title: string }) => (
   <div className="mb-8">
@@ -1767,6 +3328,35 @@ const contentMap: Record<string, React.FC> = {
   'cex-security-best-practices': CexSecurityContent,
   'mobile-crypto-wallet-security': MobileWalletSecurityContent,
   'dao-governance-attacks': DaoGovernanceContent,
+  'oracle-manipulation-attacks': OracleManipulationContent,
+  'bridge-security-risks': BridgeSecurityContent,
+  'blockchain-privacy-tools-2025': PrivacyToolsContent,
+  'wallet-address-deanonymization': DeanonymizationContent,
+  'vpn-tor-crypto-trading': VpnTorContent,
+  'blockchain-forensics-basics': BlockchainForensicsContent,
+  'npm-supply-chain-attacks-crypto': NpmSupplyChainContent,
+  'rpc-endpoint-security': RpcSecurityContent,
+  'frontend-attack-vectors': FrontendAttacksContent,
+  'nft-scam-red-flags': NftScamFlagsContent,
+  'setapprovalforall-risks': SetApprovalForAllContent,
+  'crypto-job-scams': CryptoJobScamsContent,
+  'romance-scams-crypto': RomanceScamsContent,
+  'getting-started-web3-security': GettingStartedContent,
+  'advanced-wallet-security': AdvancedWalletSecurityContent,
+  'exchange-hack-survival-guide': ExchangeHackSurvivalContent,
+  'cex-vs-dex-security-comparison': CexVsDexContent,
+  'physical-security-crypto': PhysicalSecurityContent,
+  'account-abstraction-security': AccountAbstractionContent,
+  'erc20-token-vulnerabilities': Erc20VulnerabilitiesContent,
+  'smart-contract-fuzzing-guide': SmartContractFuzzingContent,
+  'impermanent-loss-risks': ImpermanentLossContent,
+  'twitter-crypto-impersonation': TwitterImpersonationContent,
+  'soft-rug-vs-hard-rug': SoftVsHardRugContent,
+  'locked-liquidity-explained': LockedLiquidityContent,
+  'smart-contract-audit-process': AuditProcessContent,
+  'defi-smart-contract-audit-checklist': DefiAuditChecklistContent,
+  'password-manager-crypto-security': PasswordManagerContent,
+  'formal-verification-smart-contracts': FormalVerificationContent,
 };
 
 // Main content getter
