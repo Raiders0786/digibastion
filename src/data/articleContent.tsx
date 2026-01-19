@@ -814,6 +814,908 @@ const Layer2SecurityContent = () => (
   </>
 );
 
+// Hot vs Cold Wallet Content
+const HotVsColdWalletContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Understanding the Wallet Security Spectrum</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Core Tradeoff</h3>
+        <p>Hot wallets prioritize convenience while cold wallets prioritize security. Most users need both - the key is understanding when to use each.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Hot Wallets Explained</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">Hot wallets are connected to the internet, making them convenient for daily transactions but more vulnerable to attacks.</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold mb-2 text-green-400">✅ Pros</h4>
+              <ul className="list-disc pl-6 space-y-1 text-sm">
+                <li>Instant access to funds</li>
+                <li>Easy dApp interactions</li>
+                <li>Free to use</li>
+                <li>Browser integration</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2 text-red-400">❌ Cons</h4>
+              <ul className="list-disc pl-6 space-y-1 text-sm">
+                <li>Vulnerable to malware</li>
+                <li>Phishing attacks possible</li>
+                <li>Browser extension risks</li>
+                <li>Not for large holdings</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Cold Wallets Explained</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">Cold wallets store private keys offline, providing maximum security for long-term holdings.</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold mb-2 text-green-400">✅ Pros</h4>
+              <ul className="list-disc pl-6 space-y-1 text-sm">
+                <li>Keys never touch internet</li>
+                <li>Immune to remote attacks</li>
+                <li>Physical confirmation required</li>
+                <li>Ideal for HODL strategy</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2 text-red-400">❌ Cons</h4>
+              <ul className="list-disc pl-6 space-y-1 text-sm">
+                <li>Upfront cost ($50-400)</li>
+                <li>Less convenient for trading</li>
+                <li>Physical device management</li>
+                <li>Learning curve</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Recommended Multi-Wallet Strategy</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Hot wallet:</strong> 5-10% of holdings for daily use and small dApp interactions</li>
+            <li><strong>Cold wallet:</strong> 80-90% of holdings for long-term storage</li>
+            <li><strong>Burner wallet:</strong> Small amounts for minting and testing new protocols</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// MetaMask Security Settings Content
+const MetaMaskSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Hardening Your MetaMask Installation</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">⚠️ Default Settings Are Not Secure</h3>
+        <p>MetaMask's default configuration prioritizes usability over security. These changes significantly reduce your attack surface.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Essential Security Settings</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Enable Hardware Wallet:</strong> Go to Settings → Advanced → Enable hardware wallet support</li>
+            <li><strong>Disable Incoming Transactions:</strong> Settings → Security → Show incoming transactions OFF</li>
+            <li><strong>Lock Timer:</strong> Set auto-lock to 1-5 minutes in Settings → Security</li>
+            <li><strong>Phishing Detection:</strong> Ensure Settings → Security → Phishing detection is ON</li>
+            <li><strong>Privacy Mode:</strong> Enable Settings → Security → Privacy mode</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Managing Connected Sites</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">Regularly review and revoke site permissions:</p>
+          <ol className="list-decimal pl-6 space-y-2">
+            <li>Click the three dots → Connected sites</li>
+            <li>Review each connected site</li>
+            <li>Disconnect sites you don't recognize or use</li>
+            <li>Check weekly - sites can be added during transactions</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Advanced Protection</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Transaction Simulation</h3>
+            <p className="text-sm">Install Wallet Guard or Pocket Universe browser extensions to simulate transactions before signing.</p>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Browser Profile</h3>
+            <p className="text-sm">Use a dedicated browser profile for crypto - no other extensions, no casual browsing.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Multi-Signature Wallet Content
+const MultiSigWalletContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Multi-Signature Wallets: Security Through Consensus</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">What is Multi-Sig?</h3>
+        <p>A multi-signature wallet requires multiple private keys to authorize transactions. Common setups include 2-of-3 (any 2 of 3 keys) or 3-of-5 for organizations.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Popular Multi-Sig Solutions</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Safe (Gnosis Safe)</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Most battle-tested multi-sig</li>
+              <li>$100B+ in assets secured</li>
+              <li>Multi-chain support</li>
+              <li>Rich DeFi integration</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Squads (Solana)</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Native Solana multi-sig</li>
+              <li>Program upgrade management</li>
+              <li>Treasury management features</li>
+              <li>Active governance tools</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Recommended Configurations</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-3">
+            <li><strong>Personal high-value:</strong> 2-of-3 with hardware wallets at different locations</li>
+            <li><strong>Small team/DAO:</strong> 3-of-5 with geographic distribution</li>
+            <li><strong>Protocol treasury:</strong> 4-of-7 or higher with timelock delays</li>
+          </ul>
+          <div className="mt-4 p-4 bg-primary/10 rounded-lg">
+            <strong className="text-primary">Pro Tip:</strong> Always test your multi-sig setup with small amounts before depositing significant funds.
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Key Management Best Practices</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Never store all keys in the same location</li>
+            <li>Use different hardware wallet models for redundancy</li>
+            <li>Document your recovery procedures</li>
+            <li>Test key recovery annually</li>
+            <li>Consider social recovery or M-of-N distribution</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Ice Phishing Content
+const IcePhishingContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Ice Phishing: The Silent Approval Attack</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">🧊 Why "Ice" Phishing?</h3>
+        <p>Unlike traditional phishing that steals credentials, ice phishing tricks you into signing approvals that give attackers permission to drain your wallet - often weeks or months later.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Ice Phishing Works</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li>Attacker creates a fake dApp or compromises a legitimate one</li>
+            <li>You connect your wallet to interact with the "service"</li>
+            <li>You're prompted to sign an approval or permit</li>
+            <li>The signature grants the attacker unlimited access to your tokens</li>
+            <li>Attacker drains your wallet at their convenience</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Dangerous Signature Types</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">approve() / setApprovalForAll()</h3>
+            <p className="text-sm text-muted-foreground">Grants permission to move your ERC-20 tokens or all NFTs in a collection</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">permit() signatures</h3>
+            <p className="text-sm text-muted-foreground">Off-chain signature that creates on-chain approval - no gas means no obvious transaction</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Seaport/OpenSea orders</h3>
+            <p className="text-sm text-muted-foreground">Complex order signatures that can list NFTs at 0 ETH</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">eth_sign</h3>
+            <p className="text-sm text-muted-foreground">Raw message signing - extremely dangerous, can sign anything</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protection Strategies</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Read before signing:</strong> Understand every approval request</li>
+            <li><strong>Transaction simulation:</strong> Use Wallet Guard or Pocket Universe</li>
+            <li><strong>Limited approvals:</strong> Only approve exact amounts needed</li>
+            <li><strong>Regular revocation:</strong> Clean up old approvals monthly</li>
+            <li><strong>Separate wallets:</strong> Keep valuable assets in wallets that don't interact with dApps</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Fake Airdrop Scams Content
+const FakeAirdropContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Spotting Fake Airdrop Scams</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Airdrop Trap</h3>
+        <p>Scammers exploit the excitement around legitimate airdrops by creating convincing fakes. The promise of free money overrides victims' security instincts.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Red Flags of Fake Airdrops</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-3">
+            <li><strong>Urgency:</strong> "Claim in the next 2 hours or lose your tokens"</li>
+            <li><strong>Upfront payment:</strong> Legitimate airdrops never require payment to claim</li>
+            <li><strong>Seed phrase requests:</strong> No legitimate service will ever ask for your seed phrase</li>
+            <li><strong>Unknown tokens:</strong> Tokens appearing in your wallet without explanation</li>
+            <li><strong>Social media DMs:</strong> Real projects don't announce exclusive airdrops via DM</li>
+            <li><strong>Too good to be true:</strong> Claims of massive allocations ($10K+) without prior engagement</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How to Verify Legitimate Airdrops</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li>Check the official project Twitter/X (look for verification and follower count)</li>
+            <li>Verify announcements on official Discord from admins</li>
+            <li>Compare URLs character by character with official sources</li>
+            <li>Search the project on reputable news sites</li>
+            <li>Check if credible influencers have confirmed the airdrop</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Safe Claiming Practices</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">✅ DO</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Use official links from verified sources</li>
+              <li>Bookmark legitimate claim sites</li>
+              <li>Use a separate wallet for claiming</li>
+              <li>Simulate transactions before signing</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">❌ DON'T</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Click links from DMs or ads</li>
+              <li>Rush due to artificial urgency</li>
+              <li>Connect wallets with significant holdings</li>
+              <li>Sign messages you don't understand</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Discord Crypto Scams Content
+const DiscordScamsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Discord Security for Crypto Users</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The Discord Threat Landscape</h3>
+        <p>Discord is essential for crypto communities but has become a hunting ground for scammers. Server compromises, fake DMs, and malicious bots have led to millions in losses.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Common Discord Attack Vectors</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">🔴 Server Takeovers</h3>
+            <p className="text-sm mt-2">Hackers compromise admin accounts and post fake mint links. Often happens during high-profile launches when urgency is high.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">🟠 Fake DMs</h3>
+            <p className="text-sm mt-2">Scammers impersonate mods or team members, offering "exclusive opportunities" or pretending to help with support issues.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">🟡 Malicious Bots</h3>
+            <p className="text-sm mt-2">Fake verification bots that steal tokens or request wallet signatures. Sometimes added to servers after compromise.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Essential Discord Security Settings</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Disable DMs from server members:</strong> Settings → Privacy & Safety → Allow DMs OFF</li>
+            <li><strong>Enable 2FA:</strong> Settings → My Account → Enable 2FA (use authenticator app, not SMS)</li>
+            <li><strong>Scan messages:</strong> Keep "Scan direct messages" enabled</li>
+            <li><strong>Verify links:</strong> Check URLs before clicking, even from "official" channels</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Server Compromise Indicators</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Announcements from unusual times or with typos</li>
+            <li>Mint links that bypass normal verification</li>
+            <li>Urgent "emergency migration" notices</li>
+            <li>Links that don't match official domain</li>
+            <li>Missing or deleted messages after announcements</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Honeypot Tokens Content
+const HoneypotTokensContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Detecting Honeypot Tokens</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">🍯 The Honeypot Trap</h3>
+        <p>A honeypot token allows you to buy but prevents selling. The contract is coded to only allow the creator to sell while trapping everyone else's funds.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Honeypots Work</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li>Scammer deploys a token with hidden sell restrictions</li>
+            <li>They create a liquidity pool and generate fake hype</li>
+            <li>Victims buy in, seeing the price "pump"</li>
+            <li>Victims cannot sell - transactions fail or revert</li>
+            <li>Scammer eventually drains liquidity and disappears</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Detection Tools</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">TokenSniffer</h3>
+            <p className="text-sm text-muted-foreground">Automated scam detection with contract analysis</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Honeypot.is</h3>
+            <p className="text-sm text-muted-foreground">Simulates buy/sell to detect sell restrictions</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">DEXTools</h3>
+            <p className="text-sm text-muted-foreground">Charts with contract audit indicators</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">GoPlus Security</h3>
+            <p className="text-sm text-muted-foreground">API for automated security checks</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Red Flags to Watch</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Unverified contract on block explorer</li>
+            <li>Hidden or obfuscated contract code</li>
+            <li>High buy tax but "reasonable" sell tax shown</li>
+            <li>Only the creator wallet has successful sells</li>
+            <li>Massive marketing but no real utility</li>
+            <li>Team members are anonymous with no history</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Rug Pull Warning Signs Content
+const RugPullWarningsContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Identifying Rug Pull Projects Early</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">What is a Rug Pull?</h3>
+        <p>A rug pull occurs when project creators abandon a project after attracting investor funds, either by draining liquidity, selling their tokens, or simply disappearing.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Top 10 Rug Pull Warning Signs</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ol className="list-decimal pl-6 space-y-2">
+            <li><strong>Anonymous team</strong> - No verifiable identities or track records</li>
+            <li><strong>Unaudited contracts</strong> - No reputable security audit</li>
+            <li><strong>Unlocked liquidity</strong> - LP tokens not locked or short lock periods</li>
+            <li><strong>Concentrated ownership</strong> - Top wallets hold majority of supply</li>
+            <li><strong>Copied whitepaper</strong> - Plagiarized or vague documentation</li>
+            <li><strong>Unrealistic promises</strong> - Guaranteed returns or insane APYs</li>
+            <li><strong>Aggressive marketing</strong> - All hype, no substance</li>
+            <li><strong>Disabled sells</strong> - Contract modifications that prevent selling</li>
+            <li><strong>No GitHub activity</strong> - Claims of development without code</li>
+            <li><strong>Paid endorsements</strong> - Only paid influencers shilling</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Due Diligence Checklist</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Verify team identities on LinkedIn and GitHub</li>
+            <li>Check if audit is from reputable firms (not paid-for seals)</li>
+            <li>Analyze token distribution on Etherscan/BSCScan</li>
+            <li>Verify liquidity locks on Unicrypt or Team.Finance</li>
+            <li>Review contract for owner-only functions</li>
+            <li>Check social media age and organic engagement</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Sandwich Attack Prevention Content
+const SandwichAttackContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Understanding Sandwich Attacks</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The MEV Problem</h3>
+        <p>Sandwich attacks are a form of MEV (Maximal Extractable Value) where bots detect your pending swap and place transactions before and after yours to profit at your expense.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Sandwich Attacks Work</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Detection:</strong> MEV bot detects your large pending swap in the mempool</li>
+            <li><strong>Front-run:</strong> Bot buys the token first, pushing the price up</li>
+            <li><strong>Your trade:</strong> You buy at the inflated price</li>
+            <li><strong>Back-run:</strong> Bot sells immediately after you, profiting from the difference</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protection Strategies</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Slippage Settings</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Set tight slippage (0.1-0.5%)</li>
+              <li>Trade fails if price moves too much</li>
+              <li>Tradeoff: may need retry on volatile pairs</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Private RPCs</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Flashbots Protect</li>
+              <li>MEV Blocker</li>
+              <li>Hides transactions from public mempool</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">MEV-Resistant DEXs</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>CoW Swap:</strong> Batch auctions prevent front-running</li>
+            <li><strong>1inch Fusion:</strong> MEV protection built-in</li>
+            <li><strong>UniswapX:</strong> Off-chain orders with MEV protection</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Reentrancy Attack Content
+const ReentrancyAttackContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Reentrancy: The Attack That Changed Ethereum</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">The DAO Hack Legacy</h3>
+        <p>In 2016, a reentrancy exploit drained $60M from The DAO, leading to Ethereum's controversial hard fork. This vulnerability remains one of the most common causes of smart contract losses.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How Reentrancy Works</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <p className="mb-4">Reentrancy occurs when a contract calls an external contract before updating its own state:</p>
+          <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm mb-4">
+            <p className="text-red-400">// VULNERABLE CODE</p>
+            <p>function withdraw() public {'{'}</p>
+            <p>  uint amount = balances[msg.sender];</p>
+            <p>  msg.sender.call{'{'}value: amount{'}'}("");</p>
+            <p>  balances[msg.sender] = 0; // Too late!</p>
+            <p>{'}'}</p>
+          </div>
+          <p>The attacker's fallback function calls withdraw() again before the balance is set to 0, draining funds repeatedly.</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Prevention Patterns</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Checks-Effects-Interactions</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Check conditions first</li>
+              <li>Update state (effects) second</li>
+              <li>External calls last</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">ReentrancyGuard</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Use OpenZeppelin's modifier</li>
+              <li>Locks function during execution</li>
+              <li>Prevents re-entry mid-call</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Notable Reentrancy Attacks</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="p-3 text-left">Protocol</th>
+                <th className="p-3 text-left">Year</th>
+                <th className="p-3 text-left">Loss</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-border/50"><td className="p-3">The DAO</td><td className="p-3">2016</td><td className="p-3">$60M</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Uniswap + Lendf.Me</td><td className="p-3">2020</td><td className="p-3">$25M</td></tr>
+              <tr className="border-t border-border/50"><td className="p-3">Curve Finance</td><td className="p-3">2023</td><td className="p-3">$62M</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// SIM Swap Prevention Content
+const SimSwapContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">SIM Swap Attacks: Hijacking Your Phone Number</h2>
+      <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
+        <h3 className="font-bold mb-2">📱 Your Phone Number Is Not Secure</h3>
+        <p>Attackers can convince your carrier to transfer your number to their SIM, bypassing SMS 2FA and password resets. Crypto users are primary targets.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">How SIM Swaps Work</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Reconnaissance:</strong> Attacker gathers your personal information</li>
+            <li><strong>Social Engineering:</strong> Calls carrier pretending to be you</li>
+            <li><strong>Transfer:</strong> Convinces carrier to activate new SIM</li>
+            <li><strong>Account Takeover:</strong> Receives your SMS codes, resets passwords</li>
+            <li><strong>Drain Accounts:</strong> Accesses exchanges, wallets, email</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Protection Measures</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Carrier Security</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Set up a carrier PIN/password</li>
+              <li>Enable port-out protection</li>
+              <li>Request in-store only SIM changes</li>
+              <li>Use carrier's fraud alert service</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Remove Phone Dependency</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Remove phone from exchange accounts</li>
+              <li>Use hardware keys (YubiKey) for 2FA</li>
+              <li>Use authenticator apps, not SMS</li>
+              <li>Consider a Google Voice number for less critical accounts</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Warning Signs</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Sudden loss of cell service</li>
+            <li>"SIM not provisioned" error</li>
+            <li>Unexpected password reset emails</li>
+            <li>Notifications about account changes you didn't make</li>
+          </ul>
+          <p className="mt-4 font-semibold">If you notice these signs, contact your carrier immediately and change all passwords from a secure device.</p>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Social Engineering Content
+const SocialEngineeringContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">The Psychology of Crypto Scams</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Why Smart People Fall for Scams</h3>
+        <p>Social engineering exploits human psychology, not technical vulnerabilities. Understanding these tactics is your best defense - intelligence alone won't protect you.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Psychological Triggers Exploited</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">⏰ Urgency</h3>
+            <p className="text-sm mt-2">"Mint closes in 10 minutes!" - Rushed decisions bypass rational thinking</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-400">👑 Authority</h3>
+            <p className="text-sm mt-2">Impersonating Vitalik, CZ, or project admins to add credibility</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-blue-400">👥 Social Proof</h3>
+            <p className="text-sm mt-2">Fake screenshots showing others making money, botted engagement</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-green-400">🎁 Reciprocity</h3>
+            <p className="text-sm mt-2">"Here's a free NFT" → Now you owe them (an approval signature)</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">😨 Fear</h3>
+            <p className="text-sm mt-2">"Your wallet is compromised, click here to secure it"</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">💰 Greed</h3>
+            <p className="text-sm mt-2">"1000% APY guaranteed!" - Too good to be true IS too good to be true</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Building Mental Defenses</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Pause before acting:</strong> If something creates urgency, wait 24 hours</li>
+            <li><strong>Verify independently:</strong> Check official channels, not the link you received</li>
+            <li><strong>Assume DMs are scams:</strong> Legitimate projects don't DM first</li>
+            <li><strong>Trust your gut:</strong> If something feels off, it probably is</li>
+            <li><strong>Use the money test:</strong> Would you send $10K to this address? Then don't connect your wallet either</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// CEX Security Content
+const CexSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Securing Your Exchange Accounts</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Not Your Keys, Not Your Crypto</h3>
+        <p>While self-custody is ideal, many users need centralized exchanges. If you use CEXs, implement maximum security measures.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Essential CEX Security Setup</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ol className="list-decimal pl-6 space-y-3">
+            <li><strong>Hardware 2FA:</strong> Use YubiKey, not SMS or authenticator apps</li>
+            <li><strong>Withdrawal whitelist:</strong> Only allow withdrawals to pre-approved addresses</li>
+            <li><strong>Anti-phishing code:</strong> Set a unique code that appears in all real emails</li>
+            <li><strong>Separate email:</strong> Unique email address used only for the exchange</li>
+            <li><strong>IP whitelisting:</strong> If available, restrict logins to known IPs</li>
+            <li><strong>Withdrawal delay:</strong> Enable 24-48 hour delay for new addresses</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">API Key Security</h2>
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
+          <p className="mb-4">API keys are high-value targets. If you use trading bots:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Never enable withdrawal permissions unless absolutely necessary</li>
+            <li>Restrict to specific IP addresses</li>
+            <li>Set trading pair restrictions</li>
+            <li>Rotate keys regularly</li>
+            <li>Never share keys or paste them into untrusted sites</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Which Exchange Features to Enable</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="bg-green-500/10 p-4 rounded-lg text-center">
+            <h3 className="font-semibold text-green-400">✅ Enable</h3>
+            <p className="text-sm mt-2">All security features, 2FA, whitelists, delays</p>
+          </div>
+          <div className="bg-yellow-500/10 p-4 rounded-lg text-center">
+            <h3 className="font-semibold text-yellow-400">⚠️ Careful</h3>
+            <p className="text-sm mt-2">API access - only with restrictions</p>
+          </div>
+          <div className="bg-red-500/10 p-4 rounded-lg text-center">
+            <h3 className="font-semibold text-red-400">❌ Avoid</h3>
+            <p className="text-sm mt-2">SMS 2FA, unrestricted APIs</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// Mobile Wallet Security Content
+const MobileWalletSecurityContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">Mobile Crypto Wallet Security</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Your Phone Is a High-Value Target</h3>
+        <p>Mobile wallets offer convenience but introduce unique attack vectors. Device security, app permissions, and network safety all matter.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Device Hardening</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">iOS Security</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Enable Face ID/Touch ID for wallet apps</li>
+              <li>Keep iOS updated</li>
+              <li>Disable lock screen notifications for crypto apps</li>
+              <li>Use Lockdown Mode if high-value target</li>
+            </ul>
+          </div>
+          <div className="bg-card/50 p-6 rounded-lg">
+            <h3 className="text-xl font-semibold mb-3">Android Security</h3>
+            <ul className="list-disc pl-6 space-y-2 text-sm">
+              <li>Only install from Google Play Store</li>
+              <li>Enable Google Play Protect</li>
+              <li>Use app lock features</li>
+              <li>Avoid rooted devices for crypto</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Safe Mobile Wallet Practices</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Use a dedicated phone for high-value crypto operations</li>
+            <li>Avoid public WiFi - use mobile data or VPN</li>
+            <li>Disable Bluetooth when not in use</li>
+            <li>Verify wallet app authenticity before installing</li>
+            <li>Keep only daily-use amounts in mobile wallets</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Recommended Mobile Wallets</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">Trust Wallet</h3>
+            <p className="text-sm text-muted-foreground">Multi-chain, WalletConnect</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">Phantom</h3>
+            <p className="text-sm text-muted-foreground">Solana-focused, clean UX</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg text-center">
+            <h3 className="font-semibold">Rainbow</h3>
+            <p className="text-sm text-muted-foreground">Ethereum, great for NFTs</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
+// DAO Governance Attacks Content
+const DaoGovernanceContent = () => (
+  <>
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold mb-4">DAO Governance Security</h2>
+      <div className="bg-card/50 p-6 rounded-lg mb-6">
+        <h3 className="font-bold mb-2">Decentralized Doesn't Mean Secure</h3>
+        <p>DAO governance mechanisms can be exploited through flash loan voting, malicious proposals, and quorum manipulation. The Beanstalk hack showed how devastating these attacks can be.</p>
+      </div>
+    </div>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Common Governance Attack Vectors</h2>
+        <div className="space-y-4">
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-red-400">🔴 Flash Loan Voting</h3>
+            <p className="text-sm mt-2">Borrow millions in governance tokens, pass malicious proposal, drain treasury, repay loan - all in one transaction. Beanstalk lost $182M this way.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-400">🟠 Malicious Proposals</h3>
+            <p className="text-sm mt-2">Proposals that look benign but contain hidden function calls or upgrade malicious code.</p>
+          </div>
+          <div className="bg-card/50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-400">🟡 Quorum Attacks</h3>
+            <p className="text-sm mt-2">Passing proposals when legitimate voters are inactive or during unusual times.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Governance Security Best Practices</h2>
+        <div className="bg-card/50 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Time-locks:</strong> Mandatory delay between proposal passing and execution</li>
+            <li><strong>Snapshot voting:</strong> Base voting power on historical snapshots</li>
+            <li><strong>Multi-day voting:</strong> Extend voting periods to prevent flash attacks</li>
+            <li><strong>Security council:</strong> Veto power for obviously malicious proposals</li>
+            <li><strong>Code review:</strong> Mandatory review of proposal code by security team</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">For DAO Participants</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Read proposals carefully - don't just vote based on titles</li>
+            <li>Verify proposal code matches description</li>
+            <li>Be wary of rushed voting timelines</li>
+            <li>Delegate to security-conscious representatives</li>
+            <li>Report suspicious proposals to security teams</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </>
+);
+
 // Default placeholder content for articles not yet fully written
 const PlaceholderContent = ({ title }: { title: string }) => (
   <div className="mb-8">
@@ -850,6 +1752,21 @@ const contentMap: Record<string, React.FC> = {
   'nft-marketplace-security': NFTMarketplaceContent,
   'crypto-hack-response-playbook': IncidentResponseContent,
   'layer-2-security-considerations': Layer2SecurityContent,
+  'hot-wallet-vs-cold-wallet': HotVsColdWalletContent,
+  'metamask-security-settings': MetaMaskSecurityContent,
+  'multi-signature-wallet-setup': MultiSigWalletContent,
+  'ice-phishing-explained': IcePhishingContent,
+  'fake-airdrop-scams': FakeAirdropContent,
+  'discord-crypto-scams': DiscordScamsContent,
+  'honeypot-tokens-detection': HoneypotTokensContent,
+  'rug-pull-warning-signs': RugPullWarningsContent,
+  'sandwich-attack-prevention': SandwichAttackContent,
+  'reentrancy-attack-prevention': ReentrancyAttackContent,
+  'sim-swap-attack-prevention': SimSwapContent,
+  'social-engineering-web3': SocialEngineeringContent,
+  'cex-security-best-practices': CexSecurityContent,
+  'mobile-crypto-wallet-security': MobileWalletSecurityContent,
+  'dao-governance-attacks': DaoGovernanceContent,
 };
 
 // Main content getter
