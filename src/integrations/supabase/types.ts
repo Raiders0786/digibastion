@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_events: {
+        Row: {
+          created_at: string
+          email_type: string
+          event_type: string
+          id: string
+          ip_hash: string | null
+          link_url: string | null
+          subscription_id: string | null
+          tracking_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          link_url?: string | null
+          subscription_id?: string | null
+          tracking_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          link_url?: string | null
+          subscription_id?: string | null
+          tracking_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_articles: {
         Row: {
           affected_technologies: string[] | null
@@ -290,9 +334,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      email_analytics_daily: {
+        Row: {
+          day: string | null
+          email_type: string | null
+          event_count: number | null
+          event_type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_old_submission_logs: { Args: never; Returns: undefined }
@@ -306,6 +379,14 @@ export type Database = {
         Returns: number
       }
       get_subscriber_count: { Args: never; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: never; Returns: boolean }
       news_articles_search_vector: {
         Args: {
           affected_technologies: string[]
@@ -347,7 +428,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -474,6 +555,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
