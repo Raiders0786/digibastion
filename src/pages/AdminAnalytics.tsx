@@ -14,7 +14,8 @@ import {
   RefreshCw,
   TrendingUp,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
@@ -196,6 +197,10 @@ export default function AdminAnalytics() {
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/cron')}>
+              <Clock className="w-4 h-4 mr-2" />
+              Cron Monitor
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />

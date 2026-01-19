@@ -32,6 +32,7 @@ import ManageSubscription from "./pages/ManageSubscription";
 import VerifyEmail from "./pages/VerifyEmail";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import CronMonitor from "./pages/CronMonitor";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +78,7 @@ const App = () => {
                     {/* Admin routes - private, not in navigation */}
                     <Route path="/admin" element={<AdminLogin />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                    <Route path="/admin/cron" element={<CronMonitor />} />
                     <Route path="*" element={<><MetaTags /><NotFound /></>} />
                   </Routes>
                 </PageTransition>
