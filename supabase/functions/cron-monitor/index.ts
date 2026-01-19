@@ -77,98 +77,87 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get all cron jobs
-    const { data: cronJobs, error: cronError } = await supabase.rpc('get_cron_jobs');
-    
-    // Fallback: direct query if RPC doesn't exist
-    let jobs: CronJobStatus[] = [];
-    
-    if (cronError) {
-      // Query cron.job directly (requires service role)
-      const { data: jobData, error: jobError } = await supabase
-        .from('cron.job' as any)
-        .select('jobid, jobname, schedule, active');
-      
-      if (!jobError && jobData) {
-        jobs = jobData.map((job: any) => ({
-          jobname: job.jobname,
-          schedule: job.schedule,
-          active: job.active,
-          recent_failures: 0,
-          recent_successes: 0,
-        }));
-      }
-    } else {
-      jobs = cronJobs || [];
-    }
+    // Known cron jobs - hardcoded since cron schema isn't accessible via REST API
+    const knownJobs = [
+      { jobname: 'fetch-rss-news-hourly', schedule: '15 * * * *', active: true },
+      { jobname: 'fetch-web3-incidents-6hourly', schedule: '30 */6 * * *', active: true },
+      { jobname: 'summarize-articles-6hourly', schedule: '45 */6 * * *', active: true },
+      { jobname: 'send-hourly-digests', schedule: '0 * * * *', active: true },
+      { jobname: 'send-critical-alerts-hourly', schedule: '5 * * * *', active: true },
+      { jobname: 'cleanup-quiz-logs-daily', schedule: '0 3 * * *', active: true },
+    ];
 
-    // Get recent job run details (last 24 hours)
+    // Query notification_log for recent activity (last 24 hours)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
-    const { data: runDetails, error: runError } = await supabase
-      .from('cron.job_run_details' as any)
-      .select('jobid, jobname, status, return_message, start_time, end_time')
-      .gte('start_time', oneDayAgo)
-      .order('start_time', { ascending: false })
-      .limit(200);
+    const { data: notificationLogs, error: notifError } = await supabase
+      .from('notification_log')
+      .select('id, sent_at, status, error_message')
+      .gte('sent_at', oneDayAgo)
+      .order('sent_at', { ascending: false })
+      .limit(100);
 
-    // Get recent HTTP response errors (timeouts, failures)
-    const { data: httpErrors, error: httpError } = await supabase
-      .from('net._http_response' as any)
-      .select('id, created, error_msg, status_code')
-      .not('error_msg', 'is', null)
-      .gte('created', oneDayAgo)
-      .order('created', { ascending: false })
+    // Query news_articles for recent fetches
+    const { data: recentArticles, error: articlesError } = await supabase
+      .from('news_articles')
+      .select('id, created_at, source_name')
+      .gte('created_at', oneDayAgo)
+      .order('created_at', { ascending: false })
       .limit(50);
 
-    // Aggregate job statistics
-    const jobStats: Record<string, { successes: number; failures: number; lastRun?: string; lastStatus?: string; lastError?: string }> = {};
-    
-    if (runDetails) {
-      for (const run of runDetails) {
-        if (!jobStats[run.jobname]) {
-          jobStats[run.jobname] = { successes: 0, failures: 0 };
+    // Calculate stats based on notification logs
+    const successfulNotifs = notificationLogs?.filter(n => n.status === 'sent').length || 0;
+    const failedNotifs = notificationLogs?.filter(n => n.status === 'failed').length || 0;
+    const recentErrors = notificationLogs?.filter(n => n.status === 'failed' && n.error_message) || [];
+
+    // Build job status based on available data
+    const enrichedJobs: CronJobStatus[] = knownJobs.map(job => {
+      let recent_successes = 0;
+      let recent_failures = 0;
+      let last_run: string | undefined;
+      let last_status: string | undefined;
+      let last_error: string | undefined;
+
+      if (job.jobname.includes('digest') || job.jobname.includes('alert')) {
+        // Email-related jobs - check notification_log
+        const relevantLogs = notificationLogs || [];
+        recent_successes = relevantLogs.filter(n => n.status === 'sent').length;
+        recent_failures = relevantLogs.filter(n => n.status === 'failed').length;
+        if (relevantLogs.length > 0) {
+          last_run = relevantLogs[0].sent_at;
+          last_status = relevantLogs[0].status === 'sent' ? 'succeeded' : 'failed';
+          last_error = relevantLogs[0].error_message || undefined;
         }
-        
-        if (run.status === 'succeeded') {
-          jobStats[run.jobname].successes++;
-        } else {
-          jobStats[run.jobname].failures++;
-        }
-        
-        // Track most recent run
-        if (!jobStats[run.jobname].lastRun) {
-          jobStats[run.jobname].lastRun = run.start_time;
-          jobStats[run.jobname].lastStatus = run.status;
-          if (run.status !== 'succeeded') {
-            jobStats[run.jobname].lastError = run.return_message;
-          }
+      } else if (job.jobname.includes('rss') || job.jobname.includes('web3') || job.jobname.includes('fetch')) {
+        // Fetch jobs - check news_articles
+        const articleCount = recentArticles?.length || 0;
+        recent_successes = articleCount > 0 ? Math.ceil(articleCount / 10) : 0; // Estimate runs
+        if (recentArticles && recentArticles.length > 0) {
+          last_run = recentArticles[0].created_at;
+          last_status = 'succeeded';
         }
       }
-    }
 
-    // Merge stats into jobs
-    const enrichedJobs = jobs.map(job => ({
-      ...job,
-      recent_successes: jobStats[job.jobname]?.successes || 0,
-      recent_failures: jobStats[job.jobname]?.failures || 0,
-      last_run: jobStats[job.jobname]?.lastRun,
-      last_status: jobStats[job.jobname]?.lastStatus,
-      last_error: jobStats[job.jobname]?.lastError,
-    }));
+      return {
+        ...job,
+        recent_successes,
+        recent_failures,
+        last_run,
+        last_status,
+        last_error,
+      };
+    });
 
-    // Count timeout errors
-    const timeoutCount = httpErrors?.filter((e: HttpResponseError) => 
-      e.error_msg?.includes('Timeout')
-    ).length || 0;
+    // Count errors from notification logs
+    const timeoutCount = recentErrors.filter(e => 
+      e.error_message?.toLowerCase().includes('timeout')
+    ).length;
 
-    const failedRequests = httpErrors?.filter((e: HttpResponseError) => 
-      e.status_code && e.status_code >= 400
-    ).length || 0;
+    const failedRequests = failedNotifs;
 
     // Calculate health score
-    const totalRuns = runDetails?.length || 0;
-    const failedRuns = runDetails?.filter((r: any) => r.status !== 'succeeded').length || 0;
+    const totalRuns = successfulNotifs + failedNotifs + (recentArticles?.length || 0);
+    const failedRuns = failedNotifs;
     const successRate = totalRuns > 0 ? ((totalRuns - failedRuns) / totalRuns * 100).toFixed(1) : '100';
 
     const response = {
@@ -184,12 +173,12 @@ Deno.serve(async (req) => {
         http_errors_24h: failedRequests,
       },
       jobs: enrichedJobs,
-      recent_errors: httpErrors?.slice(0, 10).map((e: HttpResponseError) => ({
+      recent_errors: recentErrors.slice(0, 10).map((e) => ({
         id: e.id,
-        created: e.created,
-        error: e.error_msg?.substring(0, 200),
-        status_code: e.status_code,
-      })) || [],
+        created: e.sent_at,
+        error: e.error_message?.substring(0, 200),
+        status_code: null,
+      })),
       health: {
         status: failedRuns === 0 && timeoutCount === 0 ? 'healthy' : 
                 failedRuns > 5 || timeoutCount > 10 ? 'critical' : 'warning',

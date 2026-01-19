@@ -5,7 +5,6 @@ Allow: /
 # Disallow admin and auth pages
 Disallow: /admin
 Disallow: /admin/
-Disallow: /login
 Disallow: /verify-email
 Disallow: /manage-subscription
 
