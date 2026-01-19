@@ -12,6 +12,7 @@ import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriberCount } from '@/hooks/useSubscriberCount';
+import { EmailPreview } from './EmailPreview';
 import { z } from 'zod';
 
 // Input validation schema
@@ -457,25 +458,36 @@ export const SubscriptionForm = () => {
             </div>
           )}
 
-          {/* Submit Button */}
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isSubmitting}
-            size="lg"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Setting up alerts...
-              </>
-            ) : (
-              <>
-                <Bell className="w-4 h-4 mr-2" />
-                Subscribe to Security Alerts
-              </>
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              type="submit" 
+              className="flex-1" 
+              disabled={isSubmitting}
+              size="lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Setting up alerts...
+                </>
+              ) : (
+                <>
+                  <Bell className="w-4 h-4 mr-2" />
+                  Subscribe to Security Alerts
+                </>
+              )}
+            </Button>
+            
+            {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
+              <EmailPreview 
+                categories={selectedCategories}
+                frequency={alertFrequency}
+                severity={severityThreshold}
+                name={name}
+              />
             )}
-          </Button>
+          </div>
 
           <p className="text-xs text-muted-foreground text-center">
             Your email will only be used for security alerts. You can unsubscribe anytime.
