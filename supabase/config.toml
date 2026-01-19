@@ -57,3 +57,9 @@ verify_jwt = false
 
 [functions.one-click-unsubscribe]
 verify_jwt = false
+
+[functions.email-tracking]
+verify_jwt = false
+
+[functions.admin-analytics]
+verify_jwt = false

@@ -110,11 +110,22 @@ function generateDigestEmailHtml(
   verificationToken: string | null,
   frequency: string,
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
+  trackingId: string
 ): string {
   const name = escapeHtml(subscriberName || 'Security Professional');
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
   const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
+  
+  // Tracking URLs
+  const trackingBaseUrl = 'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/email-tracking';
+  const trackingPixelUrl = `${trackingBaseUrl}?tid=${trackingId}&a=o`;
+  
+  // Helper to wrap links with click tracking
+  const trackLink = (url: string) => {
+    const encodedUrl = encodeURIComponent(url);
+    return `${trackingBaseUrl}?tid=${trackingId}&a=c&r=${encodedUrl}`;
+  };
   
   // Group articles by severity
   const criticalArticles = articles.filter(a => a.severity === 'critical');
@@ -133,7 +144,7 @@ function generateDigestEmailHtml(
           </span>
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
-        <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
+        <a href="${trackLink(article.link)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
           ${escapeHtml(article.title)}
         </a>
         ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(article.summary.slice(0, 150))}${article.summary.length > 150 ? '...' : ''}</p>` : ''}
@@ -239,7 +250,7 @@ function generateDigestEmailHtml(
     <!-- CTA Button -->
     <tr>
       <td style="padding: 24px; text-align: center;">
-        <a href="https://digibastion.com/threat-intel" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
+        <a href="${trackLink('https://digibastion.com/threat-intel')}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
           View All Threats
         </a>
       </td>
@@ -252,6 +263,8 @@ function generateDigestEmailHtml(
           You're receiving this ${frequency} digest because you subscribed to Digibastion Threat Intel.<br>
           <a href="${manageUrl}" style="color: #60a5fa;">Manage preferences</a> | <a href="${manageUrl}" style="color: #60a5fa;">Unsubscribe</a>
         </p>
+        <!-- Tracking pixel -->
+        <img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display: block; width: 1px; height: 1px; border: 0;" />
       </td>
     </tr>
   </table>
@@ -441,6 +454,9 @@ serve(async (req) => {
 
       console.log(`[send-digest-emails] Sending ${matchingArticles.length} articles to ${sub.email}`);
 
+      // Generate unique tracking ID for this email
+      const trackingId = crypto.randomUUID();
+
       try {
         const emailHtml = generateDigestEmailHtml(
           matchingArticles as NewsArticle[], 
@@ -449,8 +465,19 @@ serve(async (req) => {
           sub.verification_token,
           sub.frequency,
           periodStart,
-          now
+          now,
+          trackingId
         );
+        
+        // Log sent event for analytics
+        await supabase
+          .from('email_events')
+          .insert({
+            subscription_id: sub.id,
+            email_type: 'digest',
+            event_type: 'sent',
+            tracking_id: trackingId,
+          });
         
         const periodLabel = sub.frequency === 'weekly' ? 'Weekly' : 'Daily';
         const criticalCount = matchingArticles.filter(a => a.severity === 'critical').length;
