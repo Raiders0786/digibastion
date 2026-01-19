@@ -8,7 +8,7 @@
 <!-- Main pages -->
 <url>
   <loc>https://www.digibastion.com/</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>1.0</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -18,7 +18,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/threat-intel</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.95</priority>
   <changefreq>daily</changefreq>
   <image:image>
@@ -28,7 +28,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/quiz</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.9</priority>
   <changefreq>monthly</changefreq>
   <image:image>
@@ -37,26 +37,18 @@
   </image:image>
 </url>
 <url>
-  <loc>https://www.digibastion.com/quiz-result</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
-<url>
-  <loc>https://www.digibastion.com/leaderboard</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.85</priority>
+  <loc>https://www.digibastion.com/articles</loc>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.95</priority>
   <changefreq>daily</changefreq>
-</url>
-<url>
-  <loc>https://www.digibastion.com/about</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.8</priority>
-  <changefreq>monthly</changefreq>
+  <image:image>
+    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
+    <image:caption>Web3 Security Guides &amp; Articles</image:caption>
+  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/tools</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.9</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -65,38 +57,44 @@
   </image:image>
 </url>
 <url>
-  <loc>https://www.digibastion.com/articles</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.9</priority>
-  <changefreq>weekly</changefreq>
-</url>
-<url>
   <loc>https://www.digibastion.com/links</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.85</priority>
   <changefreq>weekly</changefreq>
 </url>
 <url>
+  <loc>https://www.digibastion.com/about</loc>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/leaderboard</loc>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.85</priority>
+  <changefreq>daily</changefreq>
+</url>
+<url>
   <loc>https://www.digibastion.com/support</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/contact</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/license</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.5</priority>
   <changefreq>yearly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/share</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.7</priority>
   <changefreq>monthly</changefreq>
 </url>
@@ -104,92 +102,436 @@
 <!-- Security category pages -->
 <url>
   <loc>https://www.digibastion.com/category/opsec</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.9</priority>
   <changefreq>weekly</changefreq>
-  <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>Operational Security (OpSec) Checklist</image:caption>
-  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/wallet</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.85</priority>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.9</priority>
   <changefreq>weekly</changefreq>
-  <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>Web3 Wallet Security Checklist</image:caption>
-  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/defi</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.85</priority>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.9</priority>
   <changefreq>weekly</changefreq>
-  <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>DeFi Security Checklist</image:caption>
-  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/developers</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.85</priority>
   <changefreq>weekly</changefreq>
-  <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>Developer Security Checklist</image:caption>
-  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/authentication</loc>
-  <lastmod>2026-01-07</lastmod>
-  <priority>0.8</priority>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/browsing</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/email</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
-  <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>Email Security Checklist</image:caption>
-  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/social</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
-  <image:image>
-    <image:loc>https://www.digibastion.com/og-image.png</image:loc>
-    <image:caption>Social Media Security Checklist</image:caption>
-  </image:image>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/os</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/mobile</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/category/jobs</loc>
-  <lastmod>2026-01-07</lastmod>
+  <lastmod>2025-01-19</lastmod>
   <priority>0.75</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Articles - Featured Guides (High Priority) -->
+<url>
+  <loc>https://www.digibastion.com/articles/privacy-security-web3-opsec</loc>
+  <lastmod>2025-01-15</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/best-hardware-wallet-2025</loc>
+  <lastmod>2025-01-18</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/crypto-phishing-attacks-prevention</loc>
+  <lastmod>2025-01-17</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/defi-hacks-2024-2025-analysis</loc>
+  <lastmod>2025-01-19</lastmod>
+  <priority>0.9</priority>
+  <changefreq>weekly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/solidity-security-best-practices</loc>
+  <lastmod>2025-01-18</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Wallet Security Articles -->
+<url>
+  <loc>https://www.digibastion.com/articles/seed-phrase-security-guide</loc>
+  <lastmod>2025-01-10</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/hot-wallet-vs-cold-wallet</loc>
+  <lastmod>2025-01-05</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/metamask-security-settings</loc>
+  <lastmod>2025-01-12</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/revoke-token-approvals-guide</loc>
+  <lastmod>2025-01-15</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/multi-signature-wallet-setup</loc>
+  <lastmod>2025-01-08</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/advanced-wallet-security</loc>
+  <lastmod>2025-01-11</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Phishing & Scam Articles -->
+<url>
+  <loc>https://www.digibastion.com/articles/ice-phishing-explained</loc>
+  <lastmod>2025-01-14</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/fake-airdrop-scams</loc>
+  <lastmod>2025-01-11</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/discord-crypto-scams</loc>
+  <lastmod>2025-01-09</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/twitter-crypto-impersonation</loc>
+  <lastmod>2025-01-16</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/honeypot-tokens-detection</loc>
+  <lastmod>2025-01-13</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/rug-pull-warning-signs</loc>
+  <lastmod>2025-01-10</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/soft-rug-vs-hard-rug</loc>
+  <lastmod>2025-01-07</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/locked-liquidity-explained</loc>
+  <lastmod>2025-01-12</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- DeFi Security Articles -->
+<url>
+  <loc>https://www.digibastion.com/articles/flash-loan-attacks-explained</loc>
+  <lastmod>2025-01-08</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/oracle-manipulation-attacks</loc>
+  <lastmod>2025-01-11</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/bridge-security-risks</loc>
+  <lastmod>2025-01-14</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/sandwich-attack-prevention</loc>
+  <lastmod>2025-01-09</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/impermanent-loss-risks</loc>
+  <lastmod>2025-01-06</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/defi-smart-contract-audit-checklist</loc>
+  <lastmod>2025-01-15</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Smart Contract Security Articles -->
+<url>
+  <loc>https://www.digibastion.com/articles/reentrancy-attack-prevention</loc>
+  <lastmod>2025-01-10</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/erc20-token-vulnerabilities</loc>
+  <lastmod>2025-01-07</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/smart-contract-fuzzing-guide</loc>
+  <lastmod>2025-01-13</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/smart-contract-audit-process</loc>
+  <lastmod>2025-01-11</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/formal-verification-smart-contracts</loc>
+  <lastmod>2025-01-14</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Authentication & Account Security -->
+<url>
+  <loc>https://www.digibastion.com/articles/2fa-crypto-security-guide</loc>
+  <lastmod>2025-01-08</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/sim-swap-attack-prevention</loc>
+  <lastmod>2025-01-12</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/password-manager-crypto-security</loc>
+  <lastmod>2025-01-09</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Supply Chain & Infrastructure -->
+<url>
+  <loc>https://www.digibastion.com/articles/npm-supply-chain-attacks-crypto</loc>
+  <lastmod>2025-01-10</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/rpc-endpoint-security</loc>
+  <lastmod>2025-01-15</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/frontend-attack-vectors</loc>
+  <lastmod>2025-01-11</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Privacy & Anonymity -->
+<url>
+  <loc>https://www.digibastion.com/articles/blockchain-privacy-tools-2025</loc>
+  <lastmod>2025-01-17</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/wallet-address-deanonymization</loc>
+  <lastmod>2025-01-08</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/vpn-tor-crypto-trading</loc>
+  <lastmod>2025-01-06</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- NFT Security -->
+<url>
+  <loc>https://www.digibastion.com/articles/nft-marketplace-security</loc>
+  <lastmod>2025-01-10</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/nft-scam-red-flags</loc>
+  <lastmod>2025-01-12</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/setapprovalforall-risks</loc>
+  <lastmod>2025-01-14</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Social Engineering -->
+<url>
+  <loc>https://www.digibastion.com/articles/social-engineering-web3</loc>
+  <lastmod>2025-01-07</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/crypto-job-scams</loc>
+  <lastmod>2025-01-09</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/romance-scams-crypto</loc>
+  <lastmod>2025-01-16</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Beginner & Advanced Guides -->
+<url>
+  <loc>https://www.digibastion.com/articles/getting-started-web3-security</loc>
+  <lastmod>2025-01-05</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Exchange Security -->
+<url>
+  <loc>https://www.digibastion.com/articles/cex-security-best-practices</loc>
+  <lastmod>2025-01-08</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/exchange-hack-survival-guide</loc>
+  <lastmod>2025-01-13</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/cex-vs-dex-security-comparison</loc>
+  <lastmod>2025-01-07</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Mobile & Physical Security -->
+<url>
+  <loc>https://www.digibastion.com/articles/mobile-crypto-wallet-security</loc>
+  <lastmod>2025-01-10</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/physical-security-crypto</loc>
+  <lastmod>2025-01-15</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Governance & DAO -->
+<url>
+  <loc>https://www.digibastion.com/articles/dao-governance-attacks</loc>
+  <lastmod>2025-01-09</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Incident Response -->
+<url>
+  <loc>https://www.digibastion.com/articles/crypto-hack-response-playbook</loc>
+  <lastmod>2025-01-12</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/blockchain-forensics-basics</loc>
+  <lastmod>2025-01-14</lastmod>
+  <priority>0.8</priority>
+  <changefreq>monthly</changefreq>
+</url>
+
+<!-- Layer 2 & Emerging Tech -->
+<url>
+  <loc>https://www.digibastion.com/articles/layer-2-security-considerations</loc>
+  <lastmod>2025-01-16</lastmod>
+  <priority>0.85</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/account-abstraction-security</loc>
+  <lastmod>2025-01-17</lastmod>
+  <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>
 

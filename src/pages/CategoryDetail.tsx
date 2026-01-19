@@ -105,9 +105,9 @@ const CategoryDetail = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title={`${category.title} Security Checklist | Digibastion`}
-        description={`Complete security checklist for ${category.title}. ${category.description}`}
-        type="website"
+        title={`${category.title} Security Checklist — Best Practices & Tips | Digibastion`}
+        description={`Complete ${category.title.toLowerCase()} security checklist with ${category.items.length} actionable items. ${category.description} Track your progress and improve your crypto security.`}
+        keywords={`${category.title.toLowerCase()} security, ${category.title.toLowerCase()} checklist, crypto ${category.title.toLowerCase()}, web3 ${category.title.toLowerCase()} security, ${category.title.toLowerCase()} best practices`}
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8 animate-fade-in">

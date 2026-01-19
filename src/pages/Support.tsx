@@ -10,9 +10,9 @@ const Support = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Support Digibastion | Contribute to Web3 Security"
-        description="Support our mission to improve Web3 security for everyone. Your contribution helps us develop better security tools and resources."
-        type="website"
+        title="Support Digibastion — Donate to Open-Source Web3 Security | Ethereum ESP"
+        description="Support the development of open-source Web3 security tools. Your contribution helps create better security resources, threat intelligence, and educational content for the crypto community."
+        keywords="support digibastion, donate web3 security, open source crypto security, blockchain security donation, ethereum security contribution"
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

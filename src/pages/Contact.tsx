@@ -109,9 +109,9 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Contact Us | Digibastion"
-        description="Get in touch with the Digibastion team. Share your feedback, report issues, or join our community of Web3 security enthusiasts."
-        type="website"
+        title="Contact Digibastion — Partnership, Collaboration & Support | Web3 Security"
+        description="Get in touch with the Digibastion team. Explore partnership opportunities, report security issues, or collaborate on making Web3 safer. Backed by Ethereum Foundation ESP."
+        keywords="contact digibastion, web3 security partnership, blockchain security collaboration, crypto security support, ethereum security team"
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
