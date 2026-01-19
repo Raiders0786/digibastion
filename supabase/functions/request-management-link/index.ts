@@ -275,7 +275,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Digibastion Security <onboarding@resend.dev>',
+            from: 'Digibastion Security <alerts@digibastion.com>',
             to: [normalizedEmail],
             subject: '🔑 Your Digibastion Subscription Management Link',
             html: generateManagementLinkEmail(subscription.name, manageUrl),

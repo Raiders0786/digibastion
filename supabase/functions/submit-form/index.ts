@@ -311,7 +311,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           try {
             await resend.emails.send({
-              from: "Digibastion Security <onboarding@resend.dev>",
+              from: "Digibastion Security <alerts@digibastion.com>",
               to: [subscriptionData.email],
               subject: "Verify your Digibastion Security Alert Subscription",
               html: generateVerificationEmail(subscriptionData.name, verifyUrl, subscriptionData.categories),
