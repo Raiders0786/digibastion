@@ -63,3 +63,6 @@ verify_jwt = false
 
 [functions.admin-analytics]
 verify_jwt = false
+
+[functions.setup-admin]
+verify_jwt = false
