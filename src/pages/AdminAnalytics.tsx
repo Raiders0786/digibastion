@@ -15,10 +15,42 @@ import {
   TrendingUp,
   Calendar,
   AlertCircle,
-  Clock
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Search
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+
+interface SubscriberDetail {
+  id: string;
+  email: string;
+  name: string | null;
+  is_active: boolean;
+  is_verified: boolean;
+  frequency: string;
+  severity_threshold: string;
+  categories: string[];
+  preferred_hour: number | null;
+  timezone_offset: number | null;
+  last_notified_at: string | null;
+  created_at: string;
+  stats: {
+    sent: number;
+    opens: number;
+    clicks: number;
+  };
+}
 
 interface AnalyticsData {
   summary: {
@@ -40,6 +72,7 @@ interface AnalyticsData {
       weekly: number;
     };
   };
+  subscriberDetails: SubscriberDetail[];
   recentEvents: Array<{
     id: string;
     event_type: string;
@@ -56,6 +89,8 @@ export default function AdminAnalytics() {
   const [error, setError] = useState('');
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [dateRange, setDateRange] = useState(30); // days
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [subscriberFilter, setSubscriberFilter] = useState<'all' | 'active' | 'unverified' | 'inactive'>('all');
   const navigate = useNavigate();
 
   const fetchAnalytics = useCallback(async () => {
@@ -359,6 +394,147 @@ export default function AdminAnalytics() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Subscriber Details */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Subscriber Details
+                </CardTitle>
+                <CardDescription>Individual subscriber stats for debugging</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search email or name..."
+                    value={subscriberSearch}
+                    onChange={(e) => setSubscriberSearch(e.target.value)}
+                    className="pl-9 w-64"
+                  />
+                </div>
+                <select
+                  value={subscriberFilter}
+                  onChange={(e) => setSubscriberFilter(e.target.value as any)}
+                  className="px-3 py-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="active">Active</option>
+                  <option value="unverified">Unverified</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Frequency</TableHead>
+                    <TableHead className="text-center">Sent</TableHead>
+                    <TableHead className="text-center">Opens</TableHead>
+                    <TableHead className="text-center">Clicks</TableHead>
+                    <TableHead>Last Notified</TableHead>
+                    <TableHead>Joined</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data?.subscriberDetails
+                    ?.filter(sub => {
+                      // Search filter
+                      const searchLower = subscriberSearch.toLowerCase();
+                      const matchesSearch = !subscriberSearch || 
+                        sub.email.toLowerCase().includes(searchLower) ||
+                        (sub.name?.toLowerCase().includes(searchLower));
+                      
+                      // Status filter
+                      const matchesFilter = 
+                        subscriberFilter === 'all' ||
+                        (subscriberFilter === 'active' && sub.is_active && sub.is_verified) ||
+                        (subscriberFilter === 'unverified' && !sub.is_verified) ||
+                        (subscriberFilter === 'inactive' && !sub.is_active);
+                      
+                      return matchesSearch && matchesFilter;
+                    })
+                    .map((sub) => (
+                      <TableRow key={sub.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{sub.email}</div>
+                            {sub.name && <div className="text-xs text-muted-foreground">{sub.name}</div>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {sub.is_verified ? (
+                              <Badge variant="outline" className="text-green-600 border-green-600 w-fit">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Verified
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-yellow-600 border-yellow-600 w-fit">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Unverified
+                              </Badge>
+                            )}
+                            {!sub.is_active && (
+                              <Badge variant="outline" className="text-red-600 border-red-600 w-fit">
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Inactive
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="capitalize">{sub.frequency}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {sub.preferred_hour !== null ? `${sub.preferred_hour}:00` : '-'} UTC{sub.timezone_offset !== null && sub.timezone_offset >= 0 ? '+' : ''}{sub.timezone_offset ?? 0}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-mono">{sub.stats.sent}</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-mono">{sub.stats.opens}</div>
+                          {sub.stats.sent > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              {((sub.stats.opens / sub.stats.sent) * 100).toFixed(0)}%
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-mono">{sub.stats.clicks}</div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {sub.last_notified_at 
+                            ? new Date(sub.last_notified_at).toLocaleDateString()
+                            : <span className="text-yellow-600">Never</span>
+                          }
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {new Date(sub.created_at).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    )) || (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No subscribers found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Events */}
         <Card>
