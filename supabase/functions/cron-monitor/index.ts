@@ -49,28 +49,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify user is admin
-    const supabaseAuth = createClient(supabaseUrl, authHeader.replace('Bearer ', ''));
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user JWT (do NOT log token)
+    const token = authHeader.replace('Bearer ', '').trim();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
+      console.warn('[cron-monitor] Auth failed:', authError?.message);
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check admin role
+    // Check admin role (service role client; not subject to RLS)
     const { data: roleData, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
-      .single();
+      .maybeSingle();
 
     if (roleError || !roleData) {
+      console.warn(`[cron-monitor] Admin access denied for user ${user.id}`);
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
