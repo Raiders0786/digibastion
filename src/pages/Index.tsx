@@ -10,10 +10,11 @@ import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { supabase } from '@/integrations/supabase/client';
-import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2, Map, ExternalLink, MessageCircle } from 'lucide-react';
+import { Github, Loader2, ArrowRight, Shield, AlertTriangle, Zap, Bell, Lock, Newspaper, CheckCircle2, Map, ExternalLink, MessageCircle, Users, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
 import { formatDistanceToNow } from 'date-fns';
+import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 
 interface RecentAlert {
   id: string;
@@ -27,6 +28,7 @@ const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
+  const { data: subscriberCount } = useSubscriberCount();
 
   // Fetch recent alerts from database
   useEffect(() => {
@@ -235,6 +237,9 @@ const Index = () => {
                 <Button onClick={() => navigate('/threat-intel?tab=subscribe')} variant="outline" className="gap-2 w-full sm:w-auto">
                   <Bell className="w-4 h-4" />
                   Subscribe
+                  {subscriberCount && subscriberCount.count > 0 && (
+                    <span className="text-xs text-muted-foreground ml-1">({subscriberCount.label})</span>
+                  )}
                 </Button>
               </div>
             </div>

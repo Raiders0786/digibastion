@@ -241,8 +241,11 @@ export type Database = {
           is_verified: boolean
           last_notified_at: string | null
           name: string | null
+          preferred_day: number | null
+          preferred_hour: number | null
           severity_threshold: string
           technologies: string[] | null
+          timezone_offset: number | null
           updated_at: string
           verification_token: string | null
           verification_token_expires_at: string | null
@@ -257,8 +260,11 @@ export type Database = {
           is_verified?: boolean
           last_notified_at?: string | null
           name?: string | null
+          preferred_day?: number | null
+          preferred_hour?: number | null
           severity_threshold?: string
           technologies?: string[] | null
+          timezone_offset?: number | null
           updated_at?: string
           verification_token?: string | null
           verification_token_expires_at?: string | null
@@ -273,8 +279,11 @@ export type Database = {
           is_verified?: boolean
           last_notified_at?: string | null
           name?: string | null
+          preferred_day?: number | null
+          preferred_hour?: number | null
           severity_threshold?: string
           technologies?: string[] | null
+          timezone_offset?: number | null
           updated_at?: string
           verification_token?: string | null
           verification_token_expires_at?: string | null
@@ -296,6 +305,7 @@ export type Database = {
         }
         Returns: number
       }
+      get_subscriber_count: { Args: never; Returns: Json }
       news_articles_search_vector: {
         Args: {
           affected_technologies: string[]

@@ -151,7 +151,7 @@ serve(async (req) => {
     // Require BOTH email AND valid token to match - prevents enumeration
     const { data: subscription, error } = await supabase
       .from("subscriptions")
-      .select("id, email, name, categories, technologies, frequency, severity_threshold, is_active, is_verified")
+      .select("id, email, name, categories, technologies, frequency, severity_threshold, preferred_hour, timezone_offset, preferred_day, is_active, is_verified")
       .eq("email", normalizedEmail)
       .eq("verification_token", token)
       .eq("is_active", true)

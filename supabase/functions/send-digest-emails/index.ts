@@ -28,6 +28,9 @@ interface Subscription {
   severity_threshold: string;
   last_notified_at: string | null;
   verification_token: string | null;
+  preferred_hour: number;
+  timezone_offset: number;
+  preferred_day: number;
 }
 
 // Severity ranking for comparison
@@ -257,24 +260,66 @@ function generateDigestEmailHtml(
   `;
 }
 
+// Check if a subscriber should receive digest at this hour
+function shouldSendToSubscriber(sub: Subscription, currentUtcHour: number, currentUtcDay: number): boolean {
+  // Calculate subscriber's local hour when they want to receive
+  // preferred_hour is stored as their desired local hour
+  // timezone_offset is their UTC offset
+  // We need to check if NOW (in UTC) matches their preferred time
+  
+  // Convert preferred local hour to UTC
+  const preferredUtcHour = (sub.preferred_hour - sub.timezone_offset + 24) % 24;
+  
+  if (preferredUtcHour !== currentUtcHour) {
+    return false;
+  }
+  
+  // For weekly digests, also check the day
+  if (sub.frequency === 'weekly') {
+    // Calculate what day it is for the subscriber
+    let subscriberDay = currentUtcDay;
+    // Adjust day if timezone crosses midnight
+    if (sub.timezone_offset > 0 && currentUtcHour < sub.timezone_offset) {
+      subscriberDay = (subscriberDay - 1 + 7) % 7;
+    } else if (sub.timezone_offset < 0 && currentUtcHour >= (24 + sub.timezone_offset)) {
+      subscriberDay = (subscriberDay + 1) % 7;
+    }
+    
+    if (subscriberDay !== sub.preferred_day) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse frequency from request body or default to both
+    // Parse request body
+    let targetHour: number | null = null;
     let targetFrequency: 'daily' | 'weekly' | 'both' = 'both';
+    
     try {
       const body = await req.json();
+      if (typeof body.target_hour === 'number') {
+        targetHour = body.target_hour;
+      }
       if (body.frequency === 'daily' || body.frequency === 'weekly') {
         targetFrequency = body.frequency;
       }
     } catch {
-      // No body, run both
+      // No body or invalid JSON - will run for all matching subscribers
     }
 
-    console.log(`[send-digest-emails] Starting digest for frequency: ${targetFrequency}`);
+    const now = new Date();
+    const currentUtcHour = targetHour !== null ? targetHour : now.getUTCHours();
+    const currentUtcDay = now.getUTCDay(); // 0 = Sunday
+
+    console.log(`[send-digest-emails] Starting digest for hour: ${currentUtcHour}, day: ${currentUtcDay}, frequency: ${targetFrequency}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -282,7 +327,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get subscribers based on frequency
+    // Get all active, verified subscribers
     const frequencies = targetFrequency === 'both' ? ['daily', 'weekly'] : [targetFrequency];
     
     const { data: subscriptions, error: subsError } = await supabase
@@ -297,11 +342,32 @@ serve(async (req) => {
       throw subsError;
     }
 
-    console.log(`[send-digest-emails] Found ${subscriptions?.length || 0} subscriptions`);
+    console.log(`[send-digest-emails] Found ${subscriptions?.length || 0} total subscriptions`);
 
     if (!subscriptions || subscriptions.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: 'No digest subscriptions found', sent: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Filter subscribers who should receive at this hour
+    const eligibleSubscriptions = subscriptions.filter((sub: Subscription) => 
+      shouldSendToSubscriber(sub, currentUtcHour, currentUtcDay)
+    );
+
+    console.log(`[send-digest-emails] ${eligibleSubscriptions.length} subscribers eligible for this hour`);
+
+    if (eligibleSubscriptions.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'No subscribers scheduled for this hour', 
+          sent: 0,
+          checked: subscriptions.length,
+          currentUtcHour,
+          currentUtcDay
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -314,12 +380,11 @@ serve(async (req) => {
       );
     }
 
-    const now = new Date();
     let sent = 0;
     let failed = 0;
     const errors: string[] = [];
 
-    for (const subscription of subscriptions) {
+    for (const subscription of eligibleSubscriptions) {
       const sub = subscription as Subscription;
       
       // Determine period based on frequency
@@ -423,6 +488,9 @@ serve(async (req) => {
         sent,
         failed,
         targetFrequency,
+        currentUtcHour,
+        currentUtcDay,
+        eligibleCount: eligibleSubscriptions.length,
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

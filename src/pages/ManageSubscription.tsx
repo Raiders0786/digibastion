@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock, Send } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock, Send, Clock } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,9 @@ export default function ManageSubscription() {
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
+  const [preferredHour, setPreferredHour] = useState<number>(9);
+  const [timezoneOffset, setTimezoneOffset] = useState<number>(0);
+  const [preferredDay, setPreferredDay] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
@@ -66,6 +69,9 @@ export default function ManageSubscription() {
         setSelectedTechnologies(sub.technologies || []);
         setAlertFrequency(sub.frequency || 'daily');
         setSeverityThreshold(sub.severity_threshold || 'medium');
+        setPreferredHour(sub.preferred_hour ?? 9);
+        setTimezoneOffset(sub.timezone_offset ?? 0);
+        setPreferredDay(sub.preferred_day ?? 0);
         setSubscriptionFound(true);
       } else {
         setAuthError(true);
@@ -181,6 +187,9 @@ export default function ManageSubscription() {
           technologies: selectedTechnologies,
           frequency: alertFrequency,
           severity_threshold: severityThreshold,
+          preferred_hour: preferredHour,
+          timezone_offset: timezoneOffset,
+          preferred_day: preferredDay,
         },
       });
 
@@ -546,6 +555,63 @@ export default function ManageSubscription() {
                       </Select>
                     </div>
                   </div>
+
+                  {/* Delivery Time Preferences */}
+                  {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
+                    <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border">
+                      <Label className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Preferred Delivery Time
+                      </Label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Time</Label>
+                          <Select value={String(preferredHour)} onValueChange={(v) => setPreferredHour(Number(v))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map((h) => (
+                                <SelectItem key={h} value={String(h)}>
+                                  {h <= 12 ? `${h}:00 AM` : `${h-12}:00 PM`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Timezone</Label>
+                          <Select value={String(timezoneOffset)} onValueChange={(v) => setTimezoneOffset(Number(v))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[-8,-5,0,1,5,8,9].map((tz) => (
+                                <SelectItem key={tz} value={String(tz)}>
+                                  UTC{tz >= 0 ? '+' : ''}{tz}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {alertFrequency === 'weekly' && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">Day</Label>
+                            <Select value={String(preferredDay)} onValueChange={(v) => setPreferredDay(Number(v))}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => (
+                                  <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3">
