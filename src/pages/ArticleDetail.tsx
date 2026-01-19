@@ -1,90 +1,106 @@
-
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { articles } from '@/data/articles';
+import { getArticleBySlug } from '@/data/articlesData';
+import { getArticleContent } from '@/data/articleContent';
 import { ArticleHeader } from '@/components/article/ArticleHeader';
 import { NotFoundView } from '@/components/article/NotFoundView';
 import { MetaTags } from '../components/MetaTags';
 
 const ArticleDetail = () => {
   const { slug } = useParams();
-  const article = articles[slug as keyof typeof articles];
-  const [ogImage, setOgImage] = useState<string>('');
-
-  useEffect(() => {
-    if (article) {
-      // Properly encode the title for the OG image URL
-      const encodedTitle = encodeURIComponent(article.title)
-        .replace(/\(/g, '%28')
-        .replace(/\)/g, '%29')
-        .replace(/'/g, '%27')
-        .replace(/"/g, '%22');
-
-      const ogImageUrl = `https://og-image.vercel.app/${encodedTitle}.png?theme=dark&md=1&fontSize=100px&images=https%3A%2F%2Fsecurequest-checklist.com%2Flovable-uploads%2F01298c2c-83d8-446e-b2e5-9199490d5f4e.png&widths=350&heights=350`;
-      setOgImage(ogImageUrl);
-    }
-  }, [article]);
+  
+  // Try new article system first, fall back to legacy
+  const newArticle = getArticleBySlug(slug || '');
+  const legacyArticle = articles[slug as keyof typeof articles];
+  
+  const article = newArticle || legacyArticle;
 
   if (!article) {
     return <NotFoundView />;
   }
 
-  const articleUrl = `https://digibastion.com/articles/${slug}`;
+  const articleUrl = `https://www.digibastion.com/articles/${slug}`;
+  const title = newArticle ? newArticle.title : legacyArticle?.title || '';
+  const description = newArticle ? newArticle.description : `Learn about ${title} in this comprehensive guide from Digibastion`;
+  const category = newArticle ? newArticle.category : legacyArticle?.category || 'Security';
+  const readTime = newArticle ? newArticle.readTime : legacyArticle?.readTime || '10 min read';
+  const publishedDate = newArticle ? newArticle.publishedAt : '2024-06-01';
+  const modifiedDate = newArticle ? newArticle.modifiedAt : '2025-01-15';
+  const author = newArticle ? newArticle.author : 'Digibastion Security Team';
+  const tags = newArticle ? newArticle.tags : ['web3 security', 'crypto security'];
+
+  // JSON-LD structured data for article
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": title,
+    "description": description,
+    "author": {
+      "@type": "Organization",
+      "name": author,
+      "url": "https://www.digibastion.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Digibastion",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.digibastion.com/favicon.png"
+      }
+    },
+    "datePublished": publishedDate,
+    "dateModified": modifiedDate,
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": articleUrl
+    },
+    "keywords": tags.join(', '),
+    "articleSection": category,
+    "image": "https://www.digibastion.com/og-image.png"
+  };
+
+  // Get content - new system or legacy
+  const content = newArticle 
+    ? getArticleContent(slug || '', title)
+    : legacyArticle?.content;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title={`${article.title} - Digibastion`}
-        description={`Learn about ${article.title} in this comprehensive guide from Digibastion`}
-        image={ogImage}
+        title={`${title} | Digibastion Security Guide`}
+        description={description}
+        image="https://www.digibastion.com/og-image.png"
         type="article"
         canonical={articleUrl}
+        keywords={tags.join(', ')}
       />
+      
+      {/* Article Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
-        <article className="max-w-3xl mx-auto" itemScope itemType="https://schema.org/Article">
+        <article className="max-w-3xl mx-auto">
           <Link 
             to="/articles"
-            className="inline-flex items-center text-primary hover:text-primary-hover mb-6"
-            aria-label="Back to all articles"
+            className="inline-flex items-center text-primary hover:text-primary/80 mb-6 text-sm"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Articles
           </Link>
           
-          <meta itemProp="headline" content={article.title} />
-          <meta itemProp="author" content="Digibastion Team" />
-          <meta itemProp="datePublished" content="2023-03-01" />
-          <meta itemProp="dateModified" content="2023-03-27" />
-          <link itemProp="mainEntityOfPage" href={articleUrl} />
-          
-          {ogImage && (
-            <div className="mb-8 rounded-xl overflow-hidden shadow-xl border border-primary/20">
-              <img 
-                src={ogImage} 
-                alt={article.title}
-                className="w-full h-auto"
-                loading="eager"
-                fetchPriority="high"
-                width="1200"
-                height="630"
-                itemProp="image"
-              />
-            </div>
-          )}
-          
           <ArticleHeader 
-            title={article.title}
-            category={article.category}
-            readTime={article.readTime}
+            title={title}
+            category={category}
+            readTime={readTime}
           />
 
-          <div className="prose prose-invert max-w-none" itemProp="articleBody">
+          <div className="prose prose-invert max-w-none mt-8">
             <div className="text-foreground/80 space-y-6">
-              {article.content}
+              {content}
             </div>
           </div>
         </article>
