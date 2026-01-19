@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import espLogo from '../assets/esp-logo-white.svg';
 import { formatDistanceToNow } from 'date-fns';
 import { useSubscriberCount } from '@/hooks/useSubscriberCount';
+import { QuickSubscribeCard } from '@/components/newsletter/QuickSubscribeCard';
 
 interface RecentAlert {
   id: string;
@@ -198,6 +199,11 @@ const Index = () => {
             <p className="text-center text-xs text-muted-foreground mt-6">
               100% free & open-source • No account required • Community-powered
             </p>
+
+            {/* Quick Subscribe Card - Prominent CTA */}
+            <div className="mt-8 max-w-2xl mx-auto px-2">
+              <QuickSubscribeCard />
+            </div>
           </div>
         </section>
 
