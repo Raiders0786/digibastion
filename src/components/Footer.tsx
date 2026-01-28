@@ -10,7 +10,7 @@ export const Footer = () => {
           {/* Social Links */}
           <div className="flex justify-center gap-3">
             <a
-              href="https://t.me/digibastion"
+              href="https://t.me/digibastion_chat"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium

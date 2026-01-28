@@ -125,7 +125,7 @@ const Contact = () => {
             </p>
             <div className="flex justify-center gap-4 mb-8">
               <a
-                href="https://t.me/raiders0786"
+                href="https://t.me/digibastion_chat"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex"
