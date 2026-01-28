@@ -488,7 +488,7 @@ const Index = () => {
               </Button>
             </a>
             <a 
-              href="https://t.me/digibastion" 
+              href="https://t.me/digibastion_chat" 
               target="_blank" 
               rel="noopener noreferrer"
             >
