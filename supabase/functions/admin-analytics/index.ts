@@ -67,12 +67,13 @@ serve(async (req) => {
       // Use defaults
     }
 
-    // Fetch email analytics
+    // Fetch email analytics with enhanced data
     const [
       { data: events, error: eventsError },
       { data: dailyStats, error: dailyError },
       { data: subscriptions, error: subsError },
-      { data: allEmailEvents, error: allEventsError }
+      { data: allEmailEvents, error: allEventsError },
+      { data: detailedEvents, error: detailedEventsError }
     ] = await Promise.all([
       // Recent events
       supabase
@@ -101,13 +102,23 @@ serve(async (req) => {
         .from("email_events")
         .select("subscription_id, event_type")
         .gte("created_at", startDate)
+        .lte("created_at", endDate),
+        
+      // Detailed events with geo and device info for admin drill-down
+      supabase
+        .from("email_events")
+        .select("id, tracking_id, subscription_id, event_type, email_type, created_at, timestamp_utc, country_code, region, device_type, email_client, user_agent, ip_hash, link_url")
+        .gte("created_at", startDate)
         .lte("created_at", endDate)
+        .order("created_at", { ascending: false })
+        .limit(1000)
     ]);
 
     if (eventsError) console.error("[admin-analytics] Events error:", eventsError);
     if (dailyError) console.error("[admin-analytics] Daily error:", dailyError);
     if (subsError) console.error("[admin-analytics] Subs error:", subsError);
     if (allEventsError) console.error("[admin-analytics] All events error:", allEventsError);
+    if (detailedEventsError) console.error("[admin-analytics] Detailed events error:", detailedEventsError);
 
     // Calculate aggregated stats
     const allEvents = dailyStats || [];
@@ -176,6 +187,36 @@ serve(async (req) => {
       stats: subscriberStats[sub.id] || { sent: 0, opens: 0, clicks: 0 }
     }));
 
+    // Build geo stats from detailed events
+    const geoStats: Record<string, number> = {};
+    const deviceStats: Record<string, number> = {};
+    const emailClientStats: Record<string, number> = {};
+    
+    for (const event of (detailedEvents || [])) {
+      const country = event.country_code || 'Unknown';
+      const device = event.device_type || 'Unknown';
+      const client = event.email_client || 'Unknown';
+      
+      geoStats[country] = (geoStats[country] || 0) + 1;
+      deviceStats[device] = (deviceStats[device] || 0) + 1;
+      emailClientStats[client] = (emailClientStats[client] || 0) + 1;
+    }
+
+    // Format detailed events with more readable timestamps
+    const formattedDetailedEvents = (detailedEvents || []).map(e => ({
+      ...e,
+      timestamp_readable: e.timestamp_utc ? new Date(e.timestamp_utc).toLocaleString('en-US', {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }) + ' UTC' : null
+    }));
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -191,6 +232,10 @@ serve(async (req) => {
           subscriptions: subStats,
           subscriberDetails,
           recentEvents: (events || []).slice(0, 50),
+          detailedEvents: formattedDetailedEvents,
+          geoStats,
+          deviceStats,
+          emailClientStats,
           dateRange: { startDate, endDate }
         }
       }),

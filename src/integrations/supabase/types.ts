@@ -58,35 +58,50 @@ export type Database = {
       }
       email_events: {
         Row: {
+          country_code: string | null
           created_at: string
+          device_type: string | null
+          email_client: string | null
           email_type: string
           event_type: string
           id: string
           ip_hash: string | null
           link_url: string | null
+          region: string | null
           subscription_id: string | null
+          timestamp_utc: string | null
           tracking_id: string
           user_agent: string | null
         }
         Insert: {
+          country_code?: string | null
           created_at?: string
+          device_type?: string | null
+          email_client?: string | null
           email_type: string
           event_type: string
           id?: string
           ip_hash?: string | null
           link_url?: string | null
+          region?: string | null
           subscription_id?: string | null
+          timestamp_utc?: string | null
           tracking_id: string
           user_agent?: string | null
         }
         Update: {
+          country_code?: string | null
           created_at?: string
+          device_type?: string | null
+          email_client?: string | null
           email_type?: string
           event_type?: string
           id?: string
           ip_hash?: string | null
           link_url?: string | null
+          region?: string | null
           subscription_id?: string | null
+          timestamp_utc?: string | null
           tracking_id?: string
           user_agent?: string | null
         }
