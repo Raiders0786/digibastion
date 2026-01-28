@@ -347,6 +347,7 @@ serve(async (req) => {
     // Parse request body
     let targetHour: number | null = null;
     let targetFrequency: 'daily' | 'weekly' | 'both' = 'both';
+    let testEmail: string | null = null;
     
     try {
       const body = await req.json();
@@ -355,6 +356,9 @@ serve(async (req) => {
       }
       if (body.frequency === 'daily' || body.frequency === 'weekly') {
         targetFrequency = body.frequency;
+      }
+      if (typeof body.test_email === 'string' && body.test_email.includes('@')) {
+        testEmail = body.test_email;
       }
     } catch {
       // No body or invalid JSON - will run for all matching subscribers
@@ -371,6 +375,128 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Handle test email mode - bypass hour check and send directly to specific email
+    if (testEmail) {
+      console.log(`[send-digest-emails] TEST MODE: Sending test digest to ${testEmail}`);
+      
+      // Find or create a mock subscription for this email
+      const { data: testSub, error: testSubError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('email', testEmail)
+        .maybeSingle();
+      
+      if (testSubError) {
+        console.error('[send-digest-emails] Error fetching test subscription:', testSubError);
+        throw testSubError;
+      }
+      
+      // Use found subscription or create a default one for testing
+      const mockSubscription: Subscription = testSub || {
+        id: 'test-id',
+        email: testEmail,
+        name: 'Test User',
+        categories: [],
+        technologies: [],
+        frequency: 'daily',
+        severity_threshold: 'low', // Include all severities for test
+        last_notified_at: null,
+        verification_token: null,
+        preferred_hour: 9,
+        timezone_offset: 0,
+        preferred_day: 0
+      };
+      
+      // Fetch latest articles (last 48 hours to ensure content)
+      const testPeriodStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      
+      const { data: articles, error: articlesError } = await supabase
+        .from('news_articles')
+        .select('id, title, summary, severity, category, link, published_at, cve_id, tags')
+        .gte('published_at', testPeriodStart.toISOString())
+        .order('published_at', { ascending: false })
+        .limit(50);
+      
+      if (articlesError) {
+        console.error('[send-digest-emails] Error fetching articles for test:', articlesError);
+        throw articlesError;
+      }
+      
+      if (!articles || articles.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'No articles found in last 48 hours for test', sent: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log(`[send-digest-emails] Found ${articles.length} articles for test email`);
+      
+      // Generate and send test email
+      const trackingId = crypto.randomUUID();
+      const emailHtml = generateDigestEmailHtml(
+        articles as NewsArticle[],
+        mockSubscription.name,
+        testEmail,
+        mockSubscription.verification_token,
+        mockSubscription.frequency,
+        testPeriodStart,
+        now,
+        trackingId
+      );
+      
+      if (!resendApiKey) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'RESEND_API_KEY not configured', sent: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Digibastion Alerts <alerts@digibastion.com>',
+          to: [testEmail],
+          subject: `[TEST] 📊 Security Digest - ${articles.length} Threats`,
+          html: emailHtml,
+        }),
+      });
+      
+      const resendResult = await resendResponse.json();
+      
+      if (!resendResponse.ok) {
+        console.error('[send-digest-emails] Resend error for test:', resendResult);
+        return new Response(
+          JSON.stringify({ success: false, message: 'Failed to send test email', error: resendResult, sent: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Log sent event
+      await supabase.from('email_events').insert({
+        subscription_id: testSub?.id || null,
+        tracking_id: trackingId,
+        email_type: 'test_digest',
+        event_type: 'sent',
+      });
+      
+      console.log(`[send-digest-emails] Test email sent successfully to ${testEmail}`);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Test digest sent to ${testEmail}`, 
+          sent: 1,
+          articles_included: articles.length,
+          categories: [...new Set(articles.map(a => a.category))]
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get all active, verified subscribers
     const frequencies = targetFrequency === 'both' ? ['daily', 'weekly'] : [targetFrequency];
