@@ -93,6 +93,21 @@ function getSeverityColor(severity: string): string {
   }
 }
 
+// Category configuration for display
+const categoryConfig: Record<string, { label: string; color: string; icon: string }> = {
+  'web3-security': { label: 'Web3 Security', color: '#8b5cf6', icon: '🔗' },
+  'defi-exploits': { label: 'DeFi Exploit', color: '#ec4899', icon: '💰' },
+  'operational-security': { label: 'OpSec', color: '#ef4444', icon: '🛡️' },
+  'supply-chain': { label: 'Supply Chain', color: '#f97316', icon: '📦' },
+  'personal-protection': { label: 'Personal Security', color: '#3b82f6', icon: '🔐' },
+  'vulnerability-disclosure': { label: 'CVE / Vuln', color: '#eab308', icon: '⚠️' },
+  'tools-reviews': { label: 'Tools', color: '#22c55e', icon: '🛠️' },
+};
+
+function getCategoryDisplay(category: string): { label: string; color: string; icon: string } {
+  return categoryConfig[category] || { label: 'Security', color: '#6b7280', icon: '🔒' };
+}
+
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { 
@@ -132,17 +147,22 @@ function generateDigestEmailHtml(
   const highArticles = articles.filter(a => a.severity === 'high');
   const otherArticles = articles.filter(a => !['critical', 'high'].includes(a.severity));
 
-  const renderArticle = (article: NewsArticle) => `
+  const renderArticle = (article: NewsArticle) => {
+    const cat = getCategoryDisplay(article.category);
+    return `
     <tr>
       <td style="padding: 12px 0; border-bottom: 1px solid #333;">
-        <div style="margin-bottom: 6px;">
-          <span style="background: ${getSeverityColor(article.severity)}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase;">
+        <div style="margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+          <span style="background: ${getSeverityColor(article.severity)}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; font-weight: 600;">
             ${escapeHtml(article.severity)}
           </span>
-          <span style="color: #6b7280; font-size: 11px; margin-left: 8px;">
+          <span style="background: ${cat.color}20; color: ${cat.color}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; border: 1px solid ${cat.color}40;">
+            ${cat.icon} ${cat.label}
+          </span>
+          <span style="color: #6b7280; font-size: 11px;">
             ${formatDate(article.published_at)}
           </span>
-          ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">${escapeHtml(article.cve_id)}</span>` : ''}
+          ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <a href="${trackLink(article.link)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
           ${escapeHtml(article.title)}
@@ -151,6 +171,7 @@ function generateDigestEmailHtml(
       </td>
     </tr>
   `;
+  };
 
   const renderSection = (title: string, sectionArticles: NewsArticle[], bgColor: string) => {
     if (sectionArticles.length === 0) return '';
