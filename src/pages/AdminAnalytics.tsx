@@ -18,7 +18,11 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Search
+  Search,
+  Globe,
+  Smartphone,
+  Monitor,
+  Tablet
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -52,6 +56,24 @@ interface SubscriberDetail {
   };
 }
 
+interface DetailedEvent {
+  id: string;
+  tracking_id: string;
+  subscription_id: string | null;
+  event_type: string;
+  email_type: string;
+  created_at: string;
+  timestamp_utc: string | null;
+  timestamp_readable: string | null;
+  country_code: string | null;
+  region: string | null;
+  device_type: string | null;
+  email_client: string | null;
+  user_agent: string | null;
+  ip_hash: string | null;
+  link_url: string | null;
+}
+
 interface AnalyticsData {
   summary: {
     sent: number;
@@ -80,6 +102,10 @@ interface AnalyticsData {
     created_at: string;
     link_url?: string;
   }>;
+  detailedEvents: DetailedEvent[];
+  geoStats: Record<string, number>;
+  deviceStats: Record<string, number>;
+  emailClientStats: Record<string, number>;
   dateRange: { startDate: string; endDate: string };
 }
 
@@ -536,37 +562,111 @@ export default function AdminAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Recent Events */}
+        {/* Analytics Breakdown - Geo, Device, Email Client */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Geographic Distribution */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Globe className="w-4 h-4" />
+                Geographic Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {data?.geoStats && Object.entries(data.geoStats)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 10)
+                  .map(([country, count]) => (
+                    <div key={country} className="flex justify-between items-center text-sm">
+                      <span className="font-medium">{country === 'Unknown' ? '🌐 Unknown' : `🌍 ${country}`}</span>
+                      <Badge variant="outline">{count}</Badge>
+                    </div>
+                  )) || <p className="text-muted-foreground text-sm">No geo data yet</p>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Device Types */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Smartphone className="w-4 h-4" />
+                Device Types
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {data?.deviceStats && Object.entries(data.deviceStats)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([device, count]) => (
+                    <div key={device} className="flex justify-between items-center text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        {device === 'mobile' ? <Smartphone className="w-4 h-4" /> : 
+                         device === 'tablet' ? <Tablet className="w-4 h-4" /> : 
+                         <Monitor className="w-4 h-4" />}
+                        {device}
+                      </span>
+                      <Badge variant="outline">{count}</Badge>
+                    </div>
+                  )) || <p className="text-muted-foreground text-sm">No device data yet</p>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Email Clients */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Mail className="w-4 h-4" />
+                Email Clients
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {data?.emailClientStats && Object.entries(data.emailClientStats)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([client, count]) => (
+                    <div key={client} className="flex justify-between items-center text-sm">
+                      <span className="font-medium">{client}</span>
+                      <Badge variant="outline">{count}</Badge>
+                    </div>
+                  )) || <p className="text-muted-foreground text-sm">No client data yet</p>}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detailed Event Timeline */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Recent Events
+              Detailed Event Timeline
             </CardTitle>
-            <CardDescription>Last 50 email tracking events</CardDescription>
+            <CardDescription>Comprehensive event tracking with timestamps, locations, and device info</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-4">Time</th>
-                    <th className="text-left py-2 px-4">Type</th>
-                    <th className="text-left py-2 px-4">Event</th>
-                    <th className="text-left py-2 px-4">Link</th>
+                    <th className="text-left py-2 px-3">Timestamp (UTC)</th>
+                    <th className="text-left py-2 px-3">Event</th>
+                    <th className="text-left py-2 px-3">Country</th>
+                    <th className="text-left py-2 px-3">Device</th>
+                    <th className="text-left py-2 px-3">Email Client</th>
+                    <th className="text-left py-2 px-3">Link</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data?.recentEvents && data.recentEvents.length > 0 ? (
-                    data.recentEvents.map((event) => (
+                  {data?.detailedEvents && data.detailedEvents.length > 0 ? (
+                    data.detailedEvents.slice(0, 100).map((event) => (
                       <tr key={event.id} className="border-b hover:bg-muted/50">
-                        <td className="py-2 px-4 text-muted-foreground">
-                          {new Date(event.created_at).toLocaleString()}
+                        <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
+                          {event.timestamp_readable || new Date(event.created_at).toLocaleString()}
                         </td>
-                        <td className="py-2 px-4">
-                          <Badge variant="secondary">{event.email_type}</Badge>
-                        </td>
-                        <td className="py-2 px-4">
+                        <td className="py-2 px-3">
                           <Badge 
                             variant={event.event_type === 'click' ? 'default' : 
                                     event.event_type === 'open' ? 'secondary' : 'outline'}
@@ -574,15 +674,36 @@ export default function AdminAnalytics() {
                             {event.event_type}
                           </Badge>
                         </td>
-                        <td className="py-2 px-4 text-muted-foreground truncate max-w-xs">
+                        <td className="py-2 px-3">
+                          {event.country_code ? (
+                            <span className="flex items-center gap-1">
+                              🌍 {event.country_code}
+                              {event.region && <span className="text-muted-foreground">({event.region})</span>}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className="flex items-center gap-1">
+                            {event.device_type === 'mobile' ? <Smartphone className="w-3 h-3" /> : 
+                             event.device_type === 'tablet' ? <Tablet className="w-3 h-3" /> : 
+                             <Monitor className="w-3 h-3" />}
+                            {event.device_type || 'Unknown'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-muted-foreground">
+                          {event.email_client || '-'}
+                        </td>
+                        <td className="py-2 px-3 text-muted-foreground truncate max-w-[150px]" title={event.link_url || ''}>
                           {event.link_url || '-'}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                        No events recorded yet
+                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                        No detailed events recorded yet
                       </td>
                     </tr>
                   )}

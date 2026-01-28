@@ -27,6 +27,52 @@ function hashIP(ip: string): string {
   return Math.abs(hash).toString(16);
 }
 
+// Parse user agent for device type and email client
+function parseUserAgent(ua: string): { deviceType: string; emailClient: string } {
+  const uaLower = ua.toLowerCase();
+  
+  // Device type detection
+  let deviceType = 'desktop';
+  if (uaLower.includes('mobile') || uaLower.includes('iphone') || uaLower.includes('android')) {
+    deviceType = 'mobile';
+  } else if (uaLower.includes('ipad') || uaLower.includes('tablet')) {
+    deviceType = 'tablet';
+  }
+  
+  // Email client detection
+  let emailClient = 'unknown';
+  if (uaLower.includes('googleimageproxy') || uaLower.includes('ggpht.com')) {
+    emailClient = 'Gmail';
+  } else if (uaLower.includes('yahoo')) {
+    emailClient = 'Yahoo Mail';
+  } else if (uaLower.includes('outlook') || uaLower.includes('microsoft')) {
+    emailClient = 'Outlook';
+  } else if (uaLower.includes('apple') && uaLower.includes('mail')) {
+    emailClient = 'Apple Mail';
+  } else if (uaLower.includes('thunderbird')) {
+    emailClient = 'Thunderbird';
+  } else if (uaLower.includes('protonmail')) {
+    emailClient = 'ProtonMail';
+  } else if (ua === 'node') {
+    emailClient = 'Node.js (automated)';
+  }
+  
+  return { deviceType, emailClient };
+}
+
+// Get country from Cloudflare headers (available on Supabase edge functions)
+function getGeoInfo(req: Request): { countryCode: string | null; region: string | null } {
+  // Cloudflare provides country info in headers
+  const countryCode = req.headers.get("cf-ipcountry") || 
+                      req.headers.get("x-vercel-ip-country") || 
+                      null;
+  const region = req.headers.get("cf-region") || 
+                 req.headers.get("x-vercel-ip-country-region") || 
+                 null;
+  
+  return { countryCode, region };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,7 +86,6 @@ serve(async (req) => {
 
     if (!trackingId) {
       console.warn("[email-tracking] Missing tracking ID");
-      // Still return pixel to avoid breaking email
       return new Response(TRACKING_PIXEL, {
         headers: {
           ...corsHeaders,
@@ -73,35 +118,44 @@ serve(async (req) => {
                      req.headers.get("x-real-ip") || 
                      "unknown";
     const ipHash = hashIP(clientIP);
+    
+    // Get geo info from Cloudflare/Vercel headers
+    const { countryCode, region } = getGeoInfo(req);
+    
+    // Parse user agent for device and email client
+    const { deviceType, emailClient } = parseUserAgent(userAgent);
 
     const eventType = action === "c" ? "click" : "open";
+    const timestampUtc = new Date().toISOString();
     
-    // Log the tracking event
-    console.log(`[email-tracking] ${eventType} event for tracking_id: ${trackingId.slice(0, 8)}...`);
+    // Log the tracking event with full details
+    console.log(`[email-tracking] ${eventType} event for tid: ${trackingId.slice(0, 8)}... from ${countryCode || 'unknown'} (${emailClient})`);
 
-    // Insert tracking event
+    // Insert tracking event with enhanced data
     const { error } = await supabase
       .from("email_events")
       .insert({
         tracking_id: trackingId,
         event_type: eventType,
-        email_type: "digest", // Default, could be passed as param
+        email_type: "digest",
         link_url: redirectUrl || null,
-        user_agent: userAgent.slice(0, 500), // Limit length
+        user_agent: userAgent.slice(0, 500),
         ip_hash: ipHash,
+        country_code: countryCode,
+        region: region,
+        timestamp_utc: timestampUtc,
+        device_type: deviceType,
+        email_client: emailClient,
       });
 
     if (error) {
       console.error("[email-tracking] Failed to log event:", error);
-      // Don't fail the request, just log the error
     }
 
     // Handle click tracking - redirect to destination
     if (action === "c" && redirectUrl) {
-      // Validate URL
       try {
         const targetUrl = new URL(redirectUrl);
-        // Only allow http/https redirects
         if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
           throw new Error("Invalid protocol");
         }
@@ -116,7 +170,6 @@ serve(async (req) => {
         });
       } catch {
         console.warn("[email-tracking] Invalid redirect URL:", redirectUrl);
-        // Fall through to return pixel
       }
     }
 
@@ -133,7 +186,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[email-tracking] Error:", error);
-    // Always return the pixel to avoid breaking email display
     return new Response(TRACKING_PIXEL, {
       headers: {
         ...corsHeaders,
