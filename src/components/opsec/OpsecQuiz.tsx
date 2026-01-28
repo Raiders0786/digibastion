@@ -435,7 +435,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     setAnswers(prev => ({ ...prev, [questionId]: score }));
   };
 
-  const calculateResult = () => {
+  const calculateResult = async () => {
     const categoryScores: { [key: string]: number } = {};
     const categoryCounts: { [key: string]: number } = {};
 
@@ -463,6 +463,35 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     const recommendations = getRecommendations(categoryScores);
     const character = getCryptoCharacter(avgScore);
     const badges = getBadges(avgScore, categoryScores);
+
+    // Submit score to leaderboard immediately (if not anon and has valid session)
+    if (username.toLowerCase() !== 'anon' && sessionToken) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username,
+              score: avgScore,
+              badge_count: badges.length,
+              character_rank: character.name,
+              session_token: sessionToken
+            }),
+          }
+        );
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+          console.log('Score submitted to leaderboard:', result.message);
+        } else {
+          console.error('Failed to submit score:', result.error);
+        }
+      } catch (error) {
+        console.error('Error submitting score:', error);
+      }
+    }
 
     setResult({
       score: avgScore,

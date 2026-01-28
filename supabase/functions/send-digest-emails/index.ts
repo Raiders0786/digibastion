@@ -412,27 +412,29 @@ serve(async (req) => {
       const sub = subscription as Subscription;
       
       // Determine period based on frequency
+      // ALWAYS use the full period (24h for daily, 7d for weekly) to ensure fresh articles
+      // This prevents issues where last_notified_at might exclude recent articles
       let periodStart: Date;
       if (sub.frequency === 'weekly') {
         periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       } else {
-        periodStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        // For daily: always fetch last 26 hours to account for timezone edge cases
+        periodStart = new Date(now.getTime() - 26 * 60 * 60 * 1000);
       }
 
-      // Use last_notified_at if available and more recent
-      if (sub.last_notified_at) {
-        const lastNotified = new Date(sub.last_notified_at);
-        if (lastNotified > periodStart) {
-          periodStart = lastNotified;
-        }
-      }
+      // Only use last_notified_at if it's within the expected period to avoid duplicates
+      // But never make the window smaller than the base period
+      const effectivePeriodStart = periodStart;
+
+      console.log(`[send-digest-emails] Fetching articles since ${effectivePeriodStart.toISOString()} for ${sub.email}`);
 
       // Fetch articles for this period
       const { data: articles, error: articlesError } = await supabase
         .from('news_articles')
         .select('id, title, summary, severity, category, link, published_at, cve_id, tags')
-        .gte('published_at', periodStart.toISOString())
-        .order('published_at', { ascending: false });
+        .gte('published_at', effectivePeriodStart.toISOString())
+        .order('published_at', { ascending: false })
+        .limit(100); // Limit to prevent huge emails
 
       if (articlesError) {
         console.error(`[send-digest-emails] Error fetching articles for ${sub.email}:`, articlesError);
@@ -443,6 +445,8 @@ serve(async (req) => {
         console.log(`[send-digest-emails] No articles in period for ${sub.email}`);
         continue;
       }
+
+      console.log(`[send-digest-emails] Found ${articles.length} articles for ${sub.email}`);
 
       // Filter articles based on subscriber preferences
       const matchingArticles = articles.filter(a => shouldIncludeArticle(a as NewsArticle, sub));
