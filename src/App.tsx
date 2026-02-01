@@ -33,6 +33,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import CronMonitor from "./pages/CronMonitor";
+import Present from "./pages/Present";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +76,8 @@ const App = () => {
                     <Route path="/manage-subscription" element={<ManageSubscription />} />
                     <Route path="/unsubscribe" element={<ManageSubscription />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
+                    {/* Utility routes - private, not in navigation */}
+                    <Route path="/present" element={<><MetaTags title="DigiBastion — Secure the Stack | Partnership Overview" description="Open-source, Ethereum Foundation-backed security platform delivering real-time threat intelligence, operational security assessments, and comprehensive protection for Web3." /><Present /></>} />
                     {/* Admin routes - private, not in navigation */}
                     <Route path="/admin" element={<AdminLogin />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
