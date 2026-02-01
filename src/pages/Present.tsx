@@ -70,14 +70,14 @@ const Present = () => {
               
               <div className="pt-4">
                 <blockquote className="text-xl md:text-2xl lg:text-3xl font-semibold text-foreground leading-relaxed max-w-3xl mx-auto">
-                  "Every major crypto hack in 2024-2025 was preventable. 
-                  <span className="text-primary"> DigiBastion makes sure you're not next.</span>"
+                  Every major crypto hack in 2024-2025 was preventable. 
+                  <span className="text-primary"> DigiBastion makes sure you're not next.</span>
                 </blockquote>
               </div>
 
               <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto pt-4 leading-relaxed">
                 An open-source, Ethereum Foundation-backed security platform delivering real-time threat intelligence, 
-                operational security assessments, and comprehensive protection guides—helping projects, teams, and 
+                operational security assessments, and comprehensive protection guides. Helping projects, teams, and 
                 individuals stay ahead of exploits, supply chain attacks, and zero-days.
               </p>
             </div>
@@ -243,7 +243,7 @@ const Present = () => {
               <div className="mb-12">
                 <div className="flex items-center gap-2 mb-6">
                   <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                  <h3 className="text-lg font-semibold">Now Live — Free</h3>
+                  <h3 className="text-lg font-semibold">Now Live - Free</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -256,7 +256,7 @@ const Present = () => {
                         <div>
                           <h4 className="font-semibold text-sm">Real-Time Threat Intel</h4>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Curated feed of active exploits, CVEs, supply chain attacks—delivered to your inbox
+                            Curated feed of active exploits, CVEs, supply chain attacks delivered to your inbox
                           </p>
                         </div>
                       </div>
@@ -349,7 +349,7 @@ const Present = () => {
                             <Badge variant="secondary" className="text-xs">80% Complete</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Comprehensive DNS security analysis—catch hijacks before they happen
+                            Comprehensive DNS security analysis. Catch hijacks before they happen
                           </p>
                         </div>
                       </div>
@@ -490,8 +490,8 @@ const Present = () => {
                           <Badge variant="secondary" className="text-xs">Creator & Lead</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-4">
-                          SEAL Alliance DNS Framework Steward • MITRE AADAPT Contributor • 
-                          3+ years audit firm experience • Synack Red Team • 2 Published CVEs
+                          SEAL Alliance DNS Framework Steward · MITRE AADAPT Contributor · 
+                          3+ years audit firm experience · Synack Red Team · 2 Published CVEs
                         </p>
                         <div className="flex flex-wrap gap-2 text-xs">
                           <Badge variant="outline">CVE-2023-3067</Badge>
@@ -506,9 +506,9 @@ const Present = () => {
 
                 {/* Other contributors */}
                 {[
-                  { name: "Vladimir S.", role: "Officer's Notes", desc: "Security expert & Web3 educator — reviews and curates security resources" },
-                  { name: "Ridham Bhagat", role: "DNS Scanner Lead", desc: "Core contributor — DNS security scanning & network analysis tools" },
-                  { name: "Cryptonian16", role: "OpSec Specialist", desc: "Security expert — operational security practices & threat mitigation" },
+                  { name: "Vladimir S.", role: "Officer's Notes", desc: "Security expert & Web3 educator. Reviews and curates security resources" },
+                  { name: "Ridham Bhagat", role: "DNS Scanner Lead", desc: "Core contributor. DNS security scanning & network analysis tools" },
+                  { name: "Cryptonian16", role: "OpSec Specialist", desc: "Security expert. Operational security practices & threat mitigation" },
                 ].map((person, i) => (
                   <Card key={i} className="border-border/50">
                     <CardContent className="p-5">
@@ -637,7 +637,7 @@ const Present = () => {
 
               <div className="flex items-center justify-center gap-2 mt-8 text-sm text-muted-foreground">
                 <Lock className="h-4 w-4" />
-                <span>100% Open Source • MIT License • Free Forever</span>
+                <span>100% Open Source · MIT License · Free Forever</span>
               </div>
             </div>
           </div>
