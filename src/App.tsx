@@ -77,7 +77,7 @@ const App = () => {
                     <Route path="/unsubscribe" element={<ManageSubscription />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
                     {/* Utility routes - private, not in navigation */}
-                    <Route path="/present" element={<><MetaTags title="DigiBastion — Secure the Stack | Partnership Overview" description="Open-source, Ethereum Foundation-backed security platform delivering real-time threat intelligence, operational security assessments, and comprehensive protection for Web3." /><Present /></>} />
+                    <Route path="/present" element={<><MetaTags title="DigiBastion — Secure the Stack | Partnership Overview" description="Open-source, Ethereum Foundation-backed security platform delivering real-time threat intelligence, operational security assessments, and comprehensive protection for Web3." image="https://www.digibastion.com/og-image.png" /><Present /></>} />
                     {/* Admin routes - private, not in navigation */}
                     <Route path="/admin" element={<AdminLogin />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />

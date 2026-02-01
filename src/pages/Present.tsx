@@ -588,7 +588,7 @@ const Present = () => {
                     </Button>
                   </a>
                   <a
-                    href="https://t.me/Raiders0786"
+                    href="https://t.me/digibastion_chat"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
