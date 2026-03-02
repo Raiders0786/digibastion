@@ -1,17 +1,81 @@
 # www.digibastion.com robots.txt
+# AI-friendly: public content is crawlable, sensitive endpoints blocked
+
 User-agent: *
 Allow: /
 
-# Disallow admin and auth pages
+# Block sensitive/utility paths for all bots
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+Disallow: /present
+Disallow: /unsubscribe
+Disallow: /quiz-result
+Disallow: /staging/
+Disallow: /dev/
+Disallow: /test/
+
+# AI crawlers: welcome to index public content, same sensitive path rules
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+Disallow: /present
+Disallow: /unsubscribe
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+Disallow: /present
+Disallow: /unsubscribe
+
+User-agent: Google-Extended
+Allow: /
 Disallow: /admin
 Disallow: /admin/
 Disallow: /verify-email
 Disallow: /manage-subscription
 
-# Disallow staging environments
-Disallow: /staging/
-Disallow: /dev/
-Disallow: /test/
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
 
-# Sitemap locations
+User-agent: Claude-Web
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+
+User-agent: Bytespider
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+
+User-agent: CCBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify-email
+Disallow: /manage-subscription
+
+# Sitemap
 Sitemap: https://www.digibastion.com/sitemap-index.xml

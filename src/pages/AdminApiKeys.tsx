@@ -83,7 +83,7 @@ function generateApiKey(): string {
   return result;
 }
 
-const API_BASE_URL = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-api`;
+const API_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/threat-intel-api`;
 
 export default function AdminApiKeys() {
   const [isLoading, setIsLoading] = useState(true);
@@ -97,6 +97,7 @@ export default function AdminApiKeys() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -197,8 +198,12 @@ export default function AdminApiKeys() {
       const { error } = await supabase.from('api_keys').delete().eq('id', id);
       if (error) throw error;
       setKeys(prev => prev.filter(k => k.id !== id));
+      setDeleteConfirmId(null);
       toast({ title: 'Key deleted permanently' });
-    } catch { toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' }); }
+    } catch { 
+      setDeleteConfirmId(null);
+      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' }); 
+    }
   };
 
   const copyText = async (text: string, blockId?: string) => {
@@ -397,9 +402,25 @@ export default function AdminApiKeys() {
                                 <Button variant="ghost" size="sm" onClick={() => handleToggleActive(key.id, key.is_active)} title={key.is_active ? 'Revoke' : 'Reactivate'}>
                                   {key.is_active ? <XCircle className="w-4 h-4 text-destructive" /> : <Check className="w-4 h-4 text-green-500" />}
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => handleDelete(key.id)} title="Delete permanently">
-                                  <Trash2 className="w-4 h-4 text-destructive" />
-                                </Button>
+                                <Dialog open={deleteConfirmId === key.id} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(key.id)} title="Delete permanently">
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Delete API Key</DialogTitle>
+                                      <DialogDescription>
+                                        This will permanently delete the key "{key.name}". Any integrations using this key will stop working immediately. This cannot be undone.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                      <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+                                      <Button variant="destructive" onClick={() => handleDelete(key.id)}>Delete Permanently</Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
                               </div>
                             </TableCell>
                           </TableRow>
