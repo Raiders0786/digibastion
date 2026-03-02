@@ -53,6 +53,53 @@ export type Database = {
         }
         Relationships: []
       }
+      api_usage_logs: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          id: string
+          ip_hash: string | null
+          method: string
+          request_params: Json | null
+          response_time_ms: number | null
+          status_code: number
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          ip_hash?: string | null
+          method?: string
+          request_params?: Json | null
+          response_time_ms?: number | null
+          status_code: number
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          ip_hash?: string | null
+          method?: string
+          request_params?: Json | null
+          response_time_ms?: number | null
+          status_code?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_health_snapshots: {
         Row: {
           active_jobs: number
@@ -495,6 +542,7 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_quiz_sessions: { Args: never; Returns: undefined }
+      cleanup_old_api_usage_logs: { Args: never; Returns: undefined }
       cleanup_old_health_snapshots: { Args: never; Returns: undefined }
       cleanup_old_submission_logs: { Args: never; Returns: undefined }
       count_news_articles: {
