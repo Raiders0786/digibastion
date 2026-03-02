@@ -22,7 +22,8 @@ import {
   Globe,
   Smartphone,
   Monitor,
-  Tablet
+  Tablet,
+  Key
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -262,6 +263,10 @@ export default function AdminAnalytics() {
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/cron')}>
               <Clock className="w-4 h-4 mr-2" />
               Cron Monitor
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/api-keys')}>
+              <Key className="w-4 h-4 mr-2" />
+              API Keys
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
