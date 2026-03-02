@@ -33,6 +33,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import CronMonitor from "./pages/CronMonitor";
+import AdminApiKeys from "./pages/AdminApiKeys";
 import Present from "./pages/Present";
 
 const queryClient = new QueryClient({
@@ -82,6 +83,7 @@ const App = () => {
                     <Route path="/admin" element={<AdminLogin />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
                     <Route path="/admin/cron" element={<CronMonitor />} />
+                    <Route path="/admin/api-keys" element={<AdminApiKeys />} />
                     <Route path="*" element={<><MetaTags /><NotFound /></>} />
                   </Routes>
                 </PageTransition>
