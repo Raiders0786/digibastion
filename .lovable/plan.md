@@ -1,73 +1,40 @@
 
 
-## Secure, Revocable API Access for Threat Intel
+## Implementation Plan
 
-### Approach: Dedicated Edge Function + Revocable API Keys Table
+### 1. `public/robots.txt` — AI-Friendly with Sensitive Path Blocking
+Allow all bots (including AI) on public content. Block only sensitive/utility paths:
+- `/admin`, `/verify-email`, `/manage-subscription`, `/present`, `/unsubscribe`, `/quiz-result`
+- No full bot blocks — maximize discoverability in crypto/security space
+- Update sitemap reference to `sitemap-index.xml`
 
-The cleanest solution is to create a **revocable API key system** with a dedicated edge function that your colleague calls to query threat intel data. You control access entirely from your admin side.
+### 2. `index.html` — Fix OG URL Consistency
+Add `www.` prefix to all URLs missing it (lines 19, 22, 33, 36, 47, 79, 101, 113, 144). Ensures canonical consistency with MetaTags component which uses `www.digibastion.com`.
 
-### Architecture
+### 3. `public/sitemap-index.xml` — Update Stale Dates
+Change `lastmod` from `2025-01-19` to `2026-03-02`.
 
-```text
-Colleague's Script                     Your Backend
-─────────────────                     ─────────────
-                                      
-POST /functions/v1/threat-intel-api   ┌─────────────────────┐
-  Header: x-api-key: <key>     ───►  │ Edge Function        │
-                                      │  1. Validate API key │
-                                      │  2. Check active/exp │
-                                      │  3. Log usage        │
-                                      │  4. Return articles  │
-                                      └──────────┬──────────┘
-                                                 │
-                                      ┌──────────▼──────────┐
-                                      │ news_articles table  │
-                                      │ (read-only query)    │
-                                      └─────────────────────┘
-```
+### 4. `src/pages/ManageSubscription.tsx` — Add `noindex`
+Add `noindex={true}` to all 3 MetaTags instances (lines 278, 308, 399).
 
-### What gets built
+### 5. `src/pages/VerifyEmail.tsx` — Add MetaTags with `noindex`
+Import and add `<MetaTags noindex={true} title="Verify Email - Digibastion" />` at the top of the render.
 
-**1. Database: `api_keys` table**
-- Columns: `id`, `key_hash` (SHA-256, never store plaintext), `name` (e.g. "Vladimir - X Bot"), `permissions` (JSONB array like `["read:threat-intel"]`), `is_active` (boolean for instant revocation), `expires_at` (optional expiry), `last_used_at`, `created_by` (admin user_id), `created_at`
-- RLS: Only admins can view/manage. No public access.
+### 6. `src/pages/Present.tsx` — Add MetaTags with `noindex`
+Import MetaTags and add `<MetaTags noindex={true} title="Digibastion — Presentation" />` inside the component.
 
-**2. Edge Function: `threat-intel-api`**
-- Accepts `x-api-key` header
-- Hashes the incoming key and looks it up in `api_keys`
-- Validates: active, not expired
-- Updates `last_used_at` for audit trail
-- Returns news_articles with filters (category, severity, limit, since date)
-- Rate limited (optional: track in table)
+### 7. `src/pages/AdminApiKeys.tsx` — Security + UX Fixes
+- **Line 86**: Replace hardcoded Supabase URL with `` `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/threat-intel-api` ``
+- **Line 195-202**: Add a confirmation dialog before permanent key deletion (currently one misclick deletes forever)
+- The curl examples and API docs in the admin page are fine to keep — they're behind admin auth and useful for sharing with API consumers
 
-**3. Admin UI: API Key Management section**
-- Add to existing admin dashboard
-- Generate new keys (shown once, then only hash stored)
-- List active keys with last-used timestamps
-- Toggle active/inactive for instant revocation
-- Delete keys permanently
+### 8. `src/components/Footer.tsx` — Client-Side Navigation
+Change the "Support Us" link from `<a href="https://www.digibastion.com/support" target="_blank">` to use React Router `Link` for instant client-side navigation.
 
-### Security properties
-- **Granular**: Permission scoping via JSONB (can add `write:` scopes later)
-- **Revocable**: Flip `is_active` to false, or delete the row
-- **Auditable**: `last_used_at` tracking shows usage patterns
-- **Time-bound**: Optional `expires_at` for automatic expiry
-- **Zero plaintext**: Only SHA-256 hash stored in database
-- **No direct DB access**: Colleague never touches the database directly
+### 9. `supabase/functions/threat-intel-api/index.ts` — Strengthen IP Hashing
+Replace the weak `hashIp` function (lines 48-56) with an async SHA-256 based hash using a salt, similar to the existing `hashKey` pattern. This prevents collision and reversibility issues.
 
-### How your colleague uses it
+---
 
-```bash
-curl -X POST https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-api \
-  -H "x-api-key: db_live_xxxxxxxxxxxxxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"limit": 10, "severity": "high", "since": "2025-01-01"}'
-```
-
-Returns clean JSON with title, summary, severity, tags, link, published_at - everything needed for X posts.
-
-### Revocation flow
-1. Go to admin dashboard > API Keys
-2. Click "Revoke" next to the key
-3. Key is immediately invalid on next request
+**Total: 9 files changed.** All changes are backwards-compatible and don't break existing functionality.
 
