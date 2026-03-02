@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
   try {
     // Verify admin authorization
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -56,11 +57,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify user JWT
+    // Verify user JWT using anon key client (compatible with ES256 signing keys)
     const token = authHeader.replace('Bearer ', '').trim();
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const authClient = createClient(supabaseUrl, supabaseAnonKey!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
 
     if (authError || !user) {
       console.warn('[cron-monitor] Auth failed:', authError?.message);
@@ -69,6 +71,9 @@ Deno.serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Service role client for data queries
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check admin role
     const { data: roleData, error: roleError } = await supabase
