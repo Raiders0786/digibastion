@@ -266,12 +266,14 @@ const handler = async (req: Request): Promise<Response> => {
       const alreadyVerified = existingSub?.is_verified === true;
       const needsVerification = !alreadyVerified;
 
-      // Generate new verification token
+      // Generate new verification token only for new/unverified users
       const verificationToken = crypto.randomUUID();
       const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
       // Sanitize and prepare subscription data
-      const subscriptionData = {
+      // BUG FIX: Don't overwrite existing verification_token for already-verified users
+      // Their token is their permanent management token
+      const subscriptionData: Record<string, unknown> = {
         email: sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase(),
         name: subData.name ? sanitizeString(subData.name, MAX_NAME_LENGTH) : null,
         categories: subData.categories.slice(0, 10).map(c => sanitizeString(c, 50)),
@@ -282,10 +284,15 @@ const handler = async (req: Request): Promise<Response> => {
         timezone_offset: typeof subData.timezone_offset === 'number' ? Math.min(14, Math.max(-12, subData.timezone_offset)) : 0,
         preferred_day: typeof subData.preferred_day === 'number' ? Math.min(6, Math.max(0, subData.preferred_day)) : 0,
         is_active: true,
-        is_verified: existingSub?.is_verified || false, // Keep verified status if already verified
-        verification_token: needsVerification ? verificationToken : null,
-        verification_token_expires_at: needsVerification ? tokenExpiresAt : null,
+        is_verified: existingSub?.is_verified || false,
       };
+
+      // Only set verification token for new/unverified users
+      if (needsVerification) {
+        subscriptionData.verification_token = verificationToken;
+        subscriptionData.verification_token_expires_at = tokenExpiresAt;
+      }
+      // For already-verified users, do NOT touch their verification_token (management token)
 
       console.log(`[submit-form] Subscription from IP ${clientIP}, email: ${subscriptionData.email}, isNew: ${isNewSubscription}, needsVerification: ${needsVerification}`);
 
@@ -341,7 +348,8 @@ const handler = async (req: Request): Promise<Response> => {
       } else {
         // Already verified - send confirmation email with their current settings
         if (resendApiKey) {
-          const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email)}&token=${existingSub?.id || subscription.verification_token}`;
+          // BUG FIX: Use the subscriber's existing verification_token (management token), not their subscription ID
+          const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email as string)}&token=${encodeURIComponent(subscription.verification_token || '')}`;
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
