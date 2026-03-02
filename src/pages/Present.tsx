@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { MetaTags } from "@/components/MetaTags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,7 @@ const Present = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <MetaTags title="Digibastion — Presentation" description="Learn about Digibastion, the open-source Web3 security platform." noindex={true} />
       <Navbar />
       
       <main className="flex-1">

@@ -1,4 +1,5 @@
 import { Github, Copyright, Twitter, ExternalLink, MessageSquare, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -21,17 +22,15 @@ export const Footer = () => {
               Telegram
             </a>
             
-            <a
-              href="https://www.digibastion.com/support"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/support"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                 text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20
                 transition-all duration-200"
             >
               <Heart className="h-4 w-4" />
               Support Us
-            </a>
+            </Link>
           </div>
           
           {/* Divider */}

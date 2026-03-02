@@ -277,6 +277,7 @@ export default function ManageSubscription() {
         <MetaTags 
           title="Unsubscribed - Digibastion" 
           description="You have been unsubscribed from Digibastion security alerts."
+          noindex={true}
         />
         <Navbar />
         <main className="min-h-screen bg-background pt-24 pb-12">
@@ -307,6 +308,7 @@ export default function ManageSubscription() {
         <MetaTags 
           title="Manage Subscription - Digibastion" 
           description="Manage your Digibastion security alert subscription preferences."
+          noindex={true}
         />
         <Navbar />
         <main className="min-h-screen bg-background pt-24 pb-12">
@@ -398,6 +400,7 @@ export default function ManageSubscription() {
         <MetaTags 
           title="Manage Subscription - Digibastion" 
           description="Manage your Digibastion security alert subscription preferences."
+          noindex={true}
         />
       <Navbar />
       <main className="min-h-screen bg-background pt-24 pb-12">

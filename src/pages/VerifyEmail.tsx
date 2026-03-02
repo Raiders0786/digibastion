@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MetaTags } from "@/components/MetaTags";
 
 type VerificationStatus = "loading" | "success" | "error" | "invalid";
 
@@ -73,6 +74,7 @@ const VerifyEmail = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <MetaTags title="Verify Email - Digibastion" description="Verify your email for Digibastion security alerts." noindex={true} />
       <div className="max-w-md w-full">
         <div className="bg-card border border-border rounded-2xl p-8 shadow-xl">
           {/* Logo */}

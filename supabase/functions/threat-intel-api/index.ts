@@ -44,15 +44,14 @@ async function hashKey(raw: string): Promise<string> {
     .join("");
 }
 
-function hashIp(ip: string): string {
-  // Simple non-reversible hash for privacy
-  let hash = 0;
-  for (let i = 0; i < ip.length; i++) {
-    const char = ip.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
+async function hashIp(ip: string): Promise<string> {
+  const salt = "digibastion-ip-salt-v1";
+  const enc = new TextEncoder().encode(salt + ip);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .substring(0, 16); // Truncated for storage efficiency
 }
 
 async function logUsage(
@@ -91,7 +90,7 @@ Deno.serve(async (req) => {
   // Get IP hash for logging (privacy-safe)
   const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") || "unknown";
-  const ipHash = hashIp(clientIp);
+  const ipHash = await hashIp(clientIp);
 
   try {
     const apiKey = req.headers.get("x-api-key");
