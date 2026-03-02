@@ -8,6 +8,33 @@ const corsHeaders = {
 
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const ADMIN_ALERT_EMAIL = "chiragkcv2020@gmail.com";
+
+async function sendAdminAlert(subject: string, htmlBody: string) {
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.warn("[threat-intel-api] RESEND_API_KEY not set, skipping admin alert");
+    return;
+  }
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Digibastion Alerts <alerts@digibastion.com>",
+        to: [ADMIN_ALERT_EMAIL],
+        subject,
+        html: htmlBody,
+      }),
+    });
+    console.log(`[threat-intel-api] Admin alert sent: ${subject}`);
+  } catch (e) {
+    console.error("[threat-intel-api] Failed to send admin alert:", e);
+  }
+}
 
 async function hashKey(raw: string): Promise<string> {
   const enc = new TextEncoder().encode(raw);
@@ -134,6 +161,21 @@ Deno.serve(async (req) => {
 
     if ((recentRequests ?? 0) >= RATE_LIMIT_MAX) {
       await logUsage(supabase, keyRecord.id, 429, startTime, ipHash, {}, "Rate limit exceeded");
+      // Send rate limit alert
+      await sendAdminAlert(
+        `⚠️ API Rate Limit Hit — "${keyRecord.name}"`,
+        `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1f2937;color:#d1d5db;padding:24px;border-radius:8px;">
+          <h2 style="color:#f59e0b;margin-top:0;">⚠️ Rate Limit Exceeded</h2>
+          <p>API key <strong style="color:#f3f4f6;">"${keyRecord.name}"</strong> has exceeded the rate limit of <strong>${RATE_LIMIT_MAX} requests/hour</strong>.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Key ID</td><td style="padding:8px;border-bottom:1px solid #374151;">${keyRecord.id}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">IP Hash</td><td style="padding:8px;border-bottom:1px solid #374151;">${ipHash}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Requests (last hour)</td><td style="padding:8px;border-bottom:1px solid #374151;">${recentRequests}</td></tr>
+            <tr><td style="padding:8px;color:#9ca3af;">Time (UTC)</td><td style="padding:8px;">${new Date().toISOString()}</td></tr>
+          </table>
+          <p style="color:#9ca3af;font-size:12px;">This may indicate abuse or a misconfigured client. Review in <a href="https://digibastion.com/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
+        </div>`
+      );
       return new Response(
         JSON.stringify({
           error: "Rate limit exceeded",
@@ -219,6 +261,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if this is the first use of the key
+    const isFirstUse = !keyRecord.last_used_at;
+
     // Update last_used_at and request_count on api_keys
     await supabase
       .from("api_keys")
@@ -227,6 +272,24 @@ Deno.serve(async (req) => {
         request_count: (keyRecord.request_count || 0) + 1,
       })
       .eq("id", keyRecord.id);
+
+    // Send first-use alert
+    if (isFirstUse) {
+      await sendAdminAlert(
+        `🔑 API Key First Use — "${keyRecord.name}"`,
+        `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1f2937;color:#d1d5db;padding:24px;border-radius:8px;">
+          <h2 style="color:#22c55e;margin-top:0;">🔑 API Key First Use Detected</h2>
+          <p>API key <strong style="color:#f3f4f6;">"${keyRecord.name}"</strong> was used for the first time.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Key ID</td><td style="padding:8px;border-bottom:1px solid #374151;">${keyRecord.id}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">IP Hash</td><td style="padding:8px;border-bottom:1px solid #374151;">${ipHash}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Created</td><td style="padding:8px;border-bottom:1px solid #374151;">${keyRecord.created_at}</td></tr>
+            <tr><td style="padding:8px;color:#9ca3af;">First Used (UTC)</td><td style="padding:8px;">${new Date().toISOString()}</td></tr>
+          </table>
+          <p style="color:#9ca3af;font-size:12px;">If this wasn't expected, review in <a href="https://digibastion.com/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
+        </div>`
+      );
+    }
 
     // Log successful request
     await logUsage(supabase, keyRecord.id, 200, startTime, ipHash, {
