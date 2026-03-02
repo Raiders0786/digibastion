@@ -8,6 +8,12 @@ const corsHeaders = {
 
 const ADMIN_EMAIL = "chiragkcv2020@gmail.com";
 
+interface InactiveSub {
+  email: string;
+  name: string | null;
+  updated_at: string;
+}
+
 interface WeeklyStats {
   // Subscribers
   totalSubscribers: number;
@@ -41,10 +47,18 @@ interface WeeklyStats {
   // Cron health
   latestHealthStatus: string;
   avgSuccessRate: number;
+  // Churn
+  inactiveSubscribers: InactiveSub[];
+  totalInactive: number;
 }
 
 function fmt(n: number): string {
   return n.toLocaleString("en-US");
+}
+
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function generateEmailHtml(stats: WeeklyStats, weekStart: string, weekEnd: string): string {
@@ -81,6 +95,25 @@ function generateEmailHtml(stats: WeeklyStats, weekStart: string, weekEnd: strin
   const freqRows = Object.entries(stats.subscribersByFrequency)
     .map(([freq, count]) => row(freq, fmt(count))).join("");
 
+  // Inactive/unsubscribed table
+  const inactiveSection = stats.inactiveSubscribers.length > 0 ? `
+    <h4 style="color:#ef4444;margin:16px 0 8px;font-size:14px;">🚪 Unsubscribed / Inactive (${fmt(stats.totalInactive)} total)</h4>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <tr style="background:#374151;">
+        <td style="padding:6px 12px;color:#9ca3af;font-size:11px;font-weight:600;text-transform:uppercase;">Email</td>
+        <td style="padding:6px 12px;color:#9ca3af;font-size:11px;font-weight:600;text-transform:uppercase;">Name</td>
+        <td style="padding:6px 12px;color:#9ca3af;font-size:11px;font-weight:600;text-transform:uppercase;">Inactive Since</td>
+      </tr>
+      ${stats.inactiveSubscribers.map(s => `
+        <tr>
+          <td style="padding:6px 12px;border-bottom:1px solid #374151;color:#f3f4f6;font-size:13px;">${escapeHtml(s.email)}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #374151;color:#d1d5db;font-size:13px;">${escapeHtml(s.name || '—')}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #374151;color:#9ca3af;font-size:13px;">${new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+        </tr>
+      `).join('')}
+    </table>
+  ` : '';
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -114,8 +147,10 @@ function generateEmailHtml(stats: WeeklyStats, weekStart: string, weekEnd: strin
       ${row("Total active", fmt(stats.totalSubscribers))}
       ${row("Verified", fmt(stats.verifiedSubscribers))}
       ${row("New this week", `+${fmt(stats.newSubscribersThisWeek)}`)}
+      ${row("Inactive / Unsubscribed", `<span style="color:#ef4444;">${fmt(stats.totalInactive)}</span>`)}
       ${freqRows}
     </table>
+    ${inactiveSection}
   `)}
 
   <!-- Articles & Threats -->
@@ -212,21 +247,11 @@ serve(async (req) => {
 
     // --- Gather all stats in parallel ---
     const [
-      subsResult,
-      newSubsResult,
-      totalArticlesResult,
-      newArticlesResult,
-      emailEventsResult,
-      apiLogsResult,
-      apiErrorsResult,
-      apiAvgResult,
-      apiUniqueKeysResult,
-      quizTotalResult,
-      quizNewResult,
-      quizAvgResult,
-      notifSentResult,
-      notifFailedResult,
-      cronHealthResult,
+      subsResult, newSubsResult, totalArticlesResult, newArticlesResult,
+      emailEventsResult, apiLogsResult, apiErrorsResult, apiAvgResult,
+      apiUniqueKeysResult, quizTotalResult, quizNewResult, quizAvgResult,
+      notifSentResult, notifFailedResult, cronHealthResult,
+      inactiveSubsResult, inactiveCountResult,
     ] = await Promise.all([
       // Subscribers
       supabase.from('subscriptions').select('frequency, is_verified, is_active').eq('is_active', true),
@@ -250,6 +275,10 @@ serve(async (req) => {
       supabase.from('notification_log').select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('sent_at', sevenDaysAgo),
       // Cron health
       supabase.from('cron_health_snapshots').select('health_status, success_rate').order('recorded_at', { ascending: false }).limit(7),
+      // Inactive subscribers (most recent 20 with emails)
+      supabase.from('subscriptions').select('email, name, updated_at').eq('is_active', false).order('updated_at', { ascending: false }).limit(20),
+      // Total inactive count
+      supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('is_active', false),
     ]);
 
     // Process subscriber stats
@@ -292,6 +321,13 @@ serve(async (req) => {
       ? Math.round(cronSnapshots.reduce((a: number, s: any) => a + Number(s.success_rate), 0) / cronSnapshots.length * 100) / 100
       : 100;
 
+    // Process inactive subscribers
+    const inactiveSubscribers: InactiveSub[] = (inactiveSubsResult.data || []).map((s: any) => ({
+      email: s.email,
+      name: s.name,
+      updated_at: s.updated_at,
+    }));
+
     const stats: WeeklyStats = {
       totalSubscribers,
       verifiedSubscribers,
@@ -304,8 +340,8 @@ serve(async (req) => {
       emailsSent,
       emailsOpened,
       emailsClicked,
-      openRate: emailsSent > 0 ? `${Math.round(emailsOpened / emailsSent * 100)}%` : '0%',
-      clickRate: emailsSent > 0 ? `${Math.round(emailsClicked / emailsSent * 100)}%` : '0%',
+      openRate: emailsSent > 0 ? `${Math.min(Math.round(emailsOpened / emailsSent * 100), 100)}%` : '0%',
+      clickRate: emailsSent > 0 ? `${Math.min(Math.round(emailsClicked / emailsSent * 100), 100)}%` : '0%',
       totalApiRequests,
       uniqueKeysUsed: uniqueKeyIds.size,
       apiErrors,
@@ -318,6 +354,8 @@ serve(async (req) => {
       notificationsFailed: notifFailedResult.count ?? 0,
       latestHealthStatus,
       avgSuccessRate,
+      inactiveSubscribers,
+      totalInactive: inactiveCountResult.count ?? 0,
     };
 
     console.log('[weekly-admin-summary] Stats compiled:', JSON.stringify(stats));
@@ -342,7 +380,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'Digibastion <alerts@digibastion.com>',
         to: [ADMIN_EMAIL],
-        subject: `📊 Weekly Summary: ${stats.newSubscribersThisWeek > 0 ? `+${stats.newSubscribersThisWeek} subs` : `${stats.totalSubscribers} subs`}, ${stats.newArticlesThisWeek} articles, ${stats.totalApiRequests} API calls`,
+        subject: `📊 Weekly Summary: ${stats.newSubscribersThisWeek > 0 ? `+${stats.newSubscribersThisWeek} subs` : `${stats.totalSubscribers} subs`}, ${stats.newArticlesThisWeek} articles, ${stats.totalInactive > 0 ? `${stats.totalInactive} churned` : `${stats.totalApiRequests} API calls`}`,
         html: emailHtml,
       }),
     });
