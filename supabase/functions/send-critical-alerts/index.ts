@@ -322,8 +322,7 @@ serve(async (req) => {
               subscription_id: sub.id,
               article_id: article.id,
               status: 'sent',
-            })
-            .single();
+            });
         }
 
         // Update last_notified_at
@@ -349,8 +348,7 @@ serve(async (req) => {
               article_id: article.id,
               status: 'failed',
               error_message: error.message,
-            })
-            .single();
+            });
         }
       }
     }

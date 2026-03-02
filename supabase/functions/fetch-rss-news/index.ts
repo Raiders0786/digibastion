@@ -285,9 +285,21 @@ serve(async (req) => {
     let duplicateCount = 0;
 
     for (const article of allArticles) {
+      // Check if article already exists first
+      const { data: existing } = await supabase
+        .from('news_articles')
+        .select('id')
+        .eq('uid', article.uid)
+        .maybeSingle();
+
+      if (existing) {
+        duplicateCount++;
+        continue;
+      }
+
       const { error: insertError } = await supabase
         .from('news_articles')
-        .upsert(article, { onConflict: 'uid', ignoreDuplicates: true });
+        .insert(article);
 
       if (insertError) {
         if (insertError.code === '23505') {
