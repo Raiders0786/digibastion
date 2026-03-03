@@ -175,6 +175,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     handleTabChange(tabs[newIndex].id);
   };
 
+  // Pull to refresh handler
+  const handlePullToRefresh = async () => {
+    await refetch();
+  };
+
   // If an article is selected, show the detail view
   if (selectedArticle) {
     return (
@@ -197,11 +202,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       </div>
     );
   }
-
-  // Pull to refresh handler
-  const handlePullToRefresh = async () => {
-    await refetch();
-  };
 
   return (
     <PullToRefresh onRefresh={handlePullToRefresh} isRefreshing={isLoading}>
