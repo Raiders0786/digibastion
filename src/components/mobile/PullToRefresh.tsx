@@ -1,4 +1,4 @@
-import { useState, useRef, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -18,7 +18,6 @@ export const PullToRefresh = ({
 }: PullToRefreshProps) => {
   const [isPulling, setIsPulling] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const y = useMotionValue(0);
   
@@ -30,8 +29,12 @@ export const PullToRefresh = ({
     return <>{children}</>;
   }
 
+  const isAtTop = () => {
+    return window.scrollY <= 0 && document.documentElement.scrollTop <= 0;
+  };
+
   const handlePanStart = () => {
-    if (containerRef.current?.scrollTop === 0) {
+    if (isAtTop()) {
       setIsPulling(true);
     }
   };
@@ -39,15 +42,24 @@ export const PullToRefresh = ({
   const handlePan = (_: any, info: PanInfo) => {
     if (!isPulling || isRefreshing) return;
     
-    const container = containerRef.current;
-    if (!container || container.scrollTop > 0) {
+    // If user has scrolled down since pan started, cancel
+    if (!isAtTop()) {
       setIsPulling(false);
       y.set(0);
+      setPullProgress(0);
+      return;
+    }
+
+    // Only activate on downward pull
+    if (info.offset.y < 0) {
+      setIsPulling(false);
+      y.set(0);
+      setPullProgress(0);
       return;
     }
 
     const pullDistance = Math.max(0, info.offset.y);
-    const dampedDistance = pullDistance * 0.5; // Damping effect
+    const dampedDistance = pullDistance * 0.5;
     y.set(Math.min(dampedDistance, threshold * 1.5));
     setPullProgress(Math.min(pullDistance / threshold, 1));
   };
@@ -56,11 +68,9 @@ export const PullToRefresh = ({
     if (!isPulling || isRefreshing) return;
     
     if (pullProgress >= 1) {
-      // Trigger haptic feedback
       if (navigator.vibrate) {
         navigator.vibrate(20);
       }
-      
       await onRefresh();
     }
     
@@ -70,7 +80,7 @@ export const PullToRefresh = ({
   };
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-hidden">
       {/* Pull indicator */}
       <motion.div
         style={{ opacity: indicatorOpacity, scale: indicatorScale }}
@@ -96,7 +106,6 @@ export const PullToRefresh = ({
 
       {/* Content */}
       <motion.div
-        ref={containerRef}
         style={{ y }}
         onPanStart={handlePanStart}
         onPan={handlePan}
