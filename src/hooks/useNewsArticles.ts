@@ -1,7 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { NewsArticle, NewsCategory, SeverityLevel } from '@/types/news';
 import { useToast } from '@/hooks/use-toast';
+import {
+  buildFilterKey,
+  saveToCache,
+  loadFromCache,
+  saveStatsToCache,
+  loadStatsFromCache,
+} from '@/utils/newsCache';
 
 interface UseNewsArticlesOptions {
   categories?: NewsCategory[];
@@ -49,7 +56,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [isCachedData, setIsCachedData] = useState(false);
   const { toast } = useToast();
+  const cacheInitialised = useRef(false);
 
   const { 
     categories, 
@@ -60,6 +69,35 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     page = 1, 
     pageSize = 20 
   } = options;
+
+  const currentFilterKey = buildFilterKey({
+    categories: categories as string[] | undefined,
+    severities: severities as string[] | undefined,
+    searchQuery,
+    dateFilter,
+    sortBy,
+    page,
+  });
+
+  // Hydrate from cache on first mount so the page is never blank
+  useEffect(() => {
+    if (cacheInitialised.current) return;
+    cacheInitialised.current = true;
+
+    const cached = loadFromCache(currentFilterKey);
+    if (cached) {
+      setArticles(cached.articles);
+      setTotalCount(cached.totalCount);
+      setIsCachedData(true);
+    }
+
+    // Also load cached stats so the hero banner has numbers instantly
+    const cachedStats = loadStatsFromCache();
+    if (cachedStats && !cached) {
+      setTotalCount(cachedStats.total);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -80,6 +118,14 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       const severityFilter = severities && severities.length > 0 ? severities : null;
       const searchTerm = searchQuery?.trim() || null;
       const offset = (page - 1) * pageSize;
+      const filterKey = buildFilterKey({
+        categories: categories as string[] | undefined,
+        severities: severities as string[] | undefined,
+        searchQuery,
+        dateFilter,
+        sortBy,
+        page,
+      });
 
       // Use the full-text search RPC function
       const { data, error: fetchError } = await supabase.rpc('search_news_articles', {
@@ -131,6 +177,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         }));
         
         setArticles(transformedArticles);
+        setIsCachedData(false);
+        saveToCache(transformedArticles, count || 0, filterKey);
         return;
       }
 
@@ -174,9 +222,31 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       }
 
       setArticles(transformedArticles);
+      setIsCachedData(false);
+
+      // Persist to cache for offline / error fallback
+      saveToCache(transformedArticles, countData || 0, filterKey);
     } catch (err) {
       console.error('Error fetching news articles:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
+
+      // Attempt to serve cached data instead of showing empty page
+      const filterKey = buildFilterKey({
+        categories: categories as string[] | undefined,
+        severities: severities as string[] | undefined,
+        searchQuery,
+        dateFilter,
+        sortBy,
+        page,
+      });
+      const cached = loadFromCache(filterKey);
+      if (cached && cached.articles.length > 0) {
+        setArticles(cached.articles);
+        setTotalCount(cached.totalCount);
+        setIsCachedData(true);
+        console.info('Serving cached news data due to fetch error');
+      } else {
+        setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -290,6 +360,14 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     aiSummarized: articles.filter(a => a.isProcessed).length,
     web3Incidents: articles.filter(a => a.category === 'web3-security' || a.category === 'defi-exploits').length,
   };
+
+  // Persist stats to cache so hero banner is never blank
+  useEffect(() => {
+    if (stats.total > 0 && !isCachedData) {
+      saveStatsToCache(stats);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.total, stats.critical, stats.high, isCachedData]);
 
   // Calculate pagination info
   const totalPages = Math.ceil(totalCount / pageSize);
