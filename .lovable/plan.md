@@ -1,34 +1,46 @@
 
 
-## Bug Fix: Mobile Threat Intel Page Not Showing Data
+## Diagnosis
 
-After thorough code analysis, the issue is caused by the interaction between two mobile-only wrapper components: `PullToRefresh` and `SwipeableTabs`. Both use framer-motion gesture handlers that conflict with each other and with normal page scrolling on mobile devices.
+The root cause is a **React hooks crash** in `News.tsx`:
 
-### Root Causes Identified
+```
+Error: Rendered more hooks than during the previous render.
+    at News (src/pages/News.tsx:161:38)
+```
 
-**1. `PullToRefresh` uses `overflow-hidden` on mobile** (line 73)
-The outer `div.relative.overflow-hidden` clips content on mobile. While this shouldn't prevent body-level scrolling in theory, combined with framer-motion's gesture system it creates a scenario where content can become invisible or unscrollable on certain mobile browsers.
+**Why it happens:** Lines 179-198 have an early `return` when `selectedArticle` is set. When a user navigates to the article detail and then back, the hook count changes between renders. Even though no explicit hooks exist after line 179, React's HMR + the preview environment triggers this error, crashing the entire component tree — which is why the page appears blank with no data on mobile.
 
-**2. `PullToRefresh` scrollTop check is broken** (line 34, 43)
-`containerRef` is placed on the inner `motion.div` which has no `overflow-y: auto/scroll`. Its `scrollTop` is always 0. This means `isPulling` is set to `true` on EVERY touch gesture, causing the pull-to-refresh animation to interfere with normal scrolling.
+The red wifi icon is a secondary symptom: when the component crashes and remounts, the `RealtimeStatusIndicator`'s Supabase channel cycles through `CLOSED` → reconnecting states.
 
-**3. `SwipeableTabs` animation state can get stuck** (lines 40-52, 61-73)
-The `handlePanEnd` function sets `opacity: 0.5` mid-animation. If the component re-renders during the animation or an error occurs, the content gets stuck at reduced opacity, making it appear invisible.
+## Fix Plan
 
-**4. Nested framer-motion drag handlers conflict**
-`PullToRefresh` uses `onPan` for vertical gestures while `SwipeableTabs` uses `drag="x"` for horizontal. Both capture touch/pointer events on mobile, creating a deadlock where neither vertical scrolling nor content display works reliably.
+### 1. `src/pages/News.tsx` — Remove early return, use conditional rendering
 
-### Fix Plan
+The early `return` at line 179 must be converted to conditional rendering so the component always executes the same code path with the same hooks:
 
-#### File 1: `src/components/mobile/PullToRefresh.tsx`
-- Change `overflow-hidden` to `overflow-x-hidden` on the outer div (allows vertical content to flow)
-- Fix scrollTop check to use `window.scrollY` or `document.documentElement.scrollTop` instead of the non-scrollable containerRef (so pull-to-refresh only activates when the page is scrolled to the very top)
-- Add a guard so pan handlers don't interfere with normal scrolling
+- Move `handlePullToRefresh` declaration before line 179 (before the early return)
+- Replace the early `return` with a conditional: wrap both the article-detail view and the main feed view in a ternary inside a single `return`
+- This ensures hooks are always called in the same order regardless of `selectedArticle` state
 
-#### File 2: `src/components/mobile/SwipeableTabs.tsx`
-- Add `initial={{ x: 0, opacity: 1 }}` to the motion.div to prevent stuck animation states
-- Add `dragPropagation={false}` to prevent drag events from leaking to PullToRefresh
-- Wrap the `handlePanEnd` animation sequence in try/catch to prevent stuck states on error
+Structure becomes:
+```tsx
+// All hooks and handlers declared above...
+const handlePullToRefresh = async () => { await refetch(); };
 
-These are targeted fixes to the two mobile-only components causing the conflict. No changes to the News page, data fetching, or any other component needed.
+// Single return with conditional rendering
+return selectedArticle ? (
+  <div>...article detail...</div>
+) : (
+  <PullToRefresh ...>...main feed...</PullToRefresh>
+);
+```
+
+### 2. No other files need changes
+
+The `PullToRefresh` and `SwipeableTabs` components are correct. The service worker, caching layer, and data fetching are all working (network requests show 200 with data). The only issue is the hooks crash preventing the component from rendering.
+
+---
+
+**1 file changed.** This is the minimal, correct fix.
 
