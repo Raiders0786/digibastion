@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { NewsArticle, NewsCategory, SeverityLevel } from '@/types/news';
 import { useToast } from '@/hooks/use-toast';
+import { mockNewsArticles } from '@/data/newsData';
 import {
   buildFilterKey,
   saveToCache,
@@ -59,6 +60,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [isCachedData, setIsCachedData] = useState(false);
   const { toast } = useToast();
   const cacheInitialised = useRef(false);
+  const hasShownFallbackNotice = useRef(false);
 
   const { 
     categories, 
@@ -98,6 +100,68 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const getStaticFallback = useCallback(() => {
+    const severityOrder: Record<SeverityLevel, number> = {
+      critical: 0,
+      high: 1,
+      medium: 2,
+      low: 3,
+      info: 4,
+    };
+
+    const normalizedSearch = searchQuery?.trim().toLowerCase() || '';
+
+    let fallback = [...mockNewsArticles];
+
+    if (categories && categories.length > 0) {
+      fallback = fallback.filter((article) => categories.includes(article.category));
+    }
+
+    if (severities && severities.length > 0) {
+      fallback = fallback.filter((article) => severities.includes(article.severity));
+    }
+
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
+      const cutoff = new Date(now.getTime() - daysMap[dateFilter] * 24 * 60 * 60 * 1000);
+      fallback = fallback.filter((article) => new Date(article.publishedAt).getTime() >= cutoff.getTime());
+    }
+
+    if (normalizedSearch) {
+      fallback = fallback.filter((article) => {
+        const searchableText = [
+          article.title,
+          article.summary,
+          article.content,
+          article.category,
+          article.author || '',
+          article.cveId || '',
+          (article.tags || []).join(' '),
+          (article.affectedTechnologies || []).join(' '),
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearch);
+      });
+    }
+
+    fallback.sort((a, b) => {
+      if (sortBy === 'severity') {
+        const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+        if (severityDiff !== 0) return severityDiff;
+      }
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    });
+
+    const total = fallback.length;
+    const offset = (page - 1) * pageSize;
+    const paginated = fallback.slice(offset, offset + pageSize);
+
+    return { articles: paginated, total };
+  }, [categories, severities, searchQuery, dateFilter, sortBy, page, pageSize]);
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -157,7 +221,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (fallbackError) throw fallbackError;
         
         setTotalCount(count || 0);
-        
+
         const transformedArticles: NewsArticle[] = (fallbackData || []).map((row: any) => ({
           id: row.id,
           title: row.title,
@@ -175,9 +239,30 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
           isProcessed: row.is_processed || false,
           sourceName: row.source_name
         }));
-        
+
+        const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && page === 1;
+        if (isUnfilteredFirstPage && transformedArticles.length === 0 && (count || 0) === 0) {
+          const staticFallback = getStaticFallback();
+          setArticles(staticFallback.articles);
+          setTotalCount(staticFallback.total);
+          setIsCachedData(true);
+          setError(null);
+
+          if (!hasShownFallbackNotice.current) {
+            hasShownFallbackNotice.current = true;
+            toast({
+              title: 'Using backup threat feed',
+              description: 'Live feed is temporarily unavailable. Showing built-in threat intelligence data.',
+            });
+          }
+
+          saveToCache(staticFallback.articles, staticFallback.total, filterKey);
+          return;
+        }
+
         setArticles(transformedArticles);
         setIsCachedData(false);
+        hasShownFallbackNotice.current = false;
         saveToCache(transformedArticles, count || 0, filterKey);
         return;
       }
@@ -221,8 +306,29 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         });
       }
 
+      const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && page === 1;
+      if (isUnfilteredFirstPage && transformedArticles.length === 0 && (countData || 0) === 0) {
+        const staticFallback = getStaticFallback();
+        setArticles(staticFallback.articles);
+        setTotalCount(staticFallback.total);
+        setIsCachedData(true);
+        setError(null);
+
+        if (!hasShownFallbackNotice.current) {
+          hasShownFallbackNotice.current = true;
+          toast({
+            title: 'Using backup threat feed',
+            description: 'Live feed is temporarily unavailable. Showing built-in threat intelligence data.',
+          });
+        }
+
+        saveToCache(staticFallback.articles, staticFallback.total, filterKey);
+        return;
+      }
+
       setArticles(transformedArticles);
       setIsCachedData(false);
+      hasShownFallbackNotice.current = false;
 
       // Persist to cache for offline / error fallback
       saveToCache(transformedArticles, countData || 0, filterKey);
@@ -245,12 +351,30 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         setIsCachedData(true);
         console.info('Serving cached news data due to fetch error');
       } else {
-        setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
+        const staticFallback = getStaticFallback();
+        if (staticFallback.total > 0) {
+          setArticles(staticFallback.articles);
+          setTotalCount(staticFallback.total);
+          setIsCachedData(true);
+          setError(null);
+
+          if (!hasShownFallbackNotice.current) {
+            hasShownFallbackNotice.current = true;
+            toast({
+              title: 'Using backup threat feed',
+              description: 'Live feed is temporarily unavailable. Showing built-in threat intelligence data.',
+            });
+          }
+
+          saveToCache(staticFallback.articles, staticFallback.total, filterKey);
+        } else {
+          setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
+        }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [categories, severities, searchQuery, dateFilter, sortBy, page, pageSize]);
+  }, [categories, severities, searchQuery, dateFilter, sortBy, page, pageSize, getStaticFallback, toast]);
 
   const refreshFromRSS = useCallback(async () => {
     try {

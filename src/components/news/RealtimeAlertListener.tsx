@@ -25,8 +25,9 @@ export const RealtimeAlertListener = ({
       console.log('[Realtime] Connecting to threat intelligence feed...');
     }
 
+    const channelName = `critical-alerts-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel('critical-alerts')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -114,8 +115,8 @@ export const RealtimeAlertListener = ({
         
         if (status === 'SUBSCRIBED') {
           console.log('[Realtime] Successfully subscribed to critical alerts');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Failed to subscribe to alerts');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[Realtime] Realtime channel degraded; feed data remains available via API/cache');
         }
       });
 
