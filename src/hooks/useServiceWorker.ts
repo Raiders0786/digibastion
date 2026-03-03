@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 interface ServiceWorkerState {
   isInstalled: boolean;
   isOnline: boolean;
-  hasUpdate: boolean;
   registration: ServiceWorkerRegistration | null;
 }
 
@@ -11,7 +10,6 @@ export const useServiceWorker = () => {
   const [state, setState] = useState<ServiceWorkerState>({
     isInstalled: false,
     isOnline: navigator.onLine,
-    hasUpdate: false,
     registration: null,
   });
 
@@ -33,13 +31,20 @@ export const useServiceWorker = () => {
             // Ignore update check failures silently.
           });
 
-          // Detect incoming updates.
+          const activateWaitingWorker = (worker: ServiceWorker | null) => {
+            worker?.postMessage('skipWaiting');
+          };
+
+          // Activate already waiting updates immediately.
+          activateWaitingWorker(registration.waiting);
+
+          // Auto-activate incoming updates.
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  setState((prev) => ({ ...prev, hasUpdate: true }));
+                  activateWaitingWorker(newWorker);
                 }
               });
             }
@@ -72,14 +77,5 @@ export const useServiceWorker = () => {
     };
   }, []);
 
-  const skipWaiting = () => {
-    if (state.registration?.waiting) {
-      state.registration.waiting.postMessage('skipWaiting');
-    }
-  };
-
-  return {
-    ...state,
-    skipWaiting,
-  };
+  return state;
 };
