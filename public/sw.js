@@ -1,143 +1,125 @@
-// Digibastion Service Worker for Offline Support
-const CACHE_NAME = 'digibastion-v1';
-const OFFLINE_URL = '/offline.html';
+// Digibastion Service Worker for resilient caching without stale app shells
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `digibastion-static-${CACHE_VERSION}`;
 
-// Assets to cache immediately on install
+// Keep this list intentionally small to reduce stale-shell regressions
 const PRECACHE_ASSETS = [
-  '/',
   '/index.html',
   '/favicon.png',
   '/site.webmanifest',
 ];
 
-// Install event - cache core assets
+const ASSET_REGEX = /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webmanifest)$/i;
+const CRITICAL_RUNTIME_REGEX = /\.(js|css)$/i;
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Precaching app shell');
-      return cache.addAll(PRECACHE_ASSETS);
-    })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_ASSETS))
+      .catch(() => {
+        // Ignore install cache failures and let network handle requests.
+      })
   );
-  // Activate immediately
+
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name.startsWith('digibastion-') && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })
   );
-  // Take control immediately
+
   self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip cross-origin requests except for specific allowed origins
-  if (url.origin !== location.origin) {
-    // Allow Supabase API calls but don't cache them
-    if (url.hostname.includes('supabase.co')) {
-      return;
-    }
-    return;
-  }
+  const url = new URL(request.url);
 
-  // Skip chrome-extension and other non-http(s) requests
-  if (!url.protocol.startsWith('http')) return;
+  // Don't intercept third-party requests or API/data traffic.
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;
 
-  // For API routes - network only (don't cache dynamic data)
-  if (url.pathname.startsWith('/api/') || url.pathname.includes('supabase')) {
-    return;
-  }
-
-  // For navigation requests - network first, cache fallback
+  // Navigation: always network-first, never runtime-cache HTML routes.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache successful responses
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Return cached version or offline page
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('/');
-          });
-        })
-    );
-    return;
-  }
-
-  // For static assets - cache first, network fallback
-  if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) {
-          // Return cached and update in background
-          event.waitUntil(
-            fetch(request).then((response) => {
-              if (response.status === 200) {
-                caches.open(CACHE_NAME).then((cache) => {
-                  cache.put(request, response);
-                });
-              }
-            }).catch(() => {})
-          );
-          return cached;
+      (async () => {
+        try {
+          return await fetch(request, { cache: 'no-store' });
+        } catch {
+          return (await caches.match('/index.html')) || Response.error();
         }
-        
-        // Not in cache, fetch and cache
-        return fetch(request).then((response) => {
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        });
-      })
+      })()
     );
     return;
   }
 
-  // Default: network first
+  if (!ASSET_REGEX.test(url.pathname)) return;
+
+  // JS/CSS are critical runtime files: prefer fresh network, fallback cache.
+  if (CRITICAL_RUNTIME_REGEX.test(url.pathname)) {
+    event.respondWith(
+      (async () => {
+        try {
+          const response = await fetch(request, { cache: 'no-store' });
+          if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, response.clone());
+          }
+          return response;
+        } catch {
+          return (await caches.match(request)) || Response.error();
+        }
+      })()
+    );
+    return;
+  }
+
+  // Non-critical static assets: cache-first + background refresh.
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
+    (async () => {
+      const cached = await caches.match(request);
+      if (cached) {
+        event.waitUntil(
+          fetch(request)
+            .then(async (response) => {
+              if (response.ok) {
+                const cache = await caches.open(CACHE_NAME);
+                cache.put(request, response);
+              }
+            })
+            .catch(() => {
+              // Ignore background refresh failures.
+            })
+        );
+
+        return cached;
+      }
+
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, response.clone());
         }
         return response;
-      })
-      .catch(() => caches.match(request))
+      } catch {
+        return Response.error();
+      }
+    })()
   );
 });
 
-// Handle messages from the main thread
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') {
     self.skipWaiting();

@@ -10,17 +10,17 @@ interface PullToRefreshProps {
   threshold?: number;
 }
 
-export const PullToRefresh = ({ 
-  children, 
-  onRefresh, 
+export const PullToRefresh = ({
+  children,
+  onRefresh,
   isRefreshing = false,
-  threshold = 80 
+  threshold = 80,
 }: PullToRefreshProps) => {
   const [isPulling, setIsPulling] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
   const isMobile = useIsMobile();
   const y = useMotionValue(0);
-  
+
   const indicatorOpacity = useTransform(y, [0, threshold / 2, threshold], [0, 0.5, 1]);
   const indicatorScale = useTransform(y, [0, threshold], [0.5, 1]);
   const rotation = useTransform(y, [0, threshold], [0, 180]);
@@ -33,50 +33,54 @@ export const PullToRefresh = ({
     return window.scrollY <= 0 && document.documentElement.scrollTop <= 0;
   };
 
-  const handlePanStart = () => {
-    if (isAtTop()) {
-      setIsPulling(true);
-    }
+  const resetPullState = () => {
+    setIsPulling(false);
+    setPullProgress(0);
+    y.set(0);
   };
 
   const handlePan = (_: any, info: PanInfo) => {
-    if (!isPulling || isRefreshing) return;
-    
-    // If user has scrolled down since pan started, cancel
+    if (isRefreshing) return;
+
+    // Pull-to-refresh should only work at top of page
     if (!isAtTop()) {
-      setIsPulling(false);
-      y.set(0);
-      setPullProgress(0);
+      if (isPulling) resetPullState();
       return;
     }
 
-    // Only activate on downward pull
-    if (info.offset.y < 0) {
-      setIsPulling(false);
-      y.set(0);
-      setPullProgress(0);
+    const horizontalDistance = Math.abs(info.offset.x);
+    const verticalDistance = info.offset.y;
+
+    // Ignore upward and horizontal-dominant gestures to avoid conflict with swipe tabs/scroll
+    if (verticalDistance <= 0 || horizontalDistance > verticalDistance * 0.8) {
+      if (isPulling) resetPullState();
       return;
     }
 
-    const pullDistance = Math.max(0, info.offset.y);
+    if (!isPulling) {
+      setIsPulling(true);
+    }
+
+    const pullDistance = Math.max(0, verticalDistance);
     const dampedDistance = pullDistance * 0.5;
     y.set(Math.min(dampedDistance, threshold * 1.5));
     setPullProgress(Math.min(pullDistance / threshold, 1));
   };
 
   const handlePanEnd = async () => {
-    if (!isPulling || isRefreshing) return;
-    
-    if (pullProgress >= 1) {
-      if (navigator.vibrate) {
+    if (isRefreshing) {
+      resetPullState();
+      return;
+    }
+
+    if (isPulling && pullProgress >= 1) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(20);
       }
       await onRefresh();
     }
-    
-    setIsPulling(false);
-    setPullProgress(0);
-    y.set(0);
+
+    resetPullState();
   };
 
   return (
@@ -91,23 +95,16 @@ export const PullToRefresh = ({
           animate={isRefreshing ? { rotate: 360 } : {}}
           transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: 'linear' } : {}}
           className={`w-10 h-10 rounded-full flex items-center justify-center ${
-            pullProgress >= 1 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-muted text-muted-foreground'
+            pullProgress >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
           }`}
         >
-          {isRefreshing ? (
-            <Loader2 className="w-5 h-5" />
-          ) : (
-            <RefreshCw className="w-5 h-5" />
-          )}
+          {isRefreshing ? <Loader2 className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
         </motion.div>
       </motion.div>
 
       {/* Content */}
       <motion.div
-        style={{ y }}
-        onPanStart={handlePanStart}
+        style={{ y, touchAction: 'pan-y' }}
         onPan={handlePan}
         onPanEnd={handlePanEnd}
         className="touch-pan-y"
