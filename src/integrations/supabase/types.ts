@@ -554,6 +554,7 @@ export type Database = {
         }
         Returns: number
       }
+      get_cron_auth_headers: { Args: never; Returns: Json }
       get_subscriber_count: { Args: never; Returns: Json }
       get_top_leaderboard_ids: { Args: never; Returns: string[] }
       has_role: {
