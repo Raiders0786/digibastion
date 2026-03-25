@@ -76,11 +76,11 @@ async function hashKey(raw: string): Promise<string> {
 
 function generateApiKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'db_live_';
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const key = Array.from(bytes)
+    .map(b => chars[b % chars.length])
+    .join('');
+  return 'db_live_' + key;
 }
 
 const API_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/threat-intel-api`;
