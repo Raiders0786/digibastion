@@ -304,9 +304,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       // Transform RPC results to NewsArticle format
       let transformedArticles: NewsArticle[] = (data || []).map((row: any) => ({
         id: row.id,
-        title: row.title,
-        content: row.content || row.summary || '',
-        summary: row.summary || '',
+        title: sanitizeText(row.title),
+        content: sanitizeText(row.content || row.summary),
+        summary: sanitizeText(row.summary),
         category: row.category as NewsCategory,
         tags: row.tags || [],
         severity: row.severity as SeverityLevel,
