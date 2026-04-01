@@ -248,9 +248,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
         const transformedArticles: NewsArticle[] = (fallbackData || []).map((row: any) => ({
           id: row.id,
-          title: row.title,
-          content: row.content || row.summary || '',
-          summary: row.summary || '',
+          title: sanitizeText(row.title),
+          content: sanitizeText(row.content || row.summary),
+          summary: sanitizeText(row.summary),
           category: row.category as NewsCategory,
           tags: row.tags || [],
           severity: row.severity as SeverityLevel,
