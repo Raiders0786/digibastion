@@ -92,6 +92,50 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     pageSize,
   });
 
+  // Deep-link: load article from URL param on mount
+  const deepLinkLoaded = useRef(false);
+  useEffect(() => {
+    if (deepLinkLoaded.current) return;
+    const articleId = searchParams.get('article');
+    if (!articleId) return;
+    deepLinkLoaded.current = true;
+
+    // Check if article is already in loaded list
+    const found = dbArticles.find(a => a.id === articleId);
+    if (found) {
+      setSelectedArticle(found);
+      return;
+    }
+
+    // Fetch from DB
+    (async () => {
+      const { data } = await supabase
+        .from('news_articles')
+        .select('*')
+        .eq('id', articleId)
+        .maybeSingle();
+      if (data) {
+        setSelectedArticle({
+          id: data.id,
+          title: data.title,
+          summary: data.summary || '',
+          content: data.content || '',
+          category: data.category as any,
+          severity: data.severity as any,
+          tags: data.tags || [],
+          affectedTechnologies: data.affected_technologies || [],
+          link: data.link,
+          sourceUrl: data.source_url || '',
+          sourceName: data.source_name || '',
+          author: data.author || '',
+          cveId: data.cve_id || undefined,
+          publishedAt: new Date(data.published_at),
+          isProcessed: data.is_processed ?? false,
+        });
+      }
+    })();
+  }, [searchParams, dbArticles]);
+
   // Auto-refresh for Active Alerts tab
   useEffect(() => {
     if (selectedTab !== 'alerts' || autoRefreshInterval === 0) return;
