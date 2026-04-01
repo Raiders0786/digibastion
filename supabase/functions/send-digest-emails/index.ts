@@ -194,8 +194,8 @@ function generateDigestEmailHtml(
   const encodedEmail = encodeURIComponent(subscriberEmail);
   const encodedToken = verificationToken ? encodeURIComponent(verificationToken) : '';
   const manageUrl = verificationToken 
-    ? `https://digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
-    : `https://digibastion.com/manage-subscription?email=${encodedEmail}`;
+    ? `https://www.digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
+    : `https://www.digibastion.com/manage-subscription?email=${encodedEmail}`;
 
   // Summary stats
   const criticalCount = criticalArticles.length;
