@@ -145,10 +145,20 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.set('article', article.id);
+      return params;
+    });
   };
 
   const handleBackToNews = () => {
     setSelectedArticle(null);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.delete('article');
+      return params;
+    });
   };
 
   // Handle new articles from realtime

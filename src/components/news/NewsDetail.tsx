@@ -57,23 +57,23 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   };
 
   const handleShare = async () => {
+    const shareUrl = `https://www.digibastion.com/threat-intel?article=${article.id}`;
     if (navigator.share) {
       try {
         await navigator.share({
           title: article.title,
           text: article.summary,
-          url: window.location.href,
+          url: shareUrl,
         });
       } catch (err) {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(window.location.href);
+        navigator.clipboard.writeText(shareUrl);
         toast({
           title: "Link copied!",
           description: "Article link copied to clipboard",
         });
       }
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(shareUrl);
       toast({
         title: "Link copied!",
         description: "Article link copied to clipboard",
