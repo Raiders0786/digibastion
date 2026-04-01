@@ -39,10 +39,17 @@ function decodeHtmlEntities(text: string): string {
 
 function stripHtml(html: string): string {
   if (!html) return '';
-  let text = html
-    .replace(/<[^>]*>/g, '')          // Strip tags
-    .replace(/\s+/g, ' ');            // Collapse whitespace
-  text = decodeHtmlEntities(text);
+  let text = html;
+  let prev = '';
+  // Loop: decode entities → strip tags → repeat until stable
+  // Handles double/triple-encoded HTML from feeds like Cisco, Debian
+  while (text !== prev) {
+    prev = text;
+    text = decodeHtmlEntities(text);
+    text = text.replace(/<[^>]*>/g, '');
+  }
+  // Collapse whitespace
+  text = text.replace(/\s+/g, ' ');
   return text.trim();
 }
 
