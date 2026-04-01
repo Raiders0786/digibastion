@@ -52,7 +52,8 @@ const News = () => {
 
   const handleTabChange = (tabId: string) => {
     setSelectedTab(tabId);
-    setSearchParams({ tab: tabId });
+    const params: Record<string, string> = { tab: tabId };
+    setSearchParams(params);
   };
 const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
