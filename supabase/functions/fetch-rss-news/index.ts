@@ -6,28 +6,108 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple XML parser for RSS feeds
-function parseRSSItem(itemXml: string): { title: string; link: string; description: string; pubDate: string; guid: string } | null {
-  try {
-    const getTagContent = (xml: string, tag: string): string => {
-      // Handle CDATA sections
-      const cdataPattern = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`, 'i');
-      const cdataMatch = xml.match(cdataPattern);
-      if (cdataMatch) return cdataMatch[1].trim();
-      
-      const pattern = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
-      const match = xml.match(pattern);
-      return match ? match[1].trim() : '';
-    };
+// ─── HTML Entity Decoding ───────────────────────────────────────────────────
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  nbsp: ' ', mdash: '—', ndash: '–', hellip: '…',
+  lsquo: '\u2018', rsquo: '\u2019', ldquo: '\u201C', rdquo: '\u201D',
+  bull: '•', middot: '·', copy: '©', reg: '®', trade: '™',
+  times: '×', divide: '÷', deg: '°', para: '¶', sect: '§',
+  laquo: '«', raquo: '»', cent: '¢', pound: '£', euro: '€',
+  yen: '¥', micro: 'µ', plusmn: '±', frac12: '½', frac14: '¼', frac34: '¾',
+};
+
+function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+  return text
+    // Numeric decimal: &#8217; → '
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = parseInt(code, 10);
+      return n > 0 && n < 0x10FFFF ? String.fromCodePoint(n) : '';
+    })
+    // Numeric hex: &#x2019; → '
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      const n = parseInt(hex, 16);
+      return n > 0 && n < 0x10FFFF ? String.fromCodePoint(n) : '';
+    })
+    // Named entities: &amp; → &
+    .replace(/&([a-zA-Z]+);/g, (full, name) => {
+      return NAMED_ENTITIES[name.toLowerCase()] ?? full;
+    });
+}
+
+function stripHtml(html: string): string {
+  if (!html) return '';
+  let text = html
+    .replace(/<[^>]*>/g, '')          // Strip tags
+    .replace(/\s+/g, ' ');            // Collapse whitespace
+  text = decodeHtmlEntities(text);
+  return text.trim();
+}
+
+function cleanSummary(text: string): string {
+  if (!text) return '';
+  return text
+    // Remove "The post ... appeared first on ..." RSS boilerplate
+    .replace(/The post\s.*?\sappeared first on\s.*?\.?\s*$/i, '')
+    // Remove "Continue reading →" patterns
+    .replace(/Continue reading\s*→?\s*$/i, '')
+    // Remove "[…]" or "[...]"
+    .replace(/\[\u2026\]|\[\.\.\.\]/g, '…')
+    .trim();
+}
+
+// ─── RSS / Atom XML Parsing ─────────────────────────────────────────────────
+
+function getTagContent(xml: string, tag: string): string {
+  // Handle CDATA sections
+  const cdataPattern = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`, 'i');
+  const cdataMatch = xml.match(cdataPattern);
+  if (cdataMatch) return cdataMatch[1].trim();
+
+  const pattern = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
+  const match = xml.match(pattern);
+  return match ? match[1].trim() : '';
+}
+
+/** Extract link from Atom <link href="..."/> or RSS <link>text</link> */
+function extractLink(xml: string): string {
+  // 1) Atom: <link rel="alternate" href="..."/>
+  const altHref = xml.match(/<link[^>]*rel=["']alternate["'][^>]*href=["']([^"']+)["']/i)
+    || xml.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["']alternate["']/i);
+  if (altHref) return altHref[1].trim();
+
+  // 2) Any <link href="..."/>  (self-closing)
+  const anyHref = xml.match(/<link[^>]*href=["']([^"']+)["'][^>]*\/?>/i);
+  if (anyHref) return anyHref[1].trim();
+
+  // 3) RSS: <link>https://...</link>
+  return getTagContent(xml, 'link');
+}
+
+interface ParsedItem {
+  title: string;
+  link: string;
+  description: string;
+  pubDate: string;
+  guid: string;
+}
+
+function parseRSSItem(itemXml: string): ParsedItem | null {
+  try {
     const title = getTagContent(itemXml, 'title');
-    const link = getTagContent(itemXml, 'link') || getTagContent(itemXml, 'guid');
-    const description = getTagContent(itemXml, 'description') || getTagContent(itemXml, 'summary') || getTagContent(itemXml, 'content');
-    const pubDate = getTagContent(itemXml, 'pubDate') || getTagContent(itemXml, 'published') || getTagContent(itemXml, 'updated');
-    const guid = getTagContent(itemXml, 'guid') || link;
+    const link = extractLink(itemXml) || getTagContent(itemXml, 'guid');
+    const description = getTagContent(itemXml, 'description')
+      || getTagContent(itemXml, 'summary')
+      || getTagContent(itemXml, 'content');
+    const pubDate = getTagContent(itemXml, 'pubDate')
+      || getTagContent(itemXml, 'published')
+      || getTagContent(itemXml, 'updated')
+      || getTagContent(itemXml, 'dc:date');
+    const guid = getTagContent(itemXml, 'guid') || getTagContent(itemXml, 'id') || link;
 
     if (!title || !link) return null;
-
     return { title, link, description, pubDate, guid };
   } catch (e) {
     console.error('Error parsing RSS item:', e);
@@ -35,22 +115,19 @@ function parseRSSItem(itemXml: string): { title: string; link: string; descripti
   }
 }
 
-function parseRSSFeed(xml: string): { title: string; link: string; description: string; pubDate: string; guid: string }[] {
-  const items: { title: string; link: string; description: string; pubDate: string; guid: string }[] = [];
-  
-  // Match <item> tags (RSS 2.0) or <entry> tags (Atom)
+function parseRSSFeed(xml: string): ParsedItem[] {
+  const items: ParsedItem[] = [];
   const itemPattern = /<item[^>]*>[\s\S]*?<\/item>|<entry[^>]*>[\s\S]*?<\/entry>/gi;
   const matches = xml.match(itemPattern) || [];
-  
   for (const match of matches) {
     const parsed = parseRSSItem(match);
     if (parsed) items.push(parsed);
   }
-  
   return items;
 }
 
-// Generate SHA256 hash for deduplication
+// ─── Dedup UID ──────────────────────────────────────────────────────────────
+
 async function generateUID(title: string, link: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(title + link);
@@ -59,8 +136,31 @@ async function generateUID(title: string, link: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Check if content is relevant based on keywords
-function isRelevant(title: string, summary: string, keywords: { keyword: string; category: string; weight: number }[]): { relevant: boolean; matchedKeywords: string[]; category: string; weight: number } {
+// ─── Relevance + Category ───────────────────────────────────────────────────
+
+interface KeywordEntry {
+  keyword: string;
+  category: string;
+  weight: number;
+}
+
+interface RelevanceResult {
+  relevant: boolean;
+  matchedKeywords: string[];
+  category: string;
+  weight: number;
+}
+
+/**
+ * Determines if content is relevant and assigns a category.
+ * `feedCategory` is used as fallback when keyword matches are weak.
+ */
+function isRelevant(
+  title: string,
+  summary: string,
+  keywords: KeywordEntry[],
+  feedCategory: string
+): RelevanceResult {
   const content = (title + ' ' + summary).toLowerCase();
   const matchedKeywords: string[] = [];
   let totalWeight = 0;
@@ -74,82 +174,112 @@ function isRelevant(title: string, summary: string, keywords: { keyword: string;
     }
   }
 
-  // Determine primary category based on highest weight
-  let primaryCategory = 'web3-security';
+  // Find primary keyword-category by weight
+  let keywordCategory = '';
   let maxWeight = 0;
   for (const [cat, w] of Object.entries(categoryWeights)) {
     if (w > maxWeight) {
       maxWeight = w;
-      primaryCategory = cat;
+      keywordCategory = cat;
     }
   }
 
-  // Map keyword category to news category
+  // Map keyword categories → news categories
   const categoryMap: Record<string, string> = {
     'vulnerability': 'vulnerability-disclosure',
-    'breach': 'web3-security',
-    'malware': 'web3-security',
+    'breach': 'operational-security',
+    'malware': 'operational-security',
     'threat': 'operational-security',
-    'attack': 'web3-security',
+    'attack': 'operational-security',
     'supply-chain': 'supply-chain',
     'web3': 'web3-security',
+    'defi': 'defi-exploits',
     'opsec': 'operational-security',
     'patch': 'vulnerability-disclosure',
-    'general': 'web3-security'
+    'cloud': 'vulnerability-disclosure',
+    'infrastructure': 'vulnerability-disclosure',
+    'advisory': 'vulnerability-disclosure',
+    'general': 'vulnerability-disclosure',
   };
 
+  // Decide final category:
+  // 1) If strong keyword match exists, use that
+  // 2) Otherwise, trust the feed's own category
+  // 3) Fallback to vulnerability-disclosure
+  let finalCategory: string;
+
+  if (keywordCategory && maxWeight >= 3) {
+    // Strong keyword signal → use keyword-derived category
+    finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
+  } else if (feedCategory && feedCategory !== 'general') {
+    // Feed has a meaningful category → use it
+    finalCategory = feedCategory;
+  } else if (keywordCategory) {
+    // Weak keyword match, but it's something
+    finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
+  } else {
+    finalCategory = 'vulnerability-disclosure';
+  }
+
+  // Override: if content has strong web3/defi signals, force web3 category
+  const web3Signals = ['blockchain', 'defi', 'smart contract', 'web3', 'nft', 'dao',
+    'metamask', 'uniswap', 'aave', 'compound', 'solana', 'ethereum',
+    'crypto wallet', 'private key', 'seed phrase', 'rug pull', 'flash loan'];
+  const hasWeb3Signal = web3Signals.some(s => content.includes(s));
+
+  if (hasWeb3Signal && finalCategory !== 'defi-exploits') {
+    finalCategory = 'web3-security';
+  }
+
+  // For vendor advisory feeds, articles are always relevant even without keyword matches
+  const isVendorFeed = feedCategory === 'vulnerability-disclosure';
+  const isRelevantResult = matchedKeywords.length > 0 || isVendorFeed;
+
   return {
-    relevant: matchedKeywords.length > 0,
+    relevant: isRelevantResult,
     matchedKeywords,
-    category: categoryMap[primaryCategory] || 'web3-security',
+    category: finalCategory,
     weight: totalWeight
   };
 }
 
-// Determine severity based on keywords
+// ─── Severity ───────────────────────────────────────────────────────────────
+
 function determineSeverity(matchedKeywords: string[], title: string): string {
   const titleLower = title.toLowerCase();
   const keywordsLower = matchedKeywords.map(k => k.toLowerCase());
-  
-  const criticalIndicators = ['critical', 'zero-day', '0day', '0-day', 'rce', 'remote code execution', 'actively exploited', 'emergency'];
-  const highIndicators = ['high', 'exploit', 'breach', 'ransomware', 'malware', 'backdoor', 'lazarus', 'north korea'];
-  const mediumIndicators = ['medium', 'vulnerability', 'patch', 'update', 'advisory'];
-  
+
+  const criticalIndicators = ['critical', 'zero-day', '0day', '0-day', 'rce',
+    'remote code execution', 'actively exploited', 'emergency', 'cvss 9', 'cvss 10'];
+  const highIndicators = ['high', 'exploit', 'breach', 'ransomware', 'malware',
+    'backdoor', 'lazarus', 'north korea', 'apt', 'privilege escalation',
+    'authentication bypass', 'code execution'];
+  const mediumIndicators = ['medium', 'vulnerability', 'patch', 'update',
+    'advisory', 'security bulletin', 'security notice', 'moderate'];
+
   for (const indicator of criticalIndicators) {
-    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) {
-      return 'critical';
-    }
+    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) return 'critical';
   }
-  
   for (const indicator of highIndicators) {
-    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) {
-      return 'high';
-    }
+    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) return 'high';
   }
-  
   for (const indicator of mediumIndicators) {
-    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) {
-      return 'medium';
-    }
+    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) return 'medium';
   }
-  
   return 'low';
 }
 
-// Extract CVE ID if present
+// ─── CVE Extraction ─────────────────────────────────────────────────────────
+
 function extractCVE(content: string): string | null {
   const cvePattern = /CVE-\d{4}-\d{4,}/gi;
   const match = content.match(cvePattern);
   return match ? match[0].toUpperCase() : null;
 }
 
-// Strip HTML tags
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim();
-}
+// ─── Main Handler ───────────────────────────────────────────────────────────
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -166,52 +296,40 @@ serve(async (req) => {
 
   try {
     console.log('[fetch-rss-news] Starting RSS fetch...');
-    
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch active RSS feeds
-    const { data: feeds, error: feedsError } = await supabase
-      .from('rss_feeds')
-      .select('*')
-      .eq('is_active', true);
+    // Fetch active RSS feeds + keywords in parallel
+    const [feedsResult, keywordsResult] = await Promise.all([
+      supabase.from('rss_feeds').select('*').eq('is_active', true),
+      supabase.from('security_keywords').select('keyword, category, weight'),
+    ]);
 
-    if (feedsError) {
-      console.error('[fetch-rss-news] Error fetching feeds:', feedsError);
-      throw feedsError;
-    }
+    if (feedsResult.error) throw feedsResult.error;
+    if (keywordsResult.error) throw keywordsResult.error;
 
-    console.log(`[fetch-rss-news] Found ${feeds?.length || 0} active feeds`);
+    const feeds = feedsResult.data || [];
+    const keywords = (keywordsResult.data || []) as KeywordEntry[];
 
-    // Fetch keywords for filtering
-    const { data: keywords, error: keywordsError } = await supabase
-      .from('security_keywords')
-      .select('keyword, category, weight');
+    console.log(`[fetch-rss-news] Found ${feeds.length} active feeds, ${keywords.length} keywords`);
 
-    if (keywordsError) {
-      console.error('[fetch-rss-news] Error fetching keywords:', keywordsError);
-      throw keywordsError;
-    }
-
-    console.log(`[fetch-rss-news] Loaded ${keywords?.length || 0} keywords`);
-
-    // Calculate cutoff date (7 days ago)
+    // 7-day cutoff
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const allArticles: any[] = [];
     const errors: string[] = [];
 
-    // Process each feed
-    for (const feed of feeds || []) {
+    for (const feed of feeds) {
       try {
         console.log(`[fetch-rss-news] Fetching: ${feed.name} (${feed.url})`);
-        
+
         const response = await fetch(feed.url, {
           headers: {
             'User-Agent': 'DigibastonBot/1.0 (+https://digibastion.com)',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+            'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*'
           }
         });
 
@@ -223,46 +341,37 @@ serve(async (req) => {
 
         const xml = await response.text();
         const items = parseRSSFeed(xml);
-        
+
         console.log(`[fetch-rss-news] Parsed ${items.length} items from ${feed.name}`);
 
         for (const item of items) {
-          // Parse publication date
           let pubDate: Date;
           try {
             pubDate = new Date(item.pubDate);
-            if (isNaN(pubDate.getTime())) {
-              pubDate = new Date();
-            }
+            if (isNaN(pubDate.getTime())) pubDate = new Date();
           } catch {
             pubDate = new Date();
           }
 
-          // Skip articles older than a week
-          if (pubDate < oneWeekAgo) {
-            continue;
-          }
+          if (pubDate < oneWeekAgo) continue;
 
-          // Generate unique ID for deduplication
           const uid = await generateUID(item.title, item.link);
 
-          // Check relevance
-          const cleanSummary = stripHtml(item.description);
-          const relevance = isRelevant(item.title, cleanSummary, keywords || []);
+          // Decode entities in title/summary before relevance check
+          const cleanTitle = decodeHtmlEntities(stripHtml(item.title));
+          const cleanDesc = cleanSummary(stripHtml(item.description));
 
-          if (!relevance.relevant) {
-            continue;
-          }
+          const relevance = isRelevant(cleanTitle, cleanDesc, keywords, feed.category);
+          if (!relevance.relevant) continue;
 
-          // Determine severity and extract CVE
-          const severity = determineSeverity(relevance.matchedKeywords, item.title);
-          const cveId = extractCVE(item.title + ' ' + cleanSummary);
+          const severity = determineSeverity(relevance.matchedKeywords, cleanTitle);
+          const cveId = extractCVE(cleanTitle + ' ' + cleanDesc);
 
           allArticles.push({
             uid,
-            title: stripHtml(item.title),
-            summary: cleanSummary.substring(0, 500),
-            content: cleanSummary,
+            title: cleanTitle,
+            summary: cleanDesc.substring(0, 500),
+            content: cleanDesc,
             link: item.link,
             source_url: feed.url,
             source_name: feed.name,
@@ -290,12 +399,11 @@ serve(async (req) => {
 
     console.log(`[fetch-rss-news] Total relevant articles found: ${allArticles.length}`);
 
-    // Insert new articles (upsert to handle duplicates)
+    // Insert new articles
     let insertedCount = 0;
     let duplicateCount = 0;
 
     for (const article of allArticles) {
-      // Check if article already exists first
       const { data: existing } = await supabase
         .from('news_articles')
         .select('id')
@@ -324,7 +432,7 @@ serve(async (req) => {
 
     console.log(`[fetch-rss-news] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}`);
 
-    // Trigger AI summarization for new articles (fire and forget)
+    // Trigger AI summarization for new articles
     if (insertedCount > 0) {
       console.log('[fetch-rss-news] Triggering AI summarization...');
       try {
@@ -345,7 +453,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Processed ${feeds?.length || 0} feeds`,
+        message: `Processed ${feeds.length} feeds`,
         articlesFound: allArticles.length,
         articlesInserted: insertedCount,
         duplicatesSkipped: duplicateCount,
