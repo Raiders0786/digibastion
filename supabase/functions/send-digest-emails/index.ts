@@ -275,7 +275,7 @@ function generateDigestEmailHtml(
     <!-- CTA Button -->
     <tr>
       <td style="padding: 24px; text-align: center;">
-        <a href="${trackLink('https://digibastion.com/threat-intel')}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
+        <a href="${trackLink('https://www.digibastion.com/threat-intel')}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
           View All Threats
         </a>
       </td>
