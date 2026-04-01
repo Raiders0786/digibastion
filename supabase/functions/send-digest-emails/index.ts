@@ -343,10 +343,33 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify cron secret
+  // Verify authorization: accept CRON_SECRET or authenticated admin user
   const cronSecret = Deno.env.get('CRON_SECRET');
   const authHeader = req.headers.get('authorization');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  let isAuthorized = false;
+
+  // Check cron secret first
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    isAuthorized = true;
+  }
+
+  // If not cron, check for authenticated user JWT
+  if (!isAuthorized && authHeader) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authClient = createClient(supabaseUrl, supabaseAnonKey);
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error } = await authClient.auth.getUser(token);
+      if (user && !error) {
+        isAuthorized = true;
+      }
+    } catch {
+      // JWT validation failed
+    }
+  }
+
+  if (!isAuthorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
