@@ -1,58 +1,47 @@
 
 
-# Plan: Add Threat Intel Feed Sources Documentation
+# Plan: Deep-Linkable Threat Intel Articles + Email Digest Links to Digibastion
 
-## What & Why
+## Problem
 
-People are asking where the RSS feed list lives. The feed list is stored in the database (not in a static file), so it's not directly visible in the repo. We need to add a **`THREAT_INTEL_FEEDS.md`** file at the repo root that documents all 19 feeds, their categories, and how the system works — so contributors and curious users can find it instantly.
+1. **Sharing copies generic URL**: Viewing an article keeps the URL as `/threat-intel` — sharing gives people the feed page, not the specific article.
+2. **Email digest links go directly to external sources**: Subscribers click a title and leave Digibastion entirely, missing the context (summary, severity, related articles) and the original source link on our detail page.
 
-## Implementation
+## Solution
 
-### 1. Create `THREAT_INTEL_FEEDS.md` at repo root
+### 1. Make articles deep-linkable via URL search param
 
-A clean, linkable document listing:
+Use `?article=<id>` on `/threat-intel` so each article gets a unique, shareable URL like `https://www.digibastion.com/threat-intel?article=abc123`.
 
-- All 19 RSS/Atom feeds organized by category (Vulnerability Disclosure vs Operational Security)
-- Feed name, URL, and active status (noting Oracle is disabled due to 403)
-- Brief explanation of how the ingestion works (edge function runs hourly, deduplicates, categorizes, stores in DB)
-- How to suggest new feeds (open an issue or PR)
+**Changes in `src/pages/News.tsx`:**
+- On `handleArticleClick`: set `searchParams` to include `article=<id>` (alongside existing `tab` param)
+- On `handleBackToNews`: remove the `article` param from URL
+- On mount: read `article` param from URL → fetch that article from DB if not already loaded → set as `selectedArticle`
+- The share button in `NewsDetail` will then naturally copy the correct deep-linked URL via `window.location.href`
 
-**Feed list to include:**
+**Changes in `src/components/news/NewsDetail.tsx`:**
+- Update `handleShare` to explicitly construct the deep link URL (`https://www.digibastion.com/threat-intel?article=${article.id}`) as a fallback, ensuring the correct URL is always shared even if the browser URL hasn't updated yet
 
-**Vulnerability Disclosure (13 feeds):**
-- AWS Security Bulletins
-- CISA Alerts
-- Cisco Security Advisories
-- Debian Security Advisories
-- Fortinet PSIRT Advisories
-- GKE Security Bulletins
-- Google Cloud Security Bulletins
-- Microsoft Security Response Center
-- NVD Analyzed CVEs
-- Oracle Security (disabled — 403)
-- Red Hat Security Advisories
-- Ubuntu Security Notices
-- Vulnerability Spoiler Alert
+### 2. Update email digest to link through Digibastion
 
-**Operational Security (6 feeds):**
-- BleepingComputer
-- Dark Reading
-- Krebs on Security
-- Naked Security (Sophos)
-- SecurityWeek
-- The Hacker News
+**Changes in `supabase/functions/send-digest-emails/index.ts`:**
+- Change article title links from `article.link` (external source) to `https://www.digibastion.com/threat-intel?article=${article.id}`
+- Keep a small "Read original →" text link to `article.link` below each article for users who want to go directly to the source
+- Update the "View All Threats" CTA to use `www.digibastion.com` (currently missing `www.`)
 
-### 2. Add reference in README.md
+### 3. Update MetaTags for shared articles
 
-Add a one-liner + link under the Threat Intelligence section pointing to `THREAT_INTEL_FEEDS.md`.
-
-### 3. Add reference in CONTRIBUTING.md
-
-Add a short section under "Contribution Types" for "Adding Threat Intelligence Feeds" pointing contributors to the doc and explaining they can open an issue/PR to suggest new sources.
+When an article is loaded via `?article=<id>`, the `MetaTags` component already receives the article title/summary. Ensure the canonical URL includes the article param so social previews show the right content.
 
 ---
 
-**Files changed:** 3 — `THREAT_INTEL_FEEDS.md` (new), `README.md` (1 line), `CONTRIBUTING.md` (short section)
+## Technical Details
 
-**Your answer to people asking:** "The full list of feeds is documented here: `THREAT_INTEL_FEEDS.md` in the repo root. The ingestion runs hourly via a backend function. PRs/issues welcome to suggest new sources."
+**Files changed:**
+- `src/pages/News.tsx` — URL param sync for `article` ID, fetch-by-ID on direct navigation
+- `src/components/news/NewsDetail.tsx` — Explicit deep link in share handler
+- `supabase/functions/send-digest-emails/index.ts` — Article links point to Digibastion, add "original source" secondary link
+- Redeploy `send-digest-emails` edge function
+
+**No new routes needed** — the existing `/threat-intel` route handles everything via search params, consistent with the existing `?tab=` pattern.
 
