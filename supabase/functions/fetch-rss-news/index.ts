@@ -203,22 +203,22 @@ function isRelevant(
   };
 
   // Decide final category:
-  // 1) If strong keyword match exists, use that
-  // 2) Otherwise, trust the feed's own category
+  // 1) If feed has a specific category, trust it unless keywords are very strong
+  // 2) If strong keyword match exists and feed is generic, use keywords
   // 3) Fallback to vulnerability-disclosure
   let finalCategory: string;
+  const feedHasCategory = feedCategory && feedCategory !== 'general';
 
-  if (keywordCategory && maxWeight >= 3) {
-    // Strong keyword signal → use keyword-derived category
-    finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
-  } else if (feedCategory && feedCategory !== 'general') {
-    // Feed has a meaningful category → use it
+  if (feedHasCategory && (!keywordCategory || maxWeight < 6)) {
+    // Feed has a meaningful category — trust it unless keywords are overwhelming
     finalCategory = feedCategory;
+  } else if (keywordCategory && maxWeight >= 3) {
+    // Strong keyword signal on a generic feed → use keyword-derived category
+    finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
   } else if (keywordCategory) {
-    // Weak keyword match, but it's something
     finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
   } else {
-    finalCategory = 'vulnerability-disclosure';
+    finalCategory = feedHasCategory ? feedCategory : 'vulnerability-disclosure';
   }
 
   // Override: if content has strong web3/defi signals, force web3 category
