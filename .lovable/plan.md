@@ -1,47 +1,52 @@
 
 
-# Plan: Deep-Linkable Threat Intel Articles + Email Digest Links to Digibastion
+# Plan: Fix HTML Sanitization in Article Content
 
 ## Problem
 
-1. **Sharing copies generic URL**: Viewing an article keeps the URL as `/threat-intel` — sharing gives people the feed page, not the specific article.
-2. **Email digest links go directly to external sources**: Subscribers click a title and leave Digibastion entirely, missing the context (summary, severity, related articles) and the original source link on our detail page.
+Article content/summaries contain raw HTML tags (`<p>`, `<em>`, `<br>`, `<a href=...>`, `<div>`, `<strong>`, `&nbsp;`) because of a processing order bug. Many RSS feeds (especially Cisco, Debian) double-encode HTML entities in their descriptions — e.g. `&lt;p&gt;` — which the current pipeline decodes *after* stripping tags, leaving raw HTML in the final text.
+
+**35 out of 1978 articles** currently have dirty content. All new articles from these feeds will also be dirty.
+
+## Root Cause
+
+In `fetch-rss-news/index.ts`, the `stripHtml` function strips HTML tags first, then `decodeHtmlEntities` runs. But when feeds double-encode (e.g. `&lt;p&gt;`), the strip step sees no real tags, then the decode step reveals them.
 
 ## Solution
 
-### 1. Make articles deep-linkable via URL search param
+### 1. Fix the sanitization pipeline in `fetch-rss-news` edge function
 
-Use `?article=<id>` on `/threat-intel` so each article gets a unique, shareable URL like `https://www.digibastion.com/threat-intel?article=abc123`.
+Rewrite `stripHtml` to loop: decode entities → strip tags → repeat until stable. This handles any level of encoding. Also decode `&nbsp;` → space, and strip common boilerplate.
 
-**Changes in `src/pages/News.tsx`:**
-- On `handleArticleClick`: set `searchParams` to include `article=<id>` (alongside existing `tab` param)
-- On `handleBackToNews`: remove the `article` param from URL
-- On mount: read `article` param from URL → fetch that article from DB if not already loaded → set as `selectedArticle`
-- The share button in `NewsDetail` will then naturally copy the correct deep-linked URL via `window.location.href`
+```text
+function stripHtml(html):
+  prev = ""
+  text = html
+  while text != prev:
+    prev = text
+    text = decodeHtmlEntities(text)  // decode first
+    text = text.replace(/<[^>]*>/g, '')  // then strip tags
+  collapse whitespace, trim
+```
 
-**Changes in `src/components/news/NewsDetail.tsx`:**
-- Update `handleShare` to explicitly construct the deep link URL (`https://www.digibastion.com/threat-intel?article=${article.id}`) as a fallback, ensuring the correct URL is always shared even if the browser URL hasn't updated yet
+### 2. Add a client-side safety net in `useNewsArticles.ts`
 
-### 2. Update email digest to link through Digibastion
+Add a lightweight `sanitizeText` function that strips any residual HTML from `title`, `summary`, and `content` when mapping DB rows to `NewsArticle` objects. This catches dirty data already in the DB without needing a migration.
 
-**Changes in `supabase/functions/send-digest-emails/index.ts`:**
-- Change article title links from `article.link` (external source) to `https://www.digibastion.com/threat-intel?article=${article.id}`
-- Keep a small "Read original →" text link to `article.link` below each article for users who want to go directly to the source
-- Update the "View All Threats" CTA to use `www.digibastion.com` (currently missing `www.`)
+### 3. Clean existing dirty data via SQL update
 
-### 3. Update MetaTags for shared articles
+Run a database migration to clean the 35 affected articles by stripping HTML tags from `content` and `summary` fields using PostgreSQL's `regexp_replace`.
 
-When an article is loaded via `?article=<id>`, the `MetaTags` component already receives the article title/summary. Ensure the canonical URL includes the article param so social previews show the right content.
+### 4. Redeploy the edge function
+
+Deploy updated `fetch-rss-news` so all future ingestions produce clean text.
 
 ---
 
 ## Technical Details
 
 **Files changed:**
-- `src/pages/News.tsx` — URL param sync for `article` ID, fetch-by-ID on direct navigation
-- `src/components/news/NewsDetail.tsx` — Explicit deep link in share handler
-- `supabase/functions/send-digest-emails/index.ts` — Article links point to Digibastion, add "original source" secondary link
-- Redeploy `send-digest-emails` edge function
-
-**No new routes needed** — the existing `/threat-intel` route handles everything via search params, consistent with the existing `?tab=` pattern.
+- `supabase/functions/fetch-rss-news/index.ts` — Fix `stripHtml` to loop decode→strip until stable
+- `src/hooks/useNewsArticles.ts` — Add client-side sanitize fallback on article mapping
+- Database migration — Clean existing dirty rows
 
