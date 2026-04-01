@@ -284,10 +284,32 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify cron secret
+  // Auth: accept CRON_SECRET or authenticated admin user
   const cronSecret = Deno.env.get('CRON_SECRET');
   const authHeader = req.headers.get('authorization');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  let authorized = false;
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    authorized = true;
+  } else if (authHeader?.startsWith('Bearer ')) {
+    // Check if it's an authenticated admin user
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+      if (!claimsError && claimsData?.claims?.sub) {
+        authorized = true;
+      }
+    } catch (e) {
+      console.error('[fetch-rss-news] Auth check failed:', e);
+    }
+  }
+
+  if (!authorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
