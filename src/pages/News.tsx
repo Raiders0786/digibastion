@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
@@ -52,7 +53,8 @@ const News = () => {
 
   const handleTabChange = (tabId: string) => {
     setSelectedTab(tabId);
-    setSearchParams({ tab: tabId });
+    const params: Record<string, string> = { tab: tabId };
+    setSearchParams(params);
   };
 const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,6 +91,50 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     page: currentPage,
     pageSize,
   });
+
+  // Deep-link: load article from URL param on mount
+  const deepLinkLoaded = useRef(false);
+  useEffect(() => {
+    if (deepLinkLoaded.current) return;
+    const articleId = searchParams.get('article');
+    if (!articleId) return;
+    deepLinkLoaded.current = true;
+
+    // Check if article is already in loaded list
+    const found = dbArticles.find(a => a.id === articleId);
+    if (found) {
+      setSelectedArticle(found);
+      return;
+    }
+
+    // Fetch from DB
+    (async () => {
+      const { data } = await supabase
+        .from('news_articles')
+        .select('*')
+        .eq('id', articleId)
+        .maybeSingle();
+      if (data) {
+        setSelectedArticle({
+          id: data.id,
+          title: data.title,
+          summary: data.summary || '',
+          content: data.content || '',
+          category: data.category as any,
+          severity: data.severity as any,
+          tags: data.tags || [],
+          affectedTechnologies: data.affected_technologies || [],
+          link: data.link,
+          sourceUrl: data.source_url || '',
+          sourceName: data.source_name || '',
+          author: data.author || '',
+          cveId: data.cve_id || undefined,
+          publishedAt: new Date(data.published_at),
+          isProcessed: data.is_processed ?? false,
+        });
+      }
+    })();
+  }, [searchParams, dbArticles]);
 
   // Auto-refresh for Active Alerts tab
   useEffect(() => {
@@ -144,10 +190,20 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.set('article', article.id);
+      return params;
+    });
   };
 
   const handleBackToNews = () => {
     setSelectedArticle(null);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.delete('article');
+      return params;
+    });
   };
 
   // Handle new articles from realtime

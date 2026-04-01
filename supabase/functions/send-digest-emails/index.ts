@@ -149,6 +149,7 @@ function generateDigestEmailHtml(
 
   const renderArticle = (article: NewsArticle) => {
     const cat = getCategoryDisplay(article.category);
+    const digiLink = `https://www.digibastion.com/threat-intel?article=${article.id}`;
     return `
     <tr>
       <td style="padding: 12px 0; border-bottom: 1px solid #333;">
@@ -164,10 +165,13 @@ function generateDigestEmailHtml(
           </span>
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
-        <a href="${trackLink(article.link)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
+        <a href="${trackLink(digiLink)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
           ${escapeHtml(article.title)}
         </a>
         ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(article.summary.slice(0, 150))}${article.summary.length > 150 ? '...' : ''}</p>` : ''}
+        <div style="margin-top: 4px;">
+          <a href="${trackLink(article.link)}" style="color: #6b7280; text-decoration: none; font-size: 11px;">Read original →</a>
+        </div>
       </td>
     </tr>
   `;
@@ -190,8 +194,8 @@ function generateDigestEmailHtml(
   const encodedEmail = encodeURIComponent(subscriberEmail);
   const encodedToken = verificationToken ? encodeURIComponent(verificationToken) : '';
   const manageUrl = verificationToken 
-    ? `https://digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
-    : `https://digibastion.com/manage-subscription?email=${encodedEmail}`;
+    ? `https://www.digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
+    : `https://www.digibastion.com/manage-subscription?email=${encodedEmail}`;
 
   // Summary stats
   const criticalCount = criticalArticles.length;
@@ -271,7 +275,7 @@ function generateDigestEmailHtml(
     <!-- CTA Button -->
     <tr>
       <td style="padding: 24px; text-align: center;">
-        <a href="${trackLink('https://digibastion.com/threat-intel')}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
+        <a href="${trackLink('https://www.digibastion.com/threat-intel')}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
           View All Threats
         </a>
       </td>
