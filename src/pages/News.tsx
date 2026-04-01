@@ -240,25 +240,29 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             <Card className="glass-card border-red-500/20">
               <CardContent className="p-2 sm:p-3 text-center">
                 <div className="text-lg sm:text-xl font-bold text-red-400">{stats.critical}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Critical</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Critical <span className="hidden sm:inline">Severity</span></div>
+                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
               </CardContent>
             </Card>
             <Card className="glass-card border-orange-500/20">
               <CardContent className="p-2 sm:p-3 text-center">
                 <div className="text-lg sm:text-xl font-bold text-orange-400">{stats.high}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">High</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">High <span className="hidden sm:inline">Severity</span></div>
+                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
               </CardContent>
             </Card>
             <Card className="glass-card border-purple-500/20">
               <CardContent className="p-2 sm:p-3 text-center">
                 <div className="text-lg sm:text-xl font-bold text-purple-400">{stats.supplyChain}</div>
                 <div className="text-[10px] sm:text-xs text-muted-foreground">Supply Chain</div>
+                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
               </CardContent>
             </Card>
             <Card className="glass-card border-blue-500/20">
               <CardContent className="p-2 sm:p-3 text-center">
                 <div className="text-lg sm:text-xl font-bold text-blue-400">{stats.total}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Total</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Total Articles</div>
+                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">all time</div>
               </CardContent>
             </Card>
           </div>
