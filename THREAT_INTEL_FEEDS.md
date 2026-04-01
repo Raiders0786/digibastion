@@ -43,7 +43,7 @@ These feeds track CVEs, security advisories, and vulnerability disclosures from 
 
 ---
 
-## 🔵 Operational Security Feeds (6)
+## 🔵 Operational Security Feeds (7)
 
 These feeds cover security news, threat analysis, incident reports, and industry trends.
 
@@ -53,8 +53,9 @@ These feeds cover security news, threat analysis, incident reports, and industry
 | 2 | **Dark Reading** | https://www.darkreading.com/rss.xml | ✅ Active |
 | 3 | **Krebs on Security** | https://krebsonsecurity.com/feed/ | ✅ Active |
 | 4 | **Naked Security (Sophos)** | https://nakedsecurity.sophos.com/feed/ | ✅ Active |
-| 5 | **SecurityWeek** | https://feeds.feedburner.com/securityweek | ✅ Active |
-| 6 | **The Hacker News** | https://feeds.feedburner.com/TheHackersNews | ✅ Active |
+| 5 | **Schneier on Security** | https://www.schneier.com/feed/atom/ | ✅ Active |
+| 6 | **SecurityWeek** | https://feeds.feedburner.com/securityweek | ✅ Active |
+| 7 | **The Hacker News** | https://feeds.feedburner.com/TheHackersNews | ✅ Active |
 
 ---
 
