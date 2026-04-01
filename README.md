@@ -39,7 +39,7 @@
 
 ### Live Features
 - 🎯 **OpSec Assessment Quiz** — 8-question interactive quiz with crypto-themed character rankings and shareable X/Twitter cards
-- 📰 **Threat Intelligence Feed** — Real incidents from WazirX ($235M), Solana Web3.js backdoor, North Korean activities, and more
+- 📰 **Threat Intelligence Feed** — Real incidents from WazirX ($235M), Solana Web3.js backdoor, North Korean activities, and more ([19 feeds from CISA, NVD, MSRC, and more](THREAT_INTEL_FEEDS.md))
 - 🔒 **Comprehensive Security Checklists** — 200+ items covering wallet security, DeFi protocols, OS hardening, developer security, and OpSec
 - 🎨 **Threat Profile Customization** — Personalized recommendations based on your specific risk profile
 - 📊 **Dynamic Security Scoring** — Real-time score tracking with progress analytics

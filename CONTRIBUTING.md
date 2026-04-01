@@ -160,6 +160,16 @@ Security items are the core of our checklists. To add a new security item:
 
 ---
 
+### Adding Threat Intelligence Feeds
+
+Want to suggest a new RSS/Atom feed source for our threat intel? See the full list of current feeds and contribution guidelines in **[THREAT_INTEL_FEEDS.md](THREAT_INTEL_FEEDS.md)**.
+
+You can:
+- **Open an issue** with the feed URL, source name, and category
+- **Open a PR** adding the feed to `THREAT_INTEL_FEEDS.md`
+
+---
+
 ### Adding Articles
 
 **1. Open `src/data/articles.tsx`**
