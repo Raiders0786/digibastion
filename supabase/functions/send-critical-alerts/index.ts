@@ -316,7 +316,7 @@ serve(async (req) => {
         // Build one-click unsubscribe URL for RFC 8058 compliance
         const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
         const encodedEmail = encodeURIComponent(sub.email);
-        const oneClickUnsubUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
+        const oneClickUnsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
