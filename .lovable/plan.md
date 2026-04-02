@@ -1,52 +1,89 @@
 
 
-# Plan: Fix HTML Sanitization in Article Content
+# Production Readiness Assessment & Hardening Plan
 
-## Problem
+## Current Health Status
 
-Article content/summaries contain raw HTML tags (`<p>`, `<em>`, `<br>`, `<a href=...>`, `<div>`, `<strong>`, `&nbsp;`) because of a processing order bug. Many RSS feeds (especially Cisco, Debian) double-encode HTML entities in their descriptions — e.g. `&lt;p&gt;` — which the current pipeline decodes *after* stripping tags, leaving raw HTML in the final text.
+- **Edge Functions**: All returning 200. RSS fetch, digest emails, cron monitor all operational.
+- **Database Linter**: Clean — no schema-level issues.
+- **Cron Jobs**: Running (cron job 25 observed), cron-monitor reports 100% success rate.
+- **Sanitization**: Fixed. Client-side safety net active in `useNewsArticles.ts`.
+- **Deep Linking**: Working — `?article=<id>` fetches and displays correctly.
 
-**35 out of 1978 articles** currently have dirty content. All new articles from these feeds will also be dirty.
+## Issues Found (Priority Order)
 
-## Root Cause
+### 1. CRITICAL — Privilege Escalation on `user_roles` Table
+**Risk**: An authenticated user can INSERT a row into `user_roles` granting themselves `admin`. The only blocking policy targets `anon`, not `authenticated`. Once admin, they access API keys, cron config, and all admin-only data.
 
-In `fetch-rss-news/index.ts`, the `stripHtml` function strips HTML tags first, then `decodeHtmlEntities` runs. But when feeds double-encode (e.g. `&lt;p&gt;`), the strip step sees no real tags, then the decode step reveals them.
+**Fix**: Add explicit blocking policies for INSERT, UPDATE, DELETE on `user_roles` for `authenticated` role.
 
-## Solution
+```sql
+CREATE POLICY "Block authenticated write on user_roles"
+  ON public.user_roles FOR INSERT TO authenticated
+  WITH CHECK (false);
 
-### 1. Fix the sanitization pipeline in `fetch-rss-news` edge function
+CREATE POLICY "Block authenticated update on user_roles"
+  ON public.user_roles FOR UPDATE TO authenticated
+  USING (false);
 
-Rewrite `stripHtml` to loop: decode entities → strip tags → repeat until stable. This handles any level of encoding. Also decode `&nbsp;` → space, and strip common boilerplate.
-
-```text
-function stripHtml(html):
-  prev = ""
-  text = html
-  while text != prev:
-    prev = text
-    text = decodeHtmlEntities(text)  // decode first
-    text = text.replace(/<[^>]*>/g, '')  // then strip tags
-  collapse whitespace, trim
+CREATE POLICY "Block authenticated delete on user_roles"
+  ON public.user_roles FOR DELETE TO authenticated
+  USING (false);
 ```
 
-### 2. Add a client-side safety net in `useNewsArticles.ts`
+### 2. HIGH — `email_analytics_daily` Has No RLS Policies
+**Risk**: This view/table has RLS enabled but zero policies. While Postgres defaults to deny, the posture is ambiguous and flagged by security scans.
 
-Add a lightweight `sanitizeText` function that strips any residual HTML from `title`, `summary`, and `content` when mapping DB rows to `NewsArticle` objects. This catches dirty data already in the DB without needing a migration.
+**Fix**: Add explicit block + admin read policies.
 
-### 3. Clean existing dirty data via SQL update
+```sql
+CREATE POLICY "Block public access to email_analytics_daily"
+  ON public.email_analytics_daily FOR ALL TO anon, authenticated
+  USING (false) WITH CHECK (false);
 
-Run a database migration to clean the 35 affected articles by stripping HTML tags from `content` and `summary` fields using PostgreSQL's `regexp_replace`.
+CREATE POLICY "Service role can manage email_analytics_daily"
+  ON public.email_analytics_daily FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+```
 
-### 4. Redeploy the edge function
+### 3. MEDIUM — Deep-Link Article Fetch Bypasses Client Sanitization
+When a deep-linked article is loaded directly in `News.tsx` (lines 111-136), the data is mapped manually without calling `sanitizeText()`. Dirty DB rows would render raw HTML.
 
-Deploy updated `fetch-rss-news` so all future ingestions produce clean text.
+**Fix**: Apply `sanitizeText` to the direct-fetch path in `News.tsx` (title, summary, content fields in the `setSelectedArticle` call).
+
+### 4. MEDIUM — Digest Email Content Not Sanitized
+`send-digest-emails` renders `article.summary` via `escapeHtml()` which handles `<>&"'` but does NOT strip decoded HTML entities or double-encoded tags. If a dirty article exists, the email shows raw tags.
+
+**Fix**: Add a `stripHtml` helper to `send-digest-emails/index.ts` (same loop pattern as `fetch-rss-news`) and apply to `article.title` and `article.summary` before rendering.
+
+### 5. MEDIUM — `send-critical-alerts` Same Sanitization Gap
+Same issue as #4 — `escapeHtml` only, no stripping of decoded entities.
+
+**Fix**: Add same `stripHtml` helper.
+
+### 6. LOW — Cron Auth Resilience
+The `app_config` table approach works, but if the row is accidentally deleted, all cron jobs fail silently (empty Bearer token). There's no monitoring for this specific failure mode.
+
+**Fix**: Add a check in `get_cron_auth_headers()` that raises a warning/notice when `secret_val` is NULL after both lookups, so it appears in Postgres logs.
+
+### 7. LOW — Hardcoded Supabase URL in Email Functions
+`send-digest-emails` (line 136, 677) and `send-critical-alerts` hardcode `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/...` instead of using `Deno.env.get('SUPABASE_URL')`. If the project ref ever changes, emails break.
+
+**Fix**: Replace hardcoded URLs with `${Deno.env.get('SUPABASE_URL')}/functions/v1/...`.
 
 ---
 
-## Technical Details
+## Summary of Changes
 
-**Files changed:**
-- `supabase/functions/fetch-rss-news/index.ts` — Fix `stripHtml` to loop decode→strip until stable
-- `src/hooks/useNewsArticles.ts` — Add client-side sanitize fallback on article mapping
-- Database migration — Clean existing dirty rows
+| # | Severity | File(s) | Change |
+|---|----------|---------|--------|
+| 1 | CRITICAL | DB migration | Block auth write on `user_roles` |
+| 2 | HIGH | DB migration | Add RLS policies to `email_analytics_daily` |
+| 3 | MEDIUM | `src/pages/News.tsx` | Apply `sanitizeText` to deep-link fetch |
+| 4 | MEDIUM | `supabase/functions/send-digest-emails/index.ts` | Add `stripHtml` helper for article content |
+| 5 | MEDIUM | `supabase/functions/send-critical-alerts/index.ts` | Add `stripHtml` helper for article content |
+| 6 | LOW | DB migration | Add NULL warning in `get_cron_auth_headers()` |
+| 7 | LOW | `send-digest-emails`, `send-critical-alerts` | Replace hardcoded Supabase URLs with env var |
+
+All changes are backward-compatible. No new tables or routes needed.
 
