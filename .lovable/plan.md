@@ -1,79 +1,71 @@
 
 
-# Plan: Critical Regression Test Suite
+# End-to-End Security Review & Hardening Plan
 
-## Why This Matters
+## Current Security Posture
 
-As the project scales, any code change could silently break the RSS pipeline, email delivery, sanitization, deep-linking, or security scoring — leaving users with stale data, broken emails, or raw HTML. A targeted test suite catches these before they reach production.
+The system is in good shape. Linter returns clean, admin auth is JWT-verified server-side, cron jobs use CRON_SECRET, and RLS is enforced on all sensitive tables. The scan flagged 4 items — 2 are real gaps, 2 are effectively false positives.
 
-## What Gets Tested
+## Findings & Fixes
 
-We focus on the **6 most breakage-prone areas** — pure logic that can be unit-tested without live infrastructure:
+### 1. `api_usage_logs` — Missing explicit INSERT/UPDATE/DELETE block for authenticated (WARN)
 
-### 1. HTML Sanitization (highest regression risk)
-The `sanitizeText` function in `useNewsArticles.ts` and the `stripHtml` helpers in edge functions are the #1 source of past bugs. Tests cover:
-- Double-encoded entities (`&amp;lt;p&amp;gt;` → clean text)
-- Nested HTML tags (`<p><em>text</em></p>` → `text`)
-- Mixed CDATA + entities from Cisco/Debian feeds
-- Null/undefined inputs return empty string
-- Already-clean text passes through unchanged
+**Risk**: Non-admin authenticated users have no matching INSERT/UPDATE/DELETE policy. Postgres defaults to deny, but explicit block is best practice and silences the security scanner.
 
-### 2. RSS Feed Parsing (`fetch-rss-news`)
-The XML parser is hand-rolled and fragile. Deno tests for:
-- Standard RSS 2.0 `<item>` extraction
-- Atom `<entry>` with `<link rel="alternate" href="..."/>` extraction
-- CDATA-wrapped descriptions
-- Missing title/link → item skipped (returns null)
-- `cleanSummary` strips "The post appeared first on..." boilerplate
+**Fix**: Add 3 RLS policies:
+```sql
+CREATE POLICY "Block authenticated insert on api_usage_logs"
+  ON public.api_usage_logs FOR INSERT TO authenticated
+  WITH CHECK (false);
 
-### 3. Article Categorization & Severity
-Category assignment logic determines what subscribers see. Tests for:
-- Web3 signal words force `web3-security` category
-- Feed-level category trusted when keyword weight < 6
-- Strong keyword match overrides generic feed category
-- CVE extraction from content (`CVE-2024-12345`)
-- Severity: "zero-day" → critical, "ransomware" → high, "advisory" → medium
+CREATE POLICY "Block authenticated update on api_usage_logs"
+  ON public.api_usage_logs FOR UPDATE TO authenticated
+  USING (false);
 
-### 4. News Cache (offline resilience)
-Cache prevents blank pages during outages. Tests for:
-- `buildFilterKey` produces stable, deterministic keys
-- `saveToCache` / `loadFromCache` round-trip correctly
-- Different filters produce different cache keys
-- Stats cache saves/loads independently
+CREATE POLICY "Block authenticated delete on api_usage_logs"
+  ON public.api_usage_logs FOR DELETE TO authenticated
+  USING (false);
+```
 
-### 5. Security Scoring
-The checklist scoring engine drives the main dashboard. Tests for:
-- `calculatePercentage` handles zero total (no NaN)
-- `getRelevantItems` filters by threat level correctly
-- `calculateSecurityStats` aggregates across categories
+### 2. `api_keys` — Existing `is_admin()` policies cover access, but scanner flags them (WARN)
 
-### 6. Deep-Link Share URL
-The share handler must always include the article ID. Test for:
-- Share URL contains `?article=<id>` parameter
-- URL uses production domain `digibastion.com`
+**Risk**: The `is_admin()` WITH CHECK / USING already denies non-admin authenticated users. However, if `is_admin()` ever errors or returns NULL, Postgres treats it as deny — so this is safe. To silence the scanner and add defense-in-depth, add explicit non-admin block policies.
 
-## Files Created
+**Fix**: No action strictly needed — `is_admin()` returning false already blocks. But to satisfy scanner, add restrictive policies for non-admin authenticated:
+```sql
+-- These are technically redundant but make the security posture explicit
+CREATE POLICY "Block non-admin insert on api_keys"
+  ON public.api_keys FOR INSERT TO authenticated
+  WITH CHECK (is_admin());
+-- Already exists as "Admins can insert api_keys" — scanner may be confused.
+```
 
-| File | What it tests |
-|------|--------------|
-| `src/utils/__tests__/sanitize.test.ts` | `sanitizeText` function (extracted for testability) |
-| `src/utils/__tests__/newsCache.test.ts` | Cache build/save/load logic |
-| `src/utils/__tests__/scoringUtils.test.ts` | Security score calculations |
-| `supabase/functions/fetch-rss-news/index_test.ts` | RSS parsing, categorization, severity, stripHtml |
-| `supabase/functions/send-digest-emails/index_test.ts` | Digest email stripHtml sanitization |
-| `supabase/functions/send-critical-alerts/index_test.ts` | Alert email stripHtml sanitization |
+**Decision**: Mark this as an acknowledged false positive since `is_admin()` check already covers it.
 
-## Technical Approach
+### 3. `email_analytics_daily` — VIEW, not a table (FALSE POSITIVE)
 
-1. **Extract `sanitizeText`** from `useNewsArticles.ts` into `src/utils/sanitize.ts` so it can be imported by both the hook and tests without React dependencies.
+**Status**: This is a VIEW with `security_invoker=on` that queries `email_events`. The `email_events` table blocks all anon/authenticated access. The view inherits this restriction. No fix needed — mark as ignored.
 
-2. **Frontend tests** use the existing Vitest + jsdom setup. No new dependencies needed.
+### 4. `realtime.messages` — Reserved schema (NO ACTION)
 
-3. **Edge function tests** use Deno's built-in `Deno.test()` with assertions from `std/assert`. They test the pure functions (parsing, categorization, sanitization) without hitting the network.
+**Status**: This is a Supabase-reserved schema (`realtime`). We cannot and should not modify it. The app doesn't use Realtime subscriptions for sensitive data — news articles are public. Mark as ignored.
 
-4. **All tests are pure unit tests** — no database, no network, no mocking Supabase. This makes them fast and reliable in CI.
+## Action Summary
 
-## Outcome
+| # | Item | Action | Type |
+|---|------|--------|------|
+| 1 | `api_usage_logs` missing authenticated write block | Add 3 explicit block policies | DB Migration |
+| 2 | `api_keys` non-admin block | Already covered by `is_admin()` — ignore scanner finding | Scanner update |
+| 3 | `email_analytics_daily` no RLS | VIEW with security_invoker — false positive | Scanner update |
+| 4 | `realtime.messages` | Reserved schema, no action | Scanner update |
 
-~30 focused test cases covering the exact logic that has broken in the past. Any future change to sanitization, RSS parsing, categorization, caching, or scoring will be caught before deployment.
+## Verification After Implementation
+
+- Run security scan to confirm 0 findings
+- Test admin login → analytics/cron/api-keys all load
+- Test public pages (threat-intel, quiz, leaderboard) all load without auth
+- Test subscription flow (subscribe → verify → manage) works
+- Test cron jobs continue executing (check cron monitor)
+
+All changes are backward-compatible. Only 1 migration needed.
 
