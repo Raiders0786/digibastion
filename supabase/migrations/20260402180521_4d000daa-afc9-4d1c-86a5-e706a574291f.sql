@@ -1,0 +1,1 @@
+UPDATE public.news_articles SET published_at = now() WHERE published_at > now();
