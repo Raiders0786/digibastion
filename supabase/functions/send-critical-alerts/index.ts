@@ -38,6 +38,23 @@ const severityRank: Record<string, number> = {
   'info': 4,
 };
 
+// Strip HTML tags and decode entities (handles double-encoded feeds)
+function stripHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  let s = text, prev = '';
+  while (s !== prev) {
+    prev = s;
+    s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
+        const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
+        return m[n.toLowerCase()] ?? '';
+      });
+    s = s.replace(/<[^>]*>/g, '');
+  }
+  return s.replace(/\s+/g, ' ').trim();
+}
+
 // HTML escape function to prevent injection attacks
 function escapeHtml(text: string): string {
   if (!text) return '';
