@@ -409,7 +409,7 @@ serve(async (req) => {
             tags: relevance.matchedKeywords.slice(0, 10),
             affected_technologies: [],
             cve_id: cveId,
-            published_at: pubDate.toISOString(),
+            published_at: (pubDate > new Date() ? new Date() : pubDate).toISOString(),
             raw_content: item.description
           });
         }
