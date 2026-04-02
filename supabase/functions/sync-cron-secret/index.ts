@@ -50,38 +50,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Connect directly to postgres to update vault
-    const dbUrl = Deno.env.get('SUPABASE_DB_URL');
-    if (!dbUrl) {
-      return new Response(JSON.stringify({ error: 'No DB URL configured' }), {
+    // Write CRON_SECRET to app_config table using service role
+    const supabase = createClient(supabaseUrl, serviceKey);
+    
+    const { error: upsertError } = await supabase
+      .from('app_config')
+      .upsert({ key: 'CRON_SECRET', value: cronSecret, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+    if (upsertError) {
+      console.error('[sync-cron-secret] Upsert error:', upsertError);
+      return new Response(JSON.stringify({ error: upsertError.message }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { Pool } = await import('https://deno.land/x/postgres@v0.17.0/mod.ts');
-    const pool = new Pool(dbUrl, 1, true);
-    const conn = await pool.connect();
-    
-    try {
-      await conn.queryObject(`DELETE FROM vault.secrets WHERE name = 'CRON_SECRET'`);
-      await conn.queryObject(`INSERT INTO vault.secrets (name, secret) VALUES ('CRON_SECRET', $1)`, [cronSecret]);
-      
-      // Verify
-      const result = await conn.queryObject(`SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'CRON_SECRET' LIMIT 1`);
-      const stored = (result.rows[0] as any)?.decrypted_secret;
-      const matches = stored === cronSecret;
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
-        verified: matches,
-        message: matches ? 'CRON_SECRET synced to vault' : 'Sync done but verification mismatch'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } finally {
-      conn.release();
-      await pool.end();
-    }
+    // Verify
+    const { data: verify } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'CRON_SECRET')
+      .single();
+
+    const matches = verify?.value === cronSecret;
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      verified: matches,
+      message: matches ? 'CRON_SECRET synced to app_config' : 'Sync done but verification mismatch'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[sync-cron-secret] Error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
