@@ -38,6 +38,23 @@ const severityRank: Record<string, number> = {
   'info': 4,
 };
 
+// Strip HTML tags and decode entities (handles double-encoded feeds)
+function stripHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  let s = text, prev = '';
+  while (s !== prev) {
+    prev = s;
+    s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
+        const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
+        return m[n.toLowerCase()] ?? '';
+      });
+    s = s.replace(/<[^>]*>/g, '');
+  }
+  return s.replace(/\s+/g, ' ').trim();
+}
+
 // HTML escape function to prevent injection attacks
 function escapeHtml(text: string): string {
   if (!text) return '';
@@ -93,10 +110,10 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <h3 style="margin: 0 0 8px 0; color: #f3f4f6;">
-          <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(article.title)}</a>
+          <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(stripHtml(article.title))}</a>
         </h3>
         <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">
-          ${escapeHtml(article.summary || 'Click to read more...')}
+          ${escapeHtml(stripHtml(article.summary) || 'Click to read more...')}
         </p>
         <div style="margin-top: 8px;">
           ${article.tags.slice(0, 5).map(tag => 
@@ -299,7 +316,7 @@ serve(async (req) => {
         // Build one-click unsubscribe URL for RFC 8058 compliance
         const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
         const encodedEmail = encodeURIComponent(sub.email);
-        const oneClickUnsubUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
+        const oneClickUnsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',

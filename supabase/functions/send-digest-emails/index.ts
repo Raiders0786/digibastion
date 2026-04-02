@@ -42,6 +42,23 @@ const severityRank: Record<string, number> = {
   'info': 4,
 };
 
+// Strip HTML tags and decode entities (handles double-encoded feeds)
+function stripHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  let s = text, prev = '';
+  while (s !== prev) {
+    prev = s;
+    s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
+        const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
+        return m[n.toLowerCase()] ?? '';
+      });
+    s = s.replace(/<[^>]*>/g, '');
+  }
+  return s.replace(/\s+/g, ' ').trim();
+}
+
 // HTML escape function
 function escapeHtml(text: string): string {
   if (!text) return '';
@@ -133,7 +150,7 @@ function generateDigestEmailHtml(
   const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
   
   // Tracking URLs
-  const trackingBaseUrl = 'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/email-tracking';
+  const trackingBaseUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/email-tracking`;
   const trackingPixelUrl = `${trackingBaseUrl}?tid=${trackingId}&a=o`;
   
   // Helper to wrap links with click tracking
@@ -166,9 +183,9 @@ function generateDigestEmailHtml(
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <a href="${trackLink(digiLink)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
-          ${escapeHtml(article.title)}
+          ${escapeHtml(stripHtml(article.title))}
         </a>
-        ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(article.summary.slice(0, 150))}${article.summary.length > 150 ? '...' : ''}</p>` : ''}
+        ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(stripHtml(article.summary)?.slice(0, 150) || '')}${(stripHtml(article.summary)?.length || 0) > 150 ? '...' : ''}</p>` : ''}
         <div style="margin-top: 4px;">
           <a href="${trackLink(article.link)}" style="color: #6b7280; text-decoration: none; font-size: 11px;">Read original →</a>
         </div>
@@ -674,7 +691,7 @@ serve(async (req) => {
         // Build one-click unsubscribe URL for RFC 8058 compliance
         const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
         const encodedEmail = encodeURIComponent(sub.email);
-        const oneClickUnsubUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
+        const oneClickUnsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',

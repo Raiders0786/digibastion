@@ -115,11 +115,26 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         .eq('id', articleId)
         .maybeSingle();
       if (data) {
+        const sanitize = (t: string | null | undefined) => {
+          if (!t) return '';
+          let s = t, prev = '';
+          while (s !== prev) {
+            prev = s;
+            s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
+              .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+              .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
+                const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
+                return m[n.toLowerCase()] ?? '';
+              });
+            s = s.replace(/<[^>]*>/g, '');
+          }
+          return s.replace(/\s+/g, ' ').trim();
+        };
         setSelectedArticle({
           id: data.id,
-          title: data.title,
-          summary: data.summary || '',
-          content: data.content || '',
+          title: sanitize(data.title),
+          summary: sanitize(data.summary),
+          content: sanitize(data.content),
           category: data.category as any,
           severity: data.severity as any,
           tags: data.tags || [],
