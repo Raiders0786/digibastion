@@ -11,34 +11,55 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Only allow if caller provides the CRON_SECRET itself (proves they know it)
     const cronSecret = Deno.env.get('CRON_SECRET');
-    if (!cronSecret) {
-      return new Response(JSON.stringify({ error: 'CRON_SECRET env var not set' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const authHeader = req.headers.get('authorization');
+    
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, serviceKey);
+    
+    // Use direct postgres connection via service role to update vault
+    const dbUrl = Deno.env.get('SUPABASE_DB_URL');
+    if (!dbUrl) {
+      return new Response(JSON.stringify({ error: 'No DB URL' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Delete old vault entry and insert new one
-    const { error: deleteError } = await supabase.rpc('delete_vault_secret', { secret_name: 'CRON_SECRET' }).maybeSingle();
+    // Connect directly to postgres to update vault
+    const { Pool } = await import('https://deno.land/x/postgres@v0.17.0/mod.ts');
+    const pool = new Pool(dbUrl, 1, true);
+    const conn = await pool.connect();
     
-    // Use raw SQL via service role to update vault
-    const { data, error } = await supabase.from('_sync_log').select('*').limit(0);
-    
-    // Direct approach: use the postgres connection through a helper function
-    // Since we can't directly write to vault via REST, let's update the SQL function instead
-    
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'CRON_SECRET is available in env',
-      secret_length: cronSecret.length 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    try {
+      // Delete existing and insert new
+      await conn.queryObject(`DELETE FROM vault.secrets WHERE name = 'CRON_SECRET'`);
+      await conn.queryObject(`INSERT INTO vault.secrets (name, secret) VALUES ('CRON_SECRET', $1)`, [cronSecret]);
+      
+      // Verify it works
+      const result = await conn.queryObject(`SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'CRON_SECRET' LIMIT 1`);
+      const stored = (result.rows[0] as any)?.decrypted_secret;
+      const matches = stored === cronSecret;
+      
+      return new Response(JSON.stringify({ 
+        success: true, 
+        verified: matches,
+        message: matches ? 'CRON_SECRET synced to vault successfully' : 'Sync completed but verification failed'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } finally {
+      conn.release();
+      await pool.end();
+    }
   } catch (error) {
+    console.error('[sync-cron-secret] Error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
