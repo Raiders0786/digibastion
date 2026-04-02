@@ -183,9 +183,9 @@ function generateDigestEmailHtml(
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <a href="${trackLink(digiLink)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
-          ${escapeHtml(article.title)}
+          ${escapeHtml(stripHtml(article.title))}
         </a>
-        ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(article.summary.slice(0, 150))}${article.summary.length > 150 ? '...' : ''}</p>` : ''}
+        ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(stripHtml(article.summary)?.slice(0, 150) || '')}${(stripHtml(article.summary)?.length || 0) > 150 ? '...' : ''}</p>` : ''}
         <div style="margin-top: 4px;">
           <a href="${trackLink(article.link)}" style="color: #6b7280; text-decoration: none; font-size: 11px;">Read original →</a>
         </div>
