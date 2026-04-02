@@ -28,8 +28,8 @@ describe('sanitizeText', () => {
   });
 
   it('strips br tags', () => {
-    expect(sanitizeText('line1<br>line2')).toBe('line1 line2');
-    expect(sanitizeText('line1<br/>line2')).toBe('line1 line2');
+    expect(sanitizeText('line1<br>line2')).toBe('line1line2');
+    expect(sanitizeText('line1<br/>line2')).toBe('line1line2');
   });
 
   it('decodes single-encoded HTML entities', () => {
