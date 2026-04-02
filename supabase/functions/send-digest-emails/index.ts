@@ -150,7 +150,7 @@ function generateDigestEmailHtml(
   const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
   
   // Tracking URLs
-  const trackingBaseUrl = 'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/email-tracking';
+  const trackingBaseUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/email-tracking`;
   const trackingPixelUrl = `${trackingBaseUrl}?tid=${trackingId}&a=o`;
   
   // Helper to wrap links with click tracking
