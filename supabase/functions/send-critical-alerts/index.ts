@@ -110,10 +110,10 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <h3 style="margin: 0 0 8px 0; color: #f3f4f6;">
-          <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(article.title)}</a>
+          <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(stripHtml(article.title))}</a>
         </h3>
         <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">
-          ${escapeHtml(article.summary || 'Click to read more...')}
+          ${escapeHtml(stripHtml(article.summary) || 'Click to read more...')}
         </p>
         <div style="margin-top: 8px;">
           ${article.tags.slice(0, 5).map(tag => 
