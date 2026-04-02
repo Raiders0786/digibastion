@@ -1,89 +1,79 @@
 
 
-# Production Readiness Assessment & Hardening Plan
+# Plan: Critical Regression Test Suite
 
-## Current Health Status
+## Why This Matters
 
-- **Edge Functions**: All returning 200. RSS fetch, digest emails, cron monitor all operational.
-- **Database Linter**: Clean — no schema-level issues.
-- **Cron Jobs**: Running (cron job 25 observed), cron-monitor reports 100% success rate.
-- **Sanitization**: Fixed. Client-side safety net active in `useNewsArticles.ts`.
-- **Deep Linking**: Working — `?article=<id>` fetches and displays correctly.
+As the project scales, any code change could silently break the RSS pipeline, email delivery, sanitization, deep-linking, or security scoring — leaving users with stale data, broken emails, or raw HTML. A targeted test suite catches these before they reach production.
 
-## Issues Found (Priority Order)
+## What Gets Tested
 
-### 1. CRITICAL — Privilege Escalation on `user_roles` Table
-**Risk**: An authenticated user can INSERT a row into `user_roles` granting themselves `admin`. The only blocking policy targets `anon`, not `authenticated`. Once admin, they access API keys, cron config, and all admin-only data.
+We focus on the **6 most breakage-prone areas** — pure logic that can be unit-tested without live infrastructure:
 
-**Fix**: Add explicit blocking policies for INSERT, UPDATE, DELETE on `user_roles` for `authenticated` role.
+### 1. HTML Sanitization (highest regression risk)
+The `sanitizeText` function in `useNewsArticles.ts` and the `stripHtml` helpers in edge functions are the #1 source of past bugs. Tests cover:
+- Double-encoded entities (`&amp;lt;p&amp;gt;` → clean text)
+- Nested HTML tags (`<p><em>text</em></p>` → `text`)
+- Mixed CDATA + entities from Cisco/Debian feeds
+- Null/undefined inputs return empty string
+- Already-clean text passes through unchanged
 
-```sql
-CREATE POLICY "Block authenticated write on user_roles"
-  ON public.user_roles FOR INSERT TO authenticated
-  WITH CHECK (false);
+### 2. RSS Feed Parsing (`fetch-rss-news`)
+The XML parser is hand-rolled and fragile. Deno tests for:
+- Standard RSS 2.0 `<item>` extraction
+- Atom `<entry>` with `<link rel="alternate" href="..."/>` extraction
+- CDATA-wrapped descriptions
+- Missing title/link → item skipped (returns null)
+- `cleanSummary` strips "The post appeared first on..." boilerplate
 
-CREATE POLICY "Block authenticated update on user_roles"
-  ON public.user_roles FOR UPDATE TO authenticated
-  USING (false);
+### 3. Article Categorization & Severity
+Category assignment logic determines what subscribers see. Tests for:
+- Web3 signal words force `web3-security` category
+- Feed-level category trusted when keyword weight < 6
+- Strong keyword match overrides generic feed category
+- CVE extraction from content (`CVE-2024-12345`)
+- Severity: "zero-day" → critical, "ransomware" → high, "advisory" → medium
 
-CREATE POLICY "Block authenticated delete on user_roles"
-  ON public.user_roles FOR DELETE TO authenticated
-  USING (false);
-```
+### 4. News Cache (offline resilience)
+Cache prevents blank pages during outages. Tests for:
+- `buildFilterKey` produces stable, deterministic keys
+- `saveToCache` / `loadFromCache` round-trip correctly
+- Different filters produce different cache keys
+- Stats cache saves/loads independently
 
-### 2. HIGH — `email_analytics_daily` Has No RLS Policies
-**Risk**: This view/table has RLS enabled but zero policies. While Postgres defaults to deny, the posture is ambiguous and flagged by security scans.
+### 5. Security Scoring
+The checklist scoring engine drives the main dashboard. Tests for:
+- `calculatePercentage` handles zero total (no NaN)
+- `getRelevantItems` filters by threat level correctly
+- `calculateSecurityStats` aggregates across categories
 
-**Fix**: Add explicit block + admin read policies.
+### 6. Deep-Link Share URL
+The share handler must always include the article ID. Test for:
+- Share URL contains `?article=<id>` parameter
+- URL uses production domain `digibastion.com`
 
-```sql
-CREATE POLICY "Block public access to email_analytics_daily"
-  ON public.email_analytics_daily FOR ALL TO anon, authenticated
-  USING (false) WITH CHECK (false);
+## Files Created
 
-CREATE POLICY "Service role can manage email_analytics_daily"
-  ON public.email_analytics_daily FOR ALL TO service_role
-  USING (true) WITH CHECK (true);
-```
+| File | What it tests |
+|------|--------------|
+| `src/utils/__tests__/sanitize.test.ts` | `sanitizeText` function (extracted for testability) |
+| `src/utils/__tests__/newsCache.test.ts` | Cache build/save/load logic |
+| `src/utils/__tests__/scoringUtils.test.ts` | Security score calculations |
+| `supabase/functions/fetch-rss-news/index_test.ts` | RSS parsing, categorization, severity, stripHtml |
+| `supabase/functions/send-digest-emails/index_test.ts` | Digest email stripHtml sanitization |
+| `supabase/functions/send-critical-alerts/index_test.ts` | Alert email stripHtml sanitization |
 
-### 3. MEDIUM — Deep-Link Article Fetch Bypasses Client Sanitization
-When a deep-linked article is loaded directly in `News.tsx` (lines 111-136), the data is mapped manually without calling `sanitizeText()`. Dirty DB rows would render raw HTML.
+## Technical Approach
 
-**Fix**: Apply `sanitizeText` to the direct-fetch path in `News.tsx` (title, summary, content fields in the `setSelectedArticle` call).
+1. **Extract `sanitizeText`** from `useNewsArticles.ts` into `src/utils/sanitize.ts` so it can be imported by both the hook and tests without React dependencies.
 
-### 4. MEDIUM — Digest Email Content Not Sanitized
-`send-digest-emails` renders `article.summary` via `escapeHtml()` which handles `<>&"'` but does NOT strip decoded HTML entities or double-encoded tags. If a dirty article exists, the email shows raw tags.
+2. **Frontend tests** use the existing Vitest + jsdom setup. No new dependencies needed.
 
-**Fix**: Add a `stripHtml` helper to `send-digest-emails/index.ts` (same loop pattern as `fetch-rss-news`) and apply to `article.title` and `article.summary` before rendering.
+3. **Edge function tests** use Deno's built-in `Deno.test()` with assertions from `std/assert`. They test the pure functions (parsing, categorization, sanitization) without hitting the network.
 
-### 5. MEDIUM — `send-critical-alerts` Same Sanitization Gap
-Same issue as #4 — `escapeHtml` only, no stripping of decoded entities.
+4. **All tests are pure unit tests** — no database, no network, no mocking Supabase. This makes them fast and reliable in CI.
 
-**Fix**: Add same `stripHtml` helper.
+## Outcome
 
-### 6. LOW — Cron Auth Resilience
-The `app_config` table approach works, but if the row is accidentally deleted, all cron jobs fail silently (empty Bearer token). There's no monitoring for this specific failure mode.
-
-**Fix**: Add a check in `get_cron_auth_headers()` that raises a warning/notice when `secret_val` is NULL after both lookups, so it appears in Postgres logs.
-
-### 7. LOW — Hardcoded Supabase URL in Email Functions
-`send-digest-emails` (line 136, 677) and `send-critical-alerts` hardcode `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/...` instead of using `Deno.env.get('SUPABASE_URL')`. If the project ref ever changes, emails break.
-
-**Fix**: Replace hardcoded URLs with `${Deno.env.get('SUPABASE_URL')}/functions/v1/...`.
-
----
-
-## Summary of Changes
-
-| # | Severity | File(s) | Change |
-|---|----------|---------|--------|
-| 1 | CRITICAL | DB migration | Block auth write on `user_roles` |
-| 2 | HIGH | DB migration | Add RLS policies to `email_analytics_daily` |
-| 3 | MEDIUM | `src/pages/News.tsx` | Apply `sanitizeText` to deep-link fetch |
-| 4 | MEDIUM | `supabase/functions/send-digest-emails/index.ts` | Add `stripHtml` helper for article content |
-| 5 | MEDIUM | `supabase/functions/send-critical-alerts/index.ts` | Add `stripHtml` helper for article content |
-| 6 | LOW | DB migration | Add NULL warning in `get_cron_auth_headers()` |
-| 7 | LOW | `send-digest-emails`, `send-critical-alerts` | Replace hardcoded Supabase URLs with env var |
-
-All changes are backward-compatible. No new tables or routes needed.
+~30 focused test cases covering the exact logic that has broken in the past. Any future change to sanitization, RSS parsing, categorization, caching, or scoring will be caught before deployment.
 
