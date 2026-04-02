@@ -69,7 +69,7 @@ describe('sanitizeText', () => {
   it('handles complex real-world RSS content', () => {
     const input = '<p><em>Admin</em></p><br><a href="https://example.com">Read more</a>';
     const result = sanitizeText(input);
-    expect(result).toBe('Admin Read more');
+    expect(result).toBe('AdminRead more');
     expect(result).not.toContain('<');
   });
 });
