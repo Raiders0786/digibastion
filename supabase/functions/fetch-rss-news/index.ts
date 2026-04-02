@@ -307,8 +307,8 @@ serve(async (req) => {
         global: { headers: { Authorization: authHeader } }
       });
       const token = authHeader.replace('Bearer ', '');
-      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-      if (!claimsError && claimsData?.claims?.sub) {
+      const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+      if (!authError && user) {
         authorized = true;
       }
     } catch (e) {
