@@ -222,3 +222,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   <a href="ROADMAP.md"><strong>📋 Roadmap</strong></a> • 
   <a href="https://t.me/digibastion"><strong>💬 Community</strong></a>
 </p>
+
+---
+
+## 🌱 Support DigiBastion on Giveth
+
+DigiBastion is a public good, free and open-source forever. If you believe in what we're building, support us through our Giveth grant:
+
+👉 **[Support DigiBastion on Giveth](https://giveth.io/project/digibastion:-dns-opsec-supply-chain-security)**
+
+Your donation helps sustain:
+
+- Live DNS & domain security scanning across 50+ Ethereum protocols
+- Real-time threat intelligence feeds
+- Supply chain & JS integrity monitoring
+- Open-source tooling for the entire ecosystem
+
+100% of funds go directly to development, infrastructure, and research.

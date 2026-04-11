@@ -31,6 +31,18 @@ export const Footer = () => {
               <Heart className="h-4 w-4" />
               Support Us
             </Link>
+            
+            <a
+              href="https://giveth.io/project/digibastion:-dns-opsec-supply-chain-security"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50
+                transition-all duration-200"
+            >
+              <Heart className="h-4 w-4" />
+              Giveth
+            </a>
           </div>
           
           {/* Divider */}
