@@ -98,6 +98,21 @@ const Support = () => {
                 Financial contributions are just one way to support our mission. Here are other meaningful ways you can help:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+                <div className="bg-card/30 p-6 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 cursor-pointer group"
+                  onClick={() => window.open('https://giveth.io/project/digibastion:-dns-opsec-supply-chain-security', '_blank')}>
+                  <h3 className="text-lg font-medium mb-3 group-hover:text-primary transition-colors">🌱 Support on Giveth</h3>
+                  <p className="text-foreground-secondary text-sm mb-4">
+                    DigiBastion is a public good — free and open-source forever. Donate through our Giveth grant to help sustain live DNS scanning, threat intel feeds, and open-source tooling. 100% of funds go to development and infrastructure.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full group-hover:bg-primary/20 transition-all"
+                  >
+                    Donate on Giveth
+                  </Button>
+                </div>
+
                 <div className="bg-card/30 p-6 rounded-lg border border-white/10 hover:bg-card/50 transition-all duration-300 cursor-pointer group" 
                   onClick={() => window.open('https://github.com/Raiders0786/digibastion', '_blank')}>
                   <h3 className="text-lg font-medium mb-3 group-hover:text-primary transition-colors">Contribute Code</h3>
