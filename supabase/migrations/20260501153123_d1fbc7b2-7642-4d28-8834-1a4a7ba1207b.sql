@@ -1,0 +1,1 @@
+DELETE FROM public.quiz_scores WHERE id = 'abebc6bf-c0fd-41df-a48c-d4544c0b5f2b' AND username = 'karmaticacid';
