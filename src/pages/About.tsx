@@ -147,9 +147,9 @@ const About = () => {
                   <div className="flex flex-col h-full">
                     <div className="mb-4">
                       <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Ridham Bhagat</h3>
-                      <p className="text-xs text-primary mb-2">DNS Security Scanner</p>
+                      <p className="text-xs text-primary mb-2">Contributor — DNS Module Research</p>
                       <p className="text-muted-foreground text-xs">
-                        Core contributor specializing in DNS security scanning and network analysis tools.
+                        Contributes to research on the DNS &amp; domain security module and network analysis tooling.
                       </p>
                     </div>
                     <div className="mt-auto pt-3 flex items-center gap-2">
@@ -175,6 +175,9 @@ const About = () => {
                       <p className="text-xs text-primary mb-2">OpSec Guru</p>
                       <p className="text-muted-foreground text-xs">
                         Security expert specializing in operational security practices and threat mitigation.
+                      </p>
+                      <p className="text-muted-foreground text-[11px] mt-2">
+                        Also co-delivers our paid <a href="/services/opsec-consulting" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>OpSec consulting engagements</a>.
                       </p>
                     </div>
                     <div className="mt-auto pt-3 flex items-center gap-2">
