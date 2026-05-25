@@ -138,7 +138,7 @@ export const MobileBottomNav = () => {
                 {item.badge !== undefined && (
                   <NotificationBadge 
                     count={typeof item.badge === 'number' ? item.badge : undefined}
-                    showDot={item.badge === 'dot'}
+                    showDot={(item.badge as unknown) === 'dot'}
                     pulse
                   />
                 )}
