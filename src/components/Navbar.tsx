@@ -81,7 +81,7 @@ export const Navbar = () => {
 
   const resourceItems = [
     { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
-    { route: '/services', icon: Briefcase, label: 'Services' },
+    { route: '/quiz', icon: Zap, label: 'OpSec Quiz' },
     { route: '/tools', icon: Wrench, label: 'Tools' },
     { route: '/articles', icon: Book, label: 'Articles' },
     { route: '/links', icon: Link, label: 'Useful Links' },
@@ -173,14 +173,14 @@ export const Navbar = () => {
               </NavigationMenuList>
             </NavigationMenu>
 
-            {/* OpSec Quiz */}
+            {/* Services */}
             <button
-              onClick={() => navigate('/quiz')}
+              onClick={() => navigate('/services')}
               className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
                 transition-colors rounded-lg hover:bg-muted/50"
             >
-              <Zap className="w-4 h-4" />
-              <span>Quiz</span>
+              <Briefcase className="w-4 h-4" />
+              <span>Services</span>
             </button>
 
             {/* Threat Intel */}

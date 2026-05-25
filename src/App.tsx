@@ -37,6 +37,7 @@ import AdminApiKeys from "./pages/AdminApiKeys";
 import Present from "./pages/Present";
 import Services from "./pages/Services";
 import OpsecConsulting from "./pages/services/OpsecConsulting";
+import FullStackReview from "./pages/services/FullStackReview";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ const App = () => {
                     <Route path="/support" element={<><MetaTags /><Support /></>} />
                     <Route path="/services" element={<><MetaTags /><Services /></>} />
                     <Route path="/services/opsec-consulting" element={<><MetaTags /><OpsecConsulting /></>} />
+                    <Route path="/services/full-stack-review" element={<><MetaTags /><FullStackReview /></>} />
                     <Route path="/manage-subscription" element={<ManageSubscription />} />
                     <Route path="/unsubscribe" element={<ManageSubscription />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />

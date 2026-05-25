@@ -82,7 +82,7 @@ export const MobileBottomNav = () => {
 
   const resourceItems = [
     { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
-    { route: '/services', icon: Briefcase, label: 'Services' },
+    { route: '/quiz', icon: Zap, label: 'OpSec Quiz' },
     { route: '/tools', icon: Wrench, label: 'Tools' },
     { route: '/articles', icon: Book, label: 'Articles' },
     { route: '/links', icon: Link, label: 'Useful Links' },
@@ -95,7 +95,7 @@ export const MobileBottomNav = () => {
 
   const navItems = [
     { route: '/', icon: Home, label: 'Home', badge: undefined },
-    { route: '/quiz', icon: Zap, label: 'Quiz', badge: hasNewQuiz ? 'dot' : undefined },
+    { route: '/services', icon: Briefcase, label: 'Services', badge: undefined },
     { route: '/threat-intel', icon: Newspaper, label: 'Alerts', badge: alertCount > 0 ? alertCount : undefined },
   ];
 
