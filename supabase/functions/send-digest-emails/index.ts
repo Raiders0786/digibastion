@@ -379,11 +379,17 @@ serve(async (req) => {
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const authClient = createClient(supabaseUrl, supabaseAnonKey);
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error } = await authClient.auth.getUser(token);
       if (user && !error) {
-        isAuthorized = true;
+        // Require admin role — non-admins must NOT trigger bulk email
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: roleData } = await adminClient
+          .from('user_roles').select('role')
+          .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+        if (roleData) isAuthorized = true;
       }
     } catch {
       // JWT validation failed

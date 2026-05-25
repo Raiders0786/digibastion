@@ -90,6 +90,40 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: require CRON_SECRET, service role, or admin JWT
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const authHeader = req.headers.get('authorization');
+  let authorized = false;
+  const supabaseUrlEnv = Deno.env.get('SUPABASE_URL')!;
+  const serviceKeyEnv = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    authorized = true;
+  } else if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.replace('Bearer ', '');
+    if (token === serviceKeyEnv) {
+      authorized = true;
+    } else {
+      try {
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const authClient = createClient(supabaseUrlEnv, anonKey);
+        const { data: { user } } = await authClient.auth.getUser(token);
+        if (user) {
+          const admin = createClient(supabaseUrlEnv, serviceKeyEnv);
+          const { data: roleData } = await admin
+            .from('user_roles').select('role')
+            .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+          if (roleData) authorized = true;
+        }
+      } catch (_) { /* deny */ }
+    }
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     console.log('[summarize-article] Starting summarization...');
 
