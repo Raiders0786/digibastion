@@ -12,8 +12,8 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="About Digibastion — Open-Source Web3 Security Platform | Ethereum ESP 2025"
-        description="Learn about Digibastion's mission to make Web3 safer. Open-source platform backed by Ethereum Foundation ESP 2025 grant. Built by security researchers for the crypto community."
+        title="About Digibastion — Open-Source Web3 Security"
+        description="Digibastion's mission: make Web3 safer. Open-source platform backed by Ethereum Foundation ESP 2025, built by security researchers for the crypto community."
         keywords="digibastion about, web3 security platform, ethereum foundation grant, open source security, crypto security community, blockchain security project"
       />
       <Navbar />
