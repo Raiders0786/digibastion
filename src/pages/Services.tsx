@@ -69,8 +69,8 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Security Services — Web3 OpSec, DNS Monitoring & Threat Intel | DigiBastion"
-        description="Paid security services from the team behind DigiBastion: Web3 OpSec consulting, DNS & domain monitoring, and threat intelligence retainers. Open-source platform, named researchers, ESP 2025 grant recipient."
+        title="Security Services: Web3 OpSec, DNS Monitoring & Threat Intel | DigiBastion"
+        description="The paid work behind DigiBastion. Web3 OpSec consulting, DNS and domain monitoring, and threat intel retainers, delivered by the same people who build the open-source platform."
         keywords="web3 security services, opsec consulting, dns monitoring, threat intelligence, crypto security audit, digibastion services"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -152,7 +152,7 @@ const Services = () => {
                         <p className="text-muted-foreground max-w-2xl leading-relaxed">{s.summary}</p>
                         <ul className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs text-muted-foreground/90">
                           {s.bullets.map((b) => (
-                            <li key={b} className="before:content-['—'] before:mr-2 before:text-primary/60">
+                            <li key={b} className="before:content-['+'] before:mr-2 before:text-primary/60">
                               {b}
                             </li>
                           ))}
