@@ -12,10 +12,45 @@ const Tools = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Best Web3 Security Tools 2025 — Smart Contract Auditing, Wallet Security | Digibastion"
-        description="Curated collection of 30+ essential Web3 security tools. Find smart contract auditors, wallet analyzers, transaction simulators, and blockchain security scanners. All vetted by security researchers."
+        title="Best Web3 Security Tools 2026 | Digibastion"
+        description="Curated 30+ Web3 security tools: smart-contract auditors, wallet analyzers, transaction simulators, and blockchain scanners. Vetted by security researchers."
         keywords="web3 security tools, smart contract auditing tools, wallet security tools, blockchain security scanner, defi security tools, crypto security software, transaction simulator"
         image="https://www.digibastion.com/og-tools.png"
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": "Web3 Security Tools Directory",
+            "description":
+              "Curated collection of Web3 security tools across smart contracts, wallets, monitoring, and analysis.",
+            "url": "https://www.digibastion.com/tools",
+            "mainEntity": {
+              "@type": "ItemList",
+              "name": "Web3 Security Tools",
+              "numberOfItems": toolCategories.reduce(
+                (sum, c) => sum + (c.tools?.length || 0),
+                0,
+              ),
+              "itemListElement": toolCategories.flatMap((cat, ci) =>
+                (cat.tools || []).map((t, ti) => ({
+                  "@type": "ListItem",
+                  "position": ci * 100 + ti + 1,
+                  "item": {
+                    "@type": "SoftwareApplication",
+                    "name": t.name,
+                    "applicationCategory": "SecurityApplication",
+                    "operatingSystem": "Web",
+                    "url": t.link,
+                    "description": t.description,
+                  },
+                })),
+              ),
+            },
+          }),
+        }}
       />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
