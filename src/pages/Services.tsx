@@ -82,7 +82,7 @@ const Services = () => {
             <div className="grid lg:grid-cols-[1fr_auto] gap-10 lg:gap-16 items-end">
               <div>
                 <p className="text-[11px] font-mono tracking-[0.18em] uppercase text-primary mb-6">
-                  Services · Now booking
+                  Services · Taking on a few clients
                 </p>
                 <h1 className="font-display font-normal text-[2.75rem] leading-[1.05] sm:text-6xl lg:text-7xl text-foreground tracking-tight mb-6">
                   The security work most teams keep{' '}
