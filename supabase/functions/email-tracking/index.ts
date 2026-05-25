@@ -7,6 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
+// Security: Allowlist for click-tracking redirects (prevents open redirect abuse)
+const ALLOWED_REDIRECT_HOSTS = [
+  'digibastion.com',
+  'www.digibastion.com',
+  'digibastion.lovable.app',
+  'sdszjqltoheqhfkeprrd.supabase.co',
+];
+
 // 1x1 transparent GIF for tracking pixel
 const TRACKING_PIXEL = new Uint8Array([
   0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00,
@@ -159,7 +167,20 @@ serve(async (req) => {
         if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
           throw new Error("Invalid protocol");
         }
-        
+        const hostname = targetUrl.hostname.toLowerCase();
+        const allowed = ALLOWED_REDIRECT_HOSTS.some(
+          (h) => hostname === h || hostname.endsWith(`.${h}`)
+        );
+        if (!allowed) {
+          console.warn("[email-tracking] Blocked off-domain redirect:", hostname);
+          return new Response(TRACKING_PIXEL, {
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "image/gif",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+            },
+          });
+        }
         return new Response(null, {
           status: 302,
           headers: {

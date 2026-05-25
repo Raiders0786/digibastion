@@ -303,13 +303,18 @@ serve(async (req) => {
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const authClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } }
       });
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await authClient.auth.getUser(token);
       if (!authError && user) {
-        authorized = true;
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: roleData } = await adminClient
+          .from('user_roles').select('role')
+          .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+        if (roleData) authorized = true;
       }
     } catch (e) {
       console.error('[fetch-rss-news] Auth check failed:', e);

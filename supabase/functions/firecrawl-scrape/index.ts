@@ -72,11 +72,39 @@ serve(async (req) => {
   }
 
   try {
-    // Security: Require authorization header (service role or valid API key)
+    // Security: Require valid CRON_SECRET or authenticated admin user
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ success: false, error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    let authorized = false;
+    if (cronSecret && token === cronSecret) authorized = true;
+    if (!authorized && serviceKey && token === serviceKey) authorized = true;
+    if (!authorized) {
+      try {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const authClient = createClient(supabaseUrl, anonKey);
+        const { data: { user } } = await authClient.auth.getUser(token);
+        if (user) {
+          const admin = createClient(supabaseUrl, serviceKey!);
+          const { data: roleData } = await admin
+            .from('user_roles').select('role')
+            .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+          if (roleData) authorized = true;
+        }
+      } catch (_) { /* fall through */ }
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

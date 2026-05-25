@@ -476,6 +476,40 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: require CRON_SECRET or admin JWT
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const authHeader = req.headers.get('authorization');
+  let authorized = false;
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    authorized = true;
+  } else if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const token = authHeader.replace('Bearer ', '');
+      if (token === serviceKey) {
+        authorized = true;
+      } else {
+        const authClient = createClient(supabaseUrl, anonKey);
+        const { data: { user } } = await authClient.auth.getUser(token);
+        if (user) {
+          const admin = createClient(supabaseUrl, serviceKey);
+          const { data: roleData } = await admin
+            .from('user_roles').select('role')
+            .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+          if (roleData) authorized = true;
+        }
+      }
+    } catch (_) { /* deny */ }
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     console.log('[fetch-web3-incidents] Starting multi-source fetch...');
     
