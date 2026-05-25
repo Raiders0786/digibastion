@@ -20,8 +20,19 @@ const services = [
     to: '/services/opsec-consulting',
   },
   {
-    slug: 'dns-domain-monitoring',
+    slug: 'full-stack-review',
     eyebrow: '02',
+    title: 'Full-Stack Security Review',
+    status: 'Available now',
+    summary:
+      'A senior pair of eyes across your whole product: smart contracts, offchain services, the dApp itself, cloud, identity, and the controls your enterprise buyers and chain foundations will eventually ask for.',
+    bullets: ['Contracts, APIs, and cloud in one engagement', 'Findings ranked by what actually hurts', 'A working session, not a PDF you file away'],
+    available: true,
+    to: '/services/full-stack-review',
+  },
+  {
+    slug: 'dns-domain-monitoring',
+    eyebrow: '03',
     title: 'DNS & Domain Monitoring',
     status: 'Coming soon',
     summary:
@@ -32,7 +43,7 @@ const services = [
   },
   {
     slug: 'threat-intel-retainer',
-    eyebrow: '03',
+    eyebrow: '04',
     title: 'Threat Intel Retainer',
     status: 'Coming soon',
     summary:
@@ -122,7 +133,7 @@ const Services = () => {
             <div className="flex items-baseline justify-between mb-10">
               <h2 className="font-display font-normal text-3xl sm:text-4xl text-foreground">What we work on</h2>
               <span className="text-[11px] font-mono tracking-[0.18em] uppercase text-muted-foreground hidden sm:block">
-                Three things, done properly
+                Four engagements, two open now
               </span>
             </div>
             <ul className="divide-y divide-border/60 border-y border-border/60">
