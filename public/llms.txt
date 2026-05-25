@@ -1,0 +1,43 @@
+# Digibastion
+
+> Free, open-source Web3 security platform with real-time threat intelligence, OpSec assessments, security checklists, and crypto wallet protection. Backed by an Ethereum Foundation ESP 2025 grant.
+
+Digibastion helps crypto users, developers, and DAOs defend against phishing, wallet drains, smart-contract exploits, supply-chain attacks, and social engineering. The platform is 100% free, open source, and requires no account.
+
+## Pages
+
+- [Home](/): Platform overview and security presets for new visitors.
+- [About](/about): Mission, team, funding (Ethereum Foundation ESP 2025), and methodology.
+- [Threat Intelligence Feed](/threat-intel): Real-time Web3 and Web2 incident feed (July 2024 onward) with severity, category, and source attribution.
+- [News](/news): Curated security news and analysis.
+- [Articles](/articles): 50+ in-depth guides on wallet security, phishing prevention, DeFi risks, smart-contract auditing, and OpSec.
+- [Tools](/tools): Directory of vetted Web3 security tools (wallets, scanners, monitors, audit firms).
+- [Links](/links): Curated security resources across application, cloud, on-chain, smart-contract, and private-key categories.
+- [OpSec Quiz](/quiz): Interactive Satoshi-level OpSec assessment with HMAC-signed scoring.
+- [Leaderboard](/leaderboard): Top 100 quiz scores from the community.
+- [Services](/services): Paid engagements — OpSec consulting and full-stack security reviews.
+- [OpSec Consulting](/services/opsec-consulting): 1:1 OpSec hardening for individuals, founders, and treasuries.
+- [Full-Stack Security Review](/services/full-stack-review): Smart contracts, APIs, frontend, cloud, identity, and compliance review.
+- [Contact](/contact): Reach the team for support, partnerships, or research collaboration.
+- [Support](/support): Help center and donation options.
+- [Share](/share): Tools to share the platform with your community.
+
+## Security Categories
+
+- [OpSec](/category/opsec): 34-item Satoshi-level operational security checklist.
+- [Wallet Security](/category/wallet): Hardware wallets, seed phrase protection, hot vs cold storage.
+- [DeFi Security](/category/defi): Protocol risks, flash loans, oracle manipulation, bridge security.
+- [Developers](/category/developers): Secure Solidity practices, audit prep, fuzzing, formal verification.
+- [Authentication](/category/authentication): 2FA, SIM-swap prevention, password managers.
+- [Browsing](/category/browsing): Safe browsing, extension hygiene, phishing defense.
+- [Email](/category/email): Email security and anti-phishing practices.
+- [Social](/category/social): Social engineering defense across Discord, Telegram, X.
+- [OS](/category/os): Operating system hardening for crypto users.
+- [Mobile](/category/mobile): Mobile device security for wallet apps.
+- [Jobs](/category/jobs): Crypto job-scam recognition and developer interview safety.
+
+## Optional
+
+- [License](/license): Open-source license (MIT) terms.
+- [Roadmap](https://github.com/Raiders0786/digibastion/blob/main/ROADMAP.md): Public roadmap on GitHub.
+- [GitHub](https://github.com/Raiders0786/digibastion): Source code and contributions.
