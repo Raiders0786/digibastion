@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
-  Shield, Calendar, ArrowRight, CheckCircle2, Twitter, Github, Link as LinkIcon,
+  Shield, Calendar, ArrowRight, CheckCircle2, Twitter, Github,
   AlertTriangle, Cpu, KeyRound, Eye, Star, Mail,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';

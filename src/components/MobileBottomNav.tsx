@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { ChevronDown, Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share } from 'lucide-react';
+import { ChevronDown, Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { SwipeableBottomSheet } from './mobile/SwipeableBottomSheet';
 import { TouchFeedback } from './mobile/TouchFeedback';
@@ -82,6 +82,7 @@ export const MobileBottomNav = () => {
 
   const resourceItems = [
     { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
+    { route: '/services', icon: Briefcase, label: 'Services' },
     { route: '/tools', icon: Wrench, label: 'Tools' },
     { route: '/articles', icon: Book, label: 'Articles' },
     { route: '/links', icon: Link, label: 'Useful Links' },

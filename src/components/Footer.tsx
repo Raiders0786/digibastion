@@ -1,4 +1,4 @@
-import { Github, Copyright, Twitter, ExternalLink, MessageSquare, Heart } from 'lucide-react';
+import { Github, Copyright, Twitter, ExternalLink, MessageSquare, Heart, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => {
@@ -43,6 +43,16 @@ export const Footer = () => {
               <Heart className="h-4 w-4" />
               Giveth
             </a>
+
+            <Link
+              to="/services"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50
+                transition-all duration-200"
+            >
+              <Briefcase className="h-4 w-4" />
+              Services
+            </Link>
           </div>
           
           {/* Divider */}

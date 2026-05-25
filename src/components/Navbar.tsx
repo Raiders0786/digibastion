@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap, Menu, X } from 'lucide-react';
+import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap, Menu, X, Briefcase } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -81,6 +81,7 @@ export const Navbar = () => {
 
   const resourceItems = [
     { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
+    { route: '/services', icon: Briefcase, label: 'Services' },
     { route: '/tools', icon: Wrench, label: 'Tools' },
     { route: '/articles', icon: Book, label: 'Articles' },
     { route: '/links', icon: Link, label: 'Useful Links' },

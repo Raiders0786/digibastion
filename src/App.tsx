@@ -35,6 +35,8 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import CronMonitor from "./pages/CronMonitor";
 import AdminApiKeys from "./pages/AdminApiKeys";
 import Present from "./pages/Present";
+import Services from "./pages/Services";
+import OpsecConsulting from "./pages/services/OpsecConsulting";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +76,8 @@ const App = () => {
                     <Route path="/links" element={<><MetaTags /><Links /></>} />
                     <Route path="/contact" element={<><MetaTags /><Contact /></>} />
                     <Route path="/support" element={<><MetaTags /><Support /></>} />
+                    <Route path="/services" element={<><MetaTags /><Services /></>} />
+                    <Route path="/services/opsec-consulting" element={<><MetaTags /><OpsecConsulting /></>} />
                     <Route path="/manage-subscription" element={<ManageSubscription />} />
                     <Route path="/unsubscribe" element={<ManageSubscription />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
