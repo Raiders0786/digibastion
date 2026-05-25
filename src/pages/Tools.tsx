@@ -1,5 +1,4 @@
 import { Shield, Github } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
@@ -18,34 +17,41 @@ const Tools = () => {
         keywords="web3 security tools, smart contract auditing tools, wallet security tools, blockchain security scanner, defi security tools, crypto security software, transaction simulator"
         image="https://www.digibastion.com/og-tools.png"
       />
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          "name": "Web3 Security Tools Directory",
-          "description": "Curated collection of Web3 security tools across smart contracts, wallets, monitoring, and analysis.",
-          "url": "https://www.digibastion.com/tools",
-          "mainEntity": {
-            "@type": "ItemList",
-            "name": "Web3 Security Tools",
-            "numberOfItems": toolCategories.reduce((sum, c) => sum + (c.tools?.length || 0), 0),
-            "itemListElement": toolCategories.flatMap((cat, ci) =>
-              (cat.tools || []).map((t, ti) => ({
-                "@type": "ListItem",
-                "position": ci * 100 + ti + 1,
-                "item": {
-                  "@type": "SoftwareApplication",
-                  "name": t.name,
-                  "applicationCategory": "SecurityApplication",
-                  "operatingSystem": "Web",
-                  "url": t.url,
-                  "description": t.description,
-                },
-              })),
-            ),
-          },
-        })}</script>
-      </Helmet>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": "Web3 Security Tools Directory",
+            "description":
+              "Curated collection of Web3 security tools across smart contracts, wallets, monitoring, and analysis.",
+            "url": "https://www.digibastion.com/tools",
+            "mainEntity": {
+              "@type": "ItemList",
+              "name": "Web3 Security Tools",
+              "numberOfItems": toolCategories.reduce(
+                (sum, c) => sum + (c.tools?.length || 0),
+                0,
+              ),
+              "itemListElement": toolCategories.flatMap((cat, ci) =>
+                (cat.tools || []).map((t, ti) => ({
+                  "@type": "ListItem",
+                  "position": ci * 100 + ti + 1,
+                  "item": {
+                    "@type": "SoftwareApplication",
+                    "name": t.name,
+                    "applicationCategory": "SecurityApplication",
+                    "operatingSystem": "Web",
+                    "url": t.link,
+                    "description": t.description,
+                  },
+                })),
+              ),
+            },
+          }),
+        }}
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
