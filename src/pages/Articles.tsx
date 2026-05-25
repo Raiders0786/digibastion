@@ -85,8 +85,8 @@ const Articles = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Web3 Security Guides & Articles — Crypto OpSec, Wallet Security, DeFi Safety | Digibastion"
-        description={`${articlesMeta.length}+ expert guides on Web3 security: wallet protection, phishing prevention, DeFi safety, smart contract audits, and OpSec best practices. Free resources for crypto users, developers, and protocols.`}
+        title="Web3 Security Guides & Articles | Digibastion"
+        description={`${articlesMeta.length}+ expert guides: wallet protection, phishing prevention, DeFi safety, smart-contract audits, and OpSec best practices. Free for crypto users and developers.`}
         keywords="web3 security articles, crypto security guides, blockchain security tutorials, defi security tips, wallet security best practices, opsec for crypto, hardware wallet comparison, phishing prevention, smart contract security, rug pull detection"
       />
       
