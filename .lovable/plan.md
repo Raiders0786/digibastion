@@ -1,113 +1,74 @@
-## Goal
-Add a legitimate, SEO-optimized **Services** section to digibastion.com so Qubes Forums (and other directories) can verify the paid OpSec consulting offering. Lead with one fully built service page — **OpSec Consulting** — co-delivered by Raiders + Cryptonian16, with a Cal.com booking CTA.
+ns# Services Pages — Design Refresh (CPO/CDO Pass)
 
-## Information architecture
+## Assessment of current state
 
-New routes:
-```
-/services                   → Services hub (overview of all offerings)
-/services/opsec-consulting  → Full OpSec service page (the flagship, P0)
-```
+What's working: structure, copy, SEO, JSON-LD, content density. The information is right.
 
-Navbar: add **Services** link (desktop nav + mobile bottom nav + hamburger).
-Footer: add a **Services** column linking to the hub and the OpSec page.
+What's underwhelming:
+- **Visual register is generic SaaS** — purple primary on cards, glow shadows, equal-weight everything. Reads like a template, not like a security firm you trust with your keys.
+- **No typographic hierarchy** — everything is Inter at similar weights. Hero h1 doesn't feel different from section h2. Nothing earns the eye.
+- **Cards are noisy** — `glass-card-hover`, gradient CTA panel, `shadow-glow` on the "popular" package, monospace `[ tags ]`, icons in colored chips. Three or four visual systems competing.
+- **Mobile**: hero h1 jumps from `text-3xl` to `text-5xl` with no `text-4xl` step → cramped on 375–414px. Hero CTAs wrap awkwardly. The 4-col process grid collapses to 2 on tablet but stays tight. Trust-pillar row on Services is fine but the breadcrumb + chip + h1 stack has no breathing room on small screens.
+- **No anchor moment** — nothing to remember. A visitor scrolls past and forgets which firm this was.
 
-Future-ready: hub is built as a grid so we can drop in `/services/dns-domain-monitoring`, `/services/threat-intel-retainer`, etc., later without restructuring.
+## Design direction: "Quiet authority"
 
-## Page 1 — `/services` (hub)
+The category cue should be **editorial security firm**, not crypto-startup. Think: long-form research site, lots of negative space, one accent used sparingly, typography doing the talking. Content frames the offer; design gets out of the way.
 
-Sections:
-1. **Hero** — "Security services for teams that can't afford to get hacked." Subhead positions DigiBastion as open-source first, with paid expert services on top.
-2. **Why work with us** — 3 trust pillars: Ethereum Foundation ESP grant recipient, open-source platform powering the work, named researchers (not anonymous).
-3. **Service cards grid** — OpSec Consulting (Available now), DNS & Domain Security Monitoring (Coming soon — links to scanner waitlist), Threat Intel Retainer (Coming soon).
-4. **How engagements work** — 4-step strip: Discovery call → Scoped assessment → Remediation report → Optional retainer.
-5. **CTA band** — "Book a free 30-min discovery call" → cal.com/raiders.
+### Tokens (scoped, no global changes)
 
-## Page 2 — `/services/opsec-consulting` (flagship, P0)
+- **Display font**: add `Instrument Serif` for h1/h2 only (already a curated pair we use elsewhere). Body stays Inter. Mono stays JetBrains for the `[ tag ]` rails.
+- **Accent**: keep the existing `--primary` purple — but use it *once or twice per section max* (a single underline, a single hairline border, the primary CTA). Remove glow shadows and gradient panels.
+- **Surfaces**: replace `glass-card-hover` everywhere with a flat `border border-border/60 bg-card/40` and a hairline hover state. No drop shadows on cards.
+- **Rhythm**: bump section spacing from `mb-16` to `mb-24 sm:mb-32`. Generous gutters.
 
-Structured to educate → build trust → convert.
+### Page-level moves
 
-1. **Hero**
-   - H1: "Web3 OpSec Consulting — Threat Modeling, Device Hardening, Qubes Pathway"
-   - Subhead positioning + dual CTAs: **Book a discovery call** (cal.com/raiders) + **Browse free OpSec checklist** (`/category/opsec`).
-   - Trust strip under hero: "ESP 2025 grant · Open-source · 50+ protocols monitored".
+**Hero (both pages)**
+- Two-column on `lg+`: left = eyebrow + serif h1 + lede + CTAs; right = a small "credentials strip" (ESP grant · open-source · named researchers) as a stacked vertical list with hairline dividers.
+- Mobile: single column. h1 ramp `text-4xl sm:text-5xl lg:text-6xl`, leading-tight, serif. CTAs full-width on `<sm`, inline on `sm+`.
+- Drop the rounded purple chip; use a small uppercase mono eyebrow instead (`OPSEC CONSULTING · NOW BOOKING`).
 
-2. **The threat landscape (May 2026)** — short, scannable cards referencing recent incidents pulled from our own threat intel categories (no fabricated stats). Themes:
-   - DPRK recruiter / fake-VC playbook still landing (LinkedIn / Telegram / fake meeting clients).
-   - Clipboard hijackers + infostealers on macOS with signed payloads.
-   - Unlimited token approvals & address-poisoning drains.
-   - Hardware wallet supply-chain & firmware concerns.
-   Each card ends with "How we address this in an engagement."
+**Threat landscape (OpSec)**
+- Convert from 2×2 colored cards to a **numbered editorial list** (`01 — DPRK recruiter playbook`) with the "How we address it" indented under a left hairline. Reads like a research dossier, not a feature grid.
 
-3. **What an engagement covers** — checklist-style: wallet & approval review, key storage & multisig posture, device & browser compartmentalization, Qubes OS pathway, phishing / social-engineering drills, incident response runbook.
+**What's covered**
+- Remove the outer card. Two-column checklist with thin dividers between rows. Lighter, scans faster.
 
-4. **Process** — 4 steps: Discovery (free 30 min) → Posture audit → Prioritized remediation report → Optional retainer / IR on call.
+**Process (both pages)**
+- Replace 4 cards with a **horizontal stepper** on desktop (numbers + connector line) and a vertical timeline on mobile. One visual, not four boxes.
 
-5. **Packages** — three tiers, all "Contact for quote" (no prices to keep flexibility):
-   - **Baseline Audit** — solo holders / small teams.
-   - **Full Posture Review** — funds, DAOs, founders. *Most popular.*
-   - **Advisory Retainer** — ongoing monitoring + incident response.
+**Packages**
+- Flatten the highlight: drop `shadow-glow` and the floating "MOST POPULAR" pill. Use a subtle `ring-1 ring-primary/30` and a small mono "RECOMMENDED" label inline with the package name. All three cards same weight.
 
-6. **Who you'll work with** — two profile cards, **Raiders first**, then **Cryptonian16**:
-   - **Raiders** — Founder, DigiBastion. Security researcher; builds the platform and leads engagements. Links: X (@__Raiders), GitHub.
-   - **Cryptonian16** — OpSec Guru. Security expert specializing in operational security practices and threat mitigation. Link: X (@SolenyaResearch).
-   Copy frames them as a small focused team ("We're a two-person OpSec team…").
+**Team**
+- Add monogram avatars (initials in a square, bordered, no fill) so the section has a human anchor without needing photos.
 
-7. **FAQ** (SEO + objection handling) — 6 Qs: NDA?, remote vs in-person, do you take custody of anything (no), Qubes required?, response time for retainer clients, refund policy.
+**FAQ**
+- Remove the wrapping Card; let the accordion sit on the page with hairline dividers between items. Cleaner.
 
-8. **Final CTA** — large band: "Book a free 30-minute discovery call" → cal.com/raiders, secondary "Email us" → `/contact`.
+**Final CTA**
+- Drop the gradient panel. Replace with a single centered serif line + button, framed by hairline rules top/bottom. Confident, not loud.
 
-## About page edits (`src/pages/About.tsx`)
+### Responsive QA pass
 
-- **Cryptonian16** card: keep as-is in Contributors, AND add a small note "Also delivers OpSec engagements with us — see /services/opsec-consulting".
-- **Ridham Bhagat** card: change role label from "DNS Security Scanner" subtitle wording to "Contributor — DNS module research". Description softened to "Contributes to research on the DNS & domain security module."
-- No other contributor changes.
+- Verify all sections at 360, 414, 768, 1024, 1280.
+- Ensure no horizontal overflow from the chip row, breadcrumb, or 4-col grids.
+- Mobile bottom-nav clearance already handled in Footer (`pb-20`); verify both new pages don't add to it.
 
-## SEO
+## Files to change
 
-- Per-page `MetaTags` with unique title/description/keywords:
-  - Services hub — title: "Security Services — Web3 OpSec, DNS Monitoring & Threat Intel | DigiBastion"
-  - OpSec page — title: "Web3 OpSec Consulting — Threat Modeling & Qubes Hardening | DigiBastion"
-- JSON-LD on the OpSec page:
-  - `Service` schema (provider = Organization DigiBastion, serviceType "Operational Security Consulting", areaServed Worldwide).
-  - `FAQPage` schema mirroring the FAQ section.
-  - `BreadcrumbList` Home → Services → OpSec Consulting.
-- Internal links: hub ↔ OpSec page ↔ `/category/opsec` ↔ `/threat-intel` ↔ `/articles`.
-- Add both new routes to `public/sitemap.xml`.
-- Canonical URLs via existing MetaTags utility (already supports `canonical`).
-- All Cal.com links: `rel="noopener noreferrer"`, `target="_blank"`, tracked with simple inline label (no extra analytics deps).
+- `src/index.css` — add Instrument Serif `@import`, add a `.font-display` utility (no token rename, no theme color changes).
+- `tailwind.config.ts` — add `display: ['Instrument Serif', 'serif']` to `fontFamily`.
+- `src/pages/Services.tsx` — full presentational rewrite per moves above.
+- `src/pages/services/OpsecConsulting.tsx` — full presentational rewrite per moves above. Copy and JSON-LD unchanged.
 
-## Navigation + entry points
+## Out of scope
 
-- `Navbar.tsx`: add "Services" between Tools and Threat Intel.
-- `MobileBottomNav.tsx`: add Services entry (or replace the lowest-priority slot — to confirm during build).
-- `Footer.tsx`: new **Services** column with links to hub + OpSec.
-- `Index.tsx`: add a small "Need expert help? See our services" link near the Security Presets area (one-line, non-intrusive).
+- Other pages (Index, About, News, etc.) — untouched.
+- New routes, new copy, pricing changes, business logic.
+- Backend, SEO content, sitemap.
 
-## Technical notes
+## Verification
 
-- New files:
-  - `src/pages/Services.tsx`
-  - `src/pages/services/OpsecConsulting.tsx`
-  - `src/data/services.ts` (typed array so future services are data-driven)
-  - `src/components/services/ServiceCard.tsx`
-  - `src/components/services/BookCallCTA.tsx` (reusable Cal.com button)
-- Routes added to `src/App.tsx` with `<MetaTags />` wrappers (matching existing pattern).
-- Cal.com link kept as a plain anchor for now (`https://cal.com/raiders`); we can swap to the Cal embed widget later if you want inline scheduling.
-- Use existing design tokens only (no new colors); follow the dark/light theme system already in place.
-- Wrap new pages in `ErrorBoundary` pattern already used elsewhere; declare hooks before any conditional returns.
-
-## Out of scope (call out for later)
-
-- Pricing display (kept as "Contact for quote" per the reference site model).
-- Cal.com inline embed (anchor link for now).
-- Stripe/Paddle for paid bookings (services are quote-based).
-- Additional service pages (DNS Monitoring, Threat Intel Retainer) — stubbed as "Coming soon" cards on the hub.
-
-## Acceptance
-
-- `/services` and `/services/opsec-consulting` render, are linked from Navbar + Footer, and appear in sitemap.
-- OpSec page lists Raiders first, then Cryptonian16, with correct bios + links.
-- About page reflects the Ridham wording change and the Cryptonian16 OpSec-team note.
-- Each new page has unique title/description; OpSec page ships Service + FAQ + Breadcrumb JSON-LD.
-- Qubes Forum reviewer visiting digibastion.com/services/opsec-consulting sees a clear, branded, in-domain advertisement of the paid OpSec offering.
+After build, open both routes at desktop and mobile viewports, screenshot and review for: typographic hierarchy, single-accent discipline, no overflow, generous spacing, and that the eye lands on the CTA without effort.
