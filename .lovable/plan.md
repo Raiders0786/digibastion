@@ -1,74 +1,49 @@
-ns# Services Pages — Design Refresh (CPO/CDO Pass)
+# Humanize Services Copy
 
-## Assessment of current state
+## Goal
+Rewrite all copy on `/services` and `/services/opsec-consulting` so it reads like a senior copywriter sat with Raiders and Cryptonian16 for an afternoon and wrote it. No em dashes. None of the AI tells: "your X. your Y. your Z.", "can't afford a mistake", "don't wait for a breach", "now booking", "secure the stack", "we hard­en your...", "we audit every...", parallel-construction triplets, vague "hands-on expert work".
 
-What's working: structure, copy, SEO, JSON-LD, content density. The information is right.
+## Voice
+First person plural where natural ("we", "us"). Specific verbs, concrete nouns. Short sentences mixed with one longer one per paragraph. Confident, not salesy. Honest about what we do and don't do. Punctuation: commas, periods, parentheses, the occasional colon. No em dashes anywhere. Hyphens are fine.
 
-What's underwhelming:
-- **Visual register is generic SaaS** — purple primary on cards, glow shadows, equal-weight everything. Reads like a template, not like a security firm you trust with your keys.
-- **No typographic hierarchy** — everything is Inter at similar weights. Hero h1 doesn't feel different from section h2. Nothing earns the eye.
-- **Cards are noisy** — `glass-card-hover`, gradient CTA panel, `shadow-glow` on the "popular" package, monospace `[ tags ]`, icons in colored chips. Three or four visual systems competing.
-- **Mobile**: hero h1 jumps from `text-3xl` to `text-5xl` with no `text-4xl` step → cramped on 375–414px. Hero CTAs wrap awkwardly. The 4-col process grid collapses to 2 on tablet but stays tight. Trust-pillar row on Services is fine but the breadcrumb + chip + h1 stack has no breathing room on small screens.
-- **No anchor moment** — nothing to remember. A visitor scrolls past and forgets which firm this was.
+## Scope of edits (copy only)
+Layout, components, fonts, design tokens, and JSON-LD stay exactly as they are. Only string literals change.
 
-## Design direction: "Quiet authority"
+### `src/pages/Services.tsx`
+- Hero eyebrow, h1, lede, button labels.
+- Service card titles, summaries, bullets.
+- "How engagements work" step titles + bodies.
+- Credentials list (right rail + mobile).
+- Final CTA eyebrow, h2, fineprint.
 
-The category cue should be **editorial security firm**, not crypto-startup. Think: long-form research site, lots of negative space, one accent used sparingly, typography doing the talking. Content frames the offer; design gets out of the way.
+### `src/pages/services/OpsecConsulting.tsx`
+- Hero eyebrow, h1, lede, button labels, right-rail credentials.
+- Threat-landscape intro + each of the four entries (title, body, "how we address it").
+- "What an engagement covers" bullets.
+- Process step titles + bodies.
+- Packages: names stay, descriptions and feature bullets get rewritten.
+- Team bios for Raiders and Cryptonian16.
+- FAQ questions and answers (tone pass, keep the substance).
+- Final CTA eyebrow, h2, fineprint.
 
-### Tokens (scoped, no global changes)
+## Examples of the new register
 
-- **Display font**: add `Instrument Serif` for h1/h2 only (already a curated pair we use elsewhere). Body stays Inter. Mono stays JetBrains for the `[ tag ]` rails.
-- **Accent**: keep the existing `--primary` purple — but use it *once or twice per section max* (a single underline, a single hairline border, the primary CTA). Remove glow shadows and gradient panels.
-- **Surfaces**: replace `glass-card-hover` everywhere with a flat `border border-border/60 bg-card/40` and a hairline hover state. No drop shadows on cards.
-- **Rhythm**: bump section spacing from `mb-16` to `mb-24 sm:mb-32`. Generous gutters.
+Hero (Services), instead of "Security work for teams that can't afford a mistake":
+> "We do the security work most teams put off until something goes wrong."
+> Lede: "DigiBastion is free and open source. If you'd rather have someone who lives in this stuff sit down with you and actually do the review, that's what these engagements are for."
 
-### Page-level moves
+OpSec hero, instead of "Your keys. Your coins. Your sovereignty.":
+> "OpSec for people who already know what's at stake."
+> Lede: "Most founders and holders we work with don't need to be told the risks. They want a quiet afternoon with someone who can look at their setup and tell them what to change first."
 
-**Hero (both pages)**
-- Two-column on `lg+`: left = eyebrow + serif h1 + lede + CTAs; right = a small "credentials strip" (ESP grant · open-source · named researchers) as a stacked vertical list with hairline dividers.
-- Mobile: single column. h1 ramp `text-4xl sm:text-5xl lg:text-6xl`, leading-tight, serif. CTAs full-width on `<sm`, inline on `sm+`.
-- Drop the rounded purple chip; use a small uppercase mono eyebrow instead (`OPSEC CONSULTING · NOW BOOKING`).
+Threat entry, instead of "We harden your inbound-contact workflow...":
+> "How we deal with it: we put a second-channel check on every cold inbound, move first-time calls into a throwaway VM, and make a rule that you never install a meeting client you didn't already have."
 
-**Threat landscape (OpSec)**
-- Convert from 2×2 colored cards to a **numbered editorial list** (`01 — DPRK recruiter playbook`) with the "How we address it" indented under a left hairline. Reads like a research dossier, not a feature grid.
-
-**What's covered**
-- Remove the outer card. Two-column checklist with thin dividers between rows. Lighter, scans faster.
-
-**Process (both pages)**
-- Replace 4 cards with a **horizontal stepper** on desktop (numbers + connector line) and a vertical timeline on mobile. One visual, not four boxes.
-
-**Packages**
-- Flatten the highlight: drop `shadow-glow` and the floating "MOST POPULAR" pill. Use a subtle `ring-1 ring-primary/30` and a small mono "RECOMMENDED" label inline with the package name. All three cards same weight.
-
-**Team**
-- Add monogram avatars (initials in a square, bordered, no fill) so the section has a human anchor without needing photos.
-
-**FAQ**
-- Remove the wrapping Card; let the accordion sit on the page with hairline dividers between items. Cleaner.
-
-**Final CTA**
-- Drop the gradient panel. Replace with a single centered serif line + button, framed by hairline rules top/bottom. Confident, not loud.
-
-### Responsive QA pass
-
-- Verify all sections at 360, 414, 768, 1024, 1280.
-- Ensure no horizontal overflow from the chip row, breadcrumb, or 4-col grids.
-- Mobile bottom-nav clearance already handled in Footer (`pb-20`); verify both new pages don't add to it.
-
-## Files to change
-
-- `src/index.css` — add Instrument Serif `@import`, add a `.font-display` utility (no token rename, no theme color changes).
-- `tailwind.config.ts` — add `display: ['Instrument Serif', 'serif']` to `fontFamily`.
-- `src/pages/Services.tsx` — full presentational rewrite per moves above.
-- `src/pages/services/OpsecConsulting.tsx` — full presentational rewrite per moves above. Copy and JSON-LD unchanged.
+CTA, instead of "Don't wait for a breach to find out what was missing":
+> "If something here lands, book a call. Thirty minutes, no pitch, and you'll know within the first ten whether we're useful to you."
 
 ## Out of scope
-
-- Other pages (Index, About, News, etc.) — untouched.
-- New routes, new copy, pricing changes, business logic.
-- Backend, SEO content, sitemap.
+Other pages, design, JSON-LD, routes, navigation, business logic. Pricing strings ("Contact for quote") stay.
 
 ## Verification
-
-After build, open both routes at desktop and mobile viewports, screenshot and review for: typographic hierarchy, single-accent discipline, no overflow, generous spacing, and that the eye lands on the CTA without effort.
+After edits, grep both files for em dashes (`—` and `–`) and the banned phrases above. Open both pages at desktop and mobile and read top to bottom.

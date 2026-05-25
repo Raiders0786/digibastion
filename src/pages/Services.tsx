@@ -14,8 +14,8 @@ const services = [
     title: 'Web3 OpSec Consulting',
     status: 'Available now',
     summary:
-      'Threat modeling, device hardening, key management and the Qubes OS pathway for founders, funds and high-net-worth holders.',
-    bullets: ['Wallet & approval audit', 'Compartmentalized devices', 'Phishing & social drills'],
+      'A proper look at how you store keys, sign transactions, and run your day-to-day machine. We work mostly with founders, funds, and people sitting on size who would prefer not to lose it.',
+    bullets: ['Wallet and approval review', 'Device and browser cleanup', 'Phishing drills you actually run'],
     available: true,
     to: '/services/opsec-consulting',
   },
@@ -25,8 +25,8 @@ const services = [
     title: 'DNS & Domain Monitoring',
     status: 'Coming soon',
     summary:
-      'Continuous DNS, domain and frontend integrity monitoring with PagerDuty / Slack alerts and scored findings.',
-    bullets: ['DNS posture & score', 'Lookalike domain watch', 'Breach & exposure intel'],
+      'We watch your DNS, your domain, and your frontend so you find out about a change before your users do. Alerts land in PagerDuty or Slack, with the context you need to act.',
+    bullets: ['DNS and TLS posture', 'Lookalike domain watch', 'Frontend integrity checks'],
     available: false,
     to: '/services',
   },
@@ -36,24 +36,24 @@ const services = [
     title: 'Threat Intel Retainer',
     status: 'Coming soon',
     summary:
-      'High-signal, personalized threat intelligence covering the third-party stack and dependencies your team actually uses.',
-    bullets: ['Feed personalized by stack', 'Critical push alerts', 'Quarterly exec briefings'],
+      'A curated feed built around the libraries, vendors, and chains your team actually depends on. No firehose, no daily noise: only the incidents that matter to you.',
+    bullets: ['Filtered to your stack', 'Push alerts for criticals', 'Quarterly read-out for leadership'],
     available: false,
     to: '/threat-intel',
   },
 ];
 
 const credentials = [
-  ['ESP 2025', 'Ethereum Foundation grant recipient'],
-  ['Open source', 'Every check auditable in our public repo'],
-  ['Named team', 'You know who is doing the work'],
+  ['ESP 2025', 'Funded by the Ethereum Foundation'],
+  ['Open source', 'Read the code before you trust it'],
+  ['Named team', 'You always know who is on the call'],
 ];
 
 const process = [
-  ['01', 'Discovery call', 'Free 30-min call to scope your risk and answer questions.'],
-  ['02', 'Scoped assessment', 'We map your attack surface and agree on a fixed-scope review.'],
-  ['03', 'Remediation', 'Prioritized findings with concrete fixes and guided walkthrough.'],
-  ['04', 'Optional retainer', 'Ongoing monitoring, threat alerts and incident response.'],
+  ['01', 'A first call', 'Thirty minutes, free. You tell us what you have, we tell you what we would look at first.'],
+  ['02', 'Scoped review', 'We write down what is in and out, agree on a flat fee, and start.'],
+  ['03', 'Findings and fixes', 'A short report, ranked by what matters, plus a working session to actually apply it.'],
+  ['04', 'Stay on call', 'Optional. We keep an eye on things, take your panicked Sunday messages, and help when something breaks.'],
 ];
 
 const Services = () => {
@@ -69,8 +69,8 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Security Services — Web3 OpSec, DNS Monitoring & Threat Intel | DigiBastion"
-        description="Paid security services from the team behind DigiBastion: Web3 OpSec consulting, DNS & domain monitoring, and threat intelligence retainers. Open-source platform, named researchers, ESP 2025 grant recipient."
+        title="Security Services: Web3 OpSec, DNS Monitoring & Threat Intel | DigiBastion"
+        description="The paid work behind DigiBastion. Web3 OpSec consulting, DNS and domain monitoring, and threat intel retainers, delivered by the same people who build the open-source platform."
         keywords="web3 security services, opsec consulting, dns monitoring, threat intelligence, crypto security audit, digibastion services"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -85,22 +85,23 @@ const Services = () => {
                   Services · Now booking
                 </p>
                 <h1 className="font-display font-normal text-[2.75rem] leading-[1.05] sm:text-6xl lg:text-7xl text-foreground tracking-tight mb-6">
-                  Security work for teams that can't afford{' '}
-                  <em className="italic text-primary">a mistake.</em>
+                  The security work most teams keep{' '}
+                  <em className="italic text-primary">putting off.</em>
                 </h1>
                 <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                  DigiBastion is open-source and free forever. When you need hands-on expert work —
-                  threat modeling, hardening, monitoring or incident response — our researchers deliver it.
+                  DigiBastion is free and open source, and it will stay that way. When you would rather have someone
+                  who lives in this stuff sit down with you and actually do the review, that is what these
+                  engagements are for.
                 </p>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-9">
                   <a href={CAL_URL} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                     <Button size="lg" className="w-full sm:w-auto gap-2 rounded-full px-6">
-                      <Calendar className="w-4 h-4" /> Book a 30-min call
+                      <Calendar className="w-4 h-4" /> Talk to us for 30 minutes
                     </Button>
                   </a>
                   <Link to="/services/opsec-consulting" className="w-full sm:w-auto">
                     <Button size="lg" variant="ghost" className="w-full sm:w-auto gap-2 text-foreground hover:bg-transparent hover:text-primary">
-                      Explore OpSec Consulting <ArrowRight className="w-4 h-4" />
+                      Read about OpSec consulting <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
                 </div>
@@ -116,12 +117,12 @@ const Services = () => {
             </div>
           </section>
 
-          {/* Services list — editorial */}
+          {/* Services list */}
           <section className="mb-24 sm:mb-32">
             <div className="flex items-baseline justify-between mb-10">
-              <h2 className="font-display font-normal text-3xl sm:text-4xl text-foreground">Our services</h2>
+              <h2 className="font-display font-normal text-3xl sm:text-4xl text-foreground">What we work on</h2>
               <span className="text-[11px] font-mono tracking-[0.18em] uppercase text-muted-foreground hidden sm:block">
-                03 lines of work
+                Three things, done properly
               </span>
             </div>
             <ul className="divide-y divide-border/60 border-y border-border/60">
@@ -151,7 +152,7 @@ const Services = () => {
                         <p className="text-muted-foreground max-w-2xl leading-relaxed">{s.summary}</p>
                         <ul className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs text-muted-foreground/90">
                           {s.bullets.map((b) => (
-                            <li key={b} className="before:content-['—'] before:mr-2 before:text-primary/60">
+                            <li key={b} className="before:content-['+'] before:mr-2 before:text-primary/60">
                               {b}
                             </li>
                           ))}
@@ -183,10 +184,10 @@ const Services = () => {
             ))}
           </section>
 
-          {/* Process — stepper */}
+          {/* Process */}
           <section className="mb-24 sm:mb-32">
-            <p className="text-[11px] font-mono tracking-[0.18em] uppercase text-primary mb-3">Process</p>
-            <h2 className="font-display font-normal text-3xl sm:text-4xl text-foreground mb-10">How engagements work</h2>
+            <p className="text-[11px] font-mono tracking-[0.18em] uppercase text-primary mb-3">How we work</p>
+            <h2 className="font-display font-normal text-3xl sm:text-4xl text-foreground mb-10">From hello to handover</h2>
             <div className="relative">
               <div className="hidden md:block absolute top-3 left-0 right-0 h-px bg-border/60" />
               <ol className="grid md:grid-cols-4 gap-8 md:gap-6 relative">
@@ -203,18 +204,20 @@ const Services = () => {
             </div>
           </section>
 
-          {/* CTA — quiet */}
+          {/* CTA */}
           <section className="border-y border-border/60 py-14 sm:py-20 text-center">
-            <p className="text-[11px] font-mono tracking-[0.18em] uppercase text-primary mb-4">Next step</p>
+            <p className="text-[11px] font-mono tracking-[0.18em] uppercase text-primary mb-4">Your move</p>
             <h2 className="font-display font-normal text-3xl sm:text-5xl text-foreground max-w-2xl mx-auto leading-[1.1] mb-6">
-              Don't wait for a breach to find out what was missing.
+              If something on this page lands, book a call.
             </h2>
             <a href={CAL_URL} target="_blank" rel="noopener noreferrer">
               <Button size="lg" className="gap-2 rounded-full px-7">
-                <Calendar className="w-4 h-4" /> Book on Cal.com
+                <Calendar className="w-4 h-4" /> Pick a time on Cal.com
               </Button>
             </a>
-            <p className="text-xs text-muted-foreground mt-4">Free 30-min call · No obligation · NDA on request</p>
+            <p className="text-xs text-muted-foreground mt-4">
+              Thirty minutes, free. No pitch. You will know in the first ten whether we can help.
+            </p>
           </section>
         </div>
       </main>
