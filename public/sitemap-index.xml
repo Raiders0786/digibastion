@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
-    <loc>https://www.digibastion.com/sitemap.xml</loc>
-    <lastmod>2026-03-02</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/generate-sitemap</loc>
+    <loc>https://digibastion.lovable.app/sitemap.xml</loc>
     <lastmod>2026-03-02</lastmod>
   </sitemap>
 </sitemapindex>
