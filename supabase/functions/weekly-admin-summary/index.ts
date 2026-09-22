@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ADMIN_EMAIL = "chiragkcv2020@gmail.com";
-
 interface InactiveSub {
   email: string;
   name: string | null;
@@ -380,6 +378,9 @@ serve(async (req) => {
     }
 
     const emailHtml = generateEmailHtml(stats, weekStart, weekEnd);
+    const { data: recipientConfig } = await supabase.from('app_config').select('value').eq('key', 'ADMIN_ALERT_EMAILS').maybeSingle();
+    const recipients = recipientConfig?.value?.split(',').map((email: string) => email.trim()).filter(Boolean) || [];
+    if (recipients.length === 0) throw new Error('No administrator summary recipients configured');
 
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -389,7 +390,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'Digibastion <alerts@digibastion.com>',
-        to: [ADMIN_EMAIL],
+        to: recipients,
         subject: `📊 Weekly Summary: ${stats.newSubscribersThisWeek > 0 ? `+${stats.newSubscribersThisWeek} subs` : `${stats.totalSubscribers} subs`}, ${stats.newArticlesThisWeek} articles, ${stats.totalInactive > 0 ? `${stats.totalInactive} churned` : `${stats.totalApiRequests} API calls`}`,
         html: emailHtml,
       }),

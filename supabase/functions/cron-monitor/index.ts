@@ -73,38 +73,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify user JWT using anon key client (compatible with ES256 signing keys)
     const token = authHeader.replace('Bearer ', '').trim();
-    const authClient = createClient(supabaseUrl, supabaseAnonKey!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
-
-    if (authError || !user) {
-      console.warn('[cron-monitor] Auth failed:', authError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Service role client for data queries
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check admin role
-    const { data: roleData, error: roleError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-
-    if (roleError || !roleData) {
-      console.warn(`[cron-monitor] Admin access denied for user ${user.id}`);
-      return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    let requestingUserEmail: string | null = null;
+    if (token !== cronSecret && token !== supabaseServiceKey) {
+      if (!supabaseAnonKey) return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+      const { data: claims, error: authError } = await authClient.auth.getClaims(token);
+      const userId = claims?.claims?.sub;
+      requestingUserEmail = typeof claims?.claims?.email === 'string' ? claims.claims.email : null;
+      if (authError || typeof userId !== 'string') return new Response(JSON.stringify({ error: 'Invalid authentication' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
+      if (!roleData) return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const { data: monitorData, error: monitorError } = await supabase.rpc('get_cron_monitor_data', {
@@ -168,9 +149,12 @@ Deno.serve(async (req) => {
         // Send critical alert email
         try {
           const resend = new Resend(resendApiKey);
+          const { data: recipientConfig } = await supabase.from('app_config').select('value').eq('key', 'ADMIN_ALERT_EMAILS').maybeSingle();
+          const recipients = recipientConfig?.value?.split(',').map((email: string) => email.trim()).filter(Boolean) || (requestingUserEmail ? [requestingUserEmail] : []);
+          if (recipients.length === 0) throw new Error('No administrator alert recipients configured');
           await resend.emails.send({
             from: 'DigiBastion Alerts <alerts@digibastion.com>',
-            to: [user.email || 'admin@digibastion.com'],
+            to: recipients,
             subject: '🚨 CRITICAL: Cron Job Health Alert',
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -203,13 +187,14 @@ Deno.serve(async (req) => {
           // Mark alert as sent
           await supabase
             .from('cron_health_snapshots')
-            .update({ alert_sent: true })
+            .update({ alert_sent: true, alert_recipients: recipients, alert_error: null })
             .eq('health_status', 'critical')
             .gte('recorded_at', oneHourAgo);
 
-          console.log('[cron-monitor] Critical alert email sent to', user.email);
+          console.log('[cron-monitor] Critical alert email sent');
         } catch (emailError) {
           console.error('[cron-monitor] Failed to send alert email:', emailError);
+          await supabase.from('cron_health_snapshots').update({ alert_error: emailError instanceof Error ? emailError.message : 'Unknown email error' }).eq('health_status', 'critical').gte('recorded_at', oneHourAgo);
         }
       }
     }

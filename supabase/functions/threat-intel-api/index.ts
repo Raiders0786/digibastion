@@ -7,16 +7,17 @@ const corsHeaders = {
 };
 
 const RATE_LIMIT_MAX = 100;
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const ADMIN_ALERT_EMAIL = "chiragkcv2020@gmail.com";
 
-async function sendAdminAlert(subject: string, htmlBody: string) {
+async function sendAdminAlert(supabase: ReturnType<typeof createClient>, subject: string, htmlBody: string) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
     console.warn("[threat-intel-api] RESEND_API_KEY not set, skipping admin alert");
     return;
   }
   try {
+    const { data: config } = await supabase.from('app_config').select('value').eq('key', 'ADMIN_ALERT_EMAILS').maybeSingle();
+    const recipients = config?.value?.split(',').map((email: string) => email.trim()).filter(Boolean) || [];
+    if (recipients.length === 0) return;
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -25,7 +26,7 @@ async function sendAdminAlert(subject: string, htmlBody: string) {
       },
       body: JSON.stringify({
         from: "Digibastion Alerts <alerts@digibastion.com>",
-        to: [ADMIN_ALERT_EMAIL],
+        to: recipients,
         subject,
         html: htmlBody,
       }),
@@ -150,18 +151,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Rate limiting: count requests in the last hour
-    const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-    const { count: recentRequests } = await supabase
-      .from("api_usage_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("api_key_id", keyRecord.id)
-      .gte("created_at", oneHourAgo);
-
-    if ((recentRequests ?? 0) >= RATE_LIMIT_MAX) {
+    const { data: rateLimit, error: rateLimitError } = await supabase.rpc('consume_rate_limit', { _scope: 'threat-intel-api:key', _identifier_hash: keyHash, _max_attempts: RATE_LIMIT_MAX, _window_seconds: 3600 });
+    if (rateLimitError) throw rateLimitError;
+    if (!rateLimit?.allowed) {
       await logUsage(supabase, keyRecord.id, 429, startTime, ipHash, {}, "Rate limit exceeded");
       // Send rate limit alert
-      await sendAdminAlert(
+      await sendAdminAlert(supabase,
         `⚠️ API Rate Limit Hit — "${keyRecord.name}"`,
         `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1f2937;color:#d1d5db;padding:24px;border-radius:8px;">
           <h2 style="color:#f59e0b;margin-top:0;">⚠️ Rate Limit Exceeded</h2>
@@ -169,7 +164,7 @@ Deno.serve(async (req) => {
           <table style="width:100%;border-collapse:collapse;margin:16px 0;">
             <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Key ID</td><td style="padding:8px;border-bottom:1px solid #374151;">${keyRecord.id}</td></tr>
             <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">IP Hash</td><td style="padding:8px;border-bottom:1px solid #374151;">${ipHash}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Requests (last hour)</td><td style="padding:8px;border-bottom:1px solid #374151;">${recentRequests}</td></tr>
+             <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Requests (last hour)</td><td style="padding:8px;border-bottom:1px solid #374151;">${RATE_LIMIT_MAX}+</td></tr>
             <tr><td style="padding:8px;color:#9ca3af;">Time (UTC)</td><td style="padding:8px;">${new Date().toISOString()}</td></tr>
           </table>
           <p style="color:#9ca3af;font-size:12px;">This may indicate abuse or a misconfigured client. Review in <a href="https://digibastion.com/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
@@ -274,7 +269,7 @@ Deno.serve(async (req) => {
 
     // Send first-use alert
     if (isFirstUse) {
-      await sendAdminAlert(
+      await sendAdminAlert(supabase,
         `🔑 API Key First Use — "${keyRecord.name}"`,
         `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1f2937;color:#d1d5db;padding:24px;border-radius:8px;">
           <h2 style="color:#22c55e;margin-top:0;">🔑 API Key First Use Detected</h2>
@@ -299,7 +294,7 @@ Deno.serve(async (req) => {
       offset,
     });
 
-    const remaining = Math.max(RATE_LIMIT_MAX - (recentRequests ?? 0) - 1, 0);
+    const remaining = Number(rateLimit?.remaining || 0);
 
     return new Response(
       JSON.stringify({
