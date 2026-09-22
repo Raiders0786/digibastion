@@ -157,8 +157,9 @@ const Contact = () => {
               </div>
               <form onSubmit={onSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Name</label>
+                  <label htmlFor="contact-name" className="block text-sm font-medium mb-2">Name</label>
                   <input
+                    id="contact-name"
                     type="text"
                     name="name"
                     required
@@ -168,8 +169,9 @@ const Contact = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <label htmlFor="contact-email" className="block text-sm font-medium mb-2">Email</label>
                   <input
+                    id="contact-email"
                     type="email"
                     name="email"
                     required
@@ -179,13 +181,13 @@ const Contact = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Inquiry Type</label>
+                  <label htmlFor="contact-inquiry-type" className="block text-sm font-medium mb-2">Inquiry Type</label>
                   <Select
                     name="inquiryType"
                     value={inquiryType}
                     onValueChange={setInquiryType}
                   >
-                    <SelectTrigger className="w-full bg-background">
+                    <SelectTrigger id="contact-inquiry-type" className="w-full bg-background">
                       <SelectValue placeholder="Select your inquiry type" />
                     </SelectTrigger>
                     <SelectContent className="bg-background border border-white/10">
@@ -202,8 +204,9 @@ const Contact = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Social Handle (Optional)</label>
+                  <label htmlFor="contact-social" className="block text-sm font-medium mb-2">Social Handle (Optional)</label>
                   <input
+                    id="contact-social"
                     type="text"
                     name="social"
                     maxLength={100}
@@ -213,8 +216,9 @@ const Contact = () => {
                 </div>
                 {inquiryType === 'meeting' && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">Meeting Link (Required)</label>
+                    <label htmlFor="contact-meeting-link" className="block text-sm font-medium mb-2">Meeting Link (Required)</label>
                     <input
+                      id="contact-meeting-link"
                       type="url"
                       name="meetingLink"
                       required
@@ -225,8 +229,9 @@ const Contact = () => {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Message</label>
+                  <label htmlFor="contact-message" className="block text-sm font-medium mb-2">Message</label>
                   <textarea
+                    id="contact-message"
                     name="message"
                     required
                     maxLength={2000}
