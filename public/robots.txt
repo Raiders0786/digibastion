@@ -1,4 +1,4 @@
-# www.digibastion.com robots.txt
+# digibastion.lovable.app robots.txt
 # AI-friendly: public content is crawlable, sensitive endpoints blocked
 
 User-agent: *
@@ -78,4 +78,4 @@ Disallow: /verify-email
 Disallow: /manage-subscription
 
 # Sitemap
-Sitemap: https://www.digibastion.com/sitemap-index.xml
+Sitemap: https://digibastion.lovable.app/sitemap-index.xml
