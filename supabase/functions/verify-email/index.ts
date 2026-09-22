@@ -35,7 +35,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`[verify-email] Verifying token: ${token.substring(0, 8)}...`);
+    console.log("[verify-email] Verifying submitted token");
 
     // Find subscription with this token
     const { data: subscription, error: findError } = await supabase
@@ -63,7 +63,7 @@ serve(async (req) => {
 
     // Check if token has expired
     if (subscription.verification_token_expires_at && new Date(subscription.verification_token_expires_at) < new Date()) {
-      console.log("[verify-email] Token expired for:", subscription.email);
+      console.log("[verify-email] Token expired");
       return new Response(
         JSON.stringify({ success: false, message: "This verification link has expired. Please subscribe again." }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -92,9 +92,9 @@ serve(async (req) => {
       );
     }
 
-    const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscription.email)}&token=${encodeURIComponent(managementToken)}`;
+    const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(subscription.email)}&token=${encodeURIComponent(managementToken)}`;
     
-    console.log(`[verify-email] Successfully verified: ${subscription.email}`);
+    console.log("[verify-email] Subscription verified successfully");
 
     return new Response(
       JSON.stringify({

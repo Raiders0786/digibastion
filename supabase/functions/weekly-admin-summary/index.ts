@@ -366,13 +366,19 @@ serve(async (req) => {
       totalInactive: inactiveCountResult.count ?? 0,
     };
 
-    console.log('[weekly-admin-summary] Stats compiled:', JSON.stringify(stats));
+    console.log('[weekly-admin-summary] Stats compiled', {
+      totalSubscribers: stats.totalSubscribers,
+      newSubscribersThisWeek: stats.newSubscribersThisWeek,
+      newArticlesThisWeek: stats.newArticlesThisWeek,
+      emailsSent: stats.emailsSent,
+      totalInactive: stats.totalInactive,
+    });
 
     // Send email
     if (!resendApiKey) {
       console.warn('[weekly-admin-summary] RESEND_API_KEY not set — logging only');
       return new Response(
-        JSON.stringify({ success: true, message: 'No RESEND_API_KEY — stats logged only', stats }),
+        JSON.stringify({ success: true, message: 'No RESEND_API_KEY — summary compiled but not sent' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

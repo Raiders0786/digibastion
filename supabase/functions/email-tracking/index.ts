@@ -120,6 +120,26 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Only accept event IDs created by this service when an email was sent.
+    // This keeps the public pixel usable while preventing fabricated analytics.
+    const { data: sentEvent, error: sentEventError } = await supabase
+      .from("email_events")
+      .select("subscription_id, email_type")
+      .eq("tracking_id", trackingId)
+      .eq("event_type", "sent")
+      .maybeSingle();
+
+    if (sentEventError || !sentEvent) {
+      if (sentEventError) console.error("[email-tracking] Tracking ID lookup failed:", sentEventError);
+      return new Response(TRACKING_PIXEL, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "image/gif",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+    }
+
     // Get client info for analytics
     const userAgent = req.headers.get("user-agent") || "";
     const clientIP = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
@@ -143,9 +163,10 @@ serve(async (req) => {
     const { error } = await supabase
       .from("email_events")
       .insert({
+        subscription_id: sentEvent.subscription_id,
         tracking_id: trackingId,
         event_type: eventType,
-        email_type: "digest",
+        email_type: sentEvent.email_type,
         link_url: redirectUrl || null,
         user_agent: userAgent.slice(0, 500),
         ip_hash: ipHash,

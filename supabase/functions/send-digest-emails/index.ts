@@ -368,6 +368,7 @@ serve(async (req) => {
   const cronSecret = Deno.env.get('CRON_SECRET');
   const authHeader = req.headers.get('authorization');
   let isAuthorized = false;
+  let adminEmail: string | null = null;
 
   // Check cron secret first
   if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
@@ -389,7 +390,10 @@ serve(async (req) => {
         const { data: roleData } = await adminClient
           .from('user_roles').select('role')
           .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-        if (roleData) isAuthorized = true;
+        if (roleData) {
+          isAuthorized = true;
+          adminEmail = user.email?.toLowerCase().trim() || null;
+        }
       }
     } catch {
       // JWT validation failed
@@ -418,7 +422,7 @@ serve(async (req) => {
         targetFrequency = body.frequency;
       }
       if (typeof body.test_email === 'string' && body.test_email.includes('@')) {
-        testEmail = body.test_email;
+        testEmail = body.test_email.toLowerCase().trim();
       }
     } catch {
       // No body or invalid JSON - will run for all matching subscribers
@@ -436,9 +440,16 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    if (testEmail && (!adminEmail || testEmail !== adminEmail)) {
+      return new Response(JSON.stringify({ error: 'Test digests can only be sent to the signed-in administrator.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Handle test email mode - bypass hour check and send directly to specific email
     if (testEmail) {
-      console.log(`[send-digest-emails] TEST MODE: Sending test digest to ${testEmail}`);
+      console.log('[send-digest-emails] TEST MODE: Sending administrator test digest');
       
       // Find or create a mock subscription for this email
       const { data: testSub, error: testSubError } = await supabase
@@ -544,7 +555,7 @@ serve(async (req) => {
         event_type: 'sent',
       });
       
-      console.log(`[send-digest-emails] Test email sent successfully to ${testEmail}`);
+      console.log('[send-digest-emails] Test email sent successfully');
       
       return new Response(
         JSON.stringify({ 
@@ -633,7 +644,7 @@ serve(async (req) => {
       // But never make the window smaller than the base period
       const effectivePeriodStart = periodStart;
 
-      console.log(`[send-digest-emails] Fetching articles since ${effectivePeriodStart.toISOString()} for ${sub.email}`);
+      console.log(`[send-digest-emails] Fetching articles since ${effectivePeriodStart.toISOString()} for subscription ${sub.id}`);
 
       // Fetch articles for this period
       const { data: articles, error: articlesError } = await supabase
@@ -644,26 +655,26 @@ serve(async (req) => {
         .limit(100); // Limit to prevent huge emails
 
       if (articlesError) {
-        console.error(`[send-digest-emails] Error fetching articles for ${sub.email}:`, articlesError);
+        console.error(`[send-digest-emails] Error fetching articles for subscription ${sub.id}:`, articlesError);
         continue;
       }
 
       if (!articles || articles.length === 0) {
-        console.log(`[send-digest-emails] No articles in period for ${sub.email}`);
+        console.log(`[send-digest-emails] No articles in period for subscription ${sub.id}`);
         continue;
       }
 
-      console.log(`[send-digest-emails] Found ${articles.length} articles for ${sub.email}`);
+      console.log(`[send-digest-emails] Found ${articles.length} articles for subscription ${sub.id}`);
 
       // Filter articles based on subscriber preferences
       const matchingArticles = articles.filter(a => shouldIncludeArticle(a as NewsArticle, sub));
 
       if (matchingArticles.length === 0) {
-        console.log(`[send-digest-emails] No matching articles for ${sub.email}`);
+        console.log(`[send-digest-emails] No matching articles for subscription ${sub.id}`);
         continue;
       }
 
-      console.log(`[send-digest-emails] Sending ${matchingArticles.length} articles to ${sub.email}`);
+      console.log(`[send-digest-emails] Sending ${matchingArticles.length} articles for subscription ${sub.id}`);
 
       // Generate unique tracking ID for this email
       const trackingId = crypto.randomUUID();
@@ -729,11 +740,11 @@ serve(async (req) => {
           .eq('id', sub.id);
 
         sent++;
-        console.log(`[send-digest-emails] Successfully sent digest to ${sub.email}`);
+        console.log(`[send-digest-emails] Successfully sent digest for subscription ${sub.id}`);
 
       } catch (error) {
-        console.error(`[send-digest-emails] Failed to send to ${sub.email}:`, error);
-        errors.push(`${sub.email}: ${error.message}`);
+        console.error(`[send-digest-emails] Failed for subscription ${sub.id}:`, error);
+        errors.push(`${sub.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         failed++;
       }
     }

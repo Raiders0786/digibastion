@@ -44,6 +44,13 @@ export const config = {
   runtime: 'edge',
 };
 
+const escapeHtml = (value: string): string => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
 export default async function handler(req: VercelRequest) {
   const url = new URL(req.url || '', 'https://digibastion.com');
   
@@ -52,8 +59,9 @@ export default async function handler(req: VercelRequest) {
     return new Response(null, { status: 404 });
   }
 
-  const username = url.searchParams.get('u') || 'anon';
-  const score = parseInt(url.searchParams.get('s') || '0', 10);
+  const username = (url.searchParams.get('u') || 'anon').trim().slice(0, 40) || 'anon';
+  const parsedScore = Number.parseInt(url.searchParams.get('s') || '0', 10);
+  const score = Number.isFinite(parsedScore) ? Math.min(100, Math.max(0, parsedScore)) : 0;
   const badgesParam = url.searchParams.get('b') || '';
   
   const character = getCryptoCharacter(score);
@@ -63,7 +71,11 @@ export default async function handler(req: VercelRequest) {
   
   const ogTitle = `${character.emoji} ${username}'s OpSec: ${character.name} (${score}/100)`;
   const ogDescription = `"${character.description}" - Take the OpSec quiz at digibastion.com`;
-  const pageUrl = `https://digibastion.com${url.pathname}${url.search}`;
+  const pageUrl = `https://www.digibastion.com${url.pathname}${url.search}`;
+  const safeTitle = escapeHtml(ogTitle);
+  const safeDescription = escapeHtml(ogDescription);
+  const safePageUrl = escapeHtml(pageUrl);
+  const safeOgImageUrl = escapeHtml(ogImageUrl);
 
   // Generate HTML with proper OG meta tags for Twitter/social crawlers
   const html = `<!DOCTYPE html>
@@ -71,25 +83,25 @@ export default async function handler(req: VercelRequest) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${ogTitle}</title>
-  <meta name="description" content="${ogDescription}" />
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDescription}" />
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="${pageUrl}" />
-  <meta property="og:title" content="${ogTitle}" />
-  <meta property="og:description" content="${ogDescription}" />
-  <meta property="og:image" content="${ogImageUrl}" />
+  <meta property="og:url" content="${safePageUrl}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDescription}" />
+  <meta property="og:image" content="${safeOgImageUrl}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:site_name" content="Digibastion" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${pageUrl}" />
-  <meta name="twitter:title" content="${ogTitle}" />
-  <meta name="twitter:description" content="${ogDescription}" />
-  <meta name="twitter:image" content="${ogImageUrl}" />
+  <meta name="twitter:url" content="${safePageUrl}" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDescription}" />
+  <meta name="twitter:image" content="${safeOgImageUrl}" />
   
   <!-- Redirect to SPA for non-crawler users -->
   <script>
@@ -156,7 +168,7 @@ export default async function handler(req: VercelRequest) {
     <p style="color: #22c55e;">${character.title}</p>
     <div class="score">${score}<span style="opacity: 0.7; font-size: 24px;">/100</span></div>
     <p class="description">"${character.description}"</p>
-    <a href="https://digibastion.com" class="cta">Take the Quiz</a>
+    <a href="https://www.digibastion.com/opsec-quiz" class="cta">Take the Quiz</a>
   </div>
 </body>
 </html>`;
