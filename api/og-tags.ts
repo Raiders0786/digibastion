@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest } from '@vercel/node';
 
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
@@ -40,42 +40,43 @@ const getCryptoCharacter = (score: number): { name: string; emoji: string; title
   };
 };
 
+const escapeHtml = (unsafe: string) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 export const config = {
   runtime: 'edge',
 };
 
-const escapeHtml = (value: string): string => value
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
-
-export default async function handler(req: VercelRequest) {
+export default async function handler(req: Request) {
   const url = new URL(req.url || '', 'https://digibastion.com');
   
-  // Only process /quiz-result requests
-  if (!url.pathname.startsWith('/quiz-result')) {
+  // Only process /quiz-result or /api/og-tags requests
+  if (!url.pathname.startsWith('/quiz-result') && !url.pathname.startsWith('/api/og-tags')) {
     return new Response(null, { status: 404 });
   }
 
-  const username = (url.searchParams.get('u') || 'anon').trim().slice(0, 40) || 'anon';
-  const parsedScore = Number.parseInt(url.searchParams.get('s') || '0', 10);
-  const score = Number.isFinite(parsedScore) ? Math.min(100, Math.max(0, parsedScore)) : 0;
+  // Sanitize inputs
+  const rawUsername = url.searchParams.get('u') || 'anon';
+  const username = escapeHtml(rawUsername.slice(0, 50));
+  const score = Math.max(0, Math.min(100, parseInt(url.searchParams.get('s') || '0', 10)));
   const badgesParam = url.searchParams.get('b') || '';
   
   const character = getCryptoCharacter(score);
   
-  // Generate OG image URL from edge function
-  const ogImageUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
+  // Generate OG image URL - use raw username here as it's being URI encoded
+  const ogImageUrl = escapeHtml(`https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(rawUsername)}&s=${score}&b=${encodeURIComponent(badgesParam)}`);
   
-  const ogTitle = `${character.emoji} ${username}'s OpSec: ${character.name} (${score}/100)`;
-  const ogDescription = `"${character.description}" - Take the OpSec quiz at digibastion.com`;
-  const pageUrl = `https://www.digibastion.com${url.pathname}${url.search}`;
-  const safeTitle = escapeHtml(ogTitle);
-  const safeDescription = escapeHtml(ogDescription);
-  const safePageUrl = escapeHtml(pageUrl);
-  const safeOgImageUrl = escapeHtml(ogImageUrl);
+  const ogTitle = escapeHtml(`${character.emoji} ${rawUsername}'s OpSec: ${character.name} (${score}/100)`);
+  const ogDescription = escapeHtml(`"${character.description}" - Take the OpSec quiz at digibastion.com`);
+  
+  // pageUrl should be the canonical frontend URL, not the current API URL
+  const pageUrl = escapeHtml(`https://digibastion.com/quiz-result${url.search}`);
 
   // Generate HTML with proper OG meta tags for Twitter/social crawlers
   const html = `<!DOCTYPE html>
@@ -83,36 +84,45 @@ export default async function handler(req: VercelRequest) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${safeTitle}</title>
-  <meta name="description" content="${safeDescription}" />
+  <title>${ogTitle}</title>
+  <meta name="description" content="${ogDescription}" />
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="${safePageUrl}" />
-  <meta property="og:title" content="${safeTitle}" />
-  <meta property="og:description" content="${safeDescription}" />
-  <meta property="og:image" content="${safeOgImageUrl}" />
+  <meta property="og:url" content="${pageUrl}" />
+  <meta property="og:title" content="${ogTitle}" />
+  <meta property="og:description" content="${ogDescription}" />
+  <meta property="og:image" content="${ogImageUrl}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:site_name" content="Digibastion" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${safePageUrl}" />
-  <meta name="twitter:title" content="${safeTitle}" />
-  <meta name="twitter:description" content="${safeDescription}" />
-  <meta name="twitter:image" content="${safeOgImageUrl}" />
+  <meta name="twitter:url" content="${pageUrl}" />
+  <meta name="twitter:title" content="${ogTitle}" />
+  <meta name="twitter:description" content="${ogDescription}" />
+  <meta name="twitter:image" content="${ogImageUrl}" />
   
   <!-- Redirect to SPA for non-crawler users -->
   <script>
-    // Check if this is a social media crawler
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isCrawler = /twitterbot|facebookexternalhit|linkedinbot|slackbot|discordbot|telegrambot|whatsapp/i.test(userAgent);
-    
-    // If not a crawler, redirect to the SPA version
-    if (!isCrawler) {
-      window.location.replace(window.location.href);
-    }
+    (function() {
+      // Check if this is a social media crawler
+      const userAgent = navigator.userAgent.toLowerCase();
+      const crawlers = ['twitterbot', 'facebookexternalhit', 'linkedinbot', 'slackbot', 'discordbot', 'telegrambot', 'whatsapp'];
+      const isCrawler = crawlers.some(bot => userAgent.includes(bot));
+      
+      // If not a crawler, redirect to the SPA version
+      if (!isCrawler) {
+        // Prevent infinite redirect loops by checking for a flag
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('redirected')) {
+          urlParams.set('redirected', 'true');
+          const newUrl = window.location.origin + '/quiz-result?' + urlParams.toString();
+          window.location.replace(newUrl);
+        }
+      }
+    })();
   </script>
   
   <style>
@@ -164,11 +174,11 @@ export default async function handler(req: VercelRequest) {
 <body>
   <div class="card">
     <div class="emoji">${character.emoji}</div>
-    <h1>${character.name}</h1>
-    <p style="color: #22c55e;">${character.title}</p>
+    <h1>${escapeHtml(character.name)}</h1>
+    <p style="color: #22c55e;">${escapeHtml(character.title)}</p>
     <div class="score">${score}<span style="opacity: 0.7; font-size: 24px;">/100</span></div>
-    <p class="description">"${character.description}"</p>
-    <a href="https://www.digibastion.com/opsec-quiz" class="cta">Take the Quiz</a>
+    <p class="description">"${escapeHtml(character.description)}"</p>
+    <a href="https://digibastion.com" class="cta">Take the Quiz</a>
   </div>
 </body>
 </html>`;
