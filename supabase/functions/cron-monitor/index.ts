@@ -29,6 +29,22 @@ interface HealthSnapshot {
   success_rate: number;
 }
 
+interface CronMonitorError {
+  id: number;
+  created: string;
+  error: string;
+  status_code: number | null;
+}
+
+interface CronMonitorResult {
+  jobs: CronJobStatus[];
+  recent_errors: CronMonitorError[];
+  total_runs: number;
+  failed_runs: number;
+  timeout_errors: number;
+  http_errors: number;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -91,85 +107,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Known cron jobs - hardcoded since cron schema isn't accessible via REST API
-    const knownJobs = [
-      { jobname: 'fetch-rss-news-hourly', schedule: '15 * * * *', active: true },
-      { jobname: 'fetch-web3-incidents-6hourly', schedule: '30 */6 * * *', active: true },
-      { jobname: 'summarize-articles-6hourly', schedule: '45 */6 * * *', active: true },
-      { jobname: 'send-hourly-digests', schedule: '0 * * * *', active: true },
-      { jobname: 'send-critical-alerts-hourly', schedule: '5 * * * *', active: true },
-      { jobname: 'cleanup-quiz-logs-daily', schedule: '0 3 * * *', active: true },
-    ];
-
-    // Query notification_log for recent activity (last 24 hours)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
-    const { data: notificationLogs } = await supabase
-      .from('notification_log')
-      .select('id, sent_at, status, error_message')
-      .gte('sent_at', oneDayAgo)
-      .order('sent_at', { ascending: false })
-      .limit(100);
-
-    // Query news_articles for recent fetches
-    const { data: recentArticles } = await supabase
-      .from('news_articles')
-      .select('id, created_at, source_name')
-      .gte('created_at', oneDayAgo)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    // Calculate stats based on notification logs
-    const successfulNotifs = notificationLogs?.filter(n => n.status === 'sent').length || 0;
-    const failedNotifs = notificationLogs?.filter(n => n.status === 'failed').length || 0;
-    const recentErrors = notificationLogs?.filter(n => n.status === 'failed' && n.error_message) || [];
-
-    // Build job status based on available data
-    const enrichedJobs: CronJobStatus[] = knownJobs.map(job => {
-      let recent_successes = 0;
-      let recent_failures = 0;
-      let last_run: string | undefined;
-      let last_status: string | undefined;
-      let last_error: string | undefined;
-
-      if (job.jobname.includes('digest') || job.jobname.includes('alert')) {
-        const relevantLogs = notificationLogs || [];
-        recent_successes = relevantLogs.filter(n => n.status === 'sent').length;
-        recent_failures = relevantLogs.filter(n => n.status === 'failed').length;
-        if (relevantLogs.length > 0) {
-          last_run = relevantLogs[0].sent_at;
-          last_status = relevantLogs[0].status === 'sent' ? 'succeeded' : 'failed';
-          last_error = relevantLogs[0].error_message || undefined;
-        }
-      } else if (job.jobname.includes('rss') || job.jobname.includes('web3') || job.jobname.includes('fetch')) {
-        const articleCount = recentArticles?.length || 0;
-        recent_successes = articleCount > 0 ? Math.ceil(articleCount / 10) : 0;
-        if (recentArticles && recentArticles.length > 0) {
-          last_run = recentArticles[0].created_at;
-          last_status = 'succeeded';
-        }
-      }
-
-      return {
-        ...job,
-        recent_successes,
-        recent_failures,
-        last_run,
-        last_status,
-        last_error,
-      };
+    const { data: monitorData, error: monitorError } = await supabase.rpc('get_cron_monitor_data', {
+      hours_back: 24,
     });
 
-    // Count errors from notification logs
-    const timeoutCount = recentErrors.filter(e => 
-      e.error_message?.toLowerCase().includes('timeout')
-    ).length;
+    if (monitorError || !monitorData) {
+      console.error('[cron-monitor] Failed to read cron execution data:', monitorError);
+      throw new Error('Cron execution data is unavailable');
+    }
 
-    const failedRequests = failedNotifs;
-
-    // Calculate health score
-    const totalRuns = successfulNotifs + failedNotifs + (recentArticles?.length || 0);
-    const failedRuns = failedNotifs;
+    const result = monitorData as CronMonitorResult;
+    const enrichedJobs = result.jobs || [];
+    const recentErrors = result.recent_errors || [];
+    const totalRuns = result.total_runs || 0;
+    const failedRuns = result.failed_runs || 0;
+    const timeoutCount = result.timeout_errors || 0;
+    const failedRequests = result.http_errors || 0;
     const successRate = totalRuns > 0 ? ((totalRuns - failedRuns) / totalRuns * 100) : 100;
     const successRateStr = successRate.toFixed(1);
 
@@ -319,12 +272,7 @@ Deno.serve(async (req) => {
         http_errors_24h: failedRequests,
       },
       jobs: enrichedJobs,
-      recent_errors: recentErrors.slice(0, 10).map((e) => ({
-        id: e.id,
-        created: e.sent_at,
-        error: e.error_message?.substring(0, 200),
-        status_code: null,
-      })),
+      recent_errors: recentErrors.slice(0, 10),
       health: {
         status: healthStatus,
         message: healthMessage,

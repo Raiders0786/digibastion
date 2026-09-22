@@ -160,6 +160,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_http_requests: {
+        Row: {
+          jobname: string
+          request_id: number
+          requested_at: string
+        }
+        Insert: {
+          jobname: string
+          request_id: number
+          requested_at?: string
+        }
+        Update: {
+          jobname?: string
+          request_id?: number
+          requested_at?: string
+        }
+        Relationships: []
+      }
       email_events: {
         Row: {
           country_code: string | null
@@ -573,6 +591,7 @@ export type Database = {
         Returns: number
       }
       get_cron_auth_headers: { Args: never; Returns: Json }
+      get_cron_monitor_data: { Args: { hours_back?: number }; Returns: Json }
       get_subscriber_count: { Args: never; Returns: Json }
       get_top_leaderboard_ids: { Args: never; Returns: string[] }
       has_role: {
@@ -593,6 +612,15 @@ export type Database = {
           title: string
         }
         Returns: unknown
+      }
+      record_cron_http_request: {
+        Args: {
+          _body?: Json
+          _jobname: string
+          _timeout_milliseconds?: number
+          _url: string
+        }
+        Returns: number
       }
       search_news_articles: {
         Args: {

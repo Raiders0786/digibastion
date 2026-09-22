@@ -42,6 +42,38 @@ const News = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
   const [selectedTab, setSelectedTab] = useState(() => searchParams.get('tab') || 'feed');
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const updateAdminState = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        if (active) setIsAdmin(false);
+        return;
+      }
+
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (active) setIsAdmin(Boolean(roleData));
+    };
+
+    void updateAdminState();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      void updateAdminState();
+    });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   // Sync tab with URL
   useEffect(() => {
@@ -448,6 +480,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
+                      {isAdmin && (
+                        <>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -490,6 +524,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         )}
                         {isRefreshing ? 'Fetching...' : 'RSS Feeds'}
                       </Button>
+                        </>
+                      )}
                       {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery) && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                           Clear filters
@@ -521,7 +557,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                             : 'Try adjusting your search, category, or severity filters'
                           }
                         </p>
-                        {stats.total === 0 ? (
+                        {stats.total === 0 && isAdmin ? (
                           <Button onClick={refreshFromRSS} disabled={isRefreshing}>
                             {isRefreshing ? (
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -530,11 +566,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                             )}
                             Fetch News
                           </Button>
-                        ) : (
+                        ) : stats.total > 0 ? (
                           <Button variant="outline" onClick={handleClearFilters}>
                             Clear Filters
                           </Button>
-                        )}
+                        ) : null}
                       </CardContent>
                     </Card>
                   )}
