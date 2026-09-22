@@ -20,3 +20,8 @@
 - [x] Harden Firecrawl URL checks and API rate-limit concurrency.
 - [x] Retain required quiz cleanup ownership and remediate dependencies safely.
 - [x] Run regression, build, and end-to-end validation.
+
+## SEO accessibility corrections
+- [x] Restore sequential headings on category detail pages.
+- [x] Add accessible names to quick newsletter subscription fields.
+- [x] Associate every contact form label with its field.

@@ -136,7 +136,7 @@ const CategoryDetail = () => {
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-medium text-red-500 mb-1">Essential Items Incomplete</h3>
+                <h2 className="text-sm font-medium text-red-500 mb-1">Essential Items Incomplete</h2>
                 <p className="text-sm text-foreground-secondary">
                   {essentialCompleted} of {essentialItems.length} essential security items completed. 
                   These items are critical for your security.

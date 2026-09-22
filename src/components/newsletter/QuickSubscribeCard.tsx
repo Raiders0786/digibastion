@@ -174,6 +174,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
+                  aria-label="Name (optional)"
                   placeholder="Your name (optional)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -188,6 +189,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
+                  aria-label="Email address"
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
