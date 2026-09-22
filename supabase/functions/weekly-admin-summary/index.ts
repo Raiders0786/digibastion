@@ -59,6 +59,21 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+async function timingSafeEqual(left: string, right: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [leftHash, rightHash] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(left)),
+    crypto.subtle.digest('SHA-256', encoder.encode(right)),
+  ]);
+  const leftBytes = new Uint8Array(leftHash);
+  const rightBytes = new Uint8Array(rightHash);
+  let difference = 0;
+  for (let index = 0; index < leftBytes.length; index++) {
+    difference |= leftBytes[index] ^ rightBytes[index];
+  }
+  return difference === 0;
+}
+
 function generateEmailHtml(stats: WeeklyStats, weekStart: string, weekEnd: string): string {
   const statBlock = (label: string, value: string | number, color = "#f3f4f6") =>
     `<td style="padding:12px 16px;text-align:center;">
@@ -233,7 +248,7 @@ serve(async (req) => {
   // Verify cron secret
   const cronSecret = Deno.env.get('CRON_SECRET');
   const authHeader = req.headers.get('authorization');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !authHeader || !(await timingSafeEqual(authHeader, `Bearer ${cronSecret}`))) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -366,13 +381,19 @@ serve(async (req) => {
       totalInactive: inactiveCountResult.count ?? 0,
     };
 
-    console.log('[weekly-admin-summary] Stats compiled:', JSON.stringify(stats));
+    console.log('[weekly-admin-summary] Stats compiled', {
+      totalSubscribers: stats.totalSubscribers,
+      newSubscribersThisWeek: stats.newSubscribersThisWeek,
+      newArticlesThisWeek: stats.newArticlesThisWeek,
+      emailsSent: stats.emailsSent,
+      totalInactive: stats.totalInactive,
+    });
 
     // Send email
     if (!resendApiKey) {
       console.warn('[weekly-admin-summary] RESEND_API_KEY not set — logging only');
       return new Response(
-        JSON.stringify({ success: true, message: 'No RESEND_API_KEY — stats logged only', stats }),
+        JSON.stringify({ success: true, message: 'No RESEND_API_KEY — summary compiled but not sent' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

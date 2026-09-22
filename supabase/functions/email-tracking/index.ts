@@ -120,6 +120,39 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    let safeRedirectUrl: string | null = null;
+    if (action === "c" && redirectUrl) {
+      try {
+        const targetUrl = new URL(redirectUrl);
+        const hostname = targetUrl.hostname.toLowerCase();
+        const allowed = (targetUrl.protocol === "http:" || targetUrl.protocol === "https:") &&
+          ALLOWED_REDIRECT_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+        if (allowed) safeRedirectUrl = targetUrl.toString();
+      } catch {
+        // Invalid destinations fall back to the tracking pixel.
+      }
+    }
+
+    // Only accept event IDs created by this service when an email was sent.
+    // This keeps the public pixel usable while preventing fabricated analytics.
+    const { data: sentEvent, error: sentEventError } = await supabase
+      .from("email_events")
+      .select("subscription_id, email_type")
+      .eq("tracking_id", trackingId)
+      .eq("event_type", "sent")
+      .maybeSingle();
+
+    if (sentEventError || !sentEvent) {
+      if (sentEventError) console.error("[email-tracking] Tracking ID lookup failed:", sentEventError);
+      return new Response(TRACKING_PIXEL, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "image/gif",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+    }
+
     // Get client info for analytics
     const userAgent = req.headers.get("user-agent") || "";
     const clientIP = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
@@ -143,10 +176,11 @@ serve(async (req) => {
     const { error } = await supabase
       .from("email_events")
       .insert({
+        subscription_id: sentEvent.subscription_id,
         tracking_id: trackingId,
         event_type: eventType,
-        email_type: "digest",
-        link_url: redirectUrl || null,
+        email_type: sentEvent.email_type,
+        link_url: safeRedirectUrl,
         user_agent: userAgent.slice(0, 500),
         ip_hash: ipHash,
         country_code: countryCode,
@@ -161,36 +195,18 @@ serve(async (req) => {
     }
 
     // Handle click tracking - redirect to destination
-    if (action === "c" && redirectUrl) {
+    if (action === "c" && safeRedirectUrl) {
       try {
-        const targetUrl = new URL(redirectUrl);
-        if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
-          throw new Error("Invalid protocol");
-        }
-        const hostname = targetUrl.hostname.toLowerCase();
-        const allowed = ALLOWED_REDIRECT_HOSTS.some(
-          (h) => hostname === h || hostname.endsWith(`.${h}`)
-        );
-        if (!allowed) {
-          console.warn("[email-tracking] Blocked off-domain redirect:", hostname);
-          return new Response(TRACKING_PIXEL, {
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "image/gif",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-            },
-          });
-        }
         return new Response(null, {
           status: 302,
           headers: {
             ...corsHeaders,
-            "Location": redirectUrl,
+            "Location": safeRedirectUrl,
             "Cache-Control": "no-cache, no-store, must-revalidate",
           },
         });
       } catch {
-        console.warn("[email-tracking] Invalid redirect URL:", redirectUrl);
+        console.warn("[email-tracking] Redirect failed after validation");
       }
     }
 

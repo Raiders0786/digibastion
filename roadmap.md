@@ -31,3 +31,9 @@
 - [x] Switch sitemap and crawler references to www.digibastion.com.
 - [ ] Publish and verify live custom-domain metadata, redirects, and sitemap.
 - [ ] Verify the www URL-prefix property and submit its sitemap in Search Console.
+
+## Security findings repair
+- [x] Prevent public subscription requests from replacing verified settings or management links.
+- [x] Validate tracking IDs and remove subscriber details from operational logs.
+- [x] Escape quiz sharing metadata and restrict administrator test-email recipients.
+- [x] Run full regression checks, deploy changed functions, and publish the verified release.

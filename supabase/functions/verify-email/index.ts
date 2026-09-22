@@ -6,6 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function getClientIP(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+}
+
+async function hashIdentifier(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -35,7 +46,21 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`[verify-email] Verifying token: ${token.substring(0, 8)}...`);
+    const { data: rateLimit, error: rateLimitError } = await supabase.rpc("consume_rate_limit", {
+      _scope: "verify-email:ip",
+      _identifier_hash: await hashIdentifier(getClientIP(req)),
+      _max_attempts: 20,
+      _window_seconds: 3600,
+    });
+    if (rateLimitError) throw rateLimitError;
+    if (!rateLimit?.allowed) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Too many verification attempts. Please try again later." }),
+        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "3600", ...corsHeaders } }
+      );
+    }
+
+    console.log("[verify-email] Verifying submitted token");
 
     // Find subscription with this token
     const { data: subscription, error: findError } = await supabase
@@ -63,7 +88,7 @@ serve(async (req) => {
 
     // Check if token has expired
     if (subscription.verification_token_expires_at && new Date(subscription.verification_token_expires_at) < new Date()) {
-      console.log("[verify-email] Token expired for:", subscription.email);
+      console.log("[verify-email] Token expired");
       return new Response(
         JSON.stringify({ success: false, message: "This verification link has expired. Please subscribe again." }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -92,9 +117,9 @@ serve(async (req) => {
       );
     }
 
-    const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscription.email)}&token=${encodeURIComponent(managementToken)}`;
+    const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(subscription.email)}&token=${encodeURIComponent(managementToken)}`;
     
-    console.log(`[verify-email] Successfully verified: ${subscription.email}`);
+    console.log("[verify-email] Subscription verified successfully");
 
     return new Response(
       JSON.stringify({

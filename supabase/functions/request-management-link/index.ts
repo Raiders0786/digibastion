@@ -157,12 +157,12 @@ serve(async (req) => {
       if (!limit?.allowed) return new Response(JSON.stringify({ success: false, error: 'Too many requests. Please try again later.', retryAfter: 3600 }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } });
     }
 
-    console.log(`[request-management-link] Looking up subscription for: ${normalizedEmail}`);
+    console.log("[request-management-link] Looking up active subscription");
 
     // Find the subscription
     const { data: subscription, error: findError } = await supabase
       .from("subscriptions")
-      .select("id, email, name, is_active, is_verified")
+      .select("id, email, name, is_active, is_verified, verification_token")
       .eq("email", normalizedEmail)
       .eq("is_active", true)
       .maybeSingle();
@@ -175,7 +175,7 @@ serve(async (req) => {
     // Always return success to prevent email enumeration attacks
     // Even if the email doesn't exist, we don't reveal that
     if (!subscription) {
-      console.log(`[request-management-link] No subscription found for: ${normalizedEmail}`);
+      console.log("[request-management-link] No active subscription found");
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -185,28 +185,23 @@ serve(async (req) => {
       );
     }
 
-    // Generate a new management token
-    const newToken = crypto.randomUUID();
-
-    // Update the subscription with the new token
-    const { error: updateError } = await supabase
-      .from("subscriptions")
-      .update({ 
-        verification_token: newToken,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", subscription.id);
-
-    if (updateError) {
-      console.error("[request-management-link] Update error:", updateError);
-      throw updateError;
+    // Re-send the existing token. Rotating it from a public request would let
+    // anyone invalidate a subscriber's current management link.
+    const managementToken = subscription.verification_token;
+    if (!managementToken) {
+      console.warn("[request-management-link] Active subscription has no management token");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "If an active subscription exists for this email, a management link will be sent shortly."
+        }),
+        { headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
-
-    console.log(`[request-management-link] Generated new token for: ${normalizedEmail}`);
 
     // Send the email with the new management link
     if (resendApiKey) {
-      const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(normalizedEmail)}&token=${encodeURIComponent(newToken)}`;
+      const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(normalizedEmail)}&token=${encodeURIComponent(managementToken)}`;
       
       try {
         const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -228,7 +223,7 @@ serve(async (req) => {
           console.error("[request-management-link] Resend API error:", errorText);
           // Don't fail the request, just log the error
         } else {
-          console.log(`[request-management-link] Email sent to: ${normalizedEmail}`);
+          console.log("[request-management-link] Management email sent");
         }
       } catch (emailError) {
         console.error("[request-management-link] Email send error:", emailError);

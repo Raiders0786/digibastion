@@ -97,7 +97,7 @@ serve(async (req) => {
     const normalizedEmail = email.toLowerCase().trim();
     const emailRateLimit = await checkRateLimit(supabase, "unsubscribe:email", normalizedEmail, MAX_ATTEMPTS_PER_EMAIL);
     if (!emailRateLimit.allowed) {
-      console.warn(`[unsubscribe] Rate limit exceeded for email: ${normalizedEmail}`);
+      console.warn("[unsubscribe] Email rate limit exceeded");
       return new Response(
         JSON.stringify({ 
           success: false, 

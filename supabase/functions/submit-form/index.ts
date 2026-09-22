@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,7 +228,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (emailLimitError || ipLimitError) throw emailLimitError || ipLimitError;
       
       if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
-        console.warn(`[submit-form] Subscription rate limit exceeded for email: ${normalizedEmail}, IP: ${clientIP}`);
+        console.warn("[submit-form] Subscription rate limit exceeded");
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -250,7 +249,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Check if this email already has a verified subscription
       const { data: existingSub } = await supabase
         .from('subscriptions')
-        .select('id, is_verified, frequency, preferred_hour, timezone_offset, categories')
+        .select('id, email, name, is_verified, verification_token, verification_token_expires_at, frequency, preferred_hour, timezone_offset, preferred_day, categories, technologies, severity_threshold, is_active')
         .eq('email', sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase())
         .maybeSingle();
 
@@ -258,8 +257,16 @@ const handler = async (req: Request): Promise<Response> => {
       const alreadyVerified = existingSub?.is_verified === true;
       const needsVerification = !alreadyVerified;
 
-      // Generate new verification token only for new/unverified users
-      const verificationToken = crypto.randomUUID();
+      // Keep a pending subscriber's valid token so a public retry cannot
+      // invalidate a link already delivered to their inbox.
+      const existingTokenIsValid = Boolean(
+        existingSub?.verification_token &&
+        existingSub.verification_token_expires_at &&
+        new Date(existingSub.verification_token_expires_at) > new Date()
+      );
+      const verificationToken = existingTokenIsValid
+        ? existingSub?.verification_token as string
+        : crypto.randomUUID();
       const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
       // Sanitize and prepare subscription data
@@ -286,21 +293,44 @@ const handler = async (req: Request): Promise<Response> => {
       }
       // For already-verified users, do NOT touch their verification_token (management token)
 
-      console.log(`[submit-form] Subscription from IP ${clientIP}, email: ${subscriptionData.email}, isNew: ${isNewSubscription}, needsVerification: ${needsVerification}`);
+      console.log(`[submit-form] Subscription request: isNew=${isNewSubscription}, needsVerification=${needsVerification}`);
 
-      // Upsert subscription (update if email exists)
-      const { data: subscription, error: dbError } = await supabase
-        .from('subscriptions')
-        .upsert(subscriptionData, { onConflict: 'email' })
-        .select()
-        .single();
+      // Public signup may create a new row, but it must never overwrite an
+      // existing subscriber's preferences. Existing users receive a link at
+      // the address they already proved they control.
+      let subscription = existingSub;
+      let dbError = null;
+      if (isNewSubscription) {
+        const result = await supabase
+          .from('subscriptions')
+          .insert(subscriptionData)
+          .select()
+          .single();
+        subscription = result.data;
+        dbError = result.error;
+      } else if (!alreadyVerified && !existingTokenIsValid) {
+        const result = await supabase
+          .from('subscriptions')
+          .update({
+            verification_token: verificationToken,
+            verification_token_expires_at: tokenExpiresAt,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingSub.id)
+          .eq('is_verified', false)
+          .select()
+          .single();
+        subscription = result.data;
+        dbError = result.error;
+      }
 
       if (dbError) {
         console.error("[submit-form] Database error:", dbError);
         throw new Error("Failed to save subscription");
       }
 
-      console.log("[submit-form] Subscription saved:", subscription.id);
+      if (!subscription) throw new Error("Failed to resolve subscription");
+      console.log("[submit-form] Subscription request saved");
 
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       
@@ -308,7 +338,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (needsVerification) {
         // New or unverified user - send verification email
         if (resendApiKey) {
-          const verifyUrl = `https://digibastion.com/verify-email?token=${verificationToken}`;
+          const verifyUrl = `https://www.digibastion.com/verify-email?token=${verificationToken}`;
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -331,7 +361,7 @@ const handler = async (req: Request): Promise<Response> => {
               const errorText = await emailResponse.text();
               console.error("[submit-form] Resend API error:", errorText);
             } else {
-              console.log("[submit-form] Verification email sent to:", subscriptionData.email);
+              console.log("[submit-form] Verification email sent");
             }
           } catch (emailError) {
             console.error("[submit-form] Failed to send verification email:", emailError);
@@ -341,7 +371,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Already verified - send confirmation email with their current settings
         if (resendApiKey) {
           // BUG FIX: Use the subscriber's existing verification_token (management token), not their subscription ID
-          const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email as string)}&token=${encodeURIComponent(subscription.verification_token || '')}`;
+          const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email)}&token=${encodeURIComponent(subscription.verification_token || '')}`;
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -364,7 +394,7 @@ const handler = async (req: Request): Promise<Response> => {
               const errorText = await emailResponse.text();
               console.error("[submit-form] Resend API error:", errorText);
             } else {
-              console.log("[submit-form] Already verified email sent to:", subscriptionData.email);
+              console.log("[submit-form] Existing subscriber email sent");
             }
           } catch (emailError) {
             console.error("[submit-form] Failed to send already verified email:", emailError);
