@@ -46,9 +46,10 @@ const News = () => {
 
   useEffect(() => {
     let active = true;
+    let authUpdateTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const updateAdminState = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const updateAdminState = async (providedSession?: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
+      const session = providedSession ?? (await supabase.auth.getSession()).data.session;
       if (!session) {
         if (active) setIsAdmin(false);
         return;
@@ -65,12 +66,18 @@ const News = () => {
     };
 
     void updateAdminState();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      void updateAdminState();
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Supabase holds an internal auth lock while this callback runs. Defer
+      // database work so function invocations cannot become stuck behind it.
+      if (authUpdateTimer) clearTimeout(authUpdateTimer);
+      authUpdateTimer = setTimeout(() => {
+        void updateAdminState(session);
+      }, 0);
     });
 
     return () => {
       active = false;
+      if (authUpdateTimer) clearTimeout(authUpdateTimer);
       authListener.subscription.unsubscribe();
     };
   }, []);
