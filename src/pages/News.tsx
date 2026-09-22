@@ -138,9 +138,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const fetchActiveAlerts = useCallback(async () => {
     setAlertsLoading(true);
     setAlertsError(null);
-    const { data, error: alertsFetchError, count } = await supabase
+    const { data, error: alertsFetchError } = await supabase
       .from('news_articles')
-      .select('*', { count: 'exact' })
+      .select('*')
       .in('severity', ['critical', 'high'])
       .order('published_at', { ascending: false })
       .limit(100);
@@ -173,7 +173,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       publishedAt: new Date(row.published_at),
       isProcessed: row.is_processed ?? false,
     })));
-    setActiveAlertCount(count || 0);
+    setActiveAlertCount((data || []).length);
     setAlertsLoading(false);
   }, []);
 

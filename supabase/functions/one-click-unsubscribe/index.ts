@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -16,32 +16,30 @@ const MAX_TOKEN_LENGTH = 100;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Rate limiting - simpler for one-click since it's email client triggered
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_ATTEMPTS_PER_TOKEN = 5;
+const MAX_ATTEMPTS_PER_IP = 20;
 
-function checkRateLimit(key: string, maxAttempts: number): boolean {
-  const now = Date.now();
-  const record = rateLimitStore.get(key);
-  
-  if (record && now > record.resetAt) {
-    rateLimitStore.delete(key);
-  }
-  
-  const current = rateLimitStore.get(key);
-  
-  if (!current) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-  
-  if (current.count >= maxAttempts) {
-    return false;
-  }
-  
-  current.count++;
-  return true;
+function getClientIP(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+}
+
+async function hashIdentifier(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function checkRateLimit(supabase: SupabaseClient, scope: string, identifier: string, maxAttempts: number): Promise<boolean> {
+  const { data, error } = await supabase.rpc("consume_rate_limit", {
+    _scope: scope,
+    _identifier_hash: await hashIdentifier(identifier),
+    _max_attempts: maxAttempts,
+    _window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+  });
+  if (error) throw error;
+  return (data as { allowed?: boolean } | null)?.allowed === true;
 }
 
 // Generate success HTML page
@@ -163,6 +161,16 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (!await checkRateLimit(supabase, "unsubscribe:one-click:ip", getClientIP(req), MAX_ATTEMPTS_PER_IP)) {
+      return new Response(
+        generateErrorHtml("Too many attempts. Please try again later."),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "text/html", "Retry-After": String(RATE_LIMIT_WINDOW_SECONDS) } }
+      );
+    }
     
     // Support both GET and POST for RFC 8058 compliance
     // GET: Direct link click from email
@@ -232,7 +240,7 @@ serve(async (req) => {
     }
 
     // Rate limit by token
-    if (!checkRateLimit(`unsub:token:${token}`, MAX_ATTEMPTS_PER_TOKEN)) {
+    if (!await checkRateLimit(supabase, "unsubscribe:one-click:token", token, MAX_ATTEMPTS_PER_TOKEN)) {
       console.warn(`[one-click-unsubscribe] Rate limit exceeded for token`);
       return new Response(
         generateErrorHtml("Too many attempts. Please try again later."),
@@ -256,10 +264,6 @@ serve(async (req) => {
         );
       }
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log(`[one-click-unsubscribe] Processing unsubscribe for token`);
 
