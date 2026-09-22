@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_admin_audit: {
+        Row: {
+          action: string
+          actor_user_id: string
+          api_key_id: string
+          created_at: string
+          details: Json
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          api_key_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          api_key_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_admin_audit_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string
@@ -26,6 +61,8 @@ export type Database = {
           name: string
           permissions: Json
           request_count: number
+          retired_at: string | null
+          retired_by: string | null
         }
         Insert: {
           created_at?: string
@@ -38,6 +75,8 @@ export type Database = {
           name: string
           permissions?: Json
           request_count?: number
+          retired_at?: string | null
+          retired_by?: string | null
         }
         Update: {
           created_at?: string
@@ -50,6 +89,8 @@ export type Database = {
           name?: string
           permissions?: Json
           request_count?: number
+          retired_at?: string | null
+          retired_by?: string | null
         }
         Relationships: []
       }
@@ -121,6 +162,8 @@ export type Database = {
       cron_health_snapshots: {
         Row: {
           active_jobs: number
+          alert_error: string | null
+          alert_recipients: string[] | null
           alert_sent: boolean
           failed_runs: number
           health_status: string
@@ -134,6 +177,8 @@ export type Database = {
         }
         Insert: {
           active_jobs?: number
+          alert_error?: string | null
+          alert_recipients?: string[] | null
           alert_sent?: boolean
           failed_runs?: number
           health_status: string
@@ -147,6 +192,8 @@ export type Database = {
         }
         Update: {
           active_jobs?: number
+          alert_error?: string | null
+          alert_recipients?: string[] | null
           alert_sent?: boolean
           failed_runs?: number
           health_status?: string
@@ -429,6 +476,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_counters: {
+        Row: {
+          expires_at: string
+          identifier_hash: string
+          request_count: number
+          scope: string
+          window_started_at: string
+        }
+        Insert: {
+          expires_at: string
+          identifier_hash: string
+          request_count?: number
+          scope: string
+          window_started_at: string
+        }
+        Update: {
+          expires_at?: string
+          identifier_hash?: string
+          request_count?: number
+          scope?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       rss_feeds: {
         Row: {
           category: string
@@ -578,9 +649,19 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_quiz_sessions: { Args: never; Returns: undefined }
+      cleanup_expired_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_api_usage_logs: { Args: never; Returns: undefined }
       cleanup_old_health_snapshots: { Args: never; Returns: undefined }
       cleanup_old_submission_logs: { Args: never; Returns: undefined }
+      consume_rate_limit: {
+        Args: {
+          _identifier_hash: string
+          _max_attempts: number
+          _scope: string
+          _window_seconds?: number
+        }
+        Returns: Json
+      }
       count_news_articles: {
         Args: {
           category_filter?: string[]
