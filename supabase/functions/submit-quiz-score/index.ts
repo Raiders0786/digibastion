@@ -1,389 +1,111 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{1,50}$/;
+const QUESTION_RULES: Record<number, { scores: number[]; category: string }> = {
+  1:{scores:[10,30,60,100],category:'custody'},2:{scores:[5,15,85,100],category:'social'},
+  3:{scores:[5,25,90,100],category:'verification'},4:{scores:[5,30,70,100],category:'backup'},
+  5:{scores:[5,15,60,100],category:'device'},6:{scores:[10,25,60,100],category:'auth'},
+  7:{scores:[5,30,85,100],category:'verification'},8:{scores:[5,20,85,100],category:'verification'},
+  9:{scores:[10,30,70,100],category:'custody'},10:{scores:[5,40,75,100],category:'network'},
+  11:{scores:[5,20,85,100],category:'social'},12:{scores:[5,30,65,100],category:'verification'},
+  13:{scores:[10,40,80,100],category:'device'},14:{scores:[5,25,60,100],category:'privacy'},
+  15:{scores:[10,20,70,100],category:'verification'},16:{scores:[5,25,75,100],category:'social'},
+  17:{scores:[5,30,70,100],category:'custody'},18:{scores:[10,30,70,100],category:'device'},
+  19:{scores:[5,15,80,100],category:'social'},20:{scores:[15,40,80,100],category:'auth'},
 };
 
-// Validation constants
-const MAX_USERNAME_LENGTH = 50;
-const MIN_USERNAME_LENGTH = 1;
-const MAX_SCORE = 100;
-const MIN_SCORE = 0;
-const MAX_BADGES = 10;
-
-// Rate limiting configuration
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_SUBMISSIONS_PER_IP = 5;
-const MAX_SUBMISSIONS_PER_USERNAME = 3;
-
-// Valid character ranks
-const VALID_RANKS = [
-  'Satoshi-Level',
-  'Whale Guard',
-  'Diamond Hands',
-  'Degen Defender',
-  'Paper Hands',
-  'Rekt Waiting'
-];
-
-// Username regex - alphanumeric, underscores, no spaces
-const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
-
-// Get client IP
-function getClientIP(req: Request): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-         req.headers.get('x-real-ip') ||
-         req.headers.get('cf-connecting-ip') ||
-         'unknown';
-}
-
-// Hash function
-async function hashString(str: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Verify HMAC signature
-async function verifyHMAC(data: string, signature: string, secret: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const messageData = encoder.encode(data);
-  
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  
-  const expectedSignature = await crypto.subtle.sign('HMAC', key, messageData);
-  const expectedArray = Array.from(new Uint8Array(expectedSignature));
-  const expectedHex = expectedArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return expectedHex === signature;
-}
-
-// Sanitize username
-function sanitizeUsername(username: string): string {
-  return username
-    .trim()
-    .replace(/^@/, '') // Remove leading @
-    .toLowerCase()
-    .slice(0, MAX_USERNAME_LENGTH);
-}
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+});
+const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))))
+  .map(byte => byte.toString(16).padStart(2, '0')).join('');
+const clientIp = (req: Request) => req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+const characterFor = (score: number) => score >= 90 ? 'Satoshi-Level' : score >= 75 ? 'Whale Guard' : score >= 60 ? 'Diamond Hands' : score >= 45 ? 'Degen Defender' : score >= 30 ? 'Paper Hands' : 'Rekt Waiting';
+const badgesFor = (score: number, categories: Record<string, number>) => {
+  const badges: string[] = [];
+  if (score >= 90) badges.push('🏆 OpSec Master');
+  if (score >= 70) badges.push('🛡️ Security Conscious');
+  if ((categories.custody || 0) >= 80) badges.push('🔐 Key Guardian');
+  if ((categories.verification || 0) >= 80) badges.push('🔍 Transaction Auditor');
+  if ((categories.privacy || 0) >= 80) badges.push('👤 Privacy Advocate');
+  if ((categories.device || 0) >= 80) badges.push('💻 Device Defender');
+  if (Object.keys(categories).length > 0 && Object.values(categories).every(value => value >= 50)) badges.push('⚖️ Balanced Security');
+  return badges;
+};
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   try {
-    const clientIP = getClientIP(req);
-    const ipHash = await hashString(clientIP);
+    const body = await req.json();
+    const username = typeof body.username === 'string' ? body.username.trim().replace(/^@/, '').toLowerCase() : '';
+    const sessionToken = typeof body.session_token === 'string' ? body.session_token : '';
+    const answers = Array.isArray(body.answers) ? body.answers : [];
+    if (!USERNAME_REGEX.test(username)) return json({ error: 'Username can only contain letters, numbers, and underscores' }, 400);
+    if (!sessionToken || answers.length !== 8) return json({ error: 'Complete all quiz questions before submitting.' }, 400);
 
-    // Parse request body
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const url = Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!url || !serviceKey) return json({ error: 'Server configuration error' }, 500);
+    const supabase = createClient(url, serviceKey);
+    const { data: session } = await supabase.from('quiz_sessions').select('id, question_ids, expires_at, completed_at').eq('session_token', sessionToken).maybeSingle();
+    if (!session || session.completed_at || new Date(session.expires_at) < new Date()) return json({ error: 'Invalid, expired, or already submitted session.' }, 400);
 
-    const { username, score, badge_count, character_rank, session_token } = body;
-    
-    // Validate session token is provided
-    if (!session_token || typeof session_token !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid session. Please complete the quiz first.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase configuration');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Validate session token
-    const tokenParts = session_token.split('.');
-    if (tokenParts.length !== 2) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid session token format' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const [sessionId, signature] = tokenParts;
-
-    // Fetch session from database
-    const { data: session, error: sessionError } = await supabase
-      .from('quiz_sessions')
-      .select('*')
-      .eq('session_token', session_token)
-      .single();
-
-    if (sessionError || !session) {
-      console.log('Session lookup failed:', sessionError?.message || 'Not found');
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired session. Please take the quiz again.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return new Response(
-        JSON.stringify({ error: 'Session has expired. Please take the quiz again.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if session was already used
-    if (session.completed_at) {
-      return new Response(
-        JSON.stringify({ error: 'This quiz session has already been submitted.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify HMAC signature
-    const tokenData = `${sessionId}:${session.question_ids.join(',')}:${session.ip_hash}`;
-    const isValidSignature = await verifyHMAC(tokenData, signature, supabaseServiceKey);
-
-    if (!isValidSignature) {
-      console.log('Invalid HMAC signature for session:', sessionId);
-      return new Response(
-        JSON.stringify({ error: 'Session verification failed.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify IP matches (optional - could be relaxed for mobile networks)
-    if (session.ip_hash !== ipHash) {
-      console.log('IP mismatch for session:', sessionId, 'Expected:', session.ip_hash, 'Got:', ipHash);
-      // Just log, don't reject - IPs can change on mobile networks
-    }
-
-    // Mark session as completed
-    const { error: updateSessionError } = await supabase
-      .from('quiz_sessions')
-      .update({ completed_at: new Date().toISOString() })
-      .eq('id', session.id);
-
-    if (updateSessionError) {
-      console.error('Error marking session complete:', updateSessionError);
-    }
-
-    console.log(`Session validated: ${sessionId}, questions: ${session.question_ids.join(',')}`);
-
-
-    // Validate username
-    if (!username || typeof username !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Username is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const sanitizedUsername = sanitizeUsername(username);
-
-    if (sanitizedUsername.length < MIN_USERNAME_LENGTH) {
-      return new Response(
-        JSON.stringify({ error: 'Username is too short' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!USERNAME_REGEX.test(sanitizedUsername)) {
-      return new Response(
-        JSON.stringify({ error: 'Username can only contain letters, numbers, and underscores' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate score
-    if (typeof score !== 'number' || score < MIN_SCORE || score > MAX_SCORE || !Number.isInteger(score)) {
-      return new Response(
-        JSON.stringify({ error: 'Score must be an integer between 0 and 100' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate badge count
-    if (typeof badge_count !== 'number' || badge_count < 0 || badge_count > MAX_BADGES || !Number.isInteger(badge_count)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid badge count' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate character rank
-    if (!character_rank || typeof character_rank !== 'string' || !VALID_RANKS.includes(character_rank)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid character rank' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Hash username for rate limiting (supabase already initialized above)
-
-    // Hash username for rate limiting
-    const usernameHash = await hashString(sanitizedUsername);
-
-    // Check rate limits
-    const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-
-    // Check IP rate limit
-    const { count: ipCount, error: ipCountError } = await supabase
-      .from('quiz_submission_log')
-      .select('*', { count: 'exact', head: true })
-      .eq('ip_hash', ipHash)
-      .gte('submitted_at', oneHourAgo);
-
-    if (ipCountError) {
-      console.error('Error checking IP rate limit:', ipCountError);
-    } else if (ipCount && ipCount >= MAX_SUBMISSIONS_PER_IP) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Too many submissions. Please try again later.',
-          retryAfter: 3600
-        }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check username rate limit
-    const { count: usernameCount, error: usernameCountError } = await supabase
-      .from('quiz_submission_log')
-      .select('*', { count: 'exact', head: true })
-      .eq('username_hash', usernameHash)
-      .gte('submitted_at', oneHourAgo);
-
-    if (usernameCountError) {
-      console.error('Error checking username rate limit:', usernameCountError);
-    } else if (usernameCount && usernameCount >= MAX_SUBMISSIONS_PER_USERNAME) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'This username has reached the submission limit. Please try again later.',
-          retryAfter: 3600
-        }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Log this submission for rate limiting
-    const { error: logError } = await supabase
-      .from('quiz_submission_log')
-      .insert({
-        ip_hash: ipHash,
-        username_hash: usernameHash,
-        submitted_at: new Date().toISOString()
-      });
-
-    if (logError) {
-      console.error('Error logging submission:', logError);
-      // Continue anyway - don't fail the submission
-    }
-
-    // Check if this username already has a score
-    const { data: existingScore, error: checkError } = await supabase
-      .from('quiz_scores')
-      .select('id, score')
-      .eq('username', sanitizedUsername)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found
-      console.error('Error checking existing score:', checkError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to check existing score' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // If user exists and new score is not higher, don't update
-    if (existingScore && existingScore.score >= score) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Score recorded (existing higher score kept)',
-          score: existingScore.score
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // If user exists and new score is higher, update
-    if (existingScore) {
-      const { error: updateError } = await supabase
-        .from('quiz_scores')
-        .update({
-          score,
-          badge_count,
-          character_rank,
-          created_at: new Date().toISOString() // Update timestamp
-        })
-        .eq('id', existingScore.id);
-
-      if (updateError) {
-        console.error('Error updating score:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to update score' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    const questionIds = (session.question_ids as number[]).map(Number);
+    const answerMap = new Map<number, number>();
+    for (const answer of answers) {
+      const questionId = Number(answer?.questionId);
+      const optionIndex = Number(answer?.optionIndex);
+      if (!Number.isInteger(questionId) || !Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex > 3 || answerMap.has(questionId)) {
+        return json({ error: 'Invalid quiz answers.' }, 400);
       }
+      answerMap.set(questionId, optionIndex);
+    }
+    if (questionIds.some(id => !answerMap.has(id)) || [...answerMap.keys()].some(id => !questionIds.includes(id))) return json({ error: 'Answers do not match this quiz session.' }, 400);
 
-      return new Response(
-        JSON.stringify({ success: true, message: 'Score updated!' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const categoryTotals: Record<string, number> = {};
+    const categoryCounts: Record<string, number> = {};
+    let total = 0;
+    for (const id of questionIds) {
+      const rule = QUESTION_RULES[id];
+      const index = answerMap.get(id);
+      if (!rule || index === undefined) return json({ error: 'Invalid quiz question.' }, 400);
+      const value = rule.scores[index];
+      total += value;
+      categoryTotals[rule.category] = (categoryTotals[rule.category] || 0) + value;
+      categoryCounts[rule.category] = (categoryCounts[rule.category] || 0) + 1;
+    }
+    const score = Math.round(total / questionIds.length);
+    const categoryScores = Object.fromEntries(Object.entries(categoryTotals).map(([category, value]) => [category, Math.round(value / categoryCounts[category])]));
+    const character = characterFor(score);
+    const badges = badgesFor(score, categoryScores);
+
+    const ipHash = await hash(clientIp(req));
+    const usernameHash = await hash(username);
+    for (const [scope, identifier, max] of [['quiz:ip', ipHash, 5], ['quiz:username', usernameHash, 3]] as const) {
+      const { data, error } = await supabase.rpc('consume_rate_limit', { _scope: scope, _identifier_hash: identifier, _max_attempts: max, _window_seconds: 3600 });
+      if (error) return json({ error: 'Unable to verify submission limits.' }, 500);
+      if (!data?.allowed) return json({ error: 'Quiz submission rate limit reached. Please try again later.' }, 429);
     }
 
-    // Insert new score
-    const { error: insertError } = await supabase
-      .from('quiz_scores')
-      .insert({
-        username: sanitizedUsername,
-        score,
-        badge_count,
-        character_rank
-      });
+    const { data: claimed, error: claimError } = await supabase.from('quiz_sessions').update({ completed_at: new Date().toISOString() }).eq('id', session.id).is('completed_at', null).select('id').maybeSingle();
+    if (claimError || !claimed) return json({ error: 'This quiz session has already been submitted.' }, 409);
 
-    if (insertError) {
-      console.error('Error inserting score:', insertError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to save score' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (username !== 'anon') {
+      const { data: existing } = await supabase.from('quiz_scores').select('id, score').eq('username', username).maybeSingle();
+      if (!existing) {
+        const { error } = await supabase.from('quiz_scores').insert({ username, score, badge_count: badges.length, character_rank: character });
+        if (error) return json({ error: 'Failed to save score.' }, 500);
+      } else if (score > existing.score) {
+        const { error } = await supabase.from('quiz_scores').update({ score, badge_count: badges.length, character_rank: character, created_at: new Date().toISOString() }).eq('id', existing.id);
+        if (error) return json({ error: 'Failed to update score.' }, 500);
+      }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: 'Score saved to leaderboard!' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return json({ success: true, message: username === 'anon' ? 'Score verified privately.' : 'Score verified and recorded.', result: { score, categoryScores, character_rank: character, badges } });
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ error: 'An unexpected error occurred' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('[submit-quiz-score]', error);
+    return json({ error: 'An unexpected error occurred' }, 500);
   }
 });
