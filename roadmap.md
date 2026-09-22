@@ -25,3 +25,9 @@
 - [x] Restore sequential headings on category detail pages.
 - [x] Add accessible names to quick newsletter subscription fields.
 - [x] Associate every contact form label with its field.
+
+## Production domain SEO migration
+- [x] Connect root and www custom domains with www as primary.
+- [x] Switch sitemap and crawler references to www.digibastion.com.
+- [ ] Publish and verify live custom-domain metadata, redirects, and sitemap.
+- [ ] Verify the www URL-prefix property and submit its sitemap in Search Console.
