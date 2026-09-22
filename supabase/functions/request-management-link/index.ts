@@ -10,12 +10,8 @@ const corsHeaders = {
 const MAX_EMAIL_LENGTH = 255;
 
 // Rate limiting configuration - stricter for this endpoint
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_ATTEMPTS_PER_IP = 5; // Max attempts per IP per hour
 const MAX_ATTEMPTS_PER_EMAIL = 2; // Max attempts per email per hour (prevent spam)
-
-// In-memory rate limit store
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 // Validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,27 +22,9 @@ function getClientIP(req: Request): string {
          "unknown";
 }
 
-function checkRateLimit(key: string, maxAttempts: number): { allowed: boolean; remaining: number; resetIn: number } {
-  const now = Date.now();
-  const record = rateLimitStore.get(key);
-  
-  if (record && now > record.resetAt) {
-    rateLimitStore.delete(key);
-  }
-  
-  const current = rateLimitStore.get(key);
-  
-  if (!current) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: maxAttempts - 1, resetIn: RATE_LIMIT_WINDOW_MS };
-  }
-  
-  if (current.count >= maxAttempts) {
-    return { allowed: false, remaining: 0, resetIn: current.resetAt - now };
-  }
-  
-  current.count++;
-  return { allowed: true, remaining: maxAttempts - current.count, resetIn: current.resetAt - now };
+async function hashIdentifier(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 // HTML escape function
@@ -152,27 +130,6 @@ serve(async (req) => {
     const clientIP = getClientIP(req);
     const { email } = await req.json();
 
-    // Rate limit by IP first
-    const ipRateLimit = checkRateLimit(`mgmt-link:ip:${clientIP}`, MAX_ATTEMPTS_PER_IP);
-    if (!ipRateLimit.allowed) {
-      console.warn(`[request-management-link] Rate limit exceeded for IP: ${clientIP}`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Too many requests. Please try again later.",
-          retryAfter: Math.ceil(ipRateLimit.resetIn / 1000)
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(ipRateLimit.resetIn / 1000))
-          } 
-        }
-      );
-    }
-
     // Validate email
     if (!email || typeof email !== "string") {
       return new Response(
@@ -190,31 +147,15 @@ serve(async (req) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Rate limit by email (stricter to prevent spam)
-    const emailRateLimit = checkRateLimit(`mgmt-link:email:${normalizedEmail}`, MAX_ATTEMPTS_PER_EMAIL);
-    if (!emailRateLimit.allowed) {
-      console.warn(`[request-management-link] Rate limit exceeded for email: ${normalizedEmail}`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "A management link was recently sent to this email. Please check your inbox or try again later.",
-          retryAfter: Math.ceil(emailRateLimit.resetIn / 1000)
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(emailRateLimit.resetIn / 1000))
-          } 
-        }
-      );
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    for (const [scope, identifier, maximum] of [['management-link:ip', clientIP, MAX_ATTEMPTS_PER_IP], ['management-link:email', normalizedEmail, MAX_ATTEMPTS_PER_EMAIL]] as const) {
+      const { data: limit, error: limitError } = await supabase.rpc('consume_rate_limit', { _scope: scope, _identifier_hash: await hashIdentifier(identifier), _max_attempts: maximum, _window_seconds: 3600 });
+      if (limitError) throw limitError;
+      if (!limit?.allowed) return new Response(JSON.stringify({ success: false, error: 'Too many requests. Please try again later.', retryAfter: 3600 }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } });
+    }
 
     console.log(`[request-management-link] Looking up subscription for: ${normalizedEmail}`);
 
