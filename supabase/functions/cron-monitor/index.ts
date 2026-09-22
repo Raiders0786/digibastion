@@ -21,8 +21,8 @@ interface HealthSnapshot {
   id: string;
   recorded_at: string;
   health_status: string;
-  total_jobs: number;
-  active_jobs: number;
+  total_jobs?: number;
+  active_jobs?: number;
   total_runs: number;
   failed_runs: number;
   timeout_errors: number;

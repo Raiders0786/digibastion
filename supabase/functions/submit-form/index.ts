@@ -39,6 +39,22 @@ interface SubscriptionFormData {
   preferred_day?: number;
 }
 
+interface SanitizedSubscriptionData {
+  email: string;
+  name: string | null;
+  categories: string[];
+  technologies: string[];
+  frequency: string;
+  severity_threshold: string;
+  preferred_hour: number;
+  timezone_offset: number;
+  preferred_day: number;
+  is_active: boolean;
+  is_verified: boolean;
+  verification_token?: string;
+  verification_token_expires_at?: string;
+}
+
 function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email) && email.length <= MAX_EMAIL_LENGTH;
@@ -249,7 +265,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Sanitize and prepare subscription data
       // BUG FIX: Don't overwrite existing verification_token for already-verified users
       // Their token is their permanent management token
-      const subscriptionData: Record<string, unknown> = {
+      const subscriptionData: SanitizedSubscriptionData = {
         email: sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase(),
         name: subData.name ? sanitizeString(subData.name, MAX_NAME_LENGTH) : null,
         categories: subData.categories.slice(0, 10).map(c => sanitizeString(c, 50)),
