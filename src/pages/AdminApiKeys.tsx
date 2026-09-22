@@ -29,7 +29,7 @@ import {
   Copy,
   Check,
   XCircle,
-  Trash2,
+  Archive,
   ArrowLeft,
   RefreshCw,
   LogOut,
@@ -51,6 +51,7 @@ interface ApiKeyRecord {
   last_used_at: string | null;
   created_at: string;
   request_count: number;
+  retired_at: string | null;
 }
 
 interface UsageLog {
@@ -64,23 +65,6 @@ interface UsageLog {
   request_params: Record<string, unknown>;
   error_message: string | null;
   created_at: string;
-}
-
-async function hashKey(raw: string): Promise<string> {
-  const enc = new TextEncoder().encode(raw);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function generateApiKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  const key = Array.from(bytes)
-    .map(b => chars[b % chars.length])
-    .join('');
-  return 'db_live_' + key;
 }
 
 const API_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/threat-intel-api`;
@@ -97,18 +81,21 @@ export default function AdminApiKeys() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [mutatingKeyId, setMutatingKeyId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const fetchKeys = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate('/admin'); return; }
 
       const [keysRes, logsRes] = await Promise.all([
         supabase.from('api_keys')
-          .select('id, name, is_active, permissions, expires_at, last_used_at, created_at, request_count')
+          .select('id, name, is_active, permissions, expires_at, last_used_at, created_at, request_count, retired_at')
           .order('created_at', { ascending: false }),
         supabase.from('api_usage_logs')
           .select('*')
@@ -124,6 +111,7 @@ export default function AdminApiKeys() {
       toast({ title: 'Error', description: 'Failed to load API keys', variant: 'destructive' });
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [navigate, toast]);
 
@@ -155,22 +143,14 @@ export default function AdminApiKeys() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const rawKey = generateApiKey();
-      const keyHash = await hashKey(rawKey);
-
-      const insertData: Record<string, unknown> = {
-        key_hash: keyHash,
+      const { data, error } = await supabase.functions.invoke('admin-api-keys', { body: {
+        action: 'create',
         name: newKeyName.trim(),
-        permissions: ['read:threat-intel'],
-        is_active: true,
-        created_by: session.user.id,
-      };
-      if (newKeyExpiry) insertData.expires_at = new Date(newKeyExpiry).toISOString();
-
-      const { error } = await supabase.from('api_keys').insert(insertData as any);
+        expires_at: newKeyExpiry ? new Date(newKeyExpiry).toISOString() : null,
+      }});
       if (error) throw error;
 
-      setGeneratedKey(rawKey);
+      setGeneratedKey(data?.data?.raw_key || '');
       setCreateDialogOpen(false);
       setShowKeyDialog(true);
       setNewKeyName('');
@@ -185,25 +165,29 @@ export default function AdminApiKeys() {
   };
 
   const handleToggleActive = async (id: string, currentlyActive: boolean) => {
+    setMutatingKeyId(id);
     try {
-      const { error } = await supabase.from('api_keys').update({ is_active: !currentlyActive } as any).eq('id', id);
+      const { error } = await supabase.functions.invoke('admin-api-keys', { body: { action: 'set-active', id, is_active: !currentlyActive } });
       if (error) throw error;
       setKeys(prev => prev.map(k => k.id === id ? { ...k, is_active: !currentlyActive } : k));
       toast({ title: currentlyActive ? 'Key revoked' : 'Key reactivated' });
     } catch { toast({ title: 'Error', description: 'Failed to update', variant: 'destructive' }); }
+    finally { setMutatingKeyId(null); }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleRetire = async (id: string) => {
+    setMutatingKeyId(id);
     try {
-      const { error } = await supabase.from('api_keys').delete().eq('id', id);
+      const { error } = await supabase.functions.invoke('admin-api-keys', { body: { action: 'retire', id } });
       if (error) throw error;
-      setKeys(prev => prev.filter(k => k.id !== id));
+      setKeys(prev => prev.map(k => k.id === id ? { ...k, is_active: false, retired_at: new Date().toISOString() } : k));
       setDeleteConfirmId(null);
-      toast({ title: 'Key deleted permanently' });
+      toast({ title: 'Key retired', description: 'Usage history and audit records were preserved.' });
     } catch { 
       setDeleteConfirmId(null);
-      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' }); 
+      toast({ title: 'Error', description: 'Failed to retire', variant: 'destructive' }); 
     }
+    finally { setMutatingKeyId(null); }
   };
 
   const copyText = async (text: string, blockId?: string) => {
@@ -271,8 +255,8 @@ export default function AdminApiKeys() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
-            <Button variant="outline" size="sm" onClick={fetchKeys}>
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={fetchKeys} disabled={isRefreshing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); navigate('/admin'); }}>
@@ -301,7 +285,7 @@ export default function AdminApiKeys() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    {keys.filter(k => k.is_active).length} active / {keys.length} total
+                    {keys.filter(k => k.is_active && !k.retired_at).length} active / {keys.length} total
                   </p>
                   <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                     <DialogTrigger asChild>
@@ -378,7 +362,9 @@ export default function AdminApiKeys() {
                           <TableRow key={key.id}>
                             <TableCell className="font-medium">{key.name}</TableCell>
                             <TableCell>
-                              {isExpired ? (
+                              {key.retired_at ? (
+                                <Badge variant="secondary">Retired</Badge>
+                              ) : isExpired ? (
                                 <Badge variant="outline" className="border-yellow-500/50 text-yellow-500">Expired</Badge>
                               ) : key.is_active ? (
                                 <Badge variant="outline" className="border-green-500/50 text-green-500">Active</Badge>
@@ -399,25 +385,25 @@ export default function AdminApiKeys() {
                             <TableCell className="text-sm text-muted-foreground">{formatDate(key.created_at)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button variant="ghost" size="sm" onClick={() => handleToggleActive(key.id, key.is_active)} title={key.is_active ? 'Revoke' : 'Reactivate'}>
+                                <Button variant="ghost" size="sm" disabled={Boolean(key.retired_at) || mutatingKeyId === key.id} onClick={() => handleToggleActive(key.id, key.is_active)} title={key.is_active ? 'Revoke' : 'Reactivate'}>
                                   {key.is_active ? <XCircle className="w-4 h-4 text-destructive" /> : <Check className="w-4 h-4 text-green-500" />}
                                 </Button>
                                 <Dialog open={deleteConfirmId === key.id} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
                                   <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(key.id)} title="Delete permanently">
-                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    <Button variant="ghost" size="sm" disabled={Boolean(key.retired_at) || mutatingKeyId === key.id} onClick={() => setDeleteConfirmId(key.id)} title="Retire key">
+                                      <Archive className="w-4 h-4 text-destructive" />
                                     </Button>
                                   </DialogTrigger>
                                   <DialogContent>
                                     <DialogHeader>
-                                      <DialogTitle>Delete API Key</DialogTitle>
+                                      <DialogTitle>Retire API Key</DialogTitle>
                                       <DialogDescription>
-                                        This will permanently delete the key "{key.name}". Any integrations using this key will stop working immediately. This cannot be undone.
+                                        This will revoke "{key.name}" permanently. Usage history and the administrator audit trail will be preserved.
                                       </DialogDescription>
                                     </DialogHeader>
                                     <DialogFooter>
                                       <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
-                                      <Button variant="destructive" onClick={() => handleDelete(key.id)}>Delete Permanently</Button>
+                                      <Button variant="destructive" disabled={mutatingKeyId === key.id} onClick={() => handleRetire(key.id)}>Retire Key</Button>
                                     </DialogFooter>
                                   </DialogContent>
                                 </Dialog>
