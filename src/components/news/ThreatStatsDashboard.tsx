@@ -62,6 +62,10 @@ const northKoreaStats = {
 export const ThreatStatsDashboard = () => {
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+        <p className="text-sm text-muted-foreground">Reference research covering 2024 through November 2025. Live incidents appear in the News Feed.</p>
+        <Badge variant="outline" className="shrink-0">Updated Nov 2025</Badge>
+      </div>
       {/* Key Metrics - 2025 Focus */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-card border-red-500/20">

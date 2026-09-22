@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Button } from '@/components/ui/button';
@@ -85,12 +85,10 @@ const QuizResult = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const hasSubmittedScore = useRef(false);
   
   const username = searchParams.get('u') || 'anon';
   const score = parseInt(searchParams.get('s') || '0', 10);
   const badgesParam = searchParams.get('b') || '';
-  const sessionToken = searchParams.get('t') || ''; // Session token for validation
   
   const character = getCryptoCharacter(score);
   const config = getThreatLevelConfig(score);
@@ -118,50 +116,6 @@ const QuizResult = () => {
   };
 
   const handleShareOnX = async () => {
-    // Save score to leaderboard via secure edge function (only once per page load)
-    if (!hasSubmittedScore.current && username !== 'anon') {
-      hasSubmittedScore.current = true;
-      
-      // Check if we have a valid session token
-      if (!sessionToken) {
-        console.log('No session token - score submission disabled for this session');
-        toast.info('Share your score on X!');
-      } else {
-        try {
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                username,
-                score,
-                badge_count: badges.length,
-                character_rank: character.name,
-                session_token: sessionToken
-              }),
-            }
-          );
-
-          const result = await response.json();
-          
-          if (response.ok) {
-            toast.success('Score saved to leaderboard! 🏆');
-          } else if (result.error?.includes('session')) {
-            toast.info('Session expired - score not saved to leaderboard');
-          } else if (result.error?.includes('rate limit')) {
-            toast.info('Score already submitted recently');
-          } else {
-            console.error('Failed to submit score:', result.error);
-          }
-        } catch (error) {
-          console.error('Error submitting score:', error);
-        }
-      }
-    }
-
     const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
     const tweetText = `${character.emoji} I scored ${score}/100 on the @digibastion OpSec Quiz!\n\nMy rank: ${character.name}\n"${character.description}"\n\nThink you can beat me? Take the quiz 👇\n${shareUrl}`;
     

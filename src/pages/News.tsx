@@ -43,6 +43,10 @@ const News = () => {
   const [selectedTab, setSelectedTab] = useState(() => searchParams.get('tab') || 'feed');
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeAlerts, setActiveAlerts] = useState<NewsArticle[]>([]);
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [alertsError, setAlertsError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -131,6 +135,54 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     pageSize,
   });
 
+  const fetchActiveAlerts = useCallback(async () => {
+    setAlertsLoading(true);
+    setAlertsError(null);
+    const { data, error: alertsFetchError, count } = await supabase
+      .from('news_articles')
+      .select('*', { count: 'exact' })
+      .in('severity', ['critical', 'high'])
+      .order('published_at', { ascending: false })
+      .limit(100);
+
+    if (alertsFetchError) {
+      console.error('Failed to fetch active alerts:', alertsFetchError);
+      setAlertsError('Active alerts could not be loaded.');
+      setAlertsLoading(false);
+      return;
+    }
+
+    const sanitize = (value: string | null | undefined) => (value || '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    setActiveAlerts((data || []).map((row) => ({
+      id: row.id,
+      title: sanitize(row.title),
+      summary: sanitize(row.summary),
+      content: sanitize(row.content || row.summary),
+      category: row.category as NewsCategory,
+      severity: row.severity as SeverityLevel,
+      tags: row.tags || [],
+      affectedTechnologies: row.affected_technologies || [],
+      link: row.link,
+      sourceUrl: row.source_url || '',
+      sourceName: row.source_name || '',
+      author: row.author || '',
+      cveId: row.cve_id || undefined,
+      publishedAt: new Date(row.published_at),
+      isProcessed: row.is_processed ?? false,
+    })));
+    setActiveAlertCount(count || 0);
+    setAlertsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (selectedTab === 'alerts' && activeAlerts.length === 0) {
+      void fetchActiveAlerts();
+    }
+  }, [selectedTab, activeAlerts.length, fetchActiveAlerts]);
+
   // Deep-link: load article from URL param on mount
   const deepLinkLoaded = useRef(false);
   useEffect(() => {
@@ -195,11 +247,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     if (selectedTab !== 'alerts' || autoRefreshInterval === 0) return;
     
     const intervalId = setInterval(() => {
-      refetch();
+      void fetchActiveAlerts();
     }, autoRefreshInterval * 1000);
 
     return () => clearInterval(intervalId);
-  }, [selectedTab, autoRefreshInterval, refetch]);
+  }, [selectedTab, autoRefreshInterval, fetchActiveAlerts]);
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -227,20 +279,17 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   // Use database articles directly (filtering handled by hook)
   const filteredArticles = dbArticles;
 
-  // Filter articles by severity for alerts tab - using real database data
   const criticalAlerts = useMemo(() => {
-    return dbArticles.filter(article => article.severity === 'critical');
-  }, [dbArticles]);
+    return activeAlerts.filter(article => article.severity === 'critical');
+  }, [activeAlerts]);
 
   const highAlerts = useMemo(() => {
-    return dbArticles.filter(article => article.severity === 'high');
-  }, [dbArticles]);
+    return activeAlerts.filter(article => article.severity === 'high');
+  }, [activeAlerts]);
 
   const actionRequiredAlerts = useMemo(() => {
-    return dbArticles.filter(article => 
-      article.severity === 'critical' || article.severity === 'high'
-    );
-  }, [dbArticles]);
+    return activeAlerts;
+  }, [activeAlerts]);
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -269,7 +318,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   // Tab configuration with better visibility
   const tabs = [
     { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
-    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: actionRequiredAlerts.length },
+    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: activeAlertCount || actionRequiredAlerts.length },
     { id: 'dashboard', label: 'Analytics', icon: BarChart3 },
     { id: 'subscribe', label: 'Subscribe', icon: Bell },
   ];
@@ -718,10 +767,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => refetch()}
-                      disabled={isLoading}
+                      onClick={() => void fetchActiveAlerts()}
+                      disabled={alertsLoading}
                     >
-                      {isLoading ? (
+                      {alertsLoading ? (
                         <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                       ) : (
                         <RefreshCw className="w-4 h-4 mr-1" />
@@ -828,63 +877,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 </Card>
               )}
 
-              {/* Other Alerts (Medium/Low) */}
-              {dbArticles.filter(a => a.severity !== 'critical' && a.severity !== 'high').length > 0 && (
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="w-5 h-5 text-primary" />
-                    Other Active Alerts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {dbArticles
-                    .filter(a => a.severity !== 'critical' && a.severity !== 'high')
-                    .map((alert) => (
-                      <div 
-                        key={alert.id}
-                        className="p-3 border rounded-lg bg-card/50 hover:bg-accent/30 transition-colors cursor-pointer"
-                        onClick={() => handleArticleClick(alert)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                alert.severity === 'medium' 
-                                  ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                                  : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                              }
-                            >
-                              {alert.severity.toUpperCase()}
-                            </Badge>
-                            <span className="font-medium text-sm">{alert.title}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(alert.publishedAt), 'MMM d')}
-                            </span>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </CardContent>
-              </Card>
-              )}
-
               {/* Empty state */}
-              {dbArticles.length === 0 && (
+              {!alertsLoading && activeAlerts.length === 0 && (
                 <Card className="glass-card">
                   <CardContent className="p-8 text-center">
                     <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">No alerts available</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Click "Refresh" on the News Feed tab to fetch the latest security alerts
-                    </p>
-                    <Button onClick={() => setSelectedTab('feed')}>
-                      Go to News Feed
-                    </Button>
+                    <p className="text-muted-foreground mb-4">{alertsError || 'No critical or high priority alerts are active.'}</p>
+                    <Button onClick={() => void fetchActiveAlerts()}>Try Again</Button>
                   </CardContent>
                 </Card>
               )}

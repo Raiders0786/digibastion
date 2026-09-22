@@ -76,17 +76,9 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Rate limit: max 10 quiz sessions per hour per IP
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count: sessionCount, error: countError } = await supabase
-      .from('quiz_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('ip_hash', ipHash)
-      .gte('started_at', oneHourAgo);
-    
-    if (countError) {
-      console.error('Error checking rate limit:', countError);
-    } else if (sessionCount && sessionCount >= 10) {
+    const { data: sessionLimit, error: limitError } = await supabase.rpc('consume_rate_limit', { _scope: 'quiz:start:ip', _identifier_hash: ipHash, _max_attempts: 10, _window_seconds: 3600 });
+    if (limitError) throw limitError;
+    if (!sessionLimit?.allowed) {
       return new Response(
         JSON.stringify({ error: 'Too many quiz attempts. Please try again later.' }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -69,3 +69,6 @@ verify_jwt = false
 
 [functions.cron-monitor]
 verify_jwt = false
+
+[functions.admin-api-keys]
+verify_jwt = false

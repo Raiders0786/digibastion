@@ -17,6 +17,7 @@ interface QuizOption {
   text: string;
   score: number;
   category: string;
+  optionIndex?: number;
 }
 
 interface QuizQuestion {
@@ -425,14 +426,14 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     // Shuffle options within each question
     return selectedQuestions.map(q => ({
       ...q,
-      options: shuffleArray(q.options)
+      options: shuffleArray(q.options.map((option, optionIndex) => ({ ...option, optionIndex })))
     }));
   }, [serverQuestionIds, isOpen]);
 
   const progress = ((currentStep) / (randomizedQuestions.length + 1)) * 100;
 
-  const handleAnswer = (questionId: number, score: number) => {
-    setAnswers(prev => ({ ...prev, [questionId]: score }));
+  const handleAnswer = (questionId: number, optionIndex: number) => {
+    setAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
   };
 
   const calculateResult = async () => {
@@ -441,13 +442,13 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
 
     randomizedQuestions.forEach((q) => {
       const answer = answers[q.id];
-      const option = q.options.find(o => o.score === answer);
+      const option = q.options.find(o => o.optionIndex === answer);
       if (option) {
         if (!categoryScores[option.category]) {
           categoryScores[option.category] = 0;
           categoryCounts[option.category] = 0;
         }
-        categoryScores[option.category] += answer;
+        categoryScores[option.category] += option.score;
         categoryCounts[option.category]++;
       }
     });
@@ -456,7 +457,10 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
       categoryScores[cat] = Math.round(categoryScores[cat] / categoryCounts[cat]);
     });
 
-    const totalScore = Object.values(answers).reduce((a, b) => a + b, 0);
+    const totalScore = randomizedQuestions.reduce((sum, question) => {
+      const option = question.options.find(item => item.optionIndex === answers[question.id]);
+      return sum + (option?.score || 0);
+    }, 0);
     const avgScore = Math.round(totalScore / randomizedQuestions.length);
     
     const threatLevel = getThreatLevel(avgScore);
@@ -464,8 +468,8 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     const character = getCryptoCharacter(avgScore);
     const badges = getBadges(avgScore, categoryScores);
 
-    // Submit score to leaderboard immediately (if not anon and has valid session)
-    if (username.toLowerCase() !== 'anon' && sessionToken) {
+    // The server calculates the authoritative score from stable answer identifiers.
+    if (sessionToken) {
       try {
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
@@ -474,22 +478,39 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               username,
-              score: avgScore,
-              badge_count: badges.length,
-              character_rank: character.name,
+              answers: randomizedQuestions.map(question => ({
+                questionId: question.id,
+                optionIndex: answers[question.id],
+              })),
               session_token: sessionToken
             }),
           }
         );
 
-        const result = await response.json();
-        if (response.ok && result.success) {
-          console.log('Score submitted to leaderboard:', result.message);
+        const serverResult = await response.json();
+        if (response.ok && serverResult.success) {
+          const authoritativeScore = serverResult.result?.score ?? avgScore;
+          const authoritativeCategories = serverResult.result?.categoryScores ?? categoryScores;
+          const authoritativeCharacter = getCryptoCharacter(authoritativeScore);
+          setResult({
+            score: authoritativeScore,
+            threatLevel: getThreatLevel(authoritativeScore),
+            recommendations: getRecommendations(authoritativeCategories),
+            categoryScores: authoritativeCategories,
+            character: authoritativeCharacter,
+            badges: serverResult.result?.badges ?? getBadges(authoritativeScore, authoritativeCategories),
+          });
+          setShowResult(true);
+          return;
         } else {
-          console.error('Failed to submit score:', result.error);
+          console.error('Failed to submit score:', serverResult.error);
+          toast.error(serverResult.error || 'Could not verify your score. Please try again.');
+          return;
         }
       } catch (error) {
         console.error('Error submitting score:', error);
+        toast.error('Could not verify your score. Please try again.');
+        return;
       }
     }
 
@@ -518,7 +539,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
       }
     }
     
-    if (currentStep > 0 && !answers[randomizedQuestions[currentStep - 1]?.id]) {
+    if (currentStep > 0 && answers[randomizedQuestions[currentStep - 1]?.id] === undefined) {
       toast.error("Please select an answer");
       return;
     }
@@ -540,9 +561,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     
     // Create shareable URL with params for OG tags
     const badgesEncoded = result.badges.map(b => encodeURIComponent(b)).join(',');
-    // Include session token in share URL for validation
-    const tokenParam = sessionToken ? `&t=${encodeURIComponent(sessionToken)}` : '';
-    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}${tokenParam}`;
+    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}`;
     
     const shareText = `${result.character.emoji} My OpSec Level: ${result.character.name} (${result.score}/100)
 
@@ -657,20 +676,20 @@ ${shareUrl}`;
                   {randomizedQuestions[currentStep - 1]?.options.map((option, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleAnswer(randomizedQuestions[currentStep - 1].id, option.score)}
+                      onClick={() => handleAnswer(randomizedQuestions[currentStep - 1].id, option.optionIndex ?? idx)}
                       className={`w-full p-4 text-left rounded-lg border transition-all duration-200 ${
-                        answers[randomizedQuestions[currentStep - 1]?.id] === option.score
+                        answers[randomizedQuestions[currentStep - 1]?.id] === (option.optionIndex ?? idx)
                           ? 'border-primary bg-primary/10 text-foreground'
                           : 'border-border hover:border-primary/50 hover:bg-primary/5'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          answers[randomizedQuestions[currentStep - 1]?.id] === option.score
+                          answers[randomizedQuestions[currentStep - 1]?.id] === (option.optionIndex ?? idx)
                             ? 'border-primary bg-primary'
                             : 'border-foreground-secondary'
                         }`}>
-                          {answers[randomizedQuestions[currentStep - 1]?.id] === option.score && (
+                          {answers[randomizedQuestions[currentStep - 1]?.id] === (option.optionIndex ?? idx) && (
                             <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
                           )}
                         </div>

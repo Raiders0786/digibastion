@@ -19,6 +19,9 @@ const BLOCKED_HOSTS = [
 
 // Security: Check if hostname is a private/internal IP
 function isPrivateIP(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const mappedV4 = normalized.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/)?.[1];
+  if (mappedV4) return isPrivateIP(mappedV4);
   // RFC 1918 private ranges
   const privatePatterns = [
     /^10\./,                          // 10.0.0.0/8
@@ -26,12 +29,12 @@ function isPrivateIP(hostname: string): boolean {
     /^192\.168\./,                    // 192.168.0.0/16
     /^127\./,                         // 127.0.0.0/8 loopback
     /^169\.254\./,                    // Link-local
-    /^fc00:/i,                        // IPv6 unique local
+    /^f[cd][0-9a-f]{2}:/i,            // IPv6 unique local (fc00::/7)
     /^fe80:/i,                        // IPv6 link-local
     /^::1$/,                          // IPv6 loopback
   ];
   
-  return privatePatterns.some(pattern => pattern.test(hostname));
+  return privatePatterns.some(pattern => pattern.test(normalized));
 }
 
 // Security: Validate URL before scraping
