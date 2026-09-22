@@ -22,6 +22,6 @@
 - [x] Run regression, build, and end-to-end validation.
 
 ## SEO accessibility corrections
-- [ ] Restore sequential headings on category detail pages.
-- [ ] Add accessible names to quick newsletter subscription fields.
-- [ ] Associate every contact form label with its field.
+- [x] Restore sequential headings on category detail pages.
+- [x] Add accessible names to quick newsletter subscription fields.
+- [x] Associate every contact form label with its field.
