@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "overrides": {
+    "@babel/runtime": "^7.26.10"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

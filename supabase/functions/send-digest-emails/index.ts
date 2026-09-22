@@ -359,6 +359,21 @@ function shouldSendToSubscriber(sub: Subscription, currentUtcHour: number, curre
   return true;
 }
 
+async function timingSafeEqual(left: string, right: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [leftHash, rightHash] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(left)),
+    crypto.subtle.digest('SHA-256', encoder.encode(right)),
+  ]);
+  const leftBytes = new Uint8Array(leftHash);
+  const rightBytes = new Uint8Array(rightHash);
+  let difference = 0;
+  for (let index = 0; index < leftBytes.length; index++) {
+    difference |= leftBytes[index] ^ rightBytes[index];
+  }
+  return difference === 0;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -371,7 +386,7 @@ serve(async (req) => {
   let adminEmail: string | null = null;
 
   // Check cron secret first
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  if (cronSecret && authHeader && await timingSafeEqual(authHeader, `Bearer ${cronSecret}`)) {
     isAuthorized = true;
   }
 
@@ -768,7 +783,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[send-digest-emails] Fatal error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

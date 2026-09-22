@@ -62,9 +62,9 @@ export default async function handler(req: Request) {
   }
 
   // Sanitize inputs
-  const rawUsername = url.searchParams.get('u') || 'anon';
-  const username = escapeHtml(rawUsername.slice(0, 50));
-  const score = Math.max(0, Math.min(100, parseInt(url.searchParams.get('s') || '0', 10)));
+  const rawUsername = (url.searchParams.get('u') || 'anon').trim().slice(0, 50) || 'anon';
+  const parsedScore = Number.parseInt(url.searchParams.get('s') || '0', 10);
+  const score = Number.isFinite(parsedScore) ? Math.max(0, Math.min(100, parsedScore)) : 0;
   const badgesParam = url.searchParams.get('b') || '';
   
   const character = getCryptoCharacter(score);
@@ -76,7 +76,7 @@ export default async function handler(req: Request) {
   const ogDescription = escapeHtml(`"${character.description}" - Take the OpSec quiz at digibastion.com`);
   
   // pageUrl should be the canonical frontend URL, not the current API URL
-  const pageUrl = escapeHtml(`https://digibastion.com/quiz-result${url.search}`);
+  const pageUrl = escapeHtml(`https://www.digibastion.com/quiz-result${url.search}`);
 
   // Generate HTML with proper OG meta tags for Twitter/social crawlers
   const html = `<!DOCTYPE html>
@@ -178,7 +178,7 @@ export default async function handler(req: Request) {
     <p style="color: #22c55e;">${escapeHtml(character.title)}</p>
     <div class="score">${score}<span style="opacity: 0.7; font-size: 24px;">/100</span></div>
     <p class="description">"${escapeHtml(character.description)}"</p>
-    <a href="https://digibastion.com" class="cta">Take the Quiz</a>
+    <a href="https://www.digibastion.com/opsec-quiz" class="cta">Take the Quiz</a>
   </div>
 </body>
 </html>`;

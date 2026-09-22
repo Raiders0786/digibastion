@@ -6,6 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function getClientIP(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+}
+
+async function hashIdentifier(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -34,6 +45,20 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: rateLimit, error: rateLimitError } = await supabase.rpc("consume_rate_limit", {
+      _scope: "verify-email:ip",
+      _identifier_hash: await hashIdentifier(getClientIP(req)),
+      _max_attempts: 20,
+      _window_seconds: 3600,
+    });
+    if (rateLimitError) throw rateLimitError;
+    if (!rateLimit?.allowed) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Too many verification attempts. Please try again later." }),
+        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "3600", ...corsHeaders } }
+      );
+    }
 
     console.log("[verify-email] Verifying submitted token");
 
