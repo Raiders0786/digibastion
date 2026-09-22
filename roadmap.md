@@ -6,3 +6,4 @@
 - [x] Replace estimated cron health with real attributed outcomes.
 - [x] Disable the stale NVD RSS source.
 - [x] Deploy and verify all repairs without weakening authorization.
+- [ ] Repair and verify manual admin refresh for RSS, Web3 incidents, and AI summaries.
