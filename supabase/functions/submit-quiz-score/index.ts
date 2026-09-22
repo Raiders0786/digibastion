@@ -1,5 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{1,50}$/;
 const QUESTION_RULES: Record<number, { scores: number[]; category: string }> = {
@@ -21,6 +25,17 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))))
   .map(byte => byte.toString(16).padStart(2, '0')).join('');
 const clientIp = (req: Request) => req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+const hmac = async (value: string, secret: string) => {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return Array.from(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value))))
+    .map(byte => byte.toString(16).padStart(2, '0')).join('');
+};
+const constantTimeEqual = (left: string, right: string) => {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index++) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return difference === 0;
+};
 const characterFor = (score: number) => score >= 90 ? 'Satoshi-Level' : score >= 75 ? 'Whale Guard' : score >= 60 ? 'Diamond Hands' : score >= 45 ? 'Degen Defender' : score >= 30 ? 'Paper Hands' : 'Rekt Waiting';
 const badgesFor = (score: number, categories: Record<string, number>) => {
   const badges: string[] = [];
@@ -49,10 +64,16 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!url || !serviceKey) return json({ error: 'Server configuration error' }, 500);
     const supabase = createClient(url, serviceKey);
-    const { data: session } = await supabase.from('quiz_sessions').select('id, question_ids, expires_at, completed_at').eq('session_token', sessionToken).maybeSingle();
+    const { data: session } = await supabase.from('quiz_sessions').select('id, question_ids, ip_hash, expires_at, completed_at').eq('session_token', sessionToken).maybeSingle();
     if (!session || session.completed_at || new Date(session.expires_at) < new Date()) return json({ error: 'Invalid, expired, or already submitted session.' }, 400);
 
     const questionIds = (session.question_ids as number[]).map(Number);
+    const currentIpHash = await hash(clientIp(req));
+    const [tokenSessionId, suppliedSignature, ...extraTokenParts] = sessionToken.split('.');
+    const expectedSignature = await hmac(`${session.id}:${questionIds.join(',')}:${session.ip_hash}`, serviceKey);
+    if (extraTokenParts.length > 0 || tokenSessionId !== session.id || !suppliedSignature || !constantTimeEqual(suppliedSignature, expectedSignature) || !constantTimeEqual(currentIpHash, session.ip_hash)) {
+      return json({ error: 'Quiz session verification failed.' }, 401);
+    }
     const answerMap = new Map<number, number>();
     for (const answer of answers) {
       const questionId = Number(answer?.questionId);
@@ -81,7 +102,7 @@ Deno.serve(async (req) => {
     const character = characterFor(score);
     const badges = badgesFor(score, categoryScores);
 
-    const ipHash = await hash(clientIp(req));
+    const ipHash = currentIpHash;
     const usernameHash = await hash(username);
     for (const [scope, identifier, max] of [['quiz:ip', ipHash, 5], ['quiz:username', usernameHash, 3]] as const) {
       const { data, error } = await supabase.rpc('consume_rate_limit', { _scope: scope, _identifier_hash: identifier, _max_attempts: max, _window_seconds: 3600 });
@@ -96,10 +117,16 @@ Deno.serve(async (req) => {
       const { data: existing } = await supabase.from('quiz_scores').select('id, score').eq('username', username).maybeSingle();
       if (!existing) {
         const { error } = await supabase.from('quiz_scores').insert({ username, score, badge_count: badges.length, character_rank: character });
-        if (error) return json({ error: 'Failed to save score.' }, 500);
+        if (error) {
+          await supabase.from('quiz_sessions').update({ completed_at: null }).eq('id', session.id);
+          return json({ error: 'Failed to save score.' }, 500);
+        }
       } else if (score > existing.score) {
         const { error } = await supabase.from('quiz_scores').update({ score, badge_count: badges.length, character_rank: character, created_at: new Date().toISOString() }).eq('id', existing.id);
-        if (error) return json({ error: 'Failed to update score.' }, 500);
+        if (error) {
+          await supabase.from('quiz_sessions').update({ completed_at: null }).eq('id', session.id);
+          return json({ error: 'Failed to update score.' }, 500);
+        }
       }
     }
 
