@@ -36,4 +36,4 @@
 - [x] Prevent public subscription requests from replacing verified settings or management links.
 - [x] Validate tracking IDs and remove subscriber details from operational logs.
 - [x] Escape quiz sharing metadata and restrict administrator test-email recipients.
-- [ ] Run full regression checks, deploy changed functions, and publish the verified release.
+- [x] Run full regression checks, deploy changed functions, and publish the verified release.
