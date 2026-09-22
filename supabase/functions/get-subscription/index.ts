@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,12 +11,9 @@ const MAX_EMAIL_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 100;
 
 // Rate limiting configuration
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_ATTEMPTS_PER_IP = 10; // Max attempts per IP per hour
 const MAX_ATTEMPTS_PER_EMAIL = 5; // Max attempts per email per hour
-
-// In-memory rate limit store
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 // Simple email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,28 +25,22 @@ function getClientIP(req: Request): string {
          "unknown";
 }
 
-function checkRateLimit(key: string, maxAttempts: number): { allowed: boolean; remaining: number; resetIn: number } {
-  const now = Date.now();
-  const record = rateLimitStore.get(key);
-  
-  // Clean up expired entries
-  if (record && now > record.resetAt) {
-    rateLimitStore.delete(key);
-  }
-  
-  const current = rateLimitStore.get(key);
-  
-  if (!current) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: maxAttempts - 1, resetIn: RATE_LIMIT_WINDOW_MS };
-  }
-  
-  if (current.count >= maxAttempts) {
-    return { allowed: false, remaining: 0, resetIn: current.resetAt - now };
-  }
-  
-  current.count++;
-  return { allowed: true, remaining: maxAttempts - current.count, resetIn: current.resetAt - now };
+async function hashIdentifier(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function checkRateLimit(supabase: SupabaseClient, scope: string, identifier: string, maxAttempts: number) {
+  const { data, error } = await supabase.rpc("consume_rate_limit", {
+    _scope: scope,
+    _identifier_hash: await hashIdentifier(identifier),
+    _max_attempts: maxAttempts,
+    _window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+  });
+  if (error) throw error;
+  const result = data as { allowed?: boolean; reset_at?: string } | null;
+  const resetIn = result?.reset_at ? Math.max(1, Math.ceil((Date.parse(result.reset_at) - Date.now()) / 1000)) : RATE_LIMIT_WINDOW_SECONDS;
+  return { allowed: result?.allowed === true, resetIn };
 }
 
 serve(async (req) => {
@@ -60,28 +51,32 @@ serve(async (req) => {
 
   try {
     const clientIP = getClientIP(req);
-    const { email, token } = await req.json();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Rate limit by IP first
-    const ipRateLimit = checkRateLimit(`get-sub:ip:${clientIP}`, MAX_ATTEMPTS_PER_IP);
+    const ipRateLimit = await checkRateLimit(supabase, "subscription:get:ip", clientIP, MAX_ATTEMPTS_PER_IP);
     if (!ipRateLimit.allowed) {
       console.warn(`[get-subscription] Rate limit exceeded for IP: ${clientIP}`);
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: "Too many requests. Please try again later.",
-          retryAfter: Math.ceil(ipRateLimit.resetIn / 1000)
+          retryAfter: ipRateLimit.resetIn
         }),
         { 
           status: 429, 
           headers: { 
             ...corsHeaders, 
             "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(ipRateLimit.resetIn / 1000))
+            "Retry-After": String(ipRateLimit.resetIn)
           } 
         }
       );
     }
+
+    const { email, token } = await req.json();
 
     // Validate email
     if (!email || typeof email !== "string") {
@@ -107,21 +102,21 @@ serve(async (req) => {
 
     // Rate limit by email (prevents brute-force on specific email)
     const normalizedEmail = email.toLowerCase().trim();
-    const emailRateLimit = checkRateLimit(`get-sub:email:${normalizedEmail}`, MAX_ATTEMPTS_PER_EMAIL);
+    const emailRateLimit = await checkRateLimit(supabase, "subscription:get:email", normalizedEmail, MAX_ATTEMPTS_PER_EMAIL);
     if (!emailRateLimit.allowed) {
       console.warn(`[get-subscription] Rate limit exceeded for email: ${normalizedEmail}`);
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: "Too many requests for this email. Please try again later.",
-          retryAfter: Math.ceil(emailRateLimit.resetIn / 1000)
+          retryAfter: emailRateLimit.resetIn
         }),
         { 
           status: 429, 
           headers: { 
             ...corsHeaders, 
             "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(emailRateLimit.resetIn / 1000))
+            "Retry-After": String(emailRateLimit.resetIn)
           } 
         }
       );
@@ -141,10 +136,6 @@ serve(async (req) => {
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log(`[get-subscription] Looking up subscription with token from IP: ${clientIP}`);
 

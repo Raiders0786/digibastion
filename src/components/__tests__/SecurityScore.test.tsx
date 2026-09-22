@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
 
 import { render } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { SecurityScore } from '../SecurityScore';
 import { describe, it, expect, vi } from 'vitest';
 import { useSecurityState } from '../../hooks/useSecurityState';
