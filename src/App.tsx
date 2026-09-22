@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { PageTransition } from "./components/PageTransition";
@@ -48,6 +48,11 @@ const queryClient = new QueryClient({
   },
 });
 
+const LegacyNewsRedirect = () => {
+  const location = useLocation();
+  return <Navigate to={`/threat-intel${location.search}${location.hash}`} replace />;
+};
+
 const App = () => {
   return (
     <React.StrictMode>
@@ -64,7 +69,7 @@ const App = () => {
                     <Route path="/" element={<><MetaTags /><Index /></>} />
                     <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
                     <Route path="/threat-intel" element={<><MetaTags /><News /></>} />
-                    <Route path="/news" element={<><MetaTags /><News /></>} /> {/* Legacy redirect */}
+                    <Route path="/news" element={<LegacyNewsRedirect />} />
                     <Route path="/share" element={<><MetaTags /><Share /></>} />
                     <Route path="/quiz" element={<Quiz />} />
                     <Route path="/quiz-result" element={<QuizResult />} />
