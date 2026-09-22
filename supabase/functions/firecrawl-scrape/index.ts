@@ -19,6 +19,9 @@ const BLOCKED_HOSTS = [
 
 // Security: Check if hostname is a private/internal IP
 function isPrivateIP(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const mappedV4 = normalized.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/)?.[1];
+  if (mappedV4) return isPrivateIP(mappedV4);
   // RFC 1918 private ranges
   const privatePatterns = [
     /^10\./,                          // 10.0.0.0/8
@@ -26,16 +29,30 @@ function isPrivateIP(hostname: string): boolean {
     /^192\.168\./,                    // 192.168.0.0/16
     /^127\./,                         // 127.0.0.0/8 loopback
     /^169\.254\./,                    // Link-local
-    /^fc00:/i,                        // IPv6 unique local
+    /^f[cd][0-9a-f]{2}:/i,            // IPv6 unique local (fc00::/7)
     /^fe80:/i,                        // IPv6 link-local
     /^::1$/,                          // IPv6 loopback
   ];
   
-  return privatePatterns.some(pattern => pattern.test(hostname));
+  return privatePatterns.some(pattern => pattern.test(normalized));
+}
+
+async function resolvesToPrivateAddress(hostname: string): Promise<boolean> {
+  if (/^[\d.:\[\]a-f]+$/i.test(hostname)) return isPrivateIP(hostname);
+  try {
+    const results = await Promise.allSettled([
+      Deno.resolveDns(hostname, 'A'),
+      Deno.resolveDns(hostname, 'AAAA'),
+    ]);
+    const addresses = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+    return addresses.length === 0 || addresses.some(address => isPrivateIP(address));
+  } catch {
+    return true;
+  }
 }
 
 // Security: Validate URL before scraping
-function validateUrl(urlString: string): { valid: boolean; error?: string; url?: URL } {
+async function validateUrl(urlString: string): Promise<{ valid: boolean; error?: string; url?: URL }> {
   try {
     const url = new URL(urlString);
     
@@ -52,6 +69,9 @@ function validateUrl(urlString: string): { valid: boolean; error?: string; url?:
     // Block private IP ranges
     if (isPrivateIP(url.hostname)) {
       return { valid: false, error: 'Access to private network resources is not allowed' };
+    }
+    if (await resolvesToPrivateAddress(url.hostname)) {
+      return { valid: false, error: 'The destination does not resolve to a public address' };
     }
     
     // Block file protocol attempts
@@ -134,7 +154,7 @@ serve(async (req) => {
     }
 
     // Security: Validate URL before making request
-    const validation = validateUrl(formattedUrl);
+    const validation = await validateUrl(formattedUrl);
     if (!validation.valid) {
       console.warn('[firecrawl-scrape] Blocked URL:', formattedUrl, '-', validation.error);
       return new Response(

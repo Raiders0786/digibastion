@@ -70,8 +70,8 @@ Deno.serve(async (req) => {
     const questionIds = (session.question_ids as number[]).map(Number);
     const currentIpHash = await hash(clientIp(req));
     const [tokenSessionId, suppliedSignature, ...extraTokenParts] = sessionToken.split('.');
-    const expectedSignature = await hmac(`${session.id}:${questionIds.join(',')}:${session.ip_hash}`, serviceKey);
-    if (extraTokenParts.length > 0 || tokenSessionId !== session.id || !suppliedSignature || !constantTimeEqual(suppliedSignature, expectedSignature) || !constantTimeEqual(currentIpHash, session.ip_hash)) {
+    const expectedSignature = await hmac(`${tokenSessionId}:${questionIds.join(',')}:${session.ip_hash}`, serviceKey);
+    if (extraTokenParts.length > 0 || !tokenSessionId || !suppliedSignature || !constantTimeEqual(suppliedSignature, expectedSignature) || !constantTimeEqual(currentIpHash, session.ip_hash)) {
       return json({ error: 'Quiz session verification failed.' }, 401);
     }
     const answerMap = new Map<number, number>();
