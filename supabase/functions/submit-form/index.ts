@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -339,7 +338,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (needsVerification) {
         // New or unverified user - send verification email
         if (resendApiKey) {
-          const verifyUrl = `https://digibastion.com/verify-email?token=${verificationToken}`;
+          const verifyUrl = `https://www.digibastion.com/verify-email?token=${verificationToken}`;
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -372,7 +371,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Already verified - send confirmation email with their current settings
         if (resendApiKey) {
           // BUG FIX: Use the subscriber's existing verification_token (management token), not their subscription ID
-          const manageUrl = `https://digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email as string)}&token=${encodeURIComponent(subscription.verification_token || '')}`;
+          const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email)}&token=${encodeURIComponent(subscription.verification_token || '')}`;
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
