@@ -1,112 +1,144 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Check, Copy, ExternalLink, Github, Radar, Share2, ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { ExternalLink, Share2, MessageCircle } from 'lucide-react';
-import { Navbar } from '../components/Navbar';
-import { Footer } from '../components/Footer';
-import { MetaTags } from '../components/MetaTags';
+import { Footer } from '@/components/Footer';
+import { MetaTags } from '@/components/MetaTags';
+import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useToast } from "@/hooks/use-toast";
-import { handleShare } from '@/utils/share';
+import { openExternalUrl } from '@/utils/safeUrl';
+
+const shareOptions = [
+  {
+    id: 'personal',
+    icon: ShieldCheck,
+    title: 'For a friend securing their accounts',
+    text: 'This free Digibastion checkup turns wallet, account and device security into practical next steps.',
+    url: 'https://www.digibastion.com/quiz',
+  },
+  {
+    id: 'alerts',
+    icon: Share2,
+    title: 'For a team following active threats',
+    text: 'Digibastion collects sourced Web3 security incidents and offers alert subscriptions in one place.',
+    url: 'https://www.digibastion.com/threat-intel',
+  },
+  {
+    id: 'vantage',
+    icon: Radar,
+    title: 'For a team responsible for domains',
+    text: 'Vantage by Digibastion connects DNS, TLS, email, frontend and Web3 trust evidence to an ownership workflow.',
+    url: 'https://vantage.digibastion.com/',
+  },
+];
 
 const Share = () => {
-  const { toast } = useToast();
-  const websiteUrl = "https://digibastion.com";
-  
-  const socialLinks = [
-    {
-      name: 'Twitter',
-      icon: ExternalLink,
-      onClick: () => handleShare(
-        'twitter', 
-        websiteUrl, 
-        "Protect your personal digital footprint with Digibastion today. Self-driven operation security best practices, expert-backed checklists, and security scoring to enhance your privacy across digital services, crypto, Web3, and beyond."
-      ),
-      color: 'hover:text-[#1DA1F2]'
-    },
-    {
-      name: 'LinkedIn',
-      icon: Share2,
-      onClick: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${websiteUrl}&title=Digibastion%20-%20Digital%20Security%20Platform&summary=Protect%20your%20personal%20digital%20footprint%20with%20Digibastion.%20Self-driven%20security%20checklists%20and%20tools%20for%20users%20and%20developers.%20Enhance%20your%20privacy%20across%20all%20digital%20activities.`, '_blank'),
-      color: 'hover:text-[#0A66C2]'
-    },
-    {
-      name: 'Reddit',
-      icon: MessageCircle,
-      onClick: () => window.open(`https://reddit.com/submit?url=${websiteUrl}&title=Digibastion%20-%20The%20Ultimate%20Digital%20Security%20Resource%20Hub`, '_blank'),
-      color: 'hover:text-[#FF4500]'
-    },
-    {
-      name: 'Copy Link',
-      icon: ExternalLink,
-      onClick: () => {
-        handleShare('copy', websiteUrl, 'Digibastion - Digital Security Platform');
-      },
-      color: 'hover:text-primary'
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyOption = async (id: string, text: string, url: string) => {
+    try {
+      await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      setCopiedId(id);
+      toast.success('Share text copied');
+      window.setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error('Clipboard access is unavailable. You can copy the page URL from your browser.');
     }
-  ];
+  };
+
+  const nativeShare = async (title: string, text: string, url: string) => {
+    if (!navigator.share) {
+      await copyOption('native', text, url);
+      return;
+    }
+
+    try {
+      await navigator.share({ title, text, url });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast.error('Sharing did not complete. Try copying the message instead.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Share Digibastion | Digital Security Resources"
-        description="Share Digibastion's complete digital security resources with your network. Help make online activities and blockchain safer for everyone."
+        title="Share Digibastion — Practical Web3 Security Resources"
+        description="Share a relevant Digibastion security checkup, threat-intelligence feed, or Vantage domain-security resource with your community or team."
         type="website"
       />
       <Navbar />
-      <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              Share Digibastion
-            </h1>
-            <p className="text-lg text-foreground-secondary">
-              Help others secure their digital journey
+
+      <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-primary">Share something useful</p>
+            <h1 className="mt-2 text-4xl sm:text-5xl font-bold tracking-tight">Send the right resource, not a generic pitch.</h1>
+            <p className="mt-5 text-lg leading-8 text-muted-foreground">
+              Choose the message that fits the person receiving it. Edit the text in your own voice before posting—context is more useful than promotion.
             </p>
           </div>
 
-          <Card className="bg-card rounded-lg p-6 mb-8 animate-slide-up border border-white/10 hover:border-white/20 transition-all">
-            <p className="text-foreground-secondary mb-6">
-              If you found Digibastion helpful, consider sharing it with your network. Together, we can make the digital world safer by spreading awareness about security best practices. Our comprehensive security checklists, tools, and resources help protect digital assets across everyday online activities, social media, email, cryptocurrency, and more.
-            </p>
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            {shareOptions.map((option) => {
+              const Icon = option.icon;
+              const isCopied = copiedId === option.id;
+              return (
+                <Card key={option.id} className="p-6 flex flex-col">
+                  <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="mt-5 text-lg font-semibold">{option.title}</h2>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground flex-1">{option.text}</p>
+                  <div className="mt-6 grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={() => copyOption(option.id, option.text, option.url)}>
+                      {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                      {isCopied ? 'Copied' : 'Copy'}
+                    </Button>
+                    <Button onClick={() => nativeShare(option.title, option.text, option.url)}>
+                      <Share2 className="mr-2 h-4 w-4" /> Share
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {socialLinks.map((social) => (
-                <button
-                  key={social.name}
-                  onClick={social.onClick}
-                  className={`flex items-center justify-center gap-2 p-4 rounded-lg border border-white/10 ${social.color} transition-all duration-300 hover:bg-white/5 hover:scale-105`}
-                >
-                  <social.icon className="w-5 h-5" />
-                  <span>Share on {social.name}</span>
-                </button>
-              ))}
+          <section className="mt-14 rounded-2xl border border-border bg-card p-6 sm:p-8">
+            <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Help improve the resource before you share it.</h2>
+                <p className="mt-3 text-muted-foreground leading-7">
+                  Found outdated guidance, a missing incident source or an interaction that could be clearer? Open an issue or propose the correction directly.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row md:flex-col gap-3">
+                <Button asChild>
+                  <a href="https://github.com/Raiders0786/digibastion/issues" target="_blank" rel="noopener noreferrer">
+                    <Github className="mr-2 h-4 w-4" /> Open an issue
+                  </a>
+                </Button>
+                <Button asChild variant="outline"><Link to="/contact">Send an idea</Link></Button>
+              </div>
             </div>
-          </Card>
+          </section>
 
-          <Card className="bg-gradient-to-br from-primary/10 to-card rounded-lg p-6 animate-slide-up border border-white/10 hover:border-white/20 transition-all">
-            <h2 className="text-xl font-semibold mb-4">Join Our Community</h2>
-            <p className="text-foreground-secondary mb-6">
-              Connect with fellow security enthusiasts, share experiences, and stay updated with the latest in digital security. Be part of a community dedicated to making technology safer for everyone.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="https://twitter.com/__Raiders"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 bg-card hover:bg-card/80 text-foreground rounded-lg transition-all duration-300 border border-white/10 hover:border-white/20 text-center hover:shadow-lg hover:shadow-primary/10 hover:scale-105"
-              >
-                Follow on Twitter
-              </a>
-              <a
-                href="https://github.com/Raiders0786/digibastion"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all duration-300 text-center hover:shadow-lg hover:shadow-primary/20 hover:scale-105"
-              >
-                Star on GitHub
-              </a>
-            </div>
-          </Card>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => openExternalUrl('https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.digibastion.com')}
+            >
+              Share the homepage on LinkedIn <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => openExternalUrl('https://www.reddit.com/submit?url=https%3A%2F%2Fwww.digibastion.com&title=Digibastion%20security%20resources')}
+            >
+              Share the homepage on Reddit <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </main>
       <Footer />

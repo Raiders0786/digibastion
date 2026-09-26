@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal, Award, Crown, Loader2, Users } from 'lucide-react';
 
@@ -36,12 +38,13 @@ const getCharacterEmoji = (rank: string) => {
 const Leaderboard = () => {
   const [scores, setScores] = useState<QuizScore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const fetchScores = async () => {
       const { data, error } = await supabase
         .from('quiz_scores')
-        .select('*')
+        .select('id, username, score, badge_count, character_rank, created_at')
         .order('score', { ascending: false })
         .order('badge_count', { ascending: false })
         .order('created_at', { ascending: true })
@@ -49,6 +52,8 @@ const Leaderboard = () => {
 
       if (!error && data) {
         setScores(data);
+      } else if (error) {
+        setErrorMessage('The leaderboard is temporarily unavailable. You can still take a private self-check.');
       }
       setLoading(false);
     };
@@ -78,13 +83,12 @@ const Leaderboard = () => {
                 OpSec Hall of Fame
               </h1>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                The top security-conscious individuals who've shared their quiz results. 
-                Take the quiz and share to join the leaderboard!
+                A light-hearted view of the highest verified quiz scores. It is not a credential, audit, or measure of how much value someone holds.
               </p>
               {/* Privacy Notice */}
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50 text-xs text-muted-foreground">
                 <span>🔒</span>
-                <span>Only shared scores appear here. Use "anon" username to skip.</span>
+                <span>Verified non-anonymous submissions appear automatically. Use “anon” in the quiz to stay off this list.</span>
               </div>
             </div>
 
@@ -93,13 +97,21 @@ const Leaderboard = () => {
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
+            ) : errorMessage ? (
+              <div className="text-center py-16 rounded-2xl border border-border bg-card px-6">
+                <Users className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+                <h2 className="text-lg font-semibold text-foreground">Could not load scores</h2>
+                <p className="mt-2 text-muted-foreground max-w-md mx-auto">{errorMessage}</p>
+                <Button asChild className="mt-6"><Link to="/quiz">Take the self-check</Link></Button>
+              </div>
             ) : scores.length === 0 ? (
               <div className="text-center py-20">
                 <Users className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No scores yet</h3>
                 <p className="text-muted-foreground">
-                  Be the first to take the quiz and share your results!
+                  Complete the quiz with a public display name to add the first verified score.
                 </p>
+                <Button asChild className="mt-6"><Link to="/quiz">Take the self-check</Link></Button>
               </div>
             ) : (
               <div className="space-y-3">

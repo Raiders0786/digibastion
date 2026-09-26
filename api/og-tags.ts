@@ -47,6 +47,16 @@ const escapeHtml = (unsafe: string) => {
     .replace(/'/g, "&#039;");
 };
 
+const KNOWN_BADGES = new Set([
+  '🏆 OpSec Master',
+  '🛡️ Security Conscious',
+  '🔐 Key Guardian',
+  '🔍 Transaction Auditor',
+  '👤 Privacy Advocate',
+  '💻 Device Defender',
+  '⚖️ Balanced Security',
+]);
+
 export const config = {
   runtime: 'edge',
 };
@@ -63,18 +73,25 @@ export default async function handler(req: Request) {
   const rawUsername = (url.searchParams.get('u') || 'anon').trim().slice(0, 50) || 'anon';
   const parsedScore = Number.parseInt(url.searchParams.get('s') || '0', 10);
   const score = Number.isFinite(parsedScore) ? Math.max(0, Math.min(100, parsedScore)) : 0;
-  const badgesParam = url.searchParams.get('b') || '';
+  const badgesParam = (url.searchParams.get('b') || '')
+    .split(',')
+    .filter((badge) => KNOWN_BADGES.has(badge))
+    .slice(0, 7)
+    .map((badge) => encodeURIComponent(badge))
+    .join(',');
   
   const character = getCryptoCharacter(score);
   
   // Generate OG image URL - use raw username here as it's being URI encoded
-  const ogImageUrl = escapeHtml(`https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(rawUsername)}&s=${score}&b=${encodeURIComponent(badgesParam)}`);
+  const ogImageUrl = escapeHtml(`https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(rawUsername)}&s=${score}&b=${badgesParam}`);
   
   const ogTitle = escapeHtml(`${character.emoji} ${rawUsername}'s OpSec: ${character.name} (${score}/100)`);
   const ogDescription = escapeHtml(`"${character.description}" - Take the OpSec quiz at digibastion.com`);
   
   // pageUrl should be the canonical frontend URL, not the current API URL
-  const pageUrl = escapeHtml(`https://www.digibastion.com/quiz-result${url.search}`);
+  const pageUrl = escapeHtml(
+    `https://www.digibastion.com/quiz-result?u=${encodeURIComponent(rawUsername)}&s=${score}${badgesParam ? `&b=${badgesParam}` : ''}`,
+  );
 
   // Generate HTML with proper OG meta tags for Twitter/social crawlers
   const html = `<!DOCTYPE html>

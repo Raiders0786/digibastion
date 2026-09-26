@@ -3,135 +3,136 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
 };
 
 const SITE_URL = "https://www.digibastion.com";
+const CANONICAL_SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
 
-// Static routes with their priorities and change frequencies
-const staticRoutes = [
-  { path: "/", priority: 1.0, changefreq: "weekly", image: "/og-image.png" },
-  { path: "/threat-intel", priority: 0.95, changefreq: "daily", image: "/og-threat-intel.png" },
-  { path: "/quiz", priority: 0.9, changefreq: "monthly", image: "/og-quiz.png" },
-  { path: "/quiz-result", priority: 0.85, changefreq: "monthly", image: "/og-quiz.png" },
-  { path: "/leaderboard", priority: 0.85, changefreq: "daily", image: "/og-quiz.png" },
-  { path: "/tools", priority: 0.9, changefreq: "weekly", image: "/og-tools.png" },
-  { path: "/articles", priority: 0.9, changefreq: "weekly", image: "/og-image.png" },
-  { path: "/links", priority: 0.85, changefreq: "weekly", image: "/og-image.png" },
-  { path: "/about", priority: 0.8, changefreq: "monthly", image: "/og-image.png" },
-  { path: "/support", priority: 0.7, changefreq: "monthly", image: "/og-image.png" },
-  { path: "/contact", priority: 0.7, changefreq: "monthly", image: "/og-image.png" },
-  { path: "/license", priority: 0.5, changefreq: "yearly", image: "/og-image.png" },
-  { path: "/share", priority: 0.7, changefreq: "monthly", image: "/og-image.png" },
+const fallbackRoutes = [
+  "/",
+  "/threat-intel",
+  "/quiz",
+  "/leaderboard",
+  "/tools",
+  "/articles",
+  "/links",
+  "/about",
+  "/services",
+  "/services/opsec-consulting",
+  "/services/full-stack-review",
+  "/support",
+  "/contact",
+  "/license",
+  "/share",
+  ...[
+    "opsec",
+    "wallet",
+    "defi",
+    "developers",
+    "authentication",
+    "browsing",
+    "email",
+    "social",
+    "os",
+    "mobile",
+    "jobs",
+  ].map((category) => `/category/${category}`),
 ];
 
-// Security category routes
-const categoryRoutes = [
-  "opsec", "wallet", "defi", "developers", "authentication",
-  "browsing", "email", "social", "os", "mobile", "jobs"
-];
+const escapeXml = (value: string) => value
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&apos;");
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
+const toSitemapDate = (value: string | null | undefined, fallback: string) => {
+  if (!value) return fallback;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? fallback : date.toISOString().slice(0, 10);
+};
+
+const buildFallbackSitemap = (today: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${fallbackRoutes.map((path) => `<url>
+  <loc>${SITE_URL}${path}</loc>
+  <lastmod>${today}</lastmod>
+</url>`).join("\n")}
+</urlset>`;
+
+const fetchCanonicalSitemap = async (today: string) => {
+  try {
+    const response = await fetch(CANONICAL_SITEMAP_URL, {
+      headers: { Accept: "application/xml" },
+      signal: AbortSignal.timeout(5_000),
+    });
+    const xml = await response.text();
+    if (!response.ok || !xml.includes("<urlset") || !xml.includes("</urlset>")) {
+      throw new Error(`Canonical sitemap returned ${response.status}`);
+    }
+    return xml;
+  } catch (error) {
+    console.error("Canonical sitemap unavailable; using safe fallback:", error);
+    return buildFallbackSitemap(today);
+  }
+};
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: { ...corsHeaders, Allow: "GET, HEAD, OPTIONS" },
+    });
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  let xml = await fetchCanonicalSitemap(today);
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Supabase sitemap credentials are not configured");
+    }
 
-    const today = new Date().toISOString().split("T")[0];
-
-    // Fetch news articles from database
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const { data: articles, error } = await supabase
       .from("news_articles")
-      .select("id, title, published_at, updated_at")
+      .select("id, published_at, updated_at")
       .order("published_at", { ascending: false })
       .limit(500);
 
-    if (error) {
-      console.error("Error fetching articles:", error);
-    }
+    if (error) throw error;
 
-    // Build XML sitemap
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-
-<!-- Main pages -->
-`;
-
-    // Add static routes
-    for (const route of staticRoutes) {
-      xml += `<url>
-  <loc>${SITE_URL}${route.path}</loc>
-  <lastmod>${today}</lastmod>
-  <priority>${route.priority}</priority>
-  <changefreq>${route.changefreq}</changefreq>
-  <image:image>
-    <image:loc>${SITE_URL}${route.image}</image:loc>
-    <image:caption>Digibastion - Web3 Security Platform</image:caption>
-  </image:image>
-</url>
-`;
-    }
-
-    // Add category routes
-    xml += `
-<!-- Security category pages -->
-`;
-    for (const category of categoryRoutes) {
-      xml += `<url>
-  <loc>${SITE_URL}/category/${category}</loc>
-  <lastmod>${today}</lastmod>
-  <priority>0.85</priority>
-  <changefreq>weekly</changefreq>
-  <image:image>
-    <image:loc>${SITE_URL}/og-image.png</image:loc>
-    <image:caption>${category.charAt(0).toUpperCase() + category.slice(1)} Security Checklist</image:caption>
-  </image:image>
-</url>
-`;
-    }
-
-    // Add news articles if available
-    if (articles && articles.length > 0) {
-      xml += `
-<!-- News articles -->
-`;
-      for (const article of articles) {
-        const lastmod = article.updated_at 
-          ? new Date(article.updated_at).toISOString().split("T")[0]
-          : new Date(article.published_at).toISOString().split("T")[0];
-        
-        xml += `<url>
-  <loc>${SITE_URL}/threat-intel/${article.id}</loc>
-  <lastmod>${lastmod}</lastmod>
-  <priority>0.7</priority>
+    const dynamicEntries = (articles || [])
+      .filter((article) => typeof article.id === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(article.id))
+      .map((article) => `<url>
+  <loc>${SITE_URL}/threat-intel/${escapeXml(encodeURIComponent(article.id))}</loc>
+  <lastmod>${toSitemapDate(article.updated_at || article.published_at, today)}</lastmod>
   <changefreq>monthly</changefreq>
-</url>
-`;
-      }
+  <priority>0.7</priority>
+</url>`)
+      .join("\n");
+
+    if (dynamicEntries) {
+      xml = xml.replace("</urlset>", `${dynamicEntries}\n</urlset>`);
     }
-
-    xml += `
-</urlset>`;
-
-    return new Response(xml, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/xml",
-        "Cache-Control": "public, max-age=3600",
-      },
-    });
   } catch (error) {
-    console.error("Sitemap generation error:", error);
-    return new Response("Error generating sitemap", {
-      status: 500,
-      headers: corsHeaders,
-    });
+    // A database outage must not take the checked-in public sitemap offline.
+    console.error("Dynamic threat-intel sitemap entries unavailable:", error);
   }
+
+  return new Response(request.method === "HEAD" ? null : xml, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+    },
+  });
 });

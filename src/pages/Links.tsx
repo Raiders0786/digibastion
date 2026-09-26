@@ -19,6 +19,7 @@ import { Search, Tag, ExternalLink, Filter, Github } from 'lucide-react';
 // Update import path to use the new structure
 import { securityResources, getAllTags } from '../data/links';
 import { MetaTags } from '../components/MetaTags';
+import { openExternalUrl } from '../utils/safeUrl';
 
 const Links = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,13 +73,11 @@ const Links = () => {
             <p className="text-lg text-foreground-secondary max-w-2xl mx-auto mb-6">
               A curated collection of security tools, guides, and resources for Web3 developers and users.
             </p>
-            <Button
-              variant="outline"
-              className="hover:bg-primary hover:text-white transition-all duration-300"
-              onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md', '_blank')}
-            >
-              <Github className="w-4 h-4 mr-2" />
-              Contribute on GitHub
+            <Button asChild variant="outline" className="hover:bg-primary hover:text-white transition-all duration-300">
+              <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
+                <Github className="w-4 h-4 mr-2" />
+                Contribute on GitHub
+              </a>
             </Button>
           </div>
 
@@ -176,7 +175,7 @@ const Links = () => {
                       <Button 
                         variant="outline"
                         className="w-full group-hover:bg-primary group-hover:text-white transition-all border-white/20"
-                        onClick={() => window.open(tool.url, '_blank')}
+                        onClick={() => openExternalUrl(tool.url)}
                       >
                         Visit Resource
                         <ExternalLink className="w-4 h-4 ml-2" />

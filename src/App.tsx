@@ -10,7 +10,6 @@ import { PageTransition } from "./components/PageTransition";
 import { MetaTags } from "./components/MetaTags";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MobileBottomNav } from "./components/MobileBottomNav";
-import { FloatingActionButton } from "./components/mobile/FloatingActionButton";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { SecurityStateProvider } from "./hooks/useSecurityState";
 
@@ -36,7 +35,6 @@ const AdminLogin = React.lazy(() => import("./pages/AdminLogin"));
 const AdminAnalytics = React.lazy(() => import("./pages/AdminAnalytics"));
 const CronMonitor = React.lazy(() => import("./pages/CronMonitor"));
 const AdminApiKeys = React.lazy(() => import("./pages/AdminApiKeys"));
-const Present = React.lazy(() => import("./pages/Present"));
 const Services = React.lazy(() => import("./pages/Services"));
 const OpsecConsulting = React.lazy(() => import("./pages/services/OpsecConsulting"));
 const FullStackReview = React.lazy(() => import("./pages/services/FullStackReview"));
@@ -73,6 +71,7 @@ const App = () => {
                     <Route path="/" element={<><MetaTags /><Index /></>} />
                     <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
                     <Route path="/threat-intel" element={<><MetaTags /><News /></>} />
+                    <Route path="/threat-intel/:articleId" element={<><MetaTags /><News /></>} />
                     <Route path="/news" element={<LegacyNewsRedirect />} />
                     <Route path="/share" element={<><MetaTags /><Share /></>} />
                     <Route path="/quiz" element={<Quiz />} />
@@ -92,8 +91,8 @@ const App = () => {
                     <Route path="/manage-subscription" element={<ManageSubscription />} />
                     <Route path="/unsubscribe" element={<ManageSubscription />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
-                    {/* Utility routes - private, not in navigation */}
-                    <Route path="/present" element={<><MetaTags title="DigiBastion — Secure the Stack | Partnership Overview" description="Open-source, Ethereum Foundation-backed security platform delivering real-time threat intelligence, operational security assessments, and comprehensive protection for Web3." image="https://www.digibastion.com/og-image.png" /><Present /></>} />
+                    {/* Retired 2025 pitch deck: preserve old links without serving stale claims. */}
+                    <Route path="/present" element={<Navigate to="/about" replace />} />
                     {/* Admin routes - private, not in navigation */}
                     <Route path="/admin" element={<AdminLogin />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
@@ -104,7 +103,6 @@ const App = () => {
                   </React.Suspense>
                 </PageTransition>
                 <MobileBottomNav />
-                <FloatingActionButton />
                 <OfflineIndicator />
                 </TooltipProvider>
               </SecurityStateProvider>

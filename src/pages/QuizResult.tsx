@@ -1,12 +1,23 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { MetaTags } from '@/components/MetaTags';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChallengeButton } from '@/components/quiz/ChallengeButton';
-import { Shield, Sparkles, ArrowRight, ExternalLink, Copy, Check, Eye, Share2, Trophy } from 'lucide-react';
+import { Shield, Sparkles, ArrowRight, Share2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
+import { openExternalUrl } from '@/utils/safeUrl';
+
+const KNOWN_BADGES = new Set([
+  '🏆 OpSec Master',
+  '🛡️ Security Conscious',
+  '🔐 Key Guardian',
+  '🔍 Transaction Auditor',
+  '👤 Privacy Advocate',
+  '💻 Device Defender',
+  '⚖️ Balanced Security',
+]);
 
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
@@ -84,81 +95,47 @@ const getThreatLevelConfig = (score: number) => {
 const QuizResult = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
-  
-  const username = searchParams.get('u') || 'anon';
-  const score = parseInt(searchParams.get('s') || '0', 10);
+
+  const username = (searchParams.get('u') || 'anon')
+    .trim()
+    .replace(/^@/, '')
+    .replace(/[^a-zA-Z0-9_]/g, '')
+    .slice(0, 50) || 'anon';
+  const parsedScore = Number.parseInt(searchParams.get('s') || '0', 10);
+  const score = Number.isFinite(parsedScore) ? Math.max(0, Math.min(100, parsedScore)) : 0;
   const badgesParam = searchParams.get('b') || '';
   
   const character = getCryptoCharacter(score);
   const config = getThreatLevelConfig(score);
-  const badges = badgesParam ? badgesParam.split(',').map(b => decodeURIComponent(b)) : [];
+  const badges = badgesParam
+    ? badgesParam.split(',').filter((badge) => KNOWN_BADGES.has(badge)).slice(0, 7)
+    : [];
+  const safeBadgesParam = badges.map((badge) => encodeURIComponent(badge)).join(',');
   
   // Dynamic OG image URL from edge function (PNG format for X compatibility)
-  const ogImageUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
-  
-  // Server-rendered OG page URL for crawlers
-  const ogPageUrl = `https://digibastion.com/api/og-tags?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
+  const ogImageUrl = `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?u=${encodeURIComponent(username)}&s=${score}&b=${safeBadgesParam}`;
   
   const getTwitterPfp = (handle: string) => {
     return `https://unavatar.io/twitter/${handle}`;
   };
 
-  const handleCopyImageUrl = () => {
-    navigator.clipboard.writeText(ogImageUrl);
-    setCopied(true);
-    toast.success('OG Image URL copied!');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handlePreviewXCard = () => {
-    window.open(ogPageUrl, '_blank');
-  };
-
   const handleShareOnX = async () => {
-    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${score}&b=${encodeURIComponent(badgesParam)}`;
+    const shareUrl = `https://www.digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${score}&b=${safeBadgesParam}`;
     const tweetText = `${character.emoji} I scored ${score}/100 on the @digibastion OpSec Quiz!\n\nMy rank: ${character.name}\n"${character.description}"\n\nThink you can beat me? Take the quiz 👇\n${shareUrl}`;
     
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
+    if (!openExternalUrl(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`)) {
+      toast.error('Unable to open the share window.');
+    }
   };
-
-  // Set OG meta tags dynamically
-  useEffect(() => {
-    const ogTitle = `${username}'s OpSec Score: ${score}/100 | Digibastion`;
-    const ogDescription = `${character.emoji} ${character.name} - "${character.description}" Take the OpSec quiz at digibastion.com`;
-    
-    document.title = ogTitle;
-    
-    // Update OG meta tags
-    const updateMeta = (property: string, content: string, isName = false) => {
-      const selector = isName ? `meta[name="${property}"]` : `meta[property="${property}"]`;
-      let tag = document.querySelector(selector);
-      if (!tag) {
-        tag = document.createElement('meta');
-        if (isName) {
-          tag.setAttribute('name', property);
-        } else {
-          tag.setAttribute('property', property);
-        }
-        document.head.appendChild(tag);
-      }
-      tag.setAttribute('content', content);
-    };
-
-    updateMeta('og:title', ogTitle);
-    updateMeta('og:description', ogDescription);
-    updateMeta('og:image', ogImageUrl);
-    updateMeta('og:url', window.location.href);
-    updateMeta('og:type', 'website');
-    
-    updateMeta('twitter:card', 'summary_large_image', true);
-    updateMeta('twitter:title', ogTitle, true);
-    updateMeta('twitter:description', ogDescription, true);
-    updateMeta('twitter:image', ogImageUrl, true);
-  }, [username, score, character, ogImageUrl]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MetaTags
+        title={`${username}'s OpSec self-check: ${score}/100 | Digibastion`}
+        description={`${character.emoji} ${character.name}. Review the result, then take the Digibastion OpSec self-check for practical security next steps.`}
+        image={ogImageUrl}
+        noindex={true}
+      />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-lg mx-auto">
@@ -172,14 +149,20 @@ const QuizResult = () => {
             <div className="relative z-10">
               {/* Profile header */}
               <div className="flex items-center gap-4 mb-8">
-                <img 
-                  src={getTwitterPfp(username)} 
-                  alt={`@${username}`}
-                  className="w-20 h-20 rounded-full border-2 border-primary/50 shadow-lg"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://unavatar.io/fallback.png';
-                  }}
-                />
+                {username === 'anon' ? (
+                  <div className="w-20 h-20 rounded-full border-2 border-primary/50 bg-primary/10 flex items-center justify-center" aria-hidden="true">
+                    <Shield className="w-9 h-9 text-primary" />
+                  </div>
+                ) : (
+                  <img
+                    src={getTwitterPfp(username)}
+                    alt=""
+                    className="w-20 h-20 rounded-full border-2 border-primary/50 shadow-lg"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
                 <div>
                   <p className="font-bold text-xl text-foreground">@{username}</p>
                   <p className="text-sm text-foreground-secondary">OpSec Assessment</p>
@@ -226,7 +209,7 @@ const QuizResult = () => {
                   className="w-full gap-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white"
                 >
                   <Share2 className="w-5 h-5" />
-                  Share on X & Join Leaderboard
+                  Share this result on X
                 </Button>
 
                 {/* Challenge a Friend */}
@@ -241,36 +224,6 @@ const QuizResult = () => {
                   <Trophy className="w-4 h-4" />
                   View Leaderboard
                 </Button>
-
-                {/* Preview X Card Section */}
-                <div className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3">
-                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Eye className="w-3.5 h-3.5" />
-                    Preview how your card appears on X
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handlePreviewXCard}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Preview X Card
-                    </Button>
-                    <Button 
-                      onClick={handleCopyImageUrl}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                    >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/70 break-all">
-                    {ogImageUrl}
-                  </p>
-                </div>
 
                 <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                   <Sparkles className="w-4 h-4" />

@@ -67,7 +67,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   };
 
   const handleShare = async () => {
-    const shareUrl = `https://www.digibastion.com/threat-intel?article=${article.id}`;
+    const shareUrl = `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`;
     if (navigator.share) {
       try {
         await navigator.share({

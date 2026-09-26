@@ -2,6 +2,7 @@
 import { Tool } from '@/data/tools/categories';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { openExternalUrl } from '@/utils/safeUrl';
 
 interface ToolCardProps {
   tool: Tool;
@@ -24,7 +25,7 @@ export const ToolCard = ({ tool }: ToolCardProps) => {
   return (
     <Card 
       className="bg-card/50 p-5 border border-white/10 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 cursor-pointer group hover:scale-[1.02]"
-      onClick={() => window.open(tool.link, '_blank')}
+      onClick={() => openExternalUrl(tool.link)}
     >
       <div className="flex items-center gap-3 mb-3">
         <div className="bg-primary/10 p-2 rounded-full group-hover:bg-primary/20 transition-all duration-300">

@@ -1,294 +1,249 @@
-import { Navbar } from '../components/Navbar';
-import { Footer } from '../components/Footer';
-import { MetaTags } from '../components/MetaTags';
-import { Shield, Github, Heart, Twitter, Link, Zap, Code, Users, Globe, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  BellRing,
+  BookOpenCheck,
+  ExternalLink,
+  Github,
+  HeartHandshake,
+  Radar,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
+
+import { Footer } from '@/components/Footer';
+import { MetaTags } from '@/components/MetaTags';
+import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
+import { serializeJsonLd } from '@/utils/jsonLd';
 
-const About = () => {
-  const navigate = useNavigate();
+const products = [
+  {
+    icon: BellRing,
+    title: 'Know what is happening',
+    description: 'Follow sourced security incidents and subscribe to alerts without sorting through dozens of feeds.',
+    label: 'Threat intelligence',
+    href: '/threat-intel',
+    external: false,
+  },
+  {
+    icon: BookOpenCheck,
+    title: 'Improve your own setup',
+    description: 'Use practical checklists and a short OpSec assessment to find the next security change worth making.',
+    label: 'Start a checkup',
+    href: '/quiz',
+    external: false,
+  },
+  {
+    icon: Radar,
+    title: 'Understand domain risk',
+    description: 'Vantage brings DNS, email, TLS, frontend, supply-chain and Web3 trust evidence into one workflow.',
+    label: 'Open Vantage',
+    href: 'https://vantage.digibastion.com/',
+    external: true,
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Bring in an experienced reviewer',
+    description: 'For higher-stakes work, Digibastion offers focused OpSec consulting and full-stack security reviews.',
+    label: 'View services',
+    href: '/services',
+    external: false,
+  },
+];
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="About Digibastion — Open-Source Web3 Security"
-        description="Digibastion's mission: make Web3 safer. Open-source platform backed by Ethereum Foundation ESP 2025, built by security researchers for the crypto community."
-        keywords="digibastion about, web3 security platform, ethereum foundation grant, open source security, crypto security community, blockchain security project"
-      />
-      <Navbar />
-      <main className="flex-grow pt-28 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-16 animate-fade-in">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Shield className="w-8 h-8 text-primary" />
+const principles = [
+  {
+    title: 'Show the source',
+    description: 'Threat reports, recommendations and educational material should be traceable to evidence—not anonymous certainty.',
+  },
+  {
+    title: 'Give a next action',
+    description: 'A score or warning is only useful when a person can understand the risk and decide what to do next.',
+  },
+  {
+    title: 'Design for different stakes',
+    description: 'A first-time wallet user, a protocol engineer and a treasury operator need different depth, language and controls.',
+  },
+  {
+    title: 'Build in public',
+    description: 'The repository, roadmap and contribution process are public so gaps can be challenged and improvements can be shared.',
+  },
+];
+
+const organizationLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Digibastion',
+  url: 'https://www.digibastion.com/about',
+  description: 'Security intelligence, practical guidance, domain monitoring and expert review for people and teams working in Web3.',
+  sameAs: [
+    'https://github.com/Raiders0786/digibastion',
+    'https://x.com/__Raiders',
+  ],
+  knowsAbout: [
+    'Web3 security',
+    'Operational security',
+    'Threat intelligence',
+    'Domain security monitoring',
+    'Frontend supply-chain security',
+  ],
+};
+
+const About = () => (
+  <div className="min-h-screen bg-background flex flex-col">
+    <MetaTags
+      title="About Digibastion — Practical Security for Web3"
+      description="Digibastion helps people and teams understand threats, improve operational security, monitor domain risk with Vantage, and get expert help when the stakes are higher."
+      keywords="Digibastion, Web3 security, operational security, threat intelligence, domain security monitoring, Vantage"
+    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationLd) }} />
+    <Navbar />
+
+    <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto space-y-20">
+        <section className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-5">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Security people can actually use
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-4">About Digibastion</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Empowering users with knowledge and tools to navigate Web3 securely.
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance">
+              Turn security information into better decisions.
+            </h1>
+            <p className="mt-6 max-w-3xl text-base sm:text-lg leading-8 text-muted-foreground">
+              Digibastion connects timely threat intelligence, personal security guidance, domain-risk evidence and hands-on review. Start with the free resources; bring us in when the risk deserves deeper work.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Button asChild size="lg">
+                <Link to="/quiz">Find your next security step <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <a href="https://vantage.digibastion.com/" target="_blank" rel="noopener noreferrer">
+                  Explore Vantage <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
+
+          <Card className="p-6 sm:p-8 border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Why Digibastion exists</p>
+            <p className="mt-4 text-xl sm:text-2xl font-semibold leading-9 text-foreground">
+              Security guidance is scattered. Alerts lack context. Scanner output rarely explains ownership or the next decision.
+            </p>
+            <p className="mt-4 leading-7 text-muted-foreground">
+              We are building the connective tissue: clear explanations for individuals, operational evidence for teams, and a public place for practitioners to improve the work together.
+            </p>
+          </Card>
+        </section>
+
+        <section aria-labelledby="what-we-build">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-primary">What is live</p>
+            <h2 id="what-we-build" className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">One security practice, several useful entry points.</h2>
+            <p className="mt-4 text-muted-foreground leading-7">Choose the path that matches what you need today. You do not need an account to read the guidance or explore the public resources.</p>
+          </div>
+
+          <div className="mt-8 grid gap-5 md:grid-cols-2">
+            {products.map((product) => {
+              const Icon = product.icon;
+              const content = (
+                <Card className="h-full p-6 border-border/70 hover:border-primary/40 hover:-translate-y-0.5 transition-all">
+                  <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="mt-5 text-xl font-semibold">{product.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{product.description}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                    {product.label} {product.external ? <ExternalLink className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
+                  </span>
+                </Card>
+              );
+
+              return product.external ? (
+                <a key={product.title} href={product.href} target="_blank" rel="noopener noreferrer" className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  {content}
+                </a>
+              ) : (
+                <Link key={product.title} to={product.href} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  {content}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start" aria-labelledby="how-we-work">
+          <div>
+            <p className="text-sm font-semibold text-primary">How we work</p>
+            <h2 id="how-we-work" className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">Useful beats impressive.</h2>
+            <p className="mt-4 text-muted-foreground leading-7">
+              The best security product is the one people understand well enough to act on. These principles guide the platform, research and client work.
             </p>
           </div>
-
-          <div className="space-y-16">
-            {/* Mission Section */}
-            <section id="mission" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <Zap className="w-6 h-6 text-primary" />
-                Our Mission
-              </h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Digibastion was born from a simple observation: as Web3 continues to evolve and attract new users, 
-                the need for accessible, comprehensive security guidance becomes increasingly important. Our mission 
-                is to bridge this gap by providing practical, actionable security information that empowers users at 
-                all technical levels to protect their digital assets and privacy.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Card className="glass-card-hover p-6">
-                  <Code className="w-10 h-10 text-primary mb-4" />
-                  <h3 className="text-lg font-medium mb-2 text-foreground">Education First</h3>
-                  <p className="text-muted-foreground text-sm">
-                    We believe that security literacy is the foundation of a safer Web3 ecosystem. 
-                    Our detailed checklists and resources are designed to educate while providing 
-                    practical solutions.
-                  </p>
-                </Card>
-                <Card className="glass-card-hover p-6">
-                  <Users className="w-10 h-10 text-primary mb-4" />
-                  <h3 className="text-lg font-medium mb-2 text-foreground">Community Driven</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Digibastion is built by and for the community. We incorporate feedback, research, and 
-                    real-world experiences to continuously improve our security guidance.
-                  </p>
-                </Card>
-              </div>
-            </section>
-
-            <div className="divider" />
-
-            {/* Contributors Section */}
-            <section id="contributors" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <Globe className="w-6 h-6 text-primary" />
-                Core Contributors
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {/* Raiders */}
-                <Card className="glass-card-hover p-5 cursor-pointer group" 
-                  onClick={() => window.open('https://github.com/Raiders0786', '_blank')}>
-                  <div className="flex flex-col h-full">
-                    <div className="mb-4">
-                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Raiders</h3>
-                      <p className="text-xs text-primary mb-2">Project Founder</p>
-                      <p className="text-muted-foreground text-xs">
-                        Security researcher and blockchain enthusiast dedicated to making Web3 more secure.
-                      </p>
-                    </div>
-                    <div className="mt-auto pt-3 flex items-center gap-2">
-                      <a 
-                        href="https://x.com/__Raiders" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Twitter className="w-4 h-4" />
-                      </a>
-                      <a 
-                        href="https://github.com/Raiders0786" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Github className="w-4 h-4" />
-                      </a>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Vladimir S. */}
-                <Card className="glass-card-hover p-5 cursor-pointer group"
-                  onClick={() => window.open('https://x.com/officer_cia', '_blank')}>
-                  <div className="flex flex-col h-full">
-                    <div className="mb-4">
-                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Vladimir S.</h3>
-                      <p className="text-xs text-primary mb-2">Officer's Notes</p>
-                      <p className="text-muted-foreground text-xs">
-                        Security expert and Web3 educator helping review and provide valuable resources.
-                      </p>
-                    </div>
-                    <div className="mt-auto pt-3 flex items-center gap-2">
-                      <a 
-                        href="https://x.com/officer_cia" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Twitter className="w-4 h-4" />
-                      </a>
-                      <a 
-                        href="https://officercia.mirror.xyz" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Link className="w-4 h-4" />
-                      </a>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Ridham Bhagat */}
-                <Card className="glass-card-hover p-5 cursor-pointer group"
-                  onClick={() => window.open('https://x.com/RasenRhino', '_blank')}>
-                  <div className="flex flex-col h-full">
-                    <div className="mb-4">
-                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Ridham Bhagat</h3>
-                      <p className="text-xs text-primary mb-2">Contributor — DNS Module Research</p>
-                      <p className="text-muted-foreground text-xs">
-                        Contributes to research on the DNS &amp; domain security module and network analysis tooling.
-                      </p>
-                    </div>
-                    <div className="mt-auto pt-3 flex items-center gap-2">
-                      <a 
-                        href="https://x.com/RasenRhino" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Twitter className="w-4 h-4" />
-                      </a>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Cryptonian16 */}
-                <Card className="glass-card-hover p-5 cursor-pointer group"
-                  onClick={() => window.open('https://x.com/SolenyaResearch', '_blank')}>
-                  <div className="flex flex-col h-full">
-                    <div className="mb-4">
-                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Cryptonian16</h3>
-                      <p className="text-xs text-primary mb-2">OpSec Guru</p>
-                      <p className="text-muted-foreground text-xs">
-                        Security expert specializing in operational security practices and threat mitigation.
-                      </p>
-                      <p className="text-muted-foreground text-[11px] mt-2">
-                        Also co-delivers our paid <a href="/services/opsec-consulting" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>OpSec consulting engagements</a>.
-                      </p>
-                    </div>
-                    <div className="mt-auto pt-3 flex items-center gap-2">
-                      <a 
-                        href="https://x.com/SolenyaResearch" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Twitter className="w-4 h-4" />
-                      </a>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Open to Contributors */}
-                <Card className="glass-card-hover p-5 cursor-pointer group border-dashed"
-                  onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md', '_blank')}>
-                  <div className="flex flex-col h-full">
-                    <div className="mb-4">
-                      <h3 className="text-base font-medium mb-1 group-hover:text-primary transition-colors">Join Our Team</h3>
-                      <p className="text-xs text-primary mb-2">Open to Contributors</p>
-                      <p className="text-muted-foreground text-xs">
-                        We welcome security researchers and developers passionate about Web3 safety.
-                      </p>
-                    </div>
-                    <div className="mt-auto pt-3">
-                      <Button variant="outline" size="sm" className="w-full text-xs">
-                        <Github className="w-3 h-3 mr-1.5" />
-                        Contribute
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </section>
-
-            <div className="divider" />
-
-            {/* Values Section */}
-            <section id="values" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <Heart className="w-6 h-6 text-primary" />
-                Our Values
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[
-                  {
-                    title: 'Accessibility',
-                    description: 'Security information should be accessible to everyone, regardless of technical background. We present complex concepts in straightforward, actionable ways.'
-                  },
-                  {
-                    title: 'Transparency',
-                    description: "We're committed to transparent practices. We don't receive compensation for recommending specific tools - our focus is purely on security efficacy."
-                  },
-                  {
-                    title: 'Continuous Improvement',
-                    description: 'The security landscape evolves rapidly. We keep our guidance current with emerging threats through ongoing research and community feedback.'
-                  },
-                  {
-                    title: 'Community Focus',
-                    description: 'Security is a collective responsibility. By fostering a security-conscious community, we create a safer Web3 ecosystem for everyone.'
-                  }
-                ].map((value, index) => (
-                  <div key={index} className="p-5 rounded-xl hover:bg-muted/30 transition-all duration-300">
-                    <h3 className="text-base font-medium mb-2 text-foreground">{value.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{value.description}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <div className="divider" />
-
-            {/* Get Involved Section */}
-            <section id="get-involved" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <Zap className="w-6 h-6 text-primary" />
-                Get Involved
-              </h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Digibastion is an evolving project, and we welcome contributions from the community. Whether it's 
-                suggesting improvements to our checklists, reporting security issues, or helping spread the word 
-                about digital security, your involvement helps make Web3 safer for everyone.
-              </p>
-              <div className="flex flex-wrap gap-3 mt-4">
-                <a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="gap-2">
-                    <Github className="w-4 h-4" />
-                    GitHub
-                  </Button>
-                </a>
-                <a href="https://twitter.com/__Raiders" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="gap-2">
-                    <Twitter className="w-4 h-4" />
-                    Twitter
-                  </Button>
-                </a>
-                <Button variant="outline" className="gap-2" onClick={() => navigate('/contact')}>
-                  <Mail className="w-4 h-4" />
-                  Contact Us
-                </Button>
-              </div>
-            </section>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {principles.map((principle) => (
+              <Card key={principle.title} className="p-5">
+                <h3 className="font-semibold text-foreground">{principle.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{principle.description}</p>
+              </Card>
+            ))}
           </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
-  );
-};
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-6 sm:p-10" aria-labelledby="proof-and-participation">
+          <div className="grid gap-10 lg:grid-cols-2">
+            <div>
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <h2 id="proof-and-participation" className="mt-5 text-2xl sm:text-3xl font-bold">Built in public, improved by practitioners.</h2>
+              <p className="mt-4 text-muted-foreground leading-7">
+                Security researchers, writers, designers and engineers can propose corrections, add sources, improve a checklist or build a feature. A useful contribution can be one precise paragraph—not only a large pull request.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button asChild>
+                  <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
+                    <Github className="mr-2 h-4 w-4" /> Contribute on GitHub
+                  </a>
+                </Button>
+                <Button asChild variant="outline"><Link to="/contact">Propose an idea</Link></Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Card className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Public evidence</p>
+                <a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-semibold hover:text-primary">
+                  Repository, issues and change history <ExternalLink className="h-4 w-4" />
+                </a>
+              </Card>
+              <Card className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Independent support</p>
+                <a href="https://blog.ethereum.org/2025/12/02/allocation-q3-25" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-semibold hover:text-primary">
+                  Ethereum Foundation ESP allocation <ExternalLink className="h-4 w-4" />
+                </a>
+              </Card>
+              <Card className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Higher-stakes work</p>
+                <Link to="/services" className="mt-2 inline-flex items-center gap-2 font-semibold hover:text-primary">
+                  Review services and current availability <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="text-center max-w-3xl mx-auto">
+          <HeartHandshake className="h-8 w-8 text-primary mx-auto" />
+          <h2 className="mt-4 text-3xl font-bold">Tell us what would make this more useful.</h2>
+          <p className="mt-3 text-muted-foreground leading-7">Report a gap, propose a collaboration, or describe the security problem your team keeps solving by hand.</p>
+          <Button asChild size="lg" className="mt-6"><Link to="/contact">Start a conversation</Link></Button>
+        </section>
+      </div>
+    </main>
+    <Footer />
+  </div>
+);
 
 export default About;

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
@@ -37,6 +37,7 @@ const AUTO_REFRESH_OPTIONS = [
 
 const News = () => {
   const navigate = useNavigate();
+  const { articleId: routeArticleId } = useParams<{ articleId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
@@ -234,16 +235,16 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     }
   }, [selectedTab, activeAlerts.length, fetchActiveAlerts]);
 
-  // Deep-link: load article from URL param on mount
-  const deepLinkLoaded = useRef(false);
+  // Keep legacy ?article= links working while using a crawlable canonical route.
+  const requestedArticleId = (routeArticleId || searchParams.get('article') || '').trim();
+  const deepLinkLoaded = useRef('');
   useEffect(() => {
-    if (deepLinkLoaded.current) return;
-    const articleId = searchParams.get('article');
-    if (!articleId) return;
-    deepLinkLoaded.current = true;
+    if (!requestedArticleId || !/^[A-Za-z0-9_-]{1,128}$/.test(requestedArticleId)) return;
+    if (deepLinkLoaded.current === requestedArticleId) return;
+    deepLinkLoaded.current = requestedArticleId;
 
     // Check if article is already in loaded list
-    const found = dbArticles.find(a => a.id === articleId);
+    const found = dbArticles.find(a => a.id === requestedArticleId);
     if (found) {
       setSelectedArticle(found);
       return;
@@ -254,7 +255,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       const { data } = await supabase
         .from('news_articles')
         .select('*')
-        .eq('id', articleId)
+        .eq('id', requestedArticleId)
         .maybeSingle();
       if (data) {
         const sanitize = (t: string | null | undefined) => {
@@ -294,7 +295,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         });
       }
     })();
-  }, [searchParams, dbArticles]);
+  }, [requestedArticleId, dbArticles]);
 
   // Auto-refresh for Active Alerts tab
   useEffect(() => {
@@ -352,20 +353,13 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
-    setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
-      params.set('article', article.id);
-      return params;
-    });
+    navigate(`/threat-intel/${encodeURIComponent(article.id)}`);
   };
 
   const handleBackToNews = () => {
     setSelectedArticle(null);
-    setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
-      params.delete('article');
-      return params;
-    });
+    deepLinkLoaded.current = '';
+    navigate(selectedTab === 'feed' ? '/threat-intel' : `/threat-intel?tab=${encodeURIComponent(selectedTab)}`);
   };
 
   // Handle new articles from realtime
@@ -404,6 +398,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         <MetaTags 
           title={`${selectedArticle.title} | Digibastion Threat Intel`}
           description={selectedArticle.summary}
+          canonical={`https://www.digibastion.com/threat-intel/${encodeURIComponent(selectedArticle.id)}`}
         />
         <Navbar />
         <main className="pt-20 pb-12">

@@ -15,18 +15,18 @@ const Quiz = () => {
   const features = [
     {
       icon: Target,
-      title: '8 Tricky Questions',
-      description: 'Randomized from a pool of 20+ expert-curated security scenarios'
+      title: '8 Scenario Questions',
+      description: 'Randomized from a 20-question bank covering custody, devices, identity, verification and social risk'
     },
     {
       icon: Award,
-      title: 'Crypto Character',
-      description: 'Get ranked from "Rekt Waiting" to "Satoshi-Level" based on your score'
+      title: 'Clear Starting Point',
+      description: 'See a category breakdown and practical follow-up actions alongside the optional character rank'
     },
     {
       icon: Share2,
-      title: 'Share on X',
-      description: 'Generate a beautiful OG card and challenge your crypto friends'
+      title: 'Private by Default',
+      description: 'Use “anon” to keep the result off the public leaderboard, or choose a handle when you want to share'
     }
   ];
 
@@ -34,7 +34,7 @@ const Quiz = () => {
     <>
       <MetaTags 
         title="Free Crypto OpSec Quiz — Test Your Web3 Security Knowledge | Digibastion"
-        description="Take the 2-minute OpSec quiz to assess your crypto security. Get personalized recommendations, earn your security character rank, and share results on X. 100% free."
+        description="Take an eight-question crypto OpSec self-check. Review practical scenarios, see category-level gaps, and get clear next steps without connecting a wallet."
         keywords="crypto security quiz, opsec assessment, web3 security test, blockchain security quiz, wallet security test, crypto safety quiz"
         image="https://www.digibastion.com/og-quiz.png"
       />
@@ -53,7 +53,7 @@ const Quiz = () => {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Interactive Security Assessment</span>
+                <span className="text-sm font-medium text-primary">Scenario-based OpSec self-check</span>
               </div>
 
               {/* Main heading */}
@@ -66,8 +66,7 @@ const Quiz = () => {
 
               {/* Subtitle */}
               <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
-                Take the 2-minute quiz to discover your security level, get personalized recommendations, 
-                and earn your crypto character ranking.
+                Work through eight real-world scenarios, see where your habits are strongest, and leave with practical next steps. No wallet connection or account required.
               </p>
 
               {/* CTA Button */}
@@ -78,7 +77,7 @@ const Quiz = () => {
                   className="gap-2 sm:gap-3 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group w-full sm:w-auto"
                 >
                   <Shield className="w-5 h-5" />
-                  <span>Take the Quiz</span>
+                  <span>Start the self-check</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <ChallengeButton variant="outline" className="px-6 py-5 sm:py-6 text-base sm:text-lg w-full sm:w-auto" />
@@ -102,7 +101,7 @@ const Quiz = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-warning" />
-                  <span>6 Ranks</span>
+                  <span>20 scenarios</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-accent" />
@@ -137,7 +136,7 @@ const Quiz = () => {
                 Which Crypto Character Are You?
               </h2>
               <p className="text-muted-foreground">
-                Your score determines your OpSec ranking in the crypto ecosystem
+                The character rank makes the result memorable; the category breakdown is the part to act on.
               </p>
             </div>
 
@@ -166,10 +165,10 @@ const Quiz = () => {
           <section className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
             <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20">
               <h2 className="text-2xl font-bold text-foreground mb-4">
-                Ready to Test Your OpSec?
+                Ready for a quick security check?
               </h2>
               <p className="text-muted-foreground mb-6">
-                Challenge yourself and see how you stack up against the crypto community.
+                Treat the result as a conversation starter, not a guarantee of safety. Security depends on your assets, adversaries and operating environment.
               </p>
               <Button 
                 onClick={() => setIsQuizOpen(true)}
@@ -177,7 +176,7 @@ const Quiz = () => {
                 className="gap-2"
               >
                 <Shield className="w-5 h-5" />
-                Start Quiz Now
+                Start the self-check
               </Button>
             </div>
           </section>

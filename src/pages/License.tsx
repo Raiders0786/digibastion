@@ -8,13 +8,11 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 const License = () => {
-  const currentYear = new Date().getFullYear();
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="License | Digibastion"
-        description="View Digibastion's license information and terms of use. Our commitment to open source and community collaboration."
+        title="Source License | Digibastion"
+        description="Read the Digibastion repository license: MIT terms with an additional Commons Clause restriction on commercial use."
         type="website"
       />
       <Navbar />
@@ -24,23 +22,24 @@ const License = () => {
             <FileText className="w-16 h-16 text-primary mx-auto mb-6" />
             <h1 className="text-4xl font-bold text-foreground mb-4">License</h1>
             <p className="text-lg text-foreground-secondary mb-6">
-              Terms of use and distribution for Digibastion Web3 Security Checklist
+              Terms for using and redistributing the Digibastion repository
             </p>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/LICENSE', '_blank')}
-            >
-              <Github className="w-5 h-5" />
-              View on GitHub
+            <Button asChild variant="outline" className="gap-2">
+              <a href="https://github.com/Raiders0786/digibastion/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">
+                <Github className="w-5 h-5" />
+                View the canonical file on GitHub
+              </a>
             </Button>
           </div>
 
           <Card className="p-8 animate-slide-up space-y-8">
+            <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">
+              The repository is publicly readable and accepts community contributions, but the Commons Clause below restricts commercial use. That means these terms are source-available rather than an unmodified OSI-approved MIT license. The canonical <code>LICENSE</code> file controls if this summary differs from it.
+            </div>
             <div>
-              <h2 className="text-xl font-semibold mb-4">MIT License</h2>
+              <h2 className="text-xl font-semibold mb-4">MIT License text</h2>
               <p className="text-foreground-secondary mb-4">
-                Copyright (c) {currentYear} Raiders
+                Copyright (c) 2025 Raiders
               </p>
               <div className="prose prose-invert max-w-none">
                 <p className="mb-4">

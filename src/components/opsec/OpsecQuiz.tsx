@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -372,7 +372,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState('anon');
   const [result, setResult] = useState<QuizResult | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -561,7 +561,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     
     // Create shareable URL with params for OG tags
     const badgesEncoded = result.badges.map(b => encodeURIComponent(b)).join(',');
-    const shareUrl = `https://digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}`;
+    const shareUrl = `https://www.digibastion.com/quiz-result?u=${encodeURIComponent(username)}&s=${result.score}&b=${badgesEncoded}`;
     
     const shareText = `${result.character.emoji} My OpSec Level: ${result.character.name} (${result.score}/100)
 
@@ -585,7 +585,7 @@ ${shareUrl}`;
   const resetQuiz = () => {
     setCurrentStep(0);
     setAnswers({});
-    setUsername('');
+    setUsername('anon');
     setResult(null);
     setShowResult(false);
     setSessionToken(null);
@@ -602,14 +602,19 @@ ${shareUrl}`;
     return `https://unavatar.io/twitter/${handle}`;
   };
 
+  const isAnonymous = username.trim().toLowerCase() === 'anon';
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-card border border-primary/20">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Shield className="w-6 h-6 text-primary" />
-            OpSec Assessment Quiz
+            OpSec self-check
           </DialogTitle>
+          <DialogDescription>
+            Eight scenario questions highlight habits worth reviewing. This is guidance, not a formal security assessment.
+          </DialogDescription>
         </DialogHeader>
 
         {!showResult ? (
@@ -622,23 +627,28 @@ ${shareUrl}`;
                   <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                     <User className="w-10 h-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold">Welcome to the OpSec Quiz</h3>
+                  <h3 className="text-xl font-semibold">Choose a public display name</h3>
                   <p className="text-foreground-secondary text-sm">
-                    Answer 8 randomized questions to discover your security level. Get a crypto character rank and share your results!
+                    Keep <strong>anon</strong> for a private result, or use an X handle if you want an eligible score to appear on the public leaderboard.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Your X (Twitter) Username</label>
+                  <label htmlFor="quiz-display-name" className="text-sm font-medium">Display name or X handle</label>
                   <div className="flex items-center gap-2">
                     <span className="text-foreground-secondary">@</span>
                     <Input
-                      placeholder="username"
+                      id="quiz-display-name"
+                      name="display-name"
+                      autoComplete="off"
+                      maxLength={50}
+                      pattern="[A-Za-z0-9_]+"
+                      placeholder="anon"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value.replace('@', ''))}
+                      onChange={(e) => setUsername(e.target.value.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, ''))}
                       className="flex-1"
                     />
                   </div>
-                  <p className="text-xs text-foreground-secondary">Used to create your shareable results card with profile pic</p>
+                  <p className="text-xs text-foreground-secondary">Letters, numbers and underscores only. Never enter an email address, wallet address or real name unless you want it public.</p>
                 </div>
 
                 {/* Privacy Notice */}
@@ -646,7 +656,7 @@ ${shareUrl}`;
                   <div className="flex items-start gap-2">
                     <Lock className="w-4 h-4 text-warning mt-0.5 shrink-0" />
                     <div className="text-xs text-foreground-secondary">
-                      <span className="font-medium text-warning">Privacy Notice:</span> If you share your results, your username and score will appear on the public leaderboard. Use "anon" to skip leaderboard submission.
+                      <span className="font-medium text-warning">Privacy:</span> non-anonymous handles and verified scores may appear on the public leaderboard. The quiz does not ask for wallet access, seed phrases or account credentials.
                     </div>
                   </div>
                 </div>
@@ -734,14 +744,20 @@ ${shareUrl}`;
                 <div className="relative z-10">
                   {/* Profile header */}
                   <div className="flex items-center gap-4 mb-6">
-                    <img 
-                      src={getTwitterPfp(username)} 
-                      alt={`@${username}`}
-                      className="w-16 h-16 rounded-full border-2 border-primary/50 shadow-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://unavatar.io/fallback.png';
-                      }}
-                    />
+                    {isAnonymous ? (
+                      <div className="w-16 h-16 rounded-full border-2 border-primary/50 bg-primary/10 flex items-center justify-center" aria-hidden="true">
+                        <Shield className="w-8 h-8 text-primary" />
+                      </div>
+                    ) : (
+                      <img
+                        src={getTwitterPfp(username)}
+                        alt=""
+                        className="w-16 h-16 rounded-full border-2 border-primary/50 shadow-lg"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
                     <div>
                       <p className="font-semibold text-foreground">@{username}</p>
                       <p className="text-sm text-foreground-secondary">OpSec Assessment</p>

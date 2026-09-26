@@ -1,5 +1,5 @@
 
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -37,13 +37,11 @@ const NotFound = () => {
           </div>
           
           <div className="space-y-4">
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto hover:bg-primary hover:text-white transition-all duration-300"
-              onClick={() => window.location.href = '/'}
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Return Home
+            <Button asChild variant="outline" className="w-full sm:w-auto hover:bg-primary hover:text-white transition-all duration-300">
+              <Link to="/">
+                <Home className="w-4 h-4 mr-2" />
+                Return Home
+              </Link>
             </Button>
             
             <div className="relative">
@@ -55,13 +53,11 @@ const NotFound = () => {
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto hover:bg-primary hover:text-white transition-all duration-300"
-              onClick={() => window.open('https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md', '_blank')}
-            >
-              <Github className="w-4 h-4 mr-2" />
-              Contribute on GitHub
+            <Button asChild variant="outline" className="w-full sm:w-auto hover:bg-primary hover:text-white transition-all duration-300">
+              <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
+                <Github className="w-4 h-4 mr-2" />
+                Contribute on GitHub
+              </a>
             </Button>
           </div>
         </div>
