@@ -228,11 +228,14 @@ function isRelevant(
     finalCategory = feedHasCategory ? feedCategory : 'vulnerability-disclosure';
   }
 
-  // Override: if content has strong web3/defi signals, force web3 category
-  const web3Signals = ['blockchain', 'defi', 'smart contract', 'web3', 'nft', 'dao',
-    'metamask', 'uniswap', 'aave', 'compound', 'solana', 'ethereum',
-    'crypto wallet', 'private key', 'seed phrase', 'rug pull', 'flash loan'];
-  const hasWeb3Signal = web3Signals.some(s => content.includes(s));
+  // A broad blockchain term alone is not enough to classify a security story as Web3.
+  const explicitWeb3Signals = ['defi exploit', 'smart contract vulnerability', 'smart contract exploit',
+    'wallet drainer', 'crypto wallet', 'seed phrase', 'rug pull', 'flash loan', 'bridge exploit',
+    'protocol hack', 'web3 security', 'on-chain exploit'];
+  const web3Context = ['blockchain', 'web3', 'defi', 'ethereum', 'solana', 'crypto', 'protocol', 'wallet'];
+  const securityContext = ['hack', 'exploit', 'breach', 'vulnerability', 'attack', 'stolen', 'drain'];
+  const hasWeb3Signal = explicitWeb3Signals.some(s => content.includes(s)) ||
+    (web3Context.some(s => content.includes(s)) && securityContext.some(s => content.includes(s)));
 
   if (hasWeb3Signal && finalCategory !== 'defi-exploits') {
     finalCategory = 'web3-security';
@@ -258,7 +261,7 @@ function determineSeverity(matchedKeywords: string[], title: string): string {
 
   const criticalIndicators = ['critical', 'zero-day', '0day', '0-day', 'rce',
     'remote code execution', 'actively exploited', 'emergency', 'cvss 9', 'cvss 10'];
-  const highIndicators = ['high', 'exploit', 'breach', 'ransomware', 'malware',
+  const highIndicators = ['high severity', 'high-risk', 'exploit', 'breach', 'ransomware', 'malware',
     'backdoor', 'lazarus', 'north korea', 'apt', 'privilege escalation',
     'authentication bypass', 'code execution'];
   const mediumIndicators = ['medium', 'vulnerability', 'patch', 'update',
@@ -415,7 +418,13 @@ serve(async (req) => {
             affected_technologies: [],
             cve_id: cveId,
             published_at: (pubDate > new Date() ? new Date() : pubDate).toISOString(),
-            raw_content: item.description
+            raw_content: item.description,
+            metadata: {
+              provider: 'rss',
+              feed_id: feed.id,
+              matched_keywords: relevance.matchedKeywords.slice(0, 10),
+              classification_weight: relevance.weight,
+            }
           });
         }
 
