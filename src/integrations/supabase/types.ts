@@ -614,6 +614,51 @@ export type Database = {
         }
         Relationships: []
       }
+      threat_intel_ingestion_runs: {
+        Row: {
+          attempted_at: string
+          completed_at: string | null
+          duration_ms: number | null
+          error_summary: string | null
+          id: string
+          metadata: Json
+          pipeline: string
+          records_found: number
+          records_inserted: number
+          records_invalid: number
+          records_updated: number
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_summary?: string | null
+          id?: string
+          metadata?: Json
+          pipeline: string
+          records_found?: number
+          records_inserted?: number
+          records_invalid?: number
+          records_updated?: number
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_summary?: string | null
+          id?: string
+          metadata?: Json
+          pipeline?: string
+          records_found?: number
+          records_inserted?: number
+          records_invalid?: number
+          records_updated?: number
+          success?: boolean
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -682,9 +727,21 @@ export type Database = {
             }
             Returns: number
           }
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              search_query?: string
+              severity_filter?: string[]
+              source_filter?: string
+              web3_incidents_only?: boolean
+            }
+            Returns: number
+          }
       get_cron_auth_headers: { Args: never; Returns: Json }
       get_cron_monitor_data: { Args: { hours_back?: number }; Returns: Json }
       get_subscriber_count: { Args: never; Returns: Json }
+      get_threat_intel_health: { Args: never; Returns: Json }
       get_top_leaderboard_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
@@ -724,6 +781,37 @@ export type Database = {
               search_query?: string
               severity_filter?: string[]
               source_filter?: string
+            }
+            Returns: {
+              affected_technologies: string[]
+              author: string
+              category: string
+              content: string
+              cve_id: string
+              id: string
+              is_processed: boolean
+              link: string
+              metadata: Json
+              published_at: string
+              rank: number
+              severity: string
+              source_name: string
+              source_url: string
+              summary: string
+              tags: string[]
+              title: string
+            }[]
+          }
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              result_limit?: number
+              result_offset?: number
+              search_query?: string
+              severity_filter?: string[]
+              source_filter?: string
+              web3_incidents_only?: boolean
             }
             Returns: {
               affected_technologies: string[]
