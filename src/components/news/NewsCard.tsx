@@ -77,6 +77,12 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
                 Web3 Incident
               </Badge>
             )}
+            {isQuillMonitor && (
+              <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
+                <RadioTower className="w-3 h-3" />
+                QuillMonitor
+              </Badge>
+            )}
           </div>
           {article.sourceUrl && (
             <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
