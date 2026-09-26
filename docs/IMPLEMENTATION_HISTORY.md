@@ -1,6 +1,11 @@
 # Implementation history
 
-This checklist records completed production hardening work. For planned public features, see [`ROADMAP.md`](../ROADMAP.md).
+This checklist records completed production hardening work from repository and
+operator notes. It is historical, not a live status dashboard: schedules,
+email delivery, secrets, deployed function revisions, and database policies
+must still be checked in the owning platforms. For the current product map and
+priorities, see [`PRODUCT_AND_ARCHITECTURE.md`](PRODUCT_AND_ARCHITECTURE.md) and
+[`ROADMAP.md`](../ROADMAP.md).
 
 - [x] Diagnose current edge function and scheduled-job failures.
 - [x] Hide privileged Threat Intel actions from public visitors.
@@ -56,3 +61,12 @@ This checklist records completed production hardening work. For planned public f
 - [x] Keep critical/high records synchronized into Active Alerts.
 - [x] Add private source freshness and data-quality monitoring.
 - [x] Show clear QuillMonitor attribution in the unified feed and Active Alerts.
+
+## Repository documentation consolidation
+
+- [x] Replace expired quarter-based promises with a shipped/validated/planned roadmap.
+- [x] Document the relationship between Digibastion, VANTAGE, and security services.
+- [x] Align setup and contribution instructions with the actual package scripts and data types.
+- [x] Replace the stale static feed-status catalog with source policy and runtime verification guidance.
+- [x] Archive superseded Lovable plans and remove duplicate contribution guides.
+- [x] Correct repository licensing language to source-available pending an owner decision.

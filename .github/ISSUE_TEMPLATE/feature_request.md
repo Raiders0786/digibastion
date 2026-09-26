@@ -1,87 +1,63 @@
 ---
-name: 🚀 Feature Request
-about: Suggest an idea for Digibastion
-title: '[FEATURE] '
-labels: 'enhancement'
-assignees: ''
-
+name: Product proposal
+about: Propose a focused improvement backed by a user need
+title: "[Proposal] "
+labels: enhancement
+assignees: ""
 ---
 
-## 🎯 Feature Description
+<!-- Do not report vulnerabilities or include secrets/private user data here. Follow SECURITY.md instead. -->
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## User and problem
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+Who experiences the problem, and what are they trying to accomplish?
 
-## 🔍 Feature Category
+## Current evidence
 
-Please check the relevant category:
+Link to a route, issue, user report, usability observation, or other evidence.
+If this is an assumption, say so.
 
-- [ ] 🔒 Security Checklist Enhancement
-- [ ] 🛠️ Tool Integration
-- [ ] 📊 Analytics & Scoring
-- [ ] 🎯 Threat Profile Management
-- [ ] 📚 Educational Content
-- [ ] 🔗 API/Integration
-- [ ] 🎨 UI/UX Improvement
-- [ ] 📱 Mobile Enhancement
-- [ ] 🚀 Roadmap Feature (DevSecOps, Supply Chain, etc.)
-- [ ] 🐛 Bug Fix
-- [ ] 📖 Documentation
+## Proposed outcome
 
-## 💡 Detailed Description
+Describe the smallest useful result. Explain the user journey, not just the UI
+element or technology.
 
-**Describe the feature in detail:**
-- What problem does it solve?
-- How would it work?
-- What would the user experience be?
+## Product area
 
-**Additional context**
-Add any other context, screenshots, mockups, or examples about the feature request here.
+- [ ] Checklist or security plan
+- [ ] OpSec quiz
+- [ ] Threat intelligence or subscriptions
+- [ ] Guides, tools, or resources
+- [ ] VANTAGE connection
+- [ ] Security services
+- [ ] Community or contribution experience
+- [ ] Accessibility, mobile, performance, SEO, or analytics
+- [ ] Private operations or administration
 
-## 🔗 Related Roadmap Item
+## Scope and boundaries
 
-If this relates to our [roadmap](../../ROADMAP.md), please specify:
-- [ ] Real-time Supply Chain Monitoring
-- [ ] Source Code Analysis & Vulnerability Scanning
-- [ ] DevSecOps Pipeline Security Integration
-- [ ] GitHub Repository Security Analysis
-- [ ] Live Threat Intelligence Feed
-- [ ] Website Phishing & Malware Detection
-- [ ] Other (please specify)
+What is included? What is explicitly not included? Does this require private
+platform access, a new provider, stored user data, email, authentication, or a
+database migration?
 
-## 🎨 Mockups/Examples
+## Security and privacy
 
-If applicable, add screenshots, mockups, or examples to help explain your feature request.
+What could be abused, exposed, or misunderstood? What data is collected or
+sent to another service? How will access be enforced and logs sanitized?
 
-## 🤝 Implementation
+## Accessibility and devices
 
-**Would you be willing to contribute to this feature?**
-- [ ] Yes, I can implement this
-- [ ] Yes, I can help with testing
-- [ ] Yes, I can help with documentation
-- [ ] No, but I'd love to see it implemented
+How should this work with keyboard and screen readers, reduced motion, narrow
+screens, zoom, low bandwidth, and touch?
 
-**Technical considerations:**
-If you have ideas about how this could be implemented, please share them here.
+## Validation
 
-## 📈 Impact
+How will we know the outcome works? Include tests, manual flows, and a measurable
+signal where appropriate.
 
-**How would this feature benefit users?**
-- [ ] Improves security posture
-- [ ] Enhances user experience
-- [ ] Increases platform adoption
-- [ ] Provides educational value
-- [ ] Supports developer workflow
-- [ ] Other: ___________
+## Contribution
 
-**Priority Level:**
-- [ ] High - Critical for security
-- [ ] Medium - Important enhancement
-- [ ] Low - Nice to have
-
----
-
-Thank you for contributing to Digibastion! 🛡️
+- [ ] I can implement this.
+- [ ] I can research or design it.
+- [ ] I can test it on specific devices or assistive technology.
+- [ ] I can review the security-domain content.

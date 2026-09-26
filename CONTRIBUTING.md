@@ -1,287 +1,158 @@
-# 🤝 Contributing to Digibastion
+# Contributing to Digibastion
 
-<p align="center">
-  <strong>Digibastion — Secure the Stack</strong><br/>
-  The Open-Source Web3 Security Platform
-</p>
+Digibastion welcomes focused contributions from security practitioners,
+developers, designers, technical writers, educators, and people using the
+products in the field. You do not need to propose a large feature: correcting
+one unsafe instruction or reproducing one mobile problem is valuable.
 
-<p align="center">
-  <a href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal">
-    <img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=flat-square&logo=ethereum" alt="Ethereum ESP 2025" />
-  </a>
-</p>
+The repository is source-available under the terms in [`LICENSE`](LICENSE),
+which includes a Commons Clause restriction. By contributing, you agree that
+your contribution can be distributed under those repository terms.
 
-Thank you for your interest in contributing to Digibastion! This document provides guidelines and instructions to help you get started.
+## Before you begin
 
----
+- Use a public GitHub issue for bugs, content corrections, and feature ideas.
+- Use the private process in [`SECURITY.md`](SECURITY.md) for vulnerabilities,
+  leaked credentials, or instructions that could put users at immediate risk.
+- Open an issue before work that changes architecture, data models, external
+  providers, authentication, email behavior, or several routes.
+- Do not include real credentials, subscriber information, private incident
+  data, raw provider payloads, or client data in an issue or pull request.
 
-## 📋 Table of Contents
+The current priorities are in [`ROADMAP.md`](ROADMAP.md). Architecture and
+product boundaries are documented in
+[`docs/PRODUCT_AND_ARCHITECTURE.md`](docs/PRODUCT_AND_ARCHITECTURE.md).
 
-- [Why Contribute?](#-why-contribute)
-- [Getting Started](#-getting-started)
-- [Project Structure](#-project-structure)
-- [Contribution Types](#-contribution-types)
-  - [Adding Security Items](#adding-security-items)
-  - [Adding New Categories](#adding-new-categories)
-  - [Adding Tools](#adding-tools)
-  - [Adding Articles](#adding-articles)
-  - [Adding Threat Intelligence](#adding-threat-intelligence)
-- [Code Contributions](#-code-contributions)
-- [Pull Request Process](#-pull-request-process)
-- [Recognition](#-recognition)
+## Set up the project
 
----
-
-## 🌟 Why Contribute?
-
-Digibastion is a **community-driven security platform** supported by the Ethereum Foundation ESP 2025 grant. By contributing, you're helping to:
-
-- 🛡️ Make Web3 safer for everyone
-- 📚 Create accessible security education
-- 🔧 Build open-source security tools
-- 🌍 Join a global community of security-conscious builders
-
-**All skill levels welcome!** You don't need to be a security expert or developer to contribute.
-
----
-
-## 🚀 Getting Started
-
-### 1. Fork and Clone the Repository
+You need Node.js 22.12 or later and npm.
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/digibastion.git
 cd digibastion
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-# or: yarn install / bun install
-```
-
-### 3. Start the Development Server
-
-```bash
+cp .env.example .env
+# Add publishable VITE_SUPABASE_* values for your own test project.
+npm ci
 npm run dev
-# Open http://localhost:8080
 ```
 
-### 4. Create a Feature Branch
+Never use production service-role keys or provider credentials for local UI
+work. If your change needs private platform access, describe the gap in the
+pull request so a maintainer can run that validation.
+
+Before submitting:
 
 ```bash
-git checkout -b feature/your-feature-name
+npm run check
 ```
 
----
+This runs TypeScript, ESLint, Vitest, and the production build. Also inspect UI
+changes at narrow mobile, tablet, and desktop widths, using keyboard navigation
+and reduced motion where relevant.
 
-## 📁 Project Structure
+## Good contribution scopes
 
-```
-src/
-├── components/         # UI components
-│   ├── ui/            # shadcn/ui components
-│   ├── opsec/         # OpSec quiz components
-│   ├── threat-intel/  # Threat intelligence components
-│   └── security-score/ # Scoring components
-├── data/               # Data files (easiest to contribute!)
-│   ├── categories/     # Security checklist items
-│   ├── links/          # Resource links
-│   ├── tools/          # Security tools
-│   └── articles.tsx    # Blog articles
-├── pages/              # Page components
-├── types/              # TypeScript types
-└── templates/          # Contribution templates
-```
+### Security checklist items
 
----
-
-## 🎯 Contribution Types
-
-### Adding Security Items
-
-Security items are the core of our checklists. To add a new security item:
-
-**1. Find the appropriate category file in `src/data/categories/`**
-
-**2. Add your item following this structure:**
+Checklist categories live in `src/data/categories/` and use the
+`SecurityItem` type in `src/types/security.ts`.
 
 ```typescript
 {
-  id: 'category-X', // Use a unique ID (e.g., 'opsec-15')
-  title: 'Item Title',
-  priority: 'essential', // Options: 'essential', 'recommended', 'advanced'
-  description: 'Description of the item',
-  resources: [
-    { name: 'Resource Name', url: 'https://example.com' }
+  id: 'category-unique-id',
+  title: 'Use a security key for important accounts',
+  description: 'Short summary shown in list views.',
+  completed: false,
+  level: 'essential', // essential | recommended | optional | advanced
+  details: 'Explain the risk, action, trade-offs, and how to verify it.',
+  links: [
+    { text: 'Primary documentation', url: 'https://example.com/docs' }
   ],
-  actions: [
-    'Step 1 to complete this item',
-    'Step 2 to complete this item'
-  ],
-  additionalInfo: 'Any extra information',
-  threatLevels: ['basic', 'developer', 'privacy'] // Who this applies to
+  threatLevels: ['basic', 'developer'],
+  priority: 1
 }
 ```
 
-**3. Test your changes locally**
+Use a stable, unique ID; changing an existing ID can break saved progress.
+Prefer primary documentation or recognized standards. Avoid absolute safety
+claims, unexplained jargon, vendor marketing, and advice that is risky without
+context. A new category also needs registration in `src/data/securityData.ts`
+and applicable threat-profile mappings in `src/data/threatProfiles.ts`. The
+starter structure is in `src/templates/categoryTemplate.ts`.
 
----
+### Guides and incident analysis
 
-### Adding New Categories
+Article metadata lives in `src/data/articlesData.ts`; article bodies are mapped
+in `src/data/articleContent.tsx`. Older compatibility articles remain in
+`src/data/articlesData.ts` and add its cited body to
+`src/data/articleContent.tsx`.
 
-**1. Create a new file in `src/data/categories/` (e.g., `newCategory.ts`)**
+Every article contribution should include:
 
-**2. Use the template in `src/templates/categoryTemplate.ts`**
+- a specific reader and problem;
+- substantive, original guidance rather than a placeholder or rewritten feed;
+- primary sources for technical and incident claims;
+- a published and reviewed/modified date that reflects real editorial work;
+- uncertainty and scope where facts are still developing;
+- a practical next action that exists in Digibastion or VANTAGE;
+- no invented loss figures, quotations, clients, credentials, or expertise.
 
-**3. Register your category in `src/data/securityData.ts`**
+For recent incidents, separate confirmed facts from analysis. Include the
+event timeline, affected systems, impact, attack path, mitigations, primary
+sources, and lessons. A threat-feed record is not by itself enough evidence for
+an editorial article.
 
-**4. Add threat level mappings in `src/data/threatProfiles.ts`**
+### Tools and resources
 
----
+- Product tools: `src/data/tools/categories.ts`
+- Resource directory: `src/data/links/categories/`
 
-### Adding Tools
+Verify the destination, ownership, current product behavior, and security
+trade-offs. A listing is not an endorsement. Disclose affiliations and never
+add referral tracking without explicit maintainer approval.
 
-**1. Open `src/data/tools/categories.ts`**
+### Threat sources
 
-**2. Add your tool:**
+Read [`THREAT_INTEL_FEEDS.md`](THREAT_INTEL_FEEDS.md) first. New providers need
+a source-quality case, stable identifiers, a normalization plan, failure and
+rate-limit behavior, and a credential/storage review. Providers must remain
+isolated server-side and normalize into the existing public feed model.
 
-```typescript
-{
-  name: 'Tool Name',
-  description: 'What the tool does',
-  url: 'https://toolwebsite.com',
-  category: 'categoryId',
-  tags: ['tag1', 'tag2'],
-  recommended: true // Optional: mark as recommended
-}
-```
+### Product and UI work
 
----
+- Use existing semantic design tokens rather than hard-coded light/dark colors.
+- Keep content and actions usable at 320 CSS pixels and with 200% zoom.
+- Preserve visible focus, meaningful labels, heading order, reduced-motion
+  behavior, and screen-reader status feedback.
+- Add or update tests for behavior changes.
+- Include before/after screenshots for visual changes and list the viewports
+  and interaction paths tested.
 
-### Adding Threat Intelligence Feeds
+## Pull request checklist
 
-Want to suggest a new RSS/Atom feed source for our threat intel? See the full list of current feeds and contribution guidelines in **[THREAT_INTEL_FEEDS.md](THREAT_INTEL_FEEDS.md)**.
+Keep a pull request narrow enough to review. In its description, include:
 
-You can:
-- **Open an issue** with the feed URL, source name, and category
-- **Open a PR** adding the feed to `THREAT_INTEL_FEEDS.md`
+- the user problem and why this change is appropriate;
+- files and flows changed;
+- tests and manual checks performed;
+- screenshots for visual changes;
+- security, privacy, accessibility, and migration considerations;
+- production checks a maintainer must perform because they need private access;
+- related issue or roadmap outcome.
 
----
+Do not mix generated files, unrelated formatting, broad dependency updates,
+and product behavior in the same pull request unless they are inseparable.
+Maintainers may request changes or decline a proposal; no review time or merge
+date is guaranteed.
 
-### Adding Articles
+## Communication
 
-**1. Open `src/data/articles.tsx`**
+- [GitHub issues](https://github.com/Raiders0786/digibastion/issues) for
+  actionable bugs and scoped proposals
+- [GitHub discussions](https://github.com/Raiders0786/digibastion/discussions)
+  for early ideas and community questions
+- [Telegram](https://t.me/digibastion) for community conversation that does not
+  contain confidential information
 
-**2. Add your article:**
-
-```typescript
-{
-  id: 'unique-slug',
-  title: 'Article Title',
-  summary: 'Brief description (1-2 sentences)',
-  content: <YourJSXContent />,
-  date: '2025-01-15',
-  category: 'opsec', // e.g., 'opsec', 'wallet', 'defi'
-  tags: ['security', 'tutorial']
-}
-```
-
----
-
-## 💻 Code Contributions
-
-For code contributions:
-
-1. **Follow the existing code style** — We use TypeScript, React, and Tailwind CSS
-2. **Use semantic tokens** — Colors should use design system variables from `index.css`
-3. **Write tests when applicable** — Use Vitest + React Testing Library
-4. **Update documentation** — Keep README and docs in sync
-
-### Code Style Guidelines
-
-```typescript
-// ✅ Good: Use semantic tokens
-<div className="bg-background text-foreground">
-
-// ❌ Bad: Direct colors
-<div className="bg-white text-black">
-```
-
-```typescript
-// ✅ Good: Component composition
-const SecurityCard = ({ title, items }) => (
-  <Card className="glass-card-hover">
-    <CardHeader>{title}</CardHeader>
-    <CardContent>{items}</CardContent>
-  </Card>
-);
-
-// ❌ Bad: Inline everything
-const SecurityCard = ({ title, items }) => (
-  <div style={{ background: '#fff', padding: 20 }}>
-    <h2>{title}</h2>
-    <ul>{items}</ul>
-  </div>
-);
-```
-
----
-
-## 📤 Pull Request Process
-
-### Before Submitting
-
-1. ✅ Test your changes locally with `npm run dev`
-2. ✅ Run validation with `npm run validate-updates` (if applicable)
-3. ✅ Ensure the build passes: `npm run build`
-4. ✅ Update documentation if needed
-
-### Submitting
-
-1. **Push your branch**: `git push origin feature/your-feature-name`
-2. **Open a Pull Request** on GitHub
-3. **Fill out the PR template** with:
-   - What you changed
-   - Why you changed it
-   - Screenshots (if visual changes)
-4. **Wait for review** — We'll respond within 48 hours
-
-### Review Criteria
-
-All contributions will be reviewed for:
-
-- ✅ Technical accuracy
-- ✅ Code quality and style
-- ✅ Security best practices
-- ✅ Documentation completeness
-- ✅ User experience impact
-
----
-
-## 🏆 Recognition
-
-All contributors will be:
-
-- 📝 **Listed** in our [Contributors section](https://digibastion.com/about)
-- 🎉 **Thanked** in release notes
-- 💎 **Featured** for significant contributions
-
----
-
-## 💬 Need Help?
-
-- **GitHub Issues**: [Ask a question](https://github.com/Raiders0786/digibastion/issues/new)
-- **GitHub Discussions**: [Start a discussion](https://github.com/Raiders0786/digibastion/discussions)
-- **Telegram**: [Join our community](https://t.me/digibastion)
-
----
-
-<p align="center">
-  <strong>Thank you for helping make Web3 more secure for everyone! 🛡️</strong>
-</p>
-
-<p align="center">
-  <em>Digibastion — Secure the Stack</em>
-</p>
+Thank you for helping make the guidance and products more accurate, usable,
+and trustworthy.

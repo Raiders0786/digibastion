@@ -1,147 +1,151 @@
-# 🚀 Digibastion Roadmap
+# Digibastion roadmap
 
-<p align="center">
-  <strong>Digibastion — Secure the Stack</strong><br/>
-  Building the security infrastructure Web3 deserves
-</p>
+Last reviewed: 2026-09-27
 
-<p align="center">
-  <a href="https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal">
-    <img src="https://img.shields.io/badge/Supported%20by-Ethereum%20Foundation%20ESP%202025-6366F1?style=for-the-badge&logo=ethereum" alt="Ethereum ESP 2025" />
-  </a>
-</p>
+This roadmap is organized around user outcomes, not a list of speculative
+features. A feature is **shipped** when it exists in the repository and has a
+public route or documented operational path. It is **validated** only when its
+production behavior has been checked with the required platform access.
 
----
+## Shipped
 
-## 🎯 Vision
+| Outcome | Evidence | Validation state |
+| --- | --- | --- |
+| People can assess and improve personal security | 274 checklist items in 11 categories; `/quiz`, `/category/:categoryId`, `/share`, and `/leaderboard` routes | Public routes and local flows checked; production analytics require owner access |
+| People can follow current threats | `/threat-intel`, RSS/Web3/QuillMonitor ingestion functions, alerts, digests, and subscription management | Public feed checked; schedules, email delivery, and private health data require Supabase access |
+| People can learn by topic | 57 article entries, 28 tool entries, resources, search, filters, related links, and structured data | Public article index checked; the corpus still needs a source-by-source editorial freshness review |
+| Teams can request expert help | `/services`, `/services/opsec-consulting`, `/services/full-stack-review`, and `/contact` | Public routes checked; inquiry and conversion performance require production data |
+| Teams can inspect domain trust evidence | [VANTAGE](https://vantage.digibastion.com/) public score previews plus research, knowledge, checks, use cases, and incident notes | Public routes returned successfully on 2026-09-27; authenticated scans and remediation workflows were not tested |
+| Operators can manage the platform | Admin analytics, scheduled-job health, ingestion health, and API-key routes | Present in source; requires authorized Supabase access to validate |
 
-Transform Digibastion from a static checklist into a **comprehensive, real-time security platform** that actively protects users across the entire Web3 and digital ecosystem.
+Completed repairs and deployment history live in
+[`docs/IMPLEMENTATION_HISTORY.md`](docs/IMPLEMENTATION_HISTORY.md). Historical
+implementation plans are not the current roadmap.
 
----
+## Now: make the product understandable and trustworthy
 
-## 📅 Roadmap Timeline: Q4 2025 - Q2 2026
+### 1. One clear product system
 
-### ✅ Q4 2025 - Completed
+- Make the main site explain the relationship between Digibastion education,
+  threat intelligence, services, and VANTAGE within the first screen and in
+  global navigation.
+- Give each audience a short path: individual, developer, protocol or company,
+  security researcher, and contributor.
+- Cross-link relevant checklist items, threat records, guides, services, and
+  VANTAGE checks without duplicating the same content on every page.
+- Use consistent names, domains, contact details, and product descriptions
+  across both properties.
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **OpSec Assessment Quiz** | ✅ Completed | Interactive 8-question quiz with crypto-themed character rankings and shareable X/Twitter cards |
-| **Threat Intelligence Feed** | 🔶 Partial | 30+ real incidents from 2024-2025 including WazirX, Solana Web3.js backdoor, North Korean activities |
+Success evidence: users can choose a relevant next step without opening the
+About page; service and VANTAGE referrals can be measured separately.
 
----
+### 2. Resolve the licensing contradiction
 
-### 🔄 Q4 2025 - Active Development
+- Current legal text is MIT plus a Commons Clause commercial restriction. That
+  makes the repository source-available, not OSI-approved open source.
+- Remove remaining “open source” claims from the public application and other
+  properties unless the owner replaces the LICENSE with a standard open-source
+  license.
+- Decide whether the intended model is Commons Clause source-available or an
+  unmodified open-source license. Legal text must be changed only by the owner.
 
-| Feature | Status | Priority | Description |
-|---------|--------|----------|-------------|
-| **Real-time Supply Chain Monitoring** | 🟢 In Progress | High | Detect malicious packages and compromised dependencies instantly across npm/PyPI/cargo |
-| **Source Code Analysis** | 🟢 In Progress | High | AI-powered static analysis to detect vulnerabilities, code smells, and potential exploits |
-| **Threat Intel Expansion** | 🟢 In Progress | High | Enhanced filtering, IoC feeds, and personalized risk assessments |
+Success evidence: LICENSE, website copy, repository badges, contribution copy,
+and grant descriptions use the same accurate term.
 
----
+### 3. Technical SEO foundation before volume
 
-### 📅 Q1 2026 - Expansion Phase
+- Ensure every indexable route returns its own title, description, canonical,
+  social image, and structured data in the initial HTML response. The live SPA
+  currently returns homepage metadata and `/` canonical markup before client
+  rendering on several deep routes.
+- Generate sitemaps from the canonical route and article inventories, exclude
+  private/utility routes, and validate them after every release.
+- Add breadcrumb and organization/product relationships where they describe
+  visible page content; do not add schema solely to chase rich results.
+- Monitor index coverage, canonical selection, Core Web Vitals, and conversions
+  in Search Console and first-party analytics.
 
-| Feature | Status | Priority | Description |
-|---------|--------|----------|-------------|
-| **DNS Security Scanner** | 🟡 Planning | High | Comprehensive DNS security analysis, DNSSEC validation, and vulnerability detection |
-| **DevSecOps Pipeline Integration** | 🟡 Planning | High | GitHub Actions, GitLab CI, and Jenkins security scanning integration |
-| **Third-party Dependency Alerts** | 🟡 Planning | High | CVE monitoring, automated PRs for fixes, license compliance |
-| **GitHub Repository Analysis** | 🔵 Research | High | Secret detection, security policy compliance, branch protection analysis |
-| **Phishing & Malware Detection** | 🔵 Research | Medium | ML-powered URL scanning and browser extension |
+Success evidence: a sample from every route family has the intended server
+response, chosen Google canonical, valid structured data, and no orphan pages.
 
----
+### 4. Editorial integrity and incident publishing
 
-### 🌟 Q2 2026 - Advanced Features
+- Audit all 58 guides for accuracy, primary citations, author/reviewer,
+  reviewed date, version-sensitive screenshots, and claims that have aged out.
+- Update year-specific titles only when the body has actually been reviewed.
+- Publish incident analysis from a repeatable brief: event timeline, affected
+  systems, confirmed impact, attack path, detection, mitigations, primary
+  sources, uncertainty, and lessons mapped to Digibastion or VANTAGE controls.
+- Keep threat-feed aggregation separate from editorial articles. Do not turn
+  unverified feed summaries into authoritative incident reports.
+- Prefer a smaller, maintained body of useful pages over mass-produced posts.
 
-| Feature | Status | Priority | Description |
-|---------|--------|----------|-------------|
-| **Compromised Domain Scanning** | 🟡 Planning | Medium | DNS monitoring, certificate transparency, subdomain takeover detection |
-| **Browser Extension** | 🔵 Research | Medium | Real-time protection while browsing |
-| **Mobile App** | 🔵 Research | Low | Security dashboard on-the-go |
+Success evidence: every indexed guide has substantive unique content, visible
+provenance, an owner, a review date, and a relevant next action.
 
----
+## Next: turn useful visits into durable relationships
 
-## 📊 Progress Overview
+### 5. Guided journeys and useful interactions
 
-```
-Completed:     ██████████░░░░░░░░░░  50% (Q4 2025)
-In Progress:   ████░░░░░░░░░░░░░░░░  20%
-Planning:      ████░░░░░░░░░░░░░░░░  20%
-Research:      ██░░░░░░░░░░░░░░░░░░  10%
-```
+- Let a visitor choose a goal and receive a short, saveable plan assembled from
+  the quiz, checklist, guides, and tools.
+- Add plain-language “why this matters,” effort, and verification guidance to
+  high-priority controls.
+- Offer printable/exportable personal plans without requiring an account.
+- Connect organization-facing controls to an appropriate VANTAGE check or
+  service review.
+- Test keyboard, screen-reader, reduced-motion, low-bandwidth, and small-screen
+  behavior as release requirements.
 
----
+### 6. Services with clear evidence and boundaries
 
-## 🤝 How to Contribute
+- Define who each service is for, deliverables, prerequisites, exclusions,
+  engagement steps, and a useful sample output.
+- Add case studies only with client permission and verifiable outcomes; use
+  anonymized examples when necessary.
+- Route consultations through one trackable, privacy-conscious intake flow.
+- Make it clear that educational content and automated checks are not a
+  guarantee of security.
 
-We believe in **community-driven security**! Here's how you can get involved:
+### 7. Contribution system
 
-### 💻 For Developers
-- **Pick a Feature** — Check the roadmap and start building
-- **Code Contributions** — See our [Contributing Guide](CONTRIBUTING.md)
-- **Bug Reports** — Help us identify and fix issues
+- Label issues by contribution size, skill area, and whether security-domain
+  review is required.
+- Publish small, reviewable contribution briefs for content corrections,
+  source verification, accessibility, mobile QA, testing, and new controls.
+- Credit merged contributions accurately without promising rewards, response
+  times, or placement that the maintainers cannot guarantee.
+- Keep vulnerability reports out of public issues; follow `SECURITY.md`.
 
-### 🔍 For Security Researchers
-- **Vulnerability Research** — Help identify new threat vectors
-- **Threat Intelligence** — Contribute to our incident database
-- **Tool Recommendations** — Suggest and integrate security tools
+## Later: expand only after evidence supports it
 
-### 📝 For Content Creators
-- **Documentation** — Improve our guides and tutorials
-- **Educational Content** — Create security awareness materials
-- **Community Engagement** — Help grow and support our community
+- Organization accounts and shared remediation plans.
+- VANTAGE portfolio monitoring, integrations, and exports beyond the current
+  beta surface.
+- Public APIs for stable, intentionally public threat and control data.
+- Localization after terminology, update ownership, and review capacity are in
+  place.
+- Browser or mobile clients only if research shows they solve a problem the
+  responsive web products cannot.
 
-### 💡 For Everyone
-- **Feature Requests** — [Suggest new features](https://github.com/Raiders0786/digibastion/issues/new)
-- **Beta Testing** — Try out new features and provide feedback
-- **Spread the Word** — Share Digibastion with your network
+## Explicitly not committed
 
----
+The previous roadmap listed AI source-code analysis, instant supply-chain
+monitoring, a browser extension, a native mobile app, and broad CI/CD scanning
+against expired calendar dates. They are not current commitments. Any of them
+can return as a scoped proposal with an owner, threat model, data sources,
+operating cost, maintenance plan, and measurable user need.
 
-## 📞 Get Involved
+## Owner and platform decisions still needed
 
-| Channel | Link |
-|---------|------|
-| 🐙 **GitHub Issues** | [Create an issue](https://github.com/Raiders0786/digibastion/issues/new) |
-| 💬 **Telegram** | [Join our community](https://t.me/digibastion) |
-| 📖 **Contributing** | [Read the guide](CONTRIBUTING.md) |
-| 💰 **Support** | [Support our mission](https://www.digibastion.com/support) |
+1. Choose the long-term license model and update public claims accordingly.
+2. Confirm which VANTAGE authenticated capabilities are generally available,
+   beta-only, or invitation-only.
+3. Provide Search Console, analytics, Vercel, Supabase, and email-delivery
+   access for production validation.
+4. Name editorial and technical reviewers who can approve security guidance
+   and recent-incident coverage.
+5. Choose the primary service conversion and community feedback channels.
 
----
-
-## 🏷️ Status Legend
-
-| Status | Meaning |
-|--------|---------|
-| ✅ **Completed** | Feature is live and available |
-| 🔶 **Partial** | Partially implemented, more work needed |
-| 🟢 **In Progress** | Actively being developed |
-| 🟡 **Planning** | Requirements being defined |
-| 🔵 **Research** | Exploring feasibility and approach |
-
----
-
-## 📊 Priority Levels
-
-| Priority | Description |
-|----------|-------------|
-| **High** | Critical for platform's core mission |
-| **Medium** | Important for user experience |
-| **Low** | Nice-to-have features |
-
----
-
-<p align="center">
-  <em>Last updated: January 2026</em>
-</p>
-
-<p align="center">
-  <strong>Join us in building the future of Web3 security! 🛡️</strong>
-</p>
-
-<p align="center">
-  <a href="https://digibastion.com"><strong>🚀 Get Started</strong></a> • 
-  <a href="CONTRIBUTING.md"><strong>🤝 Contribute</strong></a> • 
-  <a href="https://t.me/digibastion"><strong>💬 Community</strong></a>
-</p>
+To propose or own an outcome, read [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+open a focused issue with evidence, scope, and validation steps.

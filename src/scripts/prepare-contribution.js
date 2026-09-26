@@ -46,9 +46,11 @@ console.log('  - Test by viewing the tools page');
 
 // Adding articles
 console.log('\n📝 Adding articles:');
-console.log('  - Add article to src/data/articles.tsx');
-console.log('  - Use JSX for formatting content');
-console.log('  - Test by viewing the articles page');
+console.log('  - Add metadata to src/data/articlesData.ts');
+console.log('  - Add reviewed JSX content and its slug mapping to src/data/articleContent.tsx');
+console.log('  - Add the canonical URL and review date to public/sitemap.xml');
+console.log('  - Cite primary sources for incident claims');
+console.log('  - Test both the articles index and detail page on mobile and desktop');
 
 // Important dependency note
 console.log('\n⚠️  Important Dependency Note:');

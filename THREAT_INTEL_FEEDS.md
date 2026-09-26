@@ -1,83 +1,84 @@
-# 📡 Threat Intelligence Feed Sources
+# Threat-intelligence sources
 
-<p align="center">
-  <strong>Digibastion — Secure the Stack</strong><br/>
-  Complete list of RSS/Atom feeds powering our Threat Intelligence Feed
-</p>
+The live public feed is at
+[`/threat-intel`](https://www.digibastion.com/threat-intel). The historical
+`/news` route redirects there.
 
----
+This document describes source policy and architecture. It intentionally does
+not label a static list of URLs “active”: source enablement, failures, and
+freshness are runtime facts held in the database and private operations view.
+The previous hand-maintained list had already diverged from migrations and
+production operations.
 
-## How It Works
+## Source model
 
-Our backend ingestion system runs **every hour** and:
+Digibastion currently supports three source families:
 
-1. Fetches new articles from all active feeds below
-2. Deduplicates by URL to avoid repeat entries
-3. Decodes HTML entities and strips boilerplate from titles/summaries
-4. Auto-categorizes articles based on feed source and keyword matching
-5. Stores everything in our database, immediately available on [digibastion.com/news](https://digibastion.com/news)
+- RSS or structured advisory/news feeds configured in `rss_feeds`;
+- a protected Web3 incident collector;
+- a protected QuillMonitor integration.
 
-Subscribers receive email digests (daily/weekly) based on their preferences.
+Each provider is fetched independently by a server-side Edge Function and
+normalized into `news_articles`. Provider-specific incident fields belong in
+`news_articles.metadata`; they do not change the stable public feed schema.
+Sanitized aggregate outcomes are recorded in
+`threat_intel_ingestion_runs` for private operational health.
 
----
+The public feed can filter on normalized meaning, including Web3 incidents and
+active alerts, without making any one provider its own product area. Provider
+attribution remains visible on records where it is required or useful.
 
-## 🔴 Vulnerability Disclosure Feeds (13)
+## What production operators must verify
 
-These feeds track CVEs, security advisories, and vulnerability disclosures from major vendors and databases.
+The database and private admin view, not this file, are authoritative for:
 
-| # | Source | Feed URL | Status |
-|---|--------|----------|--------|
-| 1 | **AWS Security Bulletins** | https://aws.amazon.com/security/security-bulletins/feed/ | ✅ Active |
-| 2 | **CISA Alerts** | https://www.cisa.gov/cybersecurity-advisories/all.xml | ✅ Active |
-| 3 | **Cisco Security Advisories** | https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml | ✅ Active |
-| 4 | **Debian Security Advisories** | https://www.debian.org/security/dsa | ✅ Active |
-| 5 | **Fortinet PSIRT Advisories** | https://filestore.fortinet.com/fortiguard/rss/ir.xml | ✅ Active |
-| 6 | **GKE Security Bulletins** | https://cloud.google.com/feeds/gke-security-bulletins.xml | ✅ Active |
-| 7 | **Google Cloud Security Bulletins** | https://cloud.google.com/feeds/google-cloud-security-bulletins.xml | ✅ Active |
-| 8 | **Microsoft Security Response Center** | https://api.msrc.microsoft.com/update-guide/rss | ✅ Active |
-| 9 | **NVD Analyzed CVEs** | https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss-analyzed.xml | ✅ Active |
-| 10 | **Oracle Critical Patch Updates** | https://www.oracle.com/security-alerts/cpujan2025.html | ⚠️ Disabled (403) |
-| 11 | **Red Hat Security Advisories** | https://access.redhat.com/hydra/rest/securitydata/cve.json | ✅ Active |
-| 12 | **Ubuntu Security Notices** | https://ubuntu.com/security/notices/rss.xml | ✅ Active |
-| 13 | **Vulnerability Spoiler Alert** | https://talkback.sh/resource/rss.xml | ✅ Active |
+- enabled and disabled RSS records;
+- current feed URLs and parser behavior;
+- last attempt and last successful ingestion;
+- records added or refreshed;
+- provider timeouts, rate limits, and partial failures;
+- data-quality warnings and latest record time;
+- scheduled-job outcomes;
+- email alert and digest health.
 
----
+A migration shows intended configuration at a point in time but does not prove
+that the production database, schedule, or credential is healthy.
 
-## 🔵 Operational Security Feeds (7)
+## Proposing a source
 
-These feeds cover security news, threat analysis, incident reports, and industry trends.
+Open a focused GitHub issue with:
 
-| # | Source | Feed URL | Status |
-|---|--------|----------|--------|
-| 1 | **BleepingComputer** | https://www.bleepingcomputer.com/feed/ | ✅ Active |
-| 2 | **Dark Reading** | https://www.darkreading.com/rss.xml | ✅ Active |
-| 3 | **Krebs on Security** | https://krebsonsecurity.com/feed/ | ✅ Active |
-| 4 | **Naked Security (Sophos)** | https://nakedsecurity.sophos.com/feed/ | ✅ Active |
-| 5 | **Schneier on Security** | https://www.schneier.com/feed/atom/ | ✅ Active |
-| 6 | **SecurityWeek** | https://feeds.feedburner.com/securityweek | ✅ Active |
-| 7 | **The Hacker News** | https://feeds.feedburner.com/TheHackersNews | ✅ Active |
+1. Source name, owner, homepage, and machine-readable endpoint.
+2. The gap it fills in the existing feed.
+3. Publication cadence, geographic or ecosystem coverage, and expected volume.
+4. Stable identifiers and a deduplication strategy.
+5. Licensing, attribution, redistribution, and retention terms.
+6. Authentication, rate limits, timeout behavior, and expected operating cost.
+7. Sample records with sensitive data removed.
+8. Proposed category, severity, incident fields, and failure behavior.
 
----
+Prefer primary advisories, public incident disclosures, and reputable sources
+with stable structured output. Do not propose scraped paywalled material,
+credentialed sources without permission, marketing feeds disguised as news, or
+sources that cannot be attributed and verified.
 
-## 🤝 Suggest a New Feed
+## Integration requirements
 
-We're always looking to expand our coverage! To suggest a new feed source:
+New providers must:
 
-1. **Open an issue** — Use the [Feature Request template](https://github.com/Raiders0786/digibastion/issues/new?template=feature_request.md) with the feed URL, source name, and category
-2. **Open a PR** — Add the feed details to this document and we'll handle the backend integration
+- keep credentials server-only;
+- use an isolated ingestion function so one provider cannot block others;
+- validate response shape, URLs, dates, pagination, and numeric fields;
+- bound pages, concurrency, response size, and execution time;
+- generate deterministic identifiers and avoid duplicate public records;
+- sanitize logs and errors;
+- store only normalized public content and approved metadata;
+- write aggregate operational outcomes without raw payloads or secrets;
+- preserve public-write restrictions and administrator/cron authorization;
+- include tests for malformed input, timeouts, duplicates, partial failure, and
+  denied authorization;
+- state the required public attribution.
 
-### What makes a good feed source?
-
-- ✅ Reliable RSS/Atom/XML format
-- ✅ Regular updates (at least weekly)
-- ✅ Security-focused content (vulnerabilities, advisories, threat intel, or OpSec)
-- ✅ Reputable source with accurate reporting
-- ❌ Paywalled or authentication-required feeds
-- ❌ Marketing-heavy content disguised as security news
-
----
-
-<p align="center">
-  <strong>🛡️ Digibastion — Secure the Stack</strong><br/>
-  <a href="https://digibastion.com/news">View the live feed →</a>
-</p>
+Changes to feed documentation alone do not activate a source. Activation also
+requires reviewed server code or database configuration, protected credentials,
+deployment, and a successful production health check by an authorized owner.

@@ -1,149 +1,48 @@
 ---
-name: 🛠️ Roadmap Contribution
-about: Contribute to a roadmap feature
-title: '[ROADMAP] '
-labels: 'roadmap, enhancement'
-assignees: ''
-
+name: Roadmap contribution
+about: Volunteer for a scoped part of a current roadmap outcome
+title: "[Roadmap] "
+labels: "roadmap, enhancement"
+assignees: ""
 ---
 
-## 🎯 Roadmap Feature
+<!-- Read ROADMAP.md and CONTRIBUTING.md first. Report vulnerabilities privately via SECURITY.md. -->
 
-**Which roadmap feature are you contributing to?**
+## Roadmap outcome
 
-- [ ] Real-time Supply Chain Attack Monitoring
-- [ ] Source Code Analysis & Vulnerability Scanning  
-- [ ] DevSecOps Pipeline Security Integration
-- [ ] Third-party Dependency Risk Alerts
-- [ ] GitHub Repository Security Analysis
-- [ ] Instant Website Phishing & Malware Detection
-- [ ] Compromised Domain Scanning
-- [ ] Live Threat Intelligence Feed
+Link to the current section in `ROADMAP.md` and name the user outcome you want
+to advance.
 
-## 🚀 Contribution Type
+## Contribution scope
 
-**What type of contribution is this?**
+Describe a reviewable unit of work. Good scopes include one content audit,
+mobile flow, accessibility correction, test gap, source evaluation, conversion
+journey, or product cross-linking task.
 
-- [ ] 💻 Code Implementation
-- [ ] 📋 Requirements & Planning
-- [ ] 🔍 Research & Analysis
-- [ ] 🧪 Testing & QA
-- [ ] 📖 Documentation
-- [ ] 🎨 UI/UX Design
-- [ ] 🔗 API Design
-- [ ] 🏗️ Architecture Planning
+## Evidence and approach
 
-## 📝 Description
+What is true today? What files or routes are involved? Explain your proposed
+approach and any alternatives considered.
 
-**Describe your contribution:**
+## Definition of done
 
-**Current Status:**
-- What have you already done?
-- What research have you completed?
-- Any proof of concepts or prototypes?
+- [ ] User-visible behavior or document is complete.
+- [ ] Type, lint, tests, and build pass where code changes are involved.
+- [ ] Mobile, keyboard, and relevant accessibility behavior is checked.
+- [ ] Security and privacy boundaries are preserved.
+- [ ] Current docs and route metadata are updated where needed.
+- [ ] Private production checks are clearly handed to a maintainer.
 
-**Proposed Implementation:**
-- Technical approach
-- Architecture considerations
-- Dependencies and integrations needed
-- Timeline estimation
+## Access and coordination
 
-## 🔧 Technical Details
+List anything that requires Supabase, Vercel, VANTAGE, Search Console,
+analytics, email-provider, DNS, or other owner access. Do not include secrets.
 
-**Technology Stack:**
-- [ ] Frontend (React/TypeScript)
-- [ ] Backend (Supabase/Node.js)
-- [ ] Security Tools Integration
-- [ ] External APIs
-- [ ] CI/CD Integration
-- [ ] Browser Extensions
-- [ ] CLI Tools
+## How you can help
 
-**APIs/Services Needed:**
-- [ ] GitHub API
-- [ ] Package registries (npm, PyPI, etc.)
-- [ ] Vulnerability databases (CVE, NVD)
-- [ ] Threat intelligence feeds
-- [ ] Static analysis tools
-- [ ] Other: ___________
-
-## 📊 Success Criteria
-
-**How will we measure success?**
-- [ ] Feature completeness
-- [ ] Performance benchmarks
-- [ ] User adoption metrics
-- [ ] Security effectiveness
-- [ ] Integration compatibility
-
-**Definition of Done:**
-- [ ] Core functionality implemented
-- [ ] Tests written and passing
-- [ ] Documentation updated
-- [ ] Security review completed
-- [ ] User testing completed
-
-## 🤝 Collaboration
-
-**Team Formation:**
-- [ ] Looking for collaborators
-- [ ] Can lead the implementation
-- [ ] Available to support others
-- [ ] Need technical guidance
-
-**Skills Needed:**
-- [ ] Security expertise
-- [ ] Frontend development
-- [ ] Backend development
-- [ ] DevOps/CI-CD
-- [ ] UI/UX design
-- [ ] Technical writing
-
-## 📅 Timeline
-
-**Estimated Timeline:**
-- [ ] 1-2 weeks
-- [ ] 1 month
-- [ ] 2-3 months
-- [ ] Longer term project
-
-**Availability:**
-- [ ] Full-time contribution
-- [ ] Part-time (evenings/weekends)
-- [ ] Occasional contributions
-- [ ] One-time contribution
-
-## 📚 Resources
-
-**Relevant Links:**
-- Research papers
-- Similar tools/projects
-- Documentation
-- Technical specifications
-
-**Prior Art:**
-- Existing solutions in this space
-- What we can learn from them
-- How our approach will be different/better
-
----
-
-## 🎯 Next Steps
-
-**Immediate Actions:**
-1. [ ] Create development branch
-2. [ ] Set up development environment  
-3. [ ] Create technical specification
-4. [ ] Begin implementation
-5. [ ] Set up regular check-ins
-
-**Community Engagement:**
-- [ ] Join our [Telegram](https://t.me/digibastion) for real-time collaboration
-- [ ] Schedule design review sessions
-- [ ] Create progress update schedule
-
----
-
-Thank you for contributing to the future of Web3 security! 🛡️
-
-**Join our community:** [Telegram](https://t.me/digibastion) | [Contributing Guide](../../CONTRIBUTING.md)
+- [ ] Implementation
+- [ ] Security or content review
+- [ ] UX/design
+- [ ] Accessibility/mobile testing
+- [ ] Documentation
+- [ ] Research and source verification
