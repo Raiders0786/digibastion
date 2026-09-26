@@ -9,6 +9,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
+import quillMonitorAsset from '@/assets/powered-by-quillmonitor.svg.asset.json';
 
 interface NewsDetailProps {
   article: NewsArticle;
@@ -18,6 +19,7 @@ interface NewsDetailProps {
 
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
+  const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -197,6 +199,27 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               {article.summary}
             </p>
           </div>
+
+          {/* Affected Technologies */}
+          {isQuillMonitor && (
+            <div className="border-y py-5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                {article.metadata?.project_name && <div><div className="text-xs text-muted-foreground">Affected project</div><div className="font-medium">{article.metadata.project_name}</div></div>}
+                {article.metadata?.chain && <div><div className="text-xs text-muted-foreground">Chain</div><div className="font-medium">{article.metadata.chain}</div></div>}
+                {article.metadata?.attack_type && <div><div className="text-xs text-muted-foreground">Attack method</div><div className="font-medium">{article.metadata.attack_type}</div></div>}
+                {article.metadata?.amount_display && <div><div className="text-xs text-muted-foreground">Reported loss</div><div className="font-medium">{article.metadata.amount_display}</div></div>}
+              </div>
+              <a
+                href={article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database'}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Powered by QuillMonitor"
+                className="inline-flex rounded border bg-card p-2"
+              >
+                <img src={quillMonitorAsset.url} width="244" height="44" alt="Powered by QuillMonitor" className="h-8 w-auto" />
+              </a>
+            </div>
+          )}
 
           {/* Affected Technologies */}
           {article.affectedTechnologies && article.affectedTechnologies.length > 0 && (
