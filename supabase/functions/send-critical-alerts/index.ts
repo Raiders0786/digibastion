@@ -384,7 +384,8 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`[send-critical-alerts] Failed for subscription ${sub.id}:`, error);
-        errors.push(`${sub.id}: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`${sub.id}: ${errorMessage}`);
         failed++;
 
         // Log failed notification
@@ -395,7 +396,7 @@ serve(async (req) => {
               subscription_id: sub.id,
               article_id: article.id,
               status: 'failed',
-              error_message: error.message,
+              error_message: errorMessage,
             });
         }
       }
@@ -417,7 +418,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[send-critical-alerts] Fatal error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

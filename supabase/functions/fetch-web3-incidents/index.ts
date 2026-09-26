@@ -568,7 +568,7 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('[fetch-web3-incidents] Primary source error:', e);
-      sourceResults.push({ source: 'primary', found: 0, errors: [e.message] });
+      sourceResults.push({ source: 'primary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
     }
     
     // Fetch from secondary source (internal only)
@@ -602,7 +602,7 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('[fetch-web3-incidents] Secondary source error:', e);
-      sourceResults.push({ source: 'secondary', found: 0, errors: [e.message] });
+      sourceResults.push({ source: 'secondary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
     }
     
     console.log(`[fetch-web3-incidents] Total incidents from all sources: ${allIncidents.length}`);
@@ -769,7 +769,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[fetch-web3-incidents] Fatal error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
