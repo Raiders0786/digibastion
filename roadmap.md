@@ -45,3 +45,10 @@
 - [x] Include QuillMonitor context in immediate alerts and daily or weekly digests.
 - [x] Tighten future RSS Web3, OpSec, and severity classification without disrupting existing feeds.
 - [x] Deploy, import a controlled batch, and verify feed ordering, alerts, email, and schedules.
+## Unified Web3 incidents and admin health
+- [ ] Replace provider-only filtering with a cross-source Web3 Incidents view.
+- [ ] Keep all critical/high records synchronized into Active Alerts.
+- [ ] Unify administrator Web3 refresh behavior.
+- [ ] Add private source freshness and data-quality monitoring.
+- [ ] Update alert and digest incident presentation.
+- [ ] Review privileged function grants and run regression/security verification.
