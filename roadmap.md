@@ -44,4 +44,4 @@
 - [x] Add QuillMonitor refresh controls and rich incident presentation to Threat Intel.
 - [x] Include QuillMonitor context in immediate alerts and daily or weekly digests.
 - [x] Tighten future RSS Web3, OpSec, and severity classification without disrupting existing feeds.
-- [ ] Deploy, import a controlled batch, and verify feed ordering, alerts, email, and schedules.
+- [x] Deploy, import a controlled batch, and verify feed ordering, alerts, email, and schedules.
