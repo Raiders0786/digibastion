@@ -24,6 +24,7 @@ interface CriticalArticle {
     attack_type?: string;
     amount_display?: string;
     attribution_url?: string;
+    is_web3_incident?: boolean;
   } | null;
 }
 
@@ -111,7 +112,8 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
   
   const articlesList = articles.map(article => {
     const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
-    const incidentFacts = isQuillMonitor
+    const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || article.category === 'web3-security' || article.category === 'defi-exploits';
+    const incidentFacts = isWeb3Incident
       ? [article.metadata?.project_name, article.metadata?.chain, article.metadata?.attack_type, article.metadata?.amount_display]
           .filter(Boolean).map((fact) => escapeHtml(String(fact))).join(' · ')
       : '';
@@ -130,6 +132,7 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
         <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">
           ${escapeHtml(stripHtml(article.summary) || 'Click to read more...')}
         </p>
+        ${isWeb3Incident ? `<p style="margin:8px 0 0;color:#60a5fa;font-size:11px;font-weight:600;">Web3 Incident</p>` : ''}
         ${incidentFacts ? `<p style="margin:8px 0 0;color:#d1d5db;font-size:12px;">${incidentFacts}</p>` : ''}
         ${isQuillMonitor ? `<p style="margin:8px 0 0;"><a href="${escapeHtml(article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database')}" style="color:#60a5fa;font-size:11px;text-decoration:none;">Powered by QuillMonitor</a></p>` : ''}
         <div style="margin-top: 8px;">

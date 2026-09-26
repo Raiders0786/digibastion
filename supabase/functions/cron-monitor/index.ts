@@ -45,6 +45,13 @@ interface CronMonitorResult {
   http_errors: number;
 }
 
+interface ThreatIntelHealth {
+  pipelines: Array<{ pipeline: string; status: string; last_completed_at?: string; latest_ingested_at?: string; records_24h: number; records_inserted: number; records_updated: number; records_invalid: number; error_summary?: string }>;
+  quality: { future_dated: number; missing_required: number; duplicate_uid_groups: number };
+  active_alerts: { total: number; critical: number; high: number; latest_at?: string };
+  generated_at: string;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -98,6 +105,8 @@ Deno.serve(async (req) => {
     }
 
     const result = monitorData as CronMonitorResult;
+    const { data: threatIntelData, error: threatIntelError } = await supabase.rpc('get_threat_intel_health');
+    if (threatIntelError) console.warn('[cron-monitor] Threat intelligence health unavailable:', threatIntelError.message);
     const enrichedJobs = result.jobs || [];
     const recentErrors = result.recent_errors || [];
     const totalRuns = result.total_runs || 0;
@@ -263,6 +272,7 @@ Deno.serve(async (req) => {
         message: healthMessage,
       },
       history: historyData,
+      threat_intel: threatIntelError ? null : threatIntelData as ThreatIntelHealth,
     };
 
     console.log(`[cron-monitor] ${response.health.status} - ${response.summary.success_rate} success rate`);

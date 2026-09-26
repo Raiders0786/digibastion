@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -290,6 +291,8 @@ function extractCVE(content: string): string | null {
 // ─── Main Handler ───────────────────────────────────────────────────────────
 
 serve(async (req) => {
+  const startedAt = Date.now();
+  const attemptedAt = new Date().toISOString();
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -474,6 +477,13 @@ serve(async (req) => {
     }
 
     console.log(`[fetch-rss-news] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}`);
+    await recordIngestionRun(supabase, {
+      pipeline: 'rss', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+      success: errors.length === 0, records_found: allArticles.length, records_inserted: insertedCount,
+      records_invalid: errors.length, duration_ms: Date.now() - startedAt,
+      error_summary: errors.length ? `${errors.length} feeds reported errors` : undefined,
+      metadata: { feeds_checked: feeds.length, duplicates: duplicateCount },
+    });
 
     // Trigger AI summarization for new articles
     if (insertedCount > 0) {

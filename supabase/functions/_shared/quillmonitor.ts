@@ -182,6 +182,7 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
     is_processed: true,
     metadata: {
       provider: 'quillmonitor',
+      is_web3_incident: true,
       provider_incident_id: incident.id,
       project_name: incident.target,
       chain: incident.chain || null,

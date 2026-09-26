@@ -65,6 +65,11 @@ interface CronMonitorData {
     totalRuns: number;
     failedRuns: number;
   }>;
+  threat_intel?: {
+    pipelines: Array<{ pipeline: string; status: 'healthy' | 'stale' | 'failed' | 'unknown'; last_completed_at?: string; latest_ingested_at?: string; records_24h: number; records_inserted: number; records_updated: number; records_invalid: number; error_summary?: string }>;
+    quality: { future_dated: number; missing_required: number; duplicate_uid_groups: number };
+    active_alerts: { total: number; critical: number; high: number; latest_at?: string };
+  } | null;
 }
 
 const CronMonitor = () => {
@@ -296,6 +301,37 @@ const CronMonitor = () => {
             </CardContent>
           </Card>
         </div>
+
+        {data?.threat_intel && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Threat Intelligence Health</CardTitle>
+              <CardDescription>Freshness, ingestion outcomes, data quality, and alert coverage</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><p className="text-sm text-muted-foreground">Active alerts</p><p className="text-2xl font-semibold">{data.threat_intel.active_alerts.total}</p></div>
+                <div><p className="text-sm text-muted-foreground">Critical / High</p><p className="text-2xl font-semibold">{data.threat_intel.active_alerts.critical} / {data.threat_intel.active_alerts.high}</p></div>
+                <div><p className="text-sm text-muted-foreground">Future dated</p><p className="text-2xl font-semibold">{data.threat_intel.quality.future_dated}</p></div>
+                <div><p className="text-sm text-muted-foreground">Duplicate IDs</p><p className="text-2xl font-semibold">{data.threat_intel.quality.duplicate_uid_groups}</p></div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b"><th className="text-left py-2">Pipeline</th><th className="text-left py-2">Status</th><th className="text-left py-2">Latest activity</th><th className="text-right py-2">24h records</th><th className="text-right py-2">Last changes</th></tr></thead>
+                  <tbody>{data.threat_intel.pipelines.map((pipeline) => (
+                    <tr key={pipeline.pipeline} className="border-b last:border-0">
+                      <td className="py-3 font-medium">{pipeline.pipeline}</td>
+                      <td className="py-3"><Badge variant="outline" className={pipeline.status === 'healthy' ? 'bg-green-500/10 text-green-600' : pipeline.status === 'failed' ? 'bg-red-500/10 text-red-600' : 'bg-yellow-500/10 text-yellow-600'}>{pipeline.status}</Badge></td>
+                      <td className="py-3 text-muted-foreground">{pipeline.last_completed_at || pipeline.latest_ingested_at ? formatTime(pipeline.last_completed_at || pipeline.latest_ingested_at || '') : 'No signal yet'}</td>
+                      <td className="py-3 text-right">{pipeline.records_24h}</td>
+                      <td className="py-3 text-right">+{pipeline.records_inserted} / ~{pipeline.records_updated}{pipeline.records_invalid > 0 ? ` / ${pipeline.records_invalid} invalid` : ''}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Health History Charts */}
         {data?.history && data.history.length > 0 && (

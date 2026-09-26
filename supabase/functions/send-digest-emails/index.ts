@@ -24,6 +24,7 @@ interface NewsArticle {
     attack_type?: string;
     amount_display?: string;
     attribution_url?: string;
+    is_web3_incident?: boolean;
   } | null;
 }
 
@@ -177,7 +178,8 @@ function generateDigestEmailHtml(
     const cat = getCategoryDisplay(article.category);
     const digiLink = `https://www.digibastion.com/threat-intel?article=${article.id}`;
     const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
-    const incidentFacts = isQuillMonitor
+    const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || article.category === 'web3-security' || article.category === 'defi-exploits';
+    const incidentFacts = isWeb3Incident
       ? [article.metadata?.project_name, article.metadata?.chain, article.metadata?.attack_type, article.metadata?.amount_display]
           .filter(Boolean).map((fact) => escapeHtml(String(fact))).join(' · ')
       : '';
@@ -200,7 +202,8 @@ function generateDigestEmailHtml(
           ${escapeHtml(stripHtml(article.title))}
         </a>
         ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(stripHtml(article.summary)?.slice(0, 150) || '')}${(stripHtml(article.summary)?.length || 0) > 150 ? '...' : ''}</p>` : ''}
-        ${incidentFacts ? `<p style="margin: 6px 0 0 0; color: #d1d5db; font-size: 11px; line-height: 1.4;">${incidentFacts}</p>` : ''}
+        ${isWeb3Incident ? `<p style="margin:6px 0 0;color:#60a5fa;font-size:11px;font-weight:600;">Web3 Incident</p>` : ''}
+        ${incidentFacts ? `<p style="margin: 6px 0 0 0; color: #d1d5db; font-size: 12px; line-height: 1.4;">${incidentFacts}</p>` : ''}
         <div style="margin-top: 4px;">
           <a href="${trackLink(article.link)}" style="color: #6b7280; text-decoration: none; font-size: 11px;">Read original →</a>
           ${isQuillMonitor ? ` <span style="color:#4b5563;">·</span> <a href="${trackLink(article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database')}" style="color:#60a5fa;text-decoration:none;font-size:11px;">Powered by QuillMonitor</a>` : ''}

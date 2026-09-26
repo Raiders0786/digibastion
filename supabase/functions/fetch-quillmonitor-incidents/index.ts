@@ -6,6 +6,7 @@ import {
   parseQuillMonitorIncident,
   type NormalizedQuillMonitorArticle,
 } from '../_shared/quillmonitor.ts';
+import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 
 const API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 const RequestSchema = z.object({
@@ -70,6 +71,8 @@ async function fetchPage(apiKey: string, page: number, limit: number): Promise<R
 }
 
 Deno.serve(async (req) => {
+  const startedAt = Date.now();
+  const attemptedAt = new Date().toISOString();
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
   if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: jsonHeaders });
@@ -131,6 +134,14 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} normalized=${articles.length} inserted=${inserted} updated=${updated} invalid=${invalidRecords} errors=${errors.length}`);
+    await recordIngestionRun(db, {
+      pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+      success: errors.length === 0, records_found: articles.length, records_inserted: inserted,
+      records_updated: updated, records_invalid: invalidRecords + errors.length,
+      duration_ms: Date.now() - startedAt,
+      error_summary: errors.length ? `${errors.length} incident writes failed` : undefined,
+      metadata: { pages_fetched: pagesFetched, has_more: nextPage !== null },
+    });
     return new Response(JSON.stringify({
       success: errors.length === 0,
       incidentsFound: articles.length,
