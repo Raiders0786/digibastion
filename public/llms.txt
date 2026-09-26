@@ -1,16 +1,18 @@
 # Digibastion
 
-> Free, open-source Web3 security platform with real-time threat intelligence, OpSec assessments, security checklists, and crypto wallet protection. Backed by an Ethereum Foundation ESP 2025 grant.
+> Free, community-built Web3 security platform with real-time threat intelligence, OpSec assessments, security checklists, and crypto wallet protection. Supported by the Ethereum Foundation Ecosystem Support Program.
 
-Digibastion helps crypto users, developers, and DAOs defend against phishing, wallet drains, smart-contract exploits, supply-chain attacks, and social engineering. The platform is 100% free, open source, and requires no account.
+Digibastion helps crypto users, developers, and DAOs defend against phishing, wallet drains, smart-contract exploits, supply-chain attacks, and social engineering. Its public learning tools are free and require no account; the repository is source-available for non-commercial use under its Commons Clause license.
 
 ## Pages
 
 - [Home](/): Platform overview and security presets for new visitors.
 - [About](/about): Mission, team, funding (Ethereum Foundation ESP 2025), and methodology.
 - [Threat Intelligence Feed](/threat-intel): Real-time Web3 and Web2 incident feed (July 2024 onward) with severity, category, and source attribution.
-- [News](/news): Curated security news and analysis.
-- [Articles](/articles): 50+ in-depth guides on wallet security, phishing prevention, DeFi risks, smart-contract auditing, and OpSec.
+- [News](/news): Legacy route that redirects to the Threat Intelligence Feed.
+- [Articles](/articles): 58 practical guides on wallet security, phishing prevention, incident response, DeFi risks, smart-contract auditing, and OpSec.
+- [Bybit 2025 signing-security case study](/articles/bybit-hack-2025-signing-security): Source-backed analysis of compromised transaction presentation and multisig verification controls.
+- [Coinbase data-theft defense guide](/articles/coinbase-data-theft-support-scam-defense): What the 2025 disclosure teaches users and support teams about impersonation and insider risk.
 - [Tools](/tools): Directory of vetted Web3 security tools (wallets, scanners, monitors, audit firms).
 - [Links](/links): Curated security resources across application, cloud, on-chain, smart-contract, and private-key categories.
 - [OpSec Quiz](/quiz): Interactive Satoshi-level OpSec assessment with HMAC-signed scoring.
@@ -38,6 +40,6 @@ Digibastion helps crypto users, developers, and DAOs defend against phishing, wa
 
 ## Optional
 
-- [License](/license): Open-source license (MIT) terms.
+- [License](/license): MIT terms with a Commons Clause restriction on commercial use.
 - [Roadmap](https://github.com/Raiders0786/digibastion/blob/main/ROADMAP.md): Public roadmap on GitHub.
 - [GitHub](https://github.com/Raiders0786/digibastion): Source code and contributions.

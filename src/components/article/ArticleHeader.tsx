@@ -12,9 +12,17 @@ interface ArticleHeaderProps {
   title: string;
   category: string;
   readTime: string;
+  publishedAt?: string;
+  modifiedAt?: string;
+  author?: string;
 }
 
-export const ArticleHeader = ({ title, category, readTime }: ArticleHeaderProps) => {
+const formatDate = (value?: string) => {
+  if (!value) return null;
+  return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
+};
+
+export const ArticleHeader = ({ title, category, readTime, publishedAt, modifiedAt, author }: ArticleHeaderProps) => {
   const currentUrl = window.location.href;
   
   const handleTwitterShare = () => {
@@ -38,17 +46,20 @@ export const ArticleHeader = ({ title, category, readTime }: ArticleHeaderProps)
         <span className="text-sm font-medium text-primary">{category}</span>
       </div>
       
-      <h1 className="text-4xl font-bold mb-4 text-foreground/90">{title}</h1>
+      <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-foreground/90 text-balance">{title}</h1>
       
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <Clock className="w-4 h-4" />
           <span>{readTime}</span>
+          {author && <span>By {author}</span>}
+          {publishedAt && <span>Published {formatDate(publishedAt)}</span>}
+          {modifiedAt && modifiedAt !== publishedAt && <span>Updated {formatDate(modifiedAt)}</span>}
         </div>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover">
+            <button type="button" className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover">
               <Share2 className="w-4 h-4" />
               Share Article
             </button>

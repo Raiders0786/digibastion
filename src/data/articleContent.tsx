@@ -17,7 +17,7 @@ const PrivacySecurityOpsecContent = () => (
         <ul className="list-disc pl-6 space-y-2">
           <li>Privacy is fundamental to maintaining control of your crypto assets</li>
           <li>On-chain transparency requires deliberate anonymity practices</li>
-          <li>OpSec failures are the #1 cause of crypto theft from experienced users</li>
+          <li>OpSec failures can bypass strong wallet and protocol controls</li>
           <li>Your wallet address can reveal more about you than you realize</li>
         </ul>
       </div>
@@ -111,13 +111,165 @@ const PrivacySecurityOpsecContent = () => (
   </>
 );
 
+const BybitSigningSecurityContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-2xl font-bold mb-4">What happened on February 21, 2025?</h2>
+      <p className="mb-4">
+        The FBI attributed the theft of approximately $1.5 billion in virtual assets from Bybit to North Korea's
+        TraderTraitor activity. The transaction came from Bybit's Ethereum multisignature cold-wallet process—but
+        the useful lesson is not simply that a “cold wallet was hacked.”
+      </p>
+      <p>
+        A technical research paper published by Japan's Financial Services Agency describes malicious JavaScript
+        being introduced into the Safe web interface used during signing. Authorized operators approved a transaction
+        through a compromised presentation layer, allowing the attacker to redirect control of the wallet. The keys
+        still signed; the intent shown to the humans was the weak point.
+      </p>
+    </section>
+
+    <section className="bg-card/50 border border-border/60 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-4">The short answer</h2>
+      <p className="text-lg leading-relaxed">
+        Multisig protects against too few keys—not against every signer trusting the same compromised interface.
+        High-value custody needs an independent way to decode and verify exactly what will execute on-chain.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Why several signatures were not enough</h2>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Shared information can become one failure domain</h3>
+          <p>
+            Three people can hold three separate keys and still make the same wrong decision if all three review the
+            transaction through one frontend, one workstation image, or one decoded message source.
+          </p>
+        </div>
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">A valid signature does not prove informed intent</h3>
+          <p>
+            Cryptography proves that a key approved specific bytes. It does not prove the signer correctly understood
+            those bytes, saw the correct destination, or expected a proxy implementation change.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Controls for treasury and protocol teams</h2>
+      <ol className="list-decimal pl-6 space-y-4">
+        <li>
+          <strong>Decode independently.</strong> Reconstruct the destination, function selector, parameters, value,
+          chain ID, nonce, and any proxy or delegatecall effect using a second trusted tool or offline verifier.
+        </li>
+        <li>
+          <strong>Separate operator environments.</strong> Avoid having every signer use the same browser build,
+          network path, and transaction-proposal interface. Independence should apply to verification as well as keys.
+        </li>
+        <li>
+          <strong>Constrain routine movements.</strong> Use known-address allowlists, per-transaction limits, velocity
+          limits, and timelocks where the business process allows them. An exceptional transaction should look exceptional.
+        </li>
+        <li>
+          <strong>Verify releases and frontend integrity.</strong> Protect build credentials, require reviewed and
+          reproducible releases, monitor deployed assets, and alert on unexpected changes to signing applications.
+        </li>
+        <li>
+          <strong>Rehearse the stop path.</strong> Document who can pause, rotate signers, move unaffected assets, contact
+          counterparties, preserve evidence, and communicate publicly. Test the process before an incident.
+        </li>
+      </ol>
+    </section>
+
+    <section className="bg-primary/10 border border-primary/20 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-3">A five-question signing pause</h2>
+      <ul className="list-disc pl-6 space-y-2">
+        <li>Can I name the contract and function this signature will call?</li>
+        <li>Did an independent device produce the same decoded result?</li>
+        <li>Is every destination on the approved address list?</li>
+        <li>Does this transaction change ownership, implementation, modules, or signer policy?</li>
+        <li>If the interface is lying, what evidence on the signing device would expose it?</li>
+      </ul>
+    </section>
+
+  </div>
+);
+
+const CoinbaseSupportScamContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-2xl font-bold mb-4">What Coinbase disclosed</h2>
+      <p className="mb-4">
+        In a Form 8-K filed on May 15, 2025, Coinbase said a threat actor had obtained information about certain
+        customer accounts and internal support documentation. Coinbase said the attackers paid multiple contractors
+        or employees in overseas support roles to collect information they were authorized to access for their jobs.
+      </p>
+      <p>
+        Coinbase's incident notice said the stolen material included contact details, masked financial identifiers,
+        identity-document images, balance snapshots, and transaction history for a subset of customers. The company
+        said passwords, two-factor codes, private keys, and access to customer funds were not exposed. That distinction
+        matters, but it does not make the data harmless: context is what makes impersonation believable.
+      </p>
+    </section>
+
+    <section className="bg-card/50 border border-border/60 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-4">The short answer</h2>
+      <p className="text-lg leading-relaxed">
+        Personal data can become an authentication prop. A caller who knows your balance or recent transactions is
+        not proven legitimate. End the contact and start a new support session through the official app or a bookmark.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">How the follow-on scam works</h2>
+      <ol className="list-decimal pl-6 space-y-4">
+        <li><strong>Credibility:</strong> the attacker repeats private-looking details to lower your skepticism.</li>
+        <li><strong>Urgency:</strong> they claim an account, withdrawal, or device is already compromised.</li>
+        <li><strong>Isolation:</strong> they keep you on the call or move you to a private chat while discouraging verification.</li>
+        <li><strong>Action:</strong> they request a 2FA code, remote access, a seed phrase, or a transfer to a supposedly safe wallet.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">What to do during a suspicious contact</h2>
+      <div className="space-y-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-5">
+          <h3 className="text-lg font-semibold mb-2">Stop the live interaction</h3>
+          <p>Do not debate or “verify” more details. Hang up, close the chat, and do not use links or phone numbers the sender supplied.</p>
+        </div>
+        <div className="bg-card/50 rounded-lg p-5">
+          <h3 className="text-lg font-semibold mb-2">Open a clean channel</h3>
+          <p>Use the exchange's official app or a domain you already bookmarked. Review active sessions, withdrawal addresses, API keys, and recent activity.</p>
+        </div>
+        <div className="bg-card/50 rounded-lg p-5">
+          <h3 className="text-lg font-semibold mb-2">Contain before investigating</h3>
+          <p>If you disclosed a code or installed remote-access software, lock the account from a clean device, contact official support, preserve messages, and secure the connected email account.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Controls for support and security teams</h2>
+      <ul className="list-disc pl-6 space-y-3">
+        <li>Give support staff the minimum fields and history required for the current case.</li>
+        <li>Alert on bulk lookups, unusual customer cohorts, off-hours access, and repeated access without an active case.</li>
+        <li>Use just-in-time access and two-person approval for identity documents or high-risk account data.</li>
+        <li>Design customer messaging so legitimate staff never ask for secrets, remote access, or asset transfers.</li>
+        <li>Exercise insider-threat scenarios alongside phishing and account-takeover drills.</li>
+      </ul>
+    </section>
+
+  </div>
+);
+
 const HardwareWalletComparisonContent = () => (
   <>
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">Choosing the Right Hardware Wallet in 2025</h2>
+      <h2 className="text-2xl font-bold mb-4">Choose a Device for Your Threat Model</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
-        <h3 className="font-bold mb-2">Quick Comparison</h3>
-        <p>Hardware wallets are essential for securing crypto assets over $1,000. This guide compares the top options: Ledger, Trezor, GridPlus, and Keystone.</p>
+        <h3 className="font-bold mb-2">Start with the workflow, not a ranking</h3>
+        <p>A hardware wallet isolates signing keys, but the device, recovery process, companion app, and the person reading the transaction all remain part of the security boundary.</p>
       </div>
     </div>
 
@@ -131,41 +283,36 @@ const HardwareWalletComparisonContent = () => (
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">Top Hardware Wallets Compared</h2>
+        <h2 className="text-2xl font-bold mb-4">Security Questions to Compare</h2>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden">
             <thead>
               <tr className="bg-muted/50">
-                <th className="p-4 text-left">Feature</th>
-                <th className="p-4 text-left">Ledger Nano X</th>
-                <th className="p-4 text-left">Trezor Model T</th>
-                <th className="p-4 text-left">GridPlus Lattice1</th>
+                <th className="p-4 text-left">Area</th>
+                <th className="p-4 text-left">Question to ask</th>
+                <th className="p-4 text-left">Why it matters</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-t border-border/50">
-                <td className="p-4">Price</td>
-                <td className="p-4">$149</td>
-                <td className="p-4">$219</td>
-                <td className="p-4">$397</td>
+                <td className="p-4">Display</td>
+                <td className="p-4">Can the device show the full address and decoded intent?</td>
+                <td className="p-4">A trusted display helps expose a compromised computer.</td>
               </tr>
               <tr className="border-t border-border/50">
-                <td className="p-4">Chains Supported</td>
-                <td className="p-4">5,500+</td>
-                <td className="p-4">1,800+</td>
-                <td className="p-4">EVM chains</td>
+                <td className="p-4">Firmware</td>
+                <td className="p-4">How are updates signed, reviewed, and recovered if one fails?</td>
+                <td className="p-4">Update infrastructure can become a supply-chain target.</td>
               </tr>
               <tr className="border-t border-border/50">
-                <td className="p-4">Open Source</td>
-                <td className="p-4">Partial</td>
-                <td className="p-4">Full</td>
-                <td className="p-4">Full</td>
+                <td className="p-4">Recovery</td>
+                <td className="p-4">Can you test recovery, and what secrets must be stored?</td>
+                <td className="p-4">A durable backup prevents a device failure becoming a total loss.</td>
               </tr>
               <tr className="border-t border-border/50">
-                <td className="p-4">Best For</td>
-                <td className="p-4">Multi-chain users</td>
-                <td className="p-4">Privacy-focused</td>
-                <td className="p-4">Power users</td>
+                <td className="p-4">Connectivity</td>
+                <td className="p-4">Which USB, NFC, Bluetooth, QR, or card paths are enabled?</td>
+                <td className="p-4">Convenience changes the attack surface and operating procedure.</td>
               </tr>
             </tbody>
           </table>
@@ -173,20 +320,20 @@ const HardwareWalletComparisonContent = () => (
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">Our Recommendations</h2>
+        <h2 className="text-2xl font-bold mb-4">Match the Setup to the Risk</h2>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-card/50 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-3">Best Overall: Ledger Nano X</h3>
-            <p className="mb-3">The widest chain support and proven track record make it ideal for most users. The Bluetooth connectivity allows mobile usage.</p>
+            <h3 className="text-xl font-semibold mb-3">Personal long-term storage</h3>
+            <p className="mb-3">Prioritize readable transaction details, a recovery method you can rehearse, manufacturer authenticity checks, and support for the assets you actually use.</p>
             <div className="p-3 bg-primary/10 rounded-lg">
-              <strong>Best for:</strong> Multi-chain portfolios, mobile users
+              <strong>Keep it simple:</strong> unused features and chains add complexity without protecting your funds.
             </div>
           </div>
           <div className="bg-card/50 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-3">Best for Privacy: Trezor Model T</h3>
-            <p className="mb-3">Fully open-source firmware and hardware. Touchscreen interface with excellent Ethereum DeFi support.</p>
+            <h3 className="text-xl font-semibold mb-3">Team or treasury custody</h3>
+            <p className="mb-3">A device is only one control. Use separate signers, independently verified transaction data, documented limits, and a tested incident-response process.</p>
             <div className="p-3 bg-primary/10 rounded-lg">
-              <strong>Best for:</strong> Privacy advocates, open-source believers
+              <strong>Test the process:</strong> signer independence matters only if each signer can verify intent.
             </div>
           </div>
         </div>
@@ -199,7 +346,7 @@ const HardwareWalletComparisonContent = () => (
             <li>Verify package seal and manufacturer authenticity</li>
             <li>Set up on a clean, offline computer if possible</li>
             <li>Generate a new seed phrase - never use a pre-generated one</li>
-            <li>Write seed phrase on metal, not paper</li>
+            <li>Choose a recovery medium that matches fire, water, theft, and access risks</li>
             <li>Test recovery before depositing significant funds</li>
             <li>Set up a PIN that's not easily guessable</li>
             <li>Enable passphrase for an additional security layer</li>
@@ -213,10 +360,10 @@ const HardwareWalletComparisonContent = () => (
 const PhishingPreventionContent = () => (
   <>
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">Understanding Crypto Phishing in 2025</h2>
+      <h2 className="text-2xl font-bold mb-4">Understand the Request Before You Sign</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
         <h3 className="font-bold mb-2">The Threat Landscape</h3>
-        <p>Phishing attacks caused over $374 million in crypto losses in 2024. Modern attackers use sophisticated techniques including fake airdrops, compromised Discord servers, and malicious signature requests.</p>
+        <p>Crypto phishing often targets the signing decision rather than a password. Fake airdrops, compromised community accounts, lookalike domains, and misleading approval requests all try to turn a legitimate wallet action into attacker-controlled access.</p>
       </div>
     </div>
 
@@ -257,7 +404,7 @@ const PhishingPreventionContent = () => (
             <h3 className="text-xl font-semibold mb-3">Browser Security</h3>
             <ul className="list-disc pl-6 space-y-2">
               <li>Install Wallet Guard or Pocket Universe for transaction simulation</li>
-              <li>Bookmark legitimate sites - never use search results</li>
+              <li>Use bookmarks or verified project channels instead of trusting sponsored search results</li>
               <li>Use a dedicated browser profile for crypto</li>
               <li>Enable phishing protection extensions</li>
             </ul>
@@ -293,10 +440,10 @@ const PhishingPreventionContent = () => (
 const DeFiHacksAnalysisContent = () => (
   <>
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">DeFi Security: Lessons from 2024-2025 Hacks</h2>
+      <h2 className="text-2xl font-bold mb-4">DeFi Security: Recurring Failure Patterns</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
-        <h3 className="font-bold mb-2">The Numbers</h3>
-        <p>Over $2.1 billion was lost to DeFi exploits in 2024, with bridge hacks and oracle manipulations leading the statistics. Understanding these attacks helps you avoid vulnerable protocols.</p>
+        <h3 className="font-bold mb-2">Start with the trust assumptions</h3>
+        <p>Loss totals change with methodology and asset prices. The durable insight is architectural: bridge validation, price inputs, privileged roles, upgrade paths, and governance controls repeatedly determine whether one failure can become a protocol-wide loss.</p>
       </div>
     </div>
 
@@ -370,7 +517,7 @@ const DeFiHacksAnalysisContent = () => (
 const SoliditySecurityContent = () => (
   <>
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">Solidity Security Best Practices for 2025</h2>
+      <h2 className="text-2xl font-bold mb-4">Solidity Security Is a Development Process</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
         <h3 className="font-bold mb-2">For Developers</h3>
         <p>This comprehensive guide covers essential security patterns, common vulnerabilities, and best practices for writing secure Ethereum smart contracts in Solidity.</p>
@@ -433,7 +580,7 @@ const SoliditySecurityContent = () => (
           <div className="bg-card/50 p-6 rounded-lg">
             <h3 className="text-xl font-semibold mb-3">Testing</h3>
             <ul className="list-disc pl-6 space-y-2">
-              <li>100% code coverage target</li>
+              <li>Coverage targets paired with invariant, boundary, and adversarial tests</li>
               <li>Fuzz testing with Foundry/Echidna</li>
               <li>Invariant testing for key properties</li>
               <li>Fork testing against mainnet state</li>
@@ -609,7 +756,7 @@ const TwoFactorAuthContent = () => (
       <h2 className="text-2xl font-bold mb-4">Two-Factor Authentication for Crypto</h2>
       <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
         <h3 className="font-bold mb-2">⚠️ SMS 2FA Is Not Safe</h3>
-        <p>SIM swap attacks make SMS-based 2FA vulnerable. Hackers have stolen millions by convincing carriers to transfer phone numbers.</p>
+        <p>SIM swap attacks make SMS-based 2FA vulnerable by convincing a carrier to transfer a victim's phone number to an attacker-controlled SIM.</p>
       </div>
     </div>
     <div className="space-y-8">
@@ -1136,7 +1283,7 @@ const DiscordScamsContent = () => (
       <h2 className="text-2xl font-bold mb-4">Discord Security for Crypto Users</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
         <h3 className="font-bold mb-2">The Discord Threat Landscape</h3>
-        <p>Discord is essential for crypto communities but has become a hunting ground for scammers. Server compromises, fake DMs, and malicious bots have led to millions in losses.</p>
+        <p>Many crypto communities use Discord, which also makes compromised servers, fake DMs, and malicious bots effective paths for impersonation and phishing.</p>
       </div>
     </div>
     <div className="space-y-8">
@@ -1803,7 +1950,7 @@ const BridgeSecurityContent = () => (
       <h2 className="text-2xl font-bold mb-4">Cross-Chain Bridge Security</h2>
       <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
         <h3 className="font-bold mb-2">🌉 Bridges Are High-Value Targets</h3>
-        <p>Cross-chain bridges hold billions in locked assets and have complex security models. They've accounted for over $2.5B in hacks since 2021.</p>
+        <p>Cross-chain bridges can concentrate valuable assets behind complex validation, upgrade, and key-management systems. A failure in one trust assumption can affect every asset relying on that bridge.</p>
       </div>
     </div>
     <div className="space-y-8">
@@ -1866,7 +2013,7 @@ const BridgeSecurityContent = () => (
 const PrivacyToolsContent = () => (
   <>
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">Blockchain Privacy Solutions in 2025</h2>
+      <h2 className="text-2xl font-bold mb-4">Understand What Each Privacy Tool Can—and Cannot—Hide</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
         <h3 className="font-bold mb-2">Privacy in a Transparent World</h3>
         <p>Blockchain's transparency is a double-edged sword. While it enables trustless verification, it exposes your entire financial history. Privacy tools help you reclaim control.</p>
@@ -2611,7 +2758,7 @@ const ExchangeHackSurvivalContent = () => (
       <h2 className="text-2xl font-bold mb-4">Surviving an Exchange Hack</h2>
       <div className="bg-card/50 p-6 rounded-lg mb-6">
         <h3 className="font-bold mb-2">When Your Exchange Gets Hacked</h3>
-        <p>From Mt. Gox to FTX, exchange failures have cost billions. Know what to do before, during, and after an exchange incident.</p>
+        <p>Exchange failures can combine custody, liquidity, access, and communication problems. Prepare before an incident so your response does not depend on one unavailable platform.</p>
       </div>
     </div>
     <div className="space-y-8">
@@ -3302,6 +3449,8 @@ const PlaceholderContent = ({ title }: { title: string }) => (
 // Map slugs to content components
 const contentMap: Record<string, React.FC> = {
   'privacy-security-web3-opsec': PrivacySecurityOpsecContent,
+  'bybit-hack-2025-signing-security': BybitSigningSecurityContent,
+  'coinbase-data-theft-support-scam-defense': CoinbaseSupportScamContent,
   'best-hardware-wallet-2025': HardwareWalletComparisonContent,
   'crypto-phishing-attacks-prevention': PhishingPreventionContent,
   'defi-hacks-2024-2025-analysis': DeFiHacksAnalysisContent,
@@ -3367,6 +3516,3 @@ export const getArticleContent = (slug: string, title: string): React.ReactNode 
   }
   return <PlaceholderContent title={title} />;
 };
-
-// Legacy content compatibility - maps to old articles.tsx
-export { articles as legacyArticles } from './articles';

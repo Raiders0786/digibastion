@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
-import { Book, Shield, Clock, ArrowRight, Search, Filter, ChevronDown, TrendingUp, Users, Flame, Award } from 'lucide-react';
+import { Book, Shield, Clock, ArrowRight, Search, Filter, ChevronDown, TrendingUp, Users, Flame, Award, Siren, Code2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { articlesMeta, getCategories, getFeaturedArticles } from '@/data/articlesData';
+import { articlesMeta, getCategories } from '@/data/articlesData';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { serializeJsonLd } from '@/utils/jsonLd';
+import { buildArticleCollectionSchema } from '@/utils/seo';
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty) {
@@ -47,7 +48,6 @@ const Articles = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
   
   const categories = getCategories();
-  const featuredArticles = getFeaturedArticles();
   
   const filteredArticles = useMemo(() => {
     return articlesMeta.filter(article => {
@@ -69,19 +69,7 @@ const Articles = () => {
   const nonFeaturedArticles = filteredArticles.filter(a => !a.featured);
   const displayedFeatured = filteredArticles.filter(a => a.featured);
 
-  // Create FAQ structured data
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": featuredArticles.slice(0, 5).map(article => ({
-      "@type": "Question",
-      "name": article.title,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": article.description
-      }
-    }))
-  };
+  const collectionSchema = buildArticleCollectionSchema(articlesMeta);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -91,8 +79,7 @@ const Articles = () => {
         keywords="web3 security articles, crypto security guides, blockchain security tutorials, defi security tips, wallet security best practices, opsec for crypto, hardware wallet comparison, phishing prevention, smart contract security, rug pull detection"
       />
       
-      {/* FAQ Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionSchema) }} />
       
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
@@ -107,10 +94,31 @@ const Articles = () => {
               Web3 Security Knowledge Base
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Expert guides on wallet security, phishing prevention, DeFi safety, and operational security. 
-              From beginner basics to advanced smart contract auditing.
+              Practical guidance for protecting accounts, wallets, applications, and teams—plus source-backed
+              breakdowns of incidents worth learning from.
             </p>
           </header>
+
+          <section aria-labelledby="choose-a-path" className="mb-10">
+            <h2 id="choose-a-path" className="text-xl font-semibold text-foreground mb-4">Start with what you need</h2>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Link to="/articles/getting-started-web3-security" className="group rounded-xl border border-border/60 bg-card/50 p-5 hover:border-primary/40 transition-colors">
+                <Shield className="w-5 h-5 text-primary mb-3" aria-hidden="true" />
+                <h3 className="font-semibold text-foreground group-hover:text-primary">Secure my own crypto</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Build a safer account, wallet, device, and backup setup.</p>
+              </Link>
+              <Link to="/articles/crypto-hack-response-playbook" className="group rounded-xl border border-border/60 bg-card/50 p-5 hover:border-primary/40 transition-colors">
+                <Siren className="w-5 h-5 text-primary mb-3" aria-hidden="true" />
+                <h3 className="font-semibold text-foreground group-hover:text-primary">Respond to an incident</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Contain damage, preserve evidence, and coordinate recovery.</p>
+              </Link>
+              <Link to="/articles/solidity-security-best-practices" className="group rounded-xl border border-border/60 bg-card/50 p-5 hover:border-primary/40 transition-colors">
+                <Code2 className="w-5 h-5 text-primary mb-3" aria-hidden="true" />
+                <h3 className="font-semibold text-foreground group-hover:text-primary">Build or review a protocol</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Move from common bugs to repeatable security engineering.</p>
+              </Link>
+            </div>
+          </section>
 
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -274,38 +282,22 @@ const Articles = () => {
             )}
           </section>
 
-          {/* SEO Content */}
-          <section className="mt-16 prose prose-invert max-w-none">
-            <div className="bg-card/50 rounded-xl p-8 border border-border/50">
-              <h2 className="text-2xl font-bold text-foreground mb-4">Learn Web3 Security from the Experts</h2>
-              <p className="text-muted-foreground mb-4">
-                Digibastion's security knowledge base provides comprehensive guides for protecting your cryptocurrency 
-                and digital assets. Whether you're new to crypto or an experienced DeFi user, our articles cover 
-                essential topics from hardware wallet setup to advanced smart contract security.
-              </p>
-              <div className="grid md:grid-cols-3 gap-6 mt-6">
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">For Beginners</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Start with wallet security basics, learn to spot phishing attacks, and understand how to safely 
-                    interact with DeFi protocols.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">For DeFi Users</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Deep dives into DeFi risks, flash loan attacks, impermanent loss, and how to evaluate protocol 
-                    security before depositing funds.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">For Developers</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Solidity security best practices, smart contract auditing techniques, and formal verification 
-                    methods for building secure protocols.
-                  </p>
-                </div>
-              </div>
+          <section className="mt-16 rounded-xl border border-border/50 bg-card/50 p-6 sm:p-8" aria-labelledby="publishing-standards">
+            <h2 id="publishing-standards" className="text-2xl font-bold text-foreground mb-3">How we publish</h2>
+            <p className="text-muted-foreground max-w-3xl">
+              Incident claims should link to primary disclosures, public agencies, or technical reports. Guides show
+              their publication and review dates, and we keep existing URLs stable when a guide is updated.
+            </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link to="/threat-intel" className="inline-flex items-center gap-2 text-primary hover:underline underline-offset-4">
+                Follow current threat intelligence <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link to="/quiz" className="inline-flex items-center gap-2 text-primary hover:underline underline-offset-4">
+                Test your OpSec habits <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a href="https://github.com/Raiders0786/digibastion/issues" target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-2 text-primary hover:underline underline-offset-4">
+                Suggest a correction or guide <ArrowRight className="w-4 h-4" />
+              </a>
             </div>
           </section>
         </div>

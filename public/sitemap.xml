@@ -8,7 +8,7 @@
 <!-- Main pages -->
 <url>
   <loc>https://www.digibastion.com/</loc>
-  <lastmod>2025-01-19</lastmod>
+  <lastmod>2026-09-27</lastmod>
   <priority>1.0</priority>
   <changefreq>weekly</changefreq>
   <image:image>
@@ -38,7 +38,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/articles</loc>
-  <lastmod>2025-01-19</lastmod>
+  <lastmod>2026-09-27</lastmod>
   <priority>0.95</priority>
   <changefreq>daily</changefreq>
   <image:image>
@@ -187,6 +187,18 @@
 
 <!-- Articles - Featured Guides (High Priority) -->
 <url>
+  <loc>https://www.digibastion.com/articles/bybit-hack-2025-signing-security</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/coinbase-data-theft-support-scam-defense</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
   <loc>https://www.digibastion.com/articles/privacy-security-web3-opsec</loc>
   <lastmod>2025-01-15</lastmod>
   <priority>0.9</priority>
@@ -194,7 +206,7 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/articles/best-hardware-wallet-2025</loc>
-  <lastmod>2025-01-18</lastmod>
+  <lastmod>2026-09-27</lastmod>
   <priority>0.9</priority>
   <changefreq>monthly</changefreq>
 </url>
@@ -206,13 +218,13 @@
 </url>
 <url>
   <loc>https://www.digibastion.com/articles/defi-hacks-2024-2025-analysis</loc>
-  <lastmod>2025-01-19</lastmod>
+  <lastmod>2026-09-27</lastmod>
   <priority>0.9</priority>
   <changefreq>weekly</changefreq>
 </url>
 <url>
   <loc>https://www.digibastion.com/articles/solidity-security-best-practices</loc>
-  <lastmod>2025-01-18</lastmod>
+  <lastmod>2026-09-27</lastmod>
   <priority>0.9</priority>
   <changefreq>monthly</changefreq>
 </url>
@@ -418,7 +430,7 @@
 <!-- Privacy & Anonymity -->
 <url>
   <loc>https://www.digibastion.com/articles/blockchain-privacy-tools-2025</loc>
-  <lastmod>2025-01-17</lastmod>
+  <lastmod>2026-09-27</lastmod>
   <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>

@@ -5,7 +5,7 @@ const CACHE_NAME = `digibastion-static-${CACHE_VERSION}`;
 // Keep this list intentionally small to reduce stale-shell regressions
 const PRECACHE_ASSETS = [
   '/index.html',
-  '/favicon.png',
+  '/favicon.ico',
   '/site.webmanifest',
 ];
 

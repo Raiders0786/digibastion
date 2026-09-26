@@ -4,10 +4,9 @@
   "description": "Protect your crypto from phishing, hacks & scams with real-time threat alerts and security checklists.",
   "icons": [
     {
-      "src": "/favicon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
     }
   ],
   "theme_color": "#8b5cf6",
@@ -20,7 +19,7 @@
   "screenshots": [
     {
       "src": "/og-image.png",
-      "sizes": "1200x630",
+      "sizes": "1920x1060",
       "type": "image/png",
       "form_factor": "wide"
     }

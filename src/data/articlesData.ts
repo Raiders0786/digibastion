@@ -1,4 +1,4 @@
-// Article metadata for SEO - content is rendered separately
+// Article metadata; full content is rendered separately.
 export interface ArticleMeta {
   slug: string;
   title: string;
@@ -11,15 +11,22 @@ export interface ArticleMeta {
   author: string;
   tags: string[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  summary?: string;
+  keyTakeaways?: string[];
+  sources?: Array<{
+    title: string;
+    publisher: string;
+    url: string;
+  }>;
 }
 
-// 50+ SEO-optimized articles targeting high-volume keywords
+// Searchable guide metadata. Keep claims and modified dates aligned with reviewed content.
 export const articlesMeta: ArticleMeta[] = [
-  // Featured/Comprehensive Guides
+  // Featured guides
   {
     slug: "privacy-security-web3-opsec",
     title: "Web3 OpSec Guide: Complete Privacy & Security Playbook for Crypto Users",
-    description: "Master operational security (OpSec) for Web3. Learn to protect your identity, secure wallets, avoid doxxing, and maintain privacy in blockchain transactions. Essential reading for DeFi users and NFT collectors.",
+    description: "Build a practical Web3 OpSec plan for identities, wallets, communications, devices, and public-chain activity without relying on a single defensive tool.",
     category: "OpSec",
     readTime: "18 min read",
     featured: true,
@@ -29,17 +36,89 @@ export const articlesMeta: ArticleMeta[] = [
     tags: ["opsec", "privacy", "web3", "anonymity", "blockchain privacy"],
     difficulty: "intermediate"
   },
+  {
+    slug: "bybit-hack-2025-signing-security",
+    title: "Bybit Hack Explained: What the 2025 Multisig Theft Changed",
+    description: "How a compromised signing interface defeated Bybit's cold-wallet process in February 2025, and the transaction controls treasury teams can apply.",
+    category: "Incident Response",
+    readTime: "11 min read",
+    featured: true,
+    publishedAt: "2026-09-27",
+    modifiedAt: "2026-09-27",
+    author: "Digibastion Security Team",
+    tags: ["Bybit hack", "multisig security", "transaction signing", "Safe wallet", "DPRK"],
+    difficulty: "advanced",
+    summary: "The Bybit theft was not a failure of offline keys alone. Attackers compromised the interface used by authorized signers, causing a legitimate approval process to authorize malicious transaction logic. Cold storage is only as strong as the transaction-verification path around it.",
+    keyTakeaways: [
+      "Verify decoded transaction intent on an independent, trusted device—not only in a browser.",
+      "Treat signing frontends, deployment pipelines, and operator workstations as part of the custody boundary.",
+      "Use transaction allowlists, value limits, rehearsed emergency stops, and out-of-band review for treasury moves.",
+    ],
+    sources: [
+      {
+        title: "North Korea Responsible for $1.5 Billion Bybit Hack",
+        publisher: "Federal Bureau of Investigation",
+        url: "https://www.fbi.gov/investigate/cyber/alerts/2025/north-korea-responsible-for-1-5-billion-bybit-hack",
+      },
+      {
+        title: "The Bybit Hack — How the attack occurred",
+        publisher: "Financial Services Agency of Japan",
+        url: "https://www.fsa.go.jp/policy/bgin/ResearchPaper_dtc_en.pdf",
+      },
+      {
+        title: "Bybit Security Incident: Timeline of Events and FAQs",
+        publisher: "Bybit",
+        url: "https://www.bybit.com/en/learn/this-week-in-bybit/bybit-security-incident-timeline",
+      },
+    ],
+  },
+  {
+    slug: "coinbase-data-theft-support-scam-defense",
+    title: "Coinbase Data Theft: Defending Against Support Scams",
+    description: "What Coinbase's May 2025 disclosure shows about insider-enabled data theft, support impersonation, and defenses for crypto users and support teams.",
+    category: "Social Engineering",
+    readTime: "9 min read",
+    featured: true,
+    publishedAt: "2026-09-27",
+    modifiedAt: "2026-09-27",
+    author: "Digibastion Security Team",
+    tags: ["Coinbase data breach", "support scam", "social engineering", "insider threat", "account security"],
+    difficulty: "beginner",
+    summary: "Attackers do not need a password or private key to sound convincing. Stolen support records can supply names, contact details, balance snapshots, and transaction history—the context a scammer needs to manufacture urgency and trust.",
+    keyTakeaways: [
+      "End unsolicited support calls and reopen support through the official app or a bookmarked domain.",
+      "No legitimate support agent should ask for a seed phrase, 2FA code, remote access, or a transfer to a new wallet.",
+      "Organizations must minimize support access, monitor bulk lookups, and design high-risk actions to withstand insider abuse.",
+    ],
+    sources: [
+      {
+        title: "Current Report on Form 8-K filed May 15, 2025",
+        publisher: "Coinbase Global, Inc. / U.S. Securities and Exchange Commission",
+        url: "https://www.sec.gov/Archives/edgar/data/1679788/000167978825000094/coin-20250514.htm",
+      },
+      {
+        title: "Protecting Our Customers — Standing Up to Extortionists",
+        publisher: "Coinbase",
+        url: "https://www.coinbase.com/blog/protecting-our-customers-standing-up-to-extortionists",
+      },
+      {
+        title: "How to Spot and Stop Customer Support Scams",
+        publisher: "Coinbase",
+        url: "https://www.coinbase.com/blog/how-to-spot-and-stop-customer-support-scams",
+      },
+    ],
+  },
   
-  // Wallet Security (High Search Volume: 90k-300k)
+  // Wallet Security
   {
     slug: "best-hardware-wallet-2025",
-    title: "Best Hardware Wallets 2025: Ledger vs Trezor vs GridPlus Comparison",
-    description: "Comprehensive comparison of the best hardware wallets for cryptocurrency in 2025. We analyze Ledger Nano X, Trezor Model T, GridPlus Lattice, and Keystone Pro for security, features, and supported coins.",
+    title: "How to Compare Hardware Wallets: A Security-First Checklist",
+    description: "Compare hardware wallets by threat model, firmware, transaction verification, recovery design, connectivity, and device authenticity—not a stale ranking.",
     category: "Wallet Security",
     readTime: "15 min read",
-    featured: true,
+    featured: false,
     publishedAt: "2025-01-01",
-    modifiedAt: "2025-01-18",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["hardware wallet", "ledger", "trezor", "cold storage", "best crypto wallet"],
     difficulty: "beginner"
@@ -105,11 +184,11 @@ export const articlesMeta: ArticleMeta[] = [
     difficulty: "advanced"
   },
 
-  // Phishing & Scams (High Search Volume: 60k-135k)
+  // Phishing and scams
   {
     slug: "crypto-phishing-attacks-prevention",
     title: "Crypto Phishing Attacks: How to Identify & Prevent Wallet Drains",
-    description: "Comprehensive guide to recognizing cryptocurrency phishing attacks. Learn about fake airdrops, malicious signatures, Discord scams, and Twitter impersonation tactics used to steal crypto.",
+    description: "Recognize fake airdrops, malicious signature requests, compromised community accounts, and impersonation attempts before they become wallet drains.",
     category: "Phishing",
     readTime: "14 min read",
     featured: true,
@@ -218,18 +297,18 @@ export const articlesMeta: ArticleMeta[] = [
     difficulty: "intermediate"
   },
 
-  // DeFi Security (High Search Volume: 33k-74k)
+  // DeFi security
   {
     slug: "defi-hacks-2024-2025-analysis",
-    title: "DeFi Hacks 2024-2025: Major Exploits, Losses & Security Lessons",
-    description: "Analysis of the biggest DeFi hacks from 2024 and early 2025. Covers bridge exploits, flash loan attacks, oracle manipulations, and governance attacks with total losses exceeding $2B.",
+    title: "DeFi Exploit Patterns: Bridges, Oracles, Governance and Access Control",
+    description: "Review recurring DeFi failure patterns in bridge validation, oracle design, governance, access control, and unsafe upgrades before exposing funds.",
     category: "DeFi",
     readTime: "20 min read",
     featured: true,
     publishedAt: "2025-01-05",
-    modifiedAt: "2025-01-19",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
-    tags: ["defi hack", "exploit", "crypto hack", "security breach", "2024 hacks"],
+    tags: ["defi hack", "exploit", "crypto hack", "security breach", "protocol risk"],
     difficulty: "intermediate"
   },
   {
@@ -308,7 +387,7 @@ export const articlesMeta: ArticleMeta[] = [
   // Smart Contract Security (For Developers: 45k-90k)
   {
     slug: "reentrancy-attack-prevention",
-    title: "Reentrancy Attack: The #1 Smart Contract Vulnerability Explained",
+    title: "Reentrancy Attacks: How They Work and How to Prevent Them",
     description: "Deep dive into reentrancy attacks, the most famous smart contract vulnerability. Covers the DAO hack, checks-effects-interactions pattern, and ReentrancyGuard implementation.",
     category: "Smart Contracts",
     readTime: "17 min read",
@@ -320,13 +399,13 @@ export const articlesMeta: ArticleMeta[] = [
   },
   {
     slug: "solidity-security-best-practices",
-    title: "Solidity Security Best Practices 2025: Developer's Complete Guide",
-    description: "Comprehensive Solidity security guide covering access control, input validation, gas optimization, and common vulnerability patterns. Essential for Ethereum smart contract developers.",
+    title: "Solidity Security Engineering: A Practical Developer Guide",
+    description: "A practical Solidity security process covering access control, external calls, invariants, testing, monitoring, upgrades, and incident readiness.",
     category: "Smart Contracts",
     readTime: "22 min read",
     featured: true,
     publishedAt: "2025-01-02",
-    modifiedAt: "2025-01-18",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["solidity", "smart contract security", "ethereum development", "best practices"],
     difficulty: "advanced"
@@ -459,12 +538,12 @@ export const articlesMeta: ArticleMeta[] = [
   // Privacy & Anonymity
   {
     slug: "blockchain-privacy-tools-2025",
-    title: "Blockchain Privacy Tools 2025: Mixers, Zero-Knowledge & Private Chains",
-    description: "Comprehensive guide to privacy solutions on blockchain. Covers Tornado Cash aftermath, zk-SNARKs, privacy coins, and emerging solutions for transaction anonymity.",
+    title: "Blockchain Privacy Tools: Trade-offs, Limits and Operational Risk",
+    description: "Compare blockchain privacy approaches, including zero-knowledge systems, network privacy, address separation, and the limits of on-chain anonymity.",
     category: "Privacy",
     readTime: "16 min read",
     publishedAt: "2025-01-03",
-    modifiedAt: "2025-01-17",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["privacy", "tornado cash", "zero knowledge", "zcash", "monero"],
     difficulty: "intermediate"

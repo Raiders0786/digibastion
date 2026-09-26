@@ -9,16 +9,24 @@ interface MetaTagsProps {
   canonical?: string;
   keywords?: string;
   noindex?: boolean;
+  publishedTime?: string;
+  modifiedTime?: string;
+  author?: string;
+  imageAlt?: string;
 }
 
 export const MetaTags = ({ 
   title = "Digibastion — Protect Your Crypto from Phishing, Hacks & Scams",
-  description = "Free, open-source Web3 security platform. Get real-time threat alerts, security checklists, and OpSec assessments to protect your crypto from phishing, wallet drains, and scams.",
+  description = "Free, community-built Web3 security platform. Get real-time threat alerts, security checklists, and OpSec assessments to protect your crypto from phishing, wallet drains, and scams.",
   image = "https://www.digibastion.com/og-image.png",
   type = "website",
   canonical,
   keywords = "web3 security, crypto security, blockchain security, defi security, wallet security, phishing protection",
-  noindex = false
+  noindex = false,
+  publishedTime,
+  modifiedTime,
+  author,
+  imageAlt = "Digibastion security guide",
 }: MetaTagsProps) => {
   const location = useLocation();
   const url = `https://www.digibastion.com${location.pathname}`;
@@ -27,31 +35,47 @@ export const MetaTags = ({
     // Update document title
     document.title = title;
     
-    // Helper to update or create meta tag
-    const setMeta = (selector: string, content: string, attr = 'content') => {
-      const tag = document.querySelector(selector);
-      if (tag) {
-        tag.setAttribute(attr, content);
+    const setMeta = (attribute: 'name' | 'property', key: string, content?: string) => {
+      const selector = `meta[${attribute}="${key}"]`;
+      let tag = document.querySelector<HTMLMetaElement>(selector);
+
+      if (!content) {
+        tag?.remove();
+        return;
       }
+
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute(attribute, key);
+        document.head.appendChild(tag);
+      }
+
+      tag.content = content;
     };
 
     // Standard meta tags
-    setMeta('meta[name="description"]', description);
-    setMeta('meta[name="keywords"]', keywords);
-    setMeta('meta[name="robots"]', noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large');
+    setMeta('name', 'title', title);
+    setMeta('name', 'description', description);
+    setMeta('name', 'keywords', keywords);
+    setMeta('name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1');
 
     // Open Graph
-    setMeta('meta[property="og:title"]', title);
-    setMeta('meta[property="og:description"]', description);
-    setMeta('meta[property="og:image"]', image);
-    setMeta('meta[property="og:url"]', url);
-    setMeta('meta[property="og:type"]', type);
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:image', image);
+    setMeta('property', 'og:image:alt', imageAlt);
+    setMeta('property', 'og:url', actualCanonical);
+    setMeta('property', 'og:type', type);
+    setMeta('property', 'article:published_time', publishedTime);
+    setMeta('property', 'article:modified_time', modifiedTime);
+    setMeta('property', 'article:author', author);
 
     // Twitter
-    setMeta('meta[name="twitter:title"]', title);
-    setMeta('meta[name="twitter:description"]', description);
-    setMeta('meta[name="twitter:image"]', image);
-    setMeta('meta[name="twitter:url"]', url);
+    setMeta('name', 'twitter:title', title);
+    setMeta('name', 'twitter:description', description);
+    setMeta('name', 'twitter:image', image);
+    setMeta('name', 'twitter:image:alt', imageAlt);
+    setMeta('name', 'twitter:url', actualCanonical);
 
     // Canonical
     const canonicalTag = document.querySelector('link[rel="canonical"]');
@@ -59,7 +83,7 @@ export const MetaTags = ({
       canonicalTag.setAttribute('href', actualCanonical);
     }
 
-  }, [title, description, image, type, url, actualCanonical, keywords, noindex]);
+  }, [title, description, image, type, actualCanonical, keywords, noindex, publishedTime, modifiedTime, author, imageAlt]);
 
   return null;
 };
