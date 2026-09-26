@@ -15,7 +15,7 @@ const tourSteps: TourStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Digibastion! 👋',
-    description: 'Your free, open-source security companion. Let us show you around in 30 seconds.',
+    description: 'Your practical, source-available security companion. Let us show you around in 30 seconds.',
     icon: <Sparkles className="w-6 h-6 text-primary" />,
   },
   {

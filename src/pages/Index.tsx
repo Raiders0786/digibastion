@@ -123,7 +123,7 @@ const Index = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
         title="Digibastion — Practical Security for People, Crypto and Web3 Teams"
-        description="Assess your OpSec, follow practical security checklists, monitor current threats, and review domain risk with Vantage — free, open-source tools from Digibastion."
+        description="Assess your OpSec, follow practical security checklists, monitor current threats, and review domain risk with Vantage — practical tools from Digibastion."
       />
       <Navbar />
 
@@ -161,7 +161,7 @@ const Index = () => {
                   </Button>
                 </div>
                 <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                  No account for checklists or the assessment. Open source. Built for beginners, operators, and security teams.
+                  No account for checklists or the assessment. Publicly inspectable. Built for beginners, operators, and security teams.
                 </p>
               </div>
 
@@ -267,8 +267,8 @@ const Index = () => {
         </section>
 
         <section className="section-container py-16 sm:py-20">
-          <div className="grid items-start gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
-            <div className="space-y-5">
+          <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
+            <div className="min-w-0 space-y-5">
               <div className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/10 px-3 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-destructive motion-safe:animate-pulse" />
                 <span className="text-xs font-semibold text-destructive">Current threat intelligence</span>
@@ -283,7 +283,7 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-            <div className="rounded-2xl border border-border/60 bg-card/50 p-4 sm:p-5" aria-live="polite">
+            <div className="min-w-0 rounded-2xl border border-border/60 bg-card/50 p-4 sm:p-5" aria-live="polite">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><AlertTriangle className="h-4 w-4 text-destructive" /> Latest alerts</div>
                 <button type="button" onClick={() => navigate('/threat-intel?tab=alerts')} className="text-xs font-medium text-primary hover:underline">View all</button>
@@ -385,7 +385,7 @@ const Index = () => {
             </div>
             <div className="mt-8 grid grid-cols-2 gap-3 border-t border-border/60 pt-8 sm:grid-cols-4">
               {[
-                { icon: Globe2, label: 'Open source' }, { icon: BookOpen, label: 'Practical education' },
+                { icon: Globe2, label: 'Source available' }, { icon: BookOpen, label: 'Practical education' },
                 { icon: Newspaper, label: 'Current intelligence' }, { icon: Shield, label: 'Expert services' },
               ].map((item) => <div key={item.label} className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:text-sm"><item.icon className="h-4 w-4 shrink-0 text-primary" /> {item.label}</div>)}
             </div>

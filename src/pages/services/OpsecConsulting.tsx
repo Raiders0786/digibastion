@@ -174,7 +174,7 @@ const OpsecConsulting = () => {
                   <div className="text-muted-foreground mt-0.5">Funded by the Ethereum Foundation</div>
                 </li>
                 <li>
-                  <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-primary">Open source</div>
+                  <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-primary">Source available</div>
                   <div className="text-muted-foreground mt-0.5">Read the code before you trust us</div>
                 </li>
                 <li>

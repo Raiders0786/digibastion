@@ -77,7 +77,7 @@ const License = () => {
                 <ul className="list-disc pl-6 space-y-2 mb-4">
                   <li>You <strong>may not</strong> sell, lease, or provide paid services based on the Software without prior <strong>written permission</strong> from the copyright holder.</li>
                   <li>You <strong>may</strong> use, modify, and share the Software freely <strong>for non-commercial purposes.</strong></li>
-                  <li>Open-source contributions, forks, and modifications <strong>are allowed</strong> as long as they comply with this license.</li>
+                  <li>Contributions, forks, and modifications <strong>are allowed</strong> as long as they comply with this license.</li>
                   <li>If you wish to use this Software commercially, please <strong>contact raiders@digibastion.com for licensing options.</strong></li>
                 </ul>
                 <p>

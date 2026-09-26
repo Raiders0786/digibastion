@@ -72,7 +72,7 @@ const services: Service[] = [
 const credentials = [
   ['ESP 2025', 'Funded by the Ethereum Foundation'],
   ['Vantage live', 'Domain intelligence running in public beta'],
-  ['Open source', 'Read the code before you trust it'],
+  ['Source available', 'Read the code before you trust it'],
 ];
 
 const process = [
@@ -115,7 +115,7 @@ const Services = () => {
                   <em className="italic text-primary">putting off.</em>
                 </h1>
                 <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                  DigiBastion is free and open source, and it will stay that way. When you would rather have someone
+                  Digibastion's public tools are free to use and the repository is source-available. When you would rather have someone
                   who lives in this stuff sit down with you and actually do the review, that is what these
                   engagements are for.
                 </p>

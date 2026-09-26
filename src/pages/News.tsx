@@ -48,7 +48,6 @@ const News = () => {
   const [activeAlertCount, setActiveAlertCount] = useState(0);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [alertsError, setAlertsError] = useState<string | null>(null);
-  const [quillMonitorSummary, setQuillMonitorSummary] = useState<{ total: number; alertCount: number; latest: NewsArticle | null } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -160,13 +159,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       .replace(/<[^>]*>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-    const { data: importedAlerts } = await supabase
-      .from('news_articles')
-      .select('*')
-      .eq('metadata->>provider', 'quillmonitor')
-      .in('severity', ['critical', 'high'])
-      .order('published_at', { ascending: false });
-    const alertRows = Array.from(new Map([...(data || []), ...(importedAlerts || [])].map((row) => [row.id, row])).values());
+    const alertRows = data || [];
     setActiveAlerts(alertRows.map((row) => ({
       id: row.id,
       title: sanitize(row.title),
@@ -190,44 +183,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     setActiveAlertCount(alertRows.length);
     setAlertsLoading(false);
   }, []);
-
-  const fetchQuillMonitorSummary = useCallback(async () => {
-    const { data, count } = await supabase
-      .from('news_articles')
-      .select('*', { count: 'exact' })
-      .eq('metadata->>provider', 'quillmonitor')
-      .order('published_at', { ascending: false })
-      .limit(1);
-    const { count: alertCount } = await supabase
-      .from('news_articles')
-      .select('id', { count: 'exact', head: true })
-      .eq('metadata->>provider', 'quillmonitor')
-      .in('severity', ['critical', 'high']);
-    const row = data?.[0];
-    setQuillMonitorSummary({
-      total: count || 0,
-      alertCount: alertCount || 0,
-      latest: row ? {
-        id: row.id,
-        title: row.title,
-        summary: row.summary || '',
-        content: row.content || row.summary || '',
-        category: row.category as NewsCategory,
-        severity: row.severity as SeverityLevel,
-        tags: row.tags || [],
-        affectedTechnologies: row.affected_technologies || [],
-        link: row.link,
-        sourceUrl: row.source_url || '',
-        sourceName: row.source_name || '',
-        author: row.author || '',
-        publishedAt: new Date(row.published_at),
-        isProcessed: row.is_processed ?? false,
-        metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata) ? row.metadata as NewsArticle['metadata'] : undefined,
-      } : null,
-    });
-  }, []);
-
-  useEffect(() => { void fetchQuillMonitorSummary(); }, [fetchQuillMonitorSummary]);
 
   useEffect(() => {
     if (selectedTab === 'alerts' && activeAlerts.length === 0) {
@@ -364,8 +319,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Handle new articles from realtime
   const handleNewRealtimeArticle = useCallback(() => {
-    void Promise.all([refetch(), fetchActiveAlerts(), fetchQuillMonitorSummary()]);
-  }, [refetch, fetchActiveAlerts, fetchQuillMonitorSummary]);
+    void Promise.all([refetch(), fetchActiveAlerts()]);
+  }, [refetch, fetchActiveAlerts]);
 
   // Tab configuration with better visibility
   const tabs = [
@@ -581,23 +536,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
                 {/* News Feed */}
                 <div className="lg:col-span-3 space-y-4">
-                  {quillMonitorSummary && quillMonitorSummary.total > 0 && (
-                    <div className="flex flex-col gap-3 border-y border-border py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
-                          <RadioTower className="h-3 w-3" /> QuillMonitor
-                        </Badge>
-                        <p className="text-sm text-muted-foreground">
-                          {quillMonitorSummary.total} verified incidents synced, including {quillMonitorSummary.alertCount} active alerts.
-                        </p>
-                      </div>
-                      {quillMonitorSummary.latest && (
-                        <Button variant="ghost" size="sm" onClick={() => handleArticleClick(quillMonitorSummary.latest as NewsArticle)}>
-                          View latest import <ChevronRight className="ml-1 h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
 {/* Results count and refresh button */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
@@ -635,7 +573,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={async () => { await refreshWeb3Incidents(); await Promise.all([fetchActiveAlerts(), fetchQuillMonitorSummary()]); }}
+                        onClick={async () => { await refreshWeb3Incidents(); await fetchActiveAlerts(); }}
                         disabled={isRefreshingWeb3}
                         className="bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20"
                         title="Fetch latest Web3 security incidents"

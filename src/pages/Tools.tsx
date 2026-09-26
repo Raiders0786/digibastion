@@ -85,7 +85,7 @@ const Tools = () => {
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20">
-                  Open Source
+                  Source Available
                 </Badge>
                 <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20">
                   Community Driven

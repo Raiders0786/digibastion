@@ -26,7 +26,7 @@ const footerGroups = [
     title: 'Project',
     links: [
       { label: 'About', to: '/about' },
-      { label: 'Open-source license', to: '/license' },
+      { label: 'License and terms', to: '/license' },
       { label: 'Contribute on GitHub', href: 'https://github.com/Raiders0786/digibastion' },
       { label: 'Suggest an idea', href: 'https://github.com/Raiders0786/digibastion/issues' },
       { label: 'Public roadmap', href: 'https://github.com/Raiders0786/digibastion/blob/main/ROADMAP.md' },
@@ -79,7 +79,7 @@ export const Footer = () => {
         <div className="mt-12 border-t border-border/60 pt-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-xl text-xs leading-5 text-muted-foreground">
-              Open source under the MIT License. Supported in 2025 by the Ethereum Foundation Ecosystem Support Program.
+              Source-available under MIT text plus the Commons Clause. Supported in 2025 by the Ethereum Foundation Ecosystem Support Program.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <a href="https://t.me/digibastion_chat" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"><MessageSquare className="h-3.5 w-3.5" /> Community</a>

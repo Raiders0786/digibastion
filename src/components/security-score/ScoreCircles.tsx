@@ -51,7 +51,7 @@ export const ScoreCircles = ({ stats, threatLevel }: ScoreCirclesProps) => {
             <p className="text-xs text-foreground-secondary mt-1">{description}</p>
           </div>
           
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-background p-2 rounded shadow-lg text-xs w-48 text-center pointer-events-none z-10">
+          <div className="hidden opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-background p-2 rounded shadow-lg text-xs w-48 text-center pointer-events-none z-10 sm:block">
             {description}
           </div>
         </div>
