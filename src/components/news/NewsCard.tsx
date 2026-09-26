@@ -1,7 +1,7 @@
 import { NewsArticle } from '@/types/news';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExternalLink, Clock, AlertTriangle, Info, Zap, Sparkles } from 'lucide-react';
+import { ExternalLink, Clock, AlertTriangle, Info, Zap, Sparkles, RadioTower } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -12,6 +12,7 @@ interface NewsCardProps {
 
 export const NewsCard = ({ article, onClick }: NewsCardProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
+  const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -69,6 +70,12 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
               {getSeverityIcon(article.severity)}
               <span className="ml-1 capitalize">{article.severity}</span>
             </Badge>
+            {isQuillMonitor && (
+              <Badge variant="secondary" className="gap-1">
+                <RadioTower className="w-3 h-3" />
+                QuillMonitor
+              </Badge>
+            )}
           </div>
           {article.sourceUrl && (
             <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -118,6 +125,15 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
                 </Badge>
               )}
             </div>
+          </div>
+        )}
+
+        {isQuillMonitor && (
+          <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+            {article.metadata?.project_name && <div><span className="text-muted-foreground">Project</span><div className="font-medium truncate">{article.metadata.project_name}</div></div>}
+            {article.metadata?.chain && <div><span className="text-muted-foreground">Chain</span><div className="font-medium truncate">{article.metadata.chain}</div></div>}
+            {article.metadata?.attack_type && <div><span className="text-muted-foreground">Attack</span><div className="font-medium truncate">{article.metadata.attack_type}</div></div>}
+            {article.metadata?.amount_display && <div><span className="text-muted-foreground">Reported loss</span><div className="font-medium">{article.metadata.amount_display}</div></div>}
           </div>
         )}
 

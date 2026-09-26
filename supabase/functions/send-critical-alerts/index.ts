@@ -16,6 +16,15 @@ interface CriticalArticle {
   published_at: string;
   cve_id?: string;
   tags: string[];
+  source_name?: string;
+  metadata?: {
+    provider?: string;
+    project_name?: string;
+    chain?: string;
+    attack_type?: string;
+    amount_display?: string;
+    attribution_url?: string;
+  } | null;
 }
 
 interface Subscription {
@@ -100,7 +109,13 @@ function shouldNotify(article: CriticalArticle, subscription: Subscription): boo
 function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null, subscriberEmail: string, verificationToken: string | null): string {
   const name = escapeHtml(subscriberName || 'Security Professional');
   
-  const articlesList = articles.map(article => `
+  const articlesList = articles.map(article => {
+    const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
+    const incidentFacts = isQuillMonitor
+      ? [article.metadata?.project_name, article.metadata?.chain, article.metadata?.attack_type, article.metadata?.amount_display]
+          .filter(Boolean).map((fact) => escapeHtml(String(fact))).join(' · ')
+      : '';
+    return `
     <tr>
       <td style="padding: 16px; border-bottom: 1px solid #333;">
         <div style="margin-bottom: 8px;">
@@ -115,6 +130,8 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
         <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">
           ${escapeHtml(stripHtml(article.summary) || 'Click to read more...')}
         </p>
+        ${incidentFacts ? `<p style="margin:8px 0 0;color:#d1d5db;font-size:12px;">${incidentFacts}</p>` : ''}
+        ${isQuillMonitor ? `<p style="margin:8px 0 0;"><a href="${escapeHtml(article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database')}" style="color:#60a5fa;font-size:11px;text-decoration:none;">Powered by QuillMonitor</a></p>` : ''}
         <div style="margin-top: 8px;">
           ${article.tags.slice(0, 5).map(tag => 
             `<span style="background: #374151; color: #d1d5db; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;">#${escapeHtml(tag)}</span>`
@@ -122,7 +139,8 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const encodedEmail = encodeURIComponent(subscriberEmail);
   const encodedToken = verificationToken ? encodeURIComponent(verificationToken) : '';
@@ -212,7 +230,7 @@ serve(async (req) => {
     
     const { data: articles, error: articlesError } = await supabase
       .from('news_articles')
-      .select('id, title, summary, severity, category, link, published_at, cve_id, tags')
+      .select('id, title, summary, severity, category, link, published_at, cve_id, tags, source_name, metadata')
       .in('severity', ['critical', 'high'])
       .gte('created_at', sixHoursAgo)
       .order('published_at', { ascending: false });
@@ -261,7 +279,7 @@ serve(async (req) => {
       for (const subscription of subscriptions) {
         const matchingArticles = articles.filter(a => shouldNotify(a as CriticalArticle, subscription as Subscription));
         if (matchingArticles.length > 0) {
-          console.log(`[send-critical-alerts] Would notify ${subscription.email} about ${matchingArticles.length} articles`);
+          console.log(`[send-critical-alerts] Would notify subscription ${subscription.id} about ${matchingArticles.length} articles`);
           wouldSend++;
         }
       }
@@ -307,7 +325,7 @@ serve(async (req) => {
         continue;
       }
 
-      console.log(`[send-critical-alerts] Sending ${newArticles.length} articles to ${sub.email}`);
+      console.log(`[send-critical-alerts] Sending ${newArticles.length} articles for subscription ${sub.id}`);
 
       try {
         // Send email via Resend
@@ -359,11 +377,11 @@ serve(async (req) => {
           .eq('id', sub.id);
 
         sent++;
-        console.log(`[send-critical-alerts] Successfully sent to ${sub.email}`);
+        console.log(`[send-critical-alerts] Successfully sent for subscription ${sub.id}`);
 
       } catch (error) {
-        console.error(`[send-critical-alerts] Failed to send to ${sub.email}:`, error);
-        errors.push(`${sub.email}: ${error.message}`);
+        console.error(`[send-critical-alerts] Failed for subscription ${sub.id}:`, error);
+        errors.push(`${sub.id}: ${error.message}`);
         failed++;
 
         // Log failed notification

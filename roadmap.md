@@ -39,9 +39,9 @@
 - [x] Run full regression checks, deploy changed functions, and publish the verified release.
 
 ## QuillMonitor threat intelligence integration
-- [ ] Add secure, scheduled QuillMonitor incident ingestion with validation and deduplication.
-- [ ] Normalize project, chain, attack method, loss, category, severity, and source metadata.
-- [ ] Add QuillMonitor refresh controls and rich incident presentation to Threat Intel.
-- [ ] Include QuillMonitor context in immediate alerts and daily or weekly digests.
-- [ ] Tighten future RSS Web3, OpSec, and severity classification without disrupting existing feeds.
-- [ ] Deploy, import a controlled batch, and verify feed ordering, alerts, email, and schedules.
+- [x] Add secure, scheduled QuillMonitor incident ingestion with validation and deduplication.
+- [x] Normalize project, chain, attack method, loss, category, severity, and source metadata.
+- [x] Add QuillMonitor refresh controls and rich incident presentation to Threat Intel.
+- [x] Include QuillMonitor context in immediate alerts and daily or weekly digests.
+- [x] Tighten future RSS Web3, OpSec, and severity classification without disrupting existing feeds.
+- [x] Deploy, import a controlled batch, and verify feed ordering, alerts, email, and schedules.

@@ -24,7 +24,7 @@ import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
-  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame
+  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -103,13 +103,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'QuillMonitor'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategories, selectedSeverities, searchQuery, dateFilter]);
+  }, [selectedCategories, selectedSeverities, searchQuery, dateFilter, sourceFilter]);
 
   // Fetch articles from database
   const { 
@@ -119,9 +120,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     refetch,
     refreshFromRSS,
     refreshFromWeb3,
+    refreshFromQuillMonitor,
     summarizeArticles,
     isRefreshing,
     isRefreshingWeb3,
+    isRefreshingQuillMonitor,
     isSummarizing,
     stats,
     pagination
@@ -131,6 +134,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     searchQuery,
     dateFilter,
     sortBy,
+    source: sourceFilter,
     page: currentPage,
     pageSize,
   });
@@ -172,6 +176,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       cveId: row.cve_id || undefined,
       publishedAt: new Date(row.published_at),
       isProcessed: row.is_processed ?? false,
+      metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? row.metadata as NewsArticle['metadata']
+        : undefined,
     })));
     setActiveAlertCount((data || []).length);
     setAlertsLoading(false);
@@ -237,6 +244,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           cveId: data.cve_id || undefined,
           publishedAt: new Date(data.published_at),
           isProcessed: data.is_processed ?? false,
+          metadata: data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+            ? data.metadata as NewsArticle['metadata']
+            : undefined,
         });
       }
     })();
@@ -274,6 +284,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     setSelectedSeverities([]);
     setSearchQuery('');
     setDateFilter('all');
+    setSourceFilter('all');
   };
 
   // Use database articles directly (filtering handled by hook)
@@ -477,7 +488,17 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         className="pl-10"
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <Select value={sourceFilter} onValueChange={(value: 'all' | 'QuillMonitor') => setSourceFilter(value)}>
+                        <SelectTrigger className="w-40" aria-label="Filter by source">
+                          <RadioTower className="w-4 h-4 mr-2" />
+                          <SelectValue placeholder="Source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sources</SelectItem>
+                          <SelectItem value="QuillMonitor">QuillMonitor</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
                         <SelectTrigger className="w-32">
                           <Calendar className="w-4 h-4 mr-2" />
@@ -539,6 +560,20 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       {isAdmin && (
                         <>
                       <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={refreshFromQuillMonitor}
+                        disabled={isRefreshingQuillMonitor}
+                        title="Fetch latest QuillMonitor incidents"
+                      >
+                        {isRefreshingQuillMonitor ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <RadioTower className="w-4 h-4 mr-1" />
+                        )}
+                        {isRefreshingQuillMonitor ? 'Fetching...' : 'QuillMonitor'}
+                      </Button>
+                      <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={summarizeArticles}
@@ -582,7 +617,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       </Button>
                         </>
                       )}
-                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery) && (
+                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || sourceFilter !== 'all') && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                           Clear filters
                         </Button>

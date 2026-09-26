@@ -28,6 +28,20 @@ export interface NewsArticle {
   cveId?: string;
   isProcessed?: boolean;
   sourceName?: string;
+  metadata?: {
+    provider?: string;
+    provider_incident_id?: string;
+    project_name?: string;
+    chain?: string;
+    project_category?: string;
+    attack_type?: string;
+    amount_lost_usd?: number | null;
+    amount_display?: string | null;
+    reference_url?: string | null;
+    incident_date?: string;
+    attribution_url?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface SecurityAlert {
