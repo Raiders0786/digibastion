@@ -56,4 +56,4 @@
 ## QuillMonitor visibility
 - [x] Show clear QuillMonitor attribution in unified feed cards and Active Alerts.
 - [x] Surface the latest imported QuillMonitor incident without changing chronological feed ordering.
-- [ ] Verify imported incident and Active Alert visibility in the live preview.
+- [x] Verify imported incident and Active Alert visibility in the live preview.
