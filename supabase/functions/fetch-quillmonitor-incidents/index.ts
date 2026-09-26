@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import { z } from 'npm:zod@3.23.8';
 import {
   normalizeQuillMonitorIncident,
@@ -9,6 +8,10 @@ import {
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 
 const API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 const RequestSchema = z.object({
   pages: z.number().int().min(1).max(20).optional().default(3),
   page_size: z.number().int().min(1).max(100).optional().default(100),
@@ -88,8 +91,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
   }
 
-  let rawBody: unknown = {};
-  try { rawBody = await req.json(); } catch { rawBody = {}; }
+  const rawBody: unknown = await req.json().catch(() => ({}));
   const request = RequestSchema.safeParse(rawBody);
   if (!request.success) {
     return new Response(JSON.stringify({ error: request.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });

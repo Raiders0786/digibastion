@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Calendar, ArrowRight, Twitter, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { serializeJsonLd } from '@/utils/jsonLd';
 
 const CAL_URL = 'https://cal.com/raiders';
 
@@ -160,9 +161,9 @@ const FullStackReview = () => {
         description="A senior review across your crypto product: smart contracts, offchain services, dApp, cloud, identity, and compliance readiness. Flat fee, named team, honest report."
         keywords="web3 security review, smart contract audit, dapp security, crypto cloud security, web3 compliance, soc 2 crypto, mica readiness, full stack security review"
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-20 px-5 sm:px-8 lg:px-10">
         <div className="max-w-5xl mx-auto">

@@ -25,16 +25,12 @@ export const ChallengeButton = ({ score, variant = 'outline', className = '' }: 
     if (!handle) return;
 
     const quizUrl = 'https://digibastion.com/quiz';
-    let tweetText = '';
-
-    if (score !== undefined) {
-      tweetText = `Hey @${handle}! 🔥 I just scored ${score}/100 on the @digibastion OpSec Quiz. Think you can beat me? 💀\n\nTake the challenge 👇\n${quizUrl}`;
-    } else {
-      tweetText = `Hey @${handle}! 🛡️ How secure is YOUR crypto OpSec?\n\nI challenge you to take the @digibastion security quiz and share your score! 🔐\n\n${quizUrl}`;
-    }
+    const tweetText = score !== undefined
+      ? `Hey @${handle}! 🔥 I just scored ${score}/100 on the @digibastion OpSec Quiz. Think you can beat me? 💀\n\nTake the challenge 👇\n${quizUrl}`
+      : `Hey @${handle}! 🛡️ How secure is YOUR crypto OpSec?\n\nI challenge you to take the @digibastion security quiz and share your score! 🔐\n\n${quizUrl}`;
 
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    window.open(twitterUrl, '_blank');
+    window.open(twitterUrl, '_blank', 'noopener,noreferrer');
     setIsOpen(false);
     setFriendHandle('');
   };

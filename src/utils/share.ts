@@ -8,11 +8,12 @@ export const handleShare = async (type: 'copy' | 'twitter' | 'email', url: strin
         await navigator.clipboard.writeText(url);
         toast.success("Link copied to clipboard!");
         break;
-      case 'twitter':
+      case 'twitter': {
         // Format the tweet with title and URL
         const tweetText = encodeURIComponent(`${title}\n\n${url}`);
-        window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
+        window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank', 'noopener,noreferrer');
         break;
+      }
       case 'email':
         window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out Digibastion - your comprehensive guide to digital security: ${url}`)}`);
         break;

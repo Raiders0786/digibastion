@@ -1,22 +1,20 @@
 
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "127.0.0.1",
     port: 8080,
-    // Add compression for dev server
-    cors: true,
+    strictPort: true,
   },
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
     // Add bundle analyzer in build mode
     mode === 'production' && visualizer({
+      filename: 'dist/stats.html',
       open: false,
       gzipSize: true,
       brotliSize: true,
@@ -24,7 +22,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   // Ensure all files in the public directory are served at the root
@@ -35,21 +33,7 @@ export default defineConfig(({ mode }) => ({
     // Optimize chunk size
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
-      // Warn when files exceed recommended sizes
-      maxParallelFileOps: 3,
       output: {
-        // Optimize code splitting
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['@/components/ui/index.ts'],
-          vendor: [
-            '@tanstack/react-query',
-            'lucide-react', 
-            'recharts',
-            'sonner',
-          ],
-        },
         // Add code splitting for CSS
         assetFileNames: (assetInfo) => {
           if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
@@ -65,8 +49,8 @@ export default defineConfig(({ mode }) => ({
         },
       }
     },
-    // Add source maps for easier debugging
-    sourcemap: true,
+    // Keep production implementation details out of public artifacts.
+    sourcemap: mode !== 'production',
     // Modern build target for better performance
     target: 'es2020',
     // Minify output
@@ -84,13 +68,9 @@ export default defineConfig(({ mode }) => ({
   },
   // Configure the preview option for better local testing
   preview: {
+    host: "127.0.0.1",
     port: 8081,
     strictPort: true,
-    open: true,
-    cors: true,
-  },
-  // Add esbuild options
-  esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    open: false,
   },
 }));

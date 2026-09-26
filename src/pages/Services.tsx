@@ -4,6 +4,7 @@ import { MetaTags } from '../components/MetaTags';
 import { Button } from '@/components/ui/button';
 import { Calendar, ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { serializeJsonLd } from '@/utils/jsonLd';
 
 const CAL_URL = 'https://cal.com/raiders';
 
@@ -84,7 +85,7 @@ const Services = () => {
         description="The paid work behind DigiBastion. Web3 OpSec consulting, DNS and domain monitoring, and threat intel retainers, delivered by the same people who build the open-source platform."
         keywords="web3 security services, opsec consulting, dns monitoring, threat intelligence, crypto security audit, digibastion services"
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-20 px-5 sm:px-8 lg:px-10">
         <div className="max-w-5xl mx-auto">

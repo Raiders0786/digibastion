@@ -29,7 +29,7 @@ export const MetaTags = ({
     
     // Helper to update or create meta tag
     const setMeta = (selector: string, content: string, attr = 'content') => {
-      let tag = document.querySelector(selector);
+      const tag = document.querySelector(selector);
       if (tag) {
         tag.setAttribute(attr, content);
       }
@@ -54,7 +54,7 @@ export const MetaTags = ({
     setMeta('meta[name="twitter:url"]', url);
 
     // Canonical
-    let canonicalTag = document.querySelector('link[rel="canonical"]');
+    const canonicalTag = document.querySelector('link[rel="canonical"]');
     if (canonicalTag) {
       canonicalTag.setAttribute('href', actualCanonical);
     }

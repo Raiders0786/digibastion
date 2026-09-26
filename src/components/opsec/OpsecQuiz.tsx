@@ -428,7 +428,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
       ...q,
       options: shuffleArray(q.options.map((option, optionIndex) => ({ ...option, optionIndex })))
     }));
-  }, [serverQuestionIds, isOpen]);
+  }, [serverQuestionIds]);
 
   const progress = ((currentStep) / (randomizedQuestions.length + 1)) * 100;
 
@@ -571,7 +571,11 @@ Think you can beat my score? Take the quiz 👇
 ${shareUrl}`;
     
     if (platform === 'twitter') {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+      window.open(
+        `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
     } else {
       await navigator.clipboard.writeText(shareText);
       toast.success("Share text copied!");

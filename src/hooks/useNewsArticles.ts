@@ -293,7 +293,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       setTotalCount(countData || 0);
 
       // Transform RPC results to NewsArticle format
-      let transformedArticles: NewsArticle[] = (data || []).map((row: any) => ({
+      const transformedArticles: NewsArticle[] = (data || []).map((row: any) => ({
         id: row.id,
         title: sanitizeText(row.title),
         content: sanitizeText(row.content || row.summary),

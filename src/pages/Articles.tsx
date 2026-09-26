@@ -14,6 +14,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { serializeJsonLd } from '@/utils/jsonLd';
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty) {
@@ -91,7 +92,7 @@ const Articles = () => {
       />
       
       {/* FAQ Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }} />
       
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

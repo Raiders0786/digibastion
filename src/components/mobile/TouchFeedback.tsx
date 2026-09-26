@@ -107,8 +107,8 @@ export const TouchFeedback = ({
     onClick: handleClick,
   };
 
-  return (
-    <Component {...commonProps} disabled={disabled}>
+  const content = (
+    <>
       {/* Ripple effects */}
       {ripples.map(ripple => (
         <span
@@ -126,6 +126,10 @@ export const TouchFeedback = ({
         />
       ))}
       {children}
-    </Component>
+    </>
   );
+
+  return Component === 'button'
+    ? <button type="button" {...commonProps} disabled={disabled}>{content}</button>
+    : <div {...commonProps}>{content}</div>;
 };

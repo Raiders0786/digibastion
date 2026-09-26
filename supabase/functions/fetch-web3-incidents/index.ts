@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 
 const corsHeaders = {
@@ -316,7 +316,7 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
       const uid = await generateUID(title, section.date, 'p');
       
       // Clean content
-      let cleanContent = content
+      const cleanContent = content
         .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
         .replace(/\[\(attribution\)\]\([^)]+\)/g, '')
         .replace(/\(attribution\)/gi, '')

@@ -107,7 +107,7 @@ export const FloatingActionButton = () => {
               </motion.span>
               
               {/* Button */}
-              <TouchFeedback>
+              <TouchFeedback as="div">
                 <button
                   onClick={action.onClick}
                   className={`w-12 h-12 rounded-full bg-gradient-to-br ${action.color} text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform`}
@@ -120,7 +120,7 @@ export const FloatingActionButton = () => {
         </AnimatePresence>
 
         {/* Main FAB */}
-        <TouchFeedback>
+        <TouchFeedback as="div">
           <motion.button
             onClick={() => setIsOpen(!isOpen)}
             animate={{ rotate: isOpen ? 45 : 0 }}

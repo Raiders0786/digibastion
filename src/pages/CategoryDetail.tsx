@@ -19,33 +19,26 @@ const CategoryDetail = () => {
   const { categories, toggleItem, threatLevel, isLoading, getCategoryScore, changeCount } = useSecurityState();
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [localLoading, setLocalLoading] = useState(true);
 
-  // Find the category with memoization, adding changeCount to dependencies
-  const category = useMemo(() => {
-    const foundCategory = categories.find(c => c.id === categoryId);
-    setLocalLoading(false);
-    return foundCategory;
-  }, [categories, categoryId, changeCount]);
+  const category = useMemo(
+    () => categories.find(c => c.id === categoryId),
+    [categories, categoryId],
+  );
   
   // Reset loading state when threat level changes for visual feedback
   useEffect(() => {
-    if (isLoading) {
-      setLocalLoading(true);
-    }
-    
     // If category doesn't exist and we're not loading, redirect to home
-    if (!category && !localLoading && !isLoading) {
+    if (!category && !isLoading) {
       navigate('/', { replace: true });
     }
-  }, [category, isLoading, threatLevel, navigate, localLoading, changeCount]);
+  }, [category, isLoading, navigate]);
 
   // Reset to top of page when threat level changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [changeCount]); // Use changeCount instead of threatLevel
 
-  if (isLoading || localLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />

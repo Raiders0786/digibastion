@@ -1,5 +1,3 @@
-import type { VercelRequest } from '@vercel/node';
-
 // Crypto character mappings based on score
 const getCryptoCharacter = (score: number): { name: string; emoji: string; title: string; description: string } => {
   if (score >= 90) return {
@@ -104,27 +102,6 @@ export default async function handler(req: Request) {
   <meta name="twitter:description" content="${ogDescription}" />
   <meta name="twitter:image" content="${ogImageUrl}" />
   
-  <!-- Redirect to SPA for non-crawler users -->
-  <script>
-    (function() {
-      // Check if this is a social media crawler
-      const userAgent = navigator.userAgent.toLowerCase();
-      const crawlers = ['twitterbot', 'facebookexternalhit', 'linkedinbot', 'slackbot', 'discordbot', 'telegrambot', 'whatsapp'];
-      const isCrawler = crawlers.some(bot => userAgent.includes(bot));
-      
-      // If not a crawler, redirect to the SPA version
-      if (!isCrawler) {
-        // Prevent infinite redirect loops by checking for a flag
-        const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.has('redirected')) {
-          urlParams.set('redirected', 'true');
-          const newUrl = window.location.origin + '/quiz-result?' + urlParams.toString();
-          window.location.replace(newUrl);
-        }
-      }
-    })();
-  </script>
-  
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -178,7 +155,7 @@ export default async function handler(req: Request) {
     <p style="color: #22c55e;">${escapeHtml(character.title)}</p>
     <div class="score">${score}<span style="opacity: 0.7; font-size: 24px;">/100</span></div>
     <p class="description">"${escapeHtml(character.description)}"</p>
-    <a href="https://www.digibastion.com/opsec-quiz" class="cta">Take the Quiz</a>
+    <a href="https://www.digibastion.com/quiz" class="cta">Take the Quiz</a>
   </div>
 </body>
 </html>`;
@@ -187,6 +164,9 @@ export default async function handler(req: Request) {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+      'Referrer-Policy': 'no-referrer',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

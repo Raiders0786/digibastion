@@ -1,24 +1,33 @@
 import { CompletionState } from '../types/securityState';
 import { ThreatLevel } from '../types/threatProfile';
-import { ScoreHistory } from '../types/security';
+import { ScoreHistory, SecurityStats } from '../types/security';
 
 // Keys for localStorage
-const STORAGE_KEY = 'security-checklist-state';
 const THREAT_LEVEL_KEY = 'security-threat-level';
 const COMPLETION_KEY = 'security-completion-state';
 const SCORE_HISTORY_KEY = 'security-score-history';
 
+const getStorage = (): Storage | null => {
+  try {
+    return typeof window !== 'undefined' && window.localStorage
+      ? window.localStorage
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 export const loadThreatLevel = (): ThreatLevel => {
-  const stored = localStorage.getItem(THREAT_LEVEL_KEY);
+  const stored = getStorage()?.getItem(THREAT_LEVEL_KEY);
   return (stored as ThreatLevel) || 'all';
 };
 
 export const saveThreatLevel = (threatLevel: ThreatLevel): void => {
-  localStorage.setItem(THREAT_LEVEL_KEY, threatLevel);
+  getStorage()?.setItem(THREAT_LEVEL_KEY, threatLevel);
 };
 
 export const loadCompletionState = (): CompletionState => {
-  const stored = localStorage.getItem(COMPLETION_KEY);
+  const stored = getStorage()?.getItem(COMPLETION_KEY);
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
@@ -51,12 +60,12 @@ export const loadCompletionState = (): CompletionState => {
 };
 
 export const saveCompletionState = (completionState: CompletionState): void => {
-  localStorage.setItem(COMPLETION_KEY, JSON.stringify(completionState));
+  getStorage()?.setItem(COMPLETION_KEY, JSON.stringify(completionState));
 };
 
 // New functions for score history management
 export const loadScoreHistory = (): ScoreHistory => {
-  const stored = localStorage.getItem(SCORE_HISTORY_KEY);
+  const stored = getStorage()?.getItem(SCORE_HISTORY_KEY);
   if (stored) {
     try {
       return JSON.parse(stored);
@@ -68,10 +77,10 @@ export const loadScoreHistory = (): ScoreHistory => {
 };
 
 export const saveScoreHistory = (scoreHistory: ScoreHistory): void => {
-  localStorage.setItem(SCORE_HISTORY_KEY, JSON.stringify(scoreHistory));
+  getStorage()?.setItem(SCORE_HISTORY_KEY, JSON.stringify(scoreHistory));
 };
 
-export const addScoreHistoryEntry = (score: number, stats: any): void => {
+export const addScoreHistoryEntry = (score: number, stats: SecurityStats): void => {
   const history = loadScoreHistory();
   
   // Only add a new entry if the score has changed since the last entry

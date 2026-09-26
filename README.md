@@ -27,7 +27,7 @@
 
 **Stop jumping between scattered security tools.** Digibastion is a unified, open-source Web3 OpSec platform that helps you:
 
-- 📊 **Monitor Threats** — Real-time threat intelligence feed with 30+ incidents from 2024-2025
+- 📊 **Monitor Threats** — Real-time threat intelligence feed aggregated from multiple security sources
 - 🧠 **Assess Your OpSec** — Interactive quiz with personalized recommendations and shareable results
 - ✅ **Follow Best Practices** — 200+ expert-backed security items across 11 categories
 - 🔍 **Scan for Risks** — DNS security scanner and supply chain monitoring (coming soon)
@@ -48,7 +48,7 @@
 - 📱 **Mobile-Optimized** — Full responsive design for security on-the-go
 - 🌙 **Dark/Light Mode** — Comfortable viewing in any environment
 
-### Coming Soon (Q1-Q2 2026)
+### Planned
 - 🌐 **DNS Security Scanner** — Comprehensive DNS security analysis
 - ⚡ **Real-time Supply Chain Monitoring** — Detect malicious packages instantly
 - 🔔 **Third-party Dependency Risk Alerts** — Immediate vulnerability notifications
@@ -62,8 +62,8 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18 or later)
-- npm, yarn, or bun
+- Node.js 22.12 or later
+- npm
 
 ### Installation
 
@@ -72,16 +72,28 @@
 git clone https://github.com/Raiders0786/digibastion.git
 cd digibastion
 
-# Install dependencies
-npm install
-# or: yarn install / bun install
+# Configure the public browser environment
+cp .env.example .env
+# Fill in the VITE_SUPABASE_* values for your Supabase project
+
+# Install the locked dependency tree
+npm ci
 
 # Start the development server
 npm run dev
-# or: yarn dev / bun dev
 
 # Open your browser to http://localhost:8080
 ```
+
+Before submitting changes, run the same quality gate used for release checks:
+
+```bash
+npm run check
+```
+
+Only publishable Supabase browser values belong in `.env`. Keep service-role keys,
+cron secrets, provider credentials, and email credentials in the deployment
+platform's server-side secret store.
 
 ---
 

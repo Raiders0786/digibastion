@@ -91,7 +91,7 @@ serve(async (req) => {
     if (!authorized && serviceKey && token === serviceKey) authorized = true;
     if (!authorized) {
       try {
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.117.2');
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
         const authClient = createClient(supabaseUrl, anonKey);

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Calendar, ArrowRight, Twitter, Github, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { serializeJsonLd } from '@/utils/jsonLd';
 
 const CAL_URL = 'https://cal.com/raiders';
 
@@ -123,9 +124,9 @@ const OpsecConsulting = () => {
         description="Hands-on OpSec for founders, funds, and people sitting on size. We review your wallets, your devices, and the way you actually work, and tell you what to change first. Book a free call."
         keywords="web3 opsec, opsec consulting, crypto security audit, qubes os, threat modeling, wallet hardening, web3 security consultant"
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-20 px-5 sm:px-8 lg:px-10">
         <div className="max-w-5xl mx-auto">

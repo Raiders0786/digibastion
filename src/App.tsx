@@ -12,32 +12,34 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import { FloatingActionButton } from "./components/mobile/FloatingActionButton";
 import { OfflineIndicator } from "./components/OfflineIndicator";
-import Index from "./pages/Index";
-import CategoryDetail from "./pages/CategoryDetail";
-import NotFound from "./pages/NotFound";
-import Share from "./pages/Share";
-import About from "./pages/About";
-import License from "./pages/License";
-import Tools from "./pages/Tools";
-import Articles from "./pages/Articles";
-import ArticleDetail from "./pages/ArticleDetail";
-import Links from "./pages/Links";
-import Contact from "./pages/Contact";
-import Support from "./pages/Support";
-import News from "./pages/News";
-import QuizResult from "./pages/QuizResult";
-import Quiz from "./pages/Quiz";
-import Leaderboard from "./pages/Leaderboard";
-import ManageSubscription from "./pages/ManageSubscription";
-import VerifyEmail from "./pages/VerifyEmail";
-import AdminLogin from "./pages/AdminLogin";
-import AdminAnalytics from "./pages/AdminAnalytics";
-import CronMonitor from "./pages/CronMonitor";
-import AdminApiKeys from "./pages/AdminApiKeys";
-import Present from "./pages/Present";
-import Services from "./pages/Services";
-import OpsecConsulting from "./pages/services/OpsecConsulting";
-import FullStackReview from "./pages/services/FullStackReview";
+import { SecurityStateProvider } from "./hooks/useSecurityState";
+
+const Index = React.lazy(() => import("./pages/Index"));
+const CategoryDetail = React.lazy(() => import("./pages/CategoryDetail"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+const Share = React.lazy(() => import("./pages/Share"));
+const About = React.lazy(() => import("./pages/About"));
+const License = React.lazy(() => import("./pages/License"));
+const Tools = React.lazy(() => import("./pages/Tools"));
+const Articles = React.lazy(() => import("./pages/Articles"));
+const ArticleDetail = React.lazy(() => import("./pages/ArticleDetail"));
+const Links = React.lazy(() => import("./pages/Links"));
+const Contact = React.lazy(() => import("./pages/Contact"));
+const Support = React.lazy(() => import("./pages/Support"));
+const News = React.lazy(() => import("./pages/News"));
+const QuizResult = React.lazy(() => import("./pages/QuizResult"));
+const Quiz = React.lazy(() => import("./pages/Quiz"));
+const Leaderboard = React.lazy(() => import("./pages/Leaderboard"));
+const ManageSubscription = React.lazy(() => import("./pages/ManageSubscription"));
+const VerifyEmail = React.lazy(() => import("./pages/VerifyEmail"));
+const AdminLogin = React.lazy(() => import("./pages/AdminLogin"));
+const AdminAnalytics = React.lazy(() => import("./pages/AdminAnalytics"));
+const CronMonitor = React.lazy(() => import("./pages/CronMonitor"));
+const AdminApiKeys = React.lazy(() => import("./pages/AdminApiKeys"));
+const Present = React.lazy(() => import("./pages/Present"));
+const Services = React.lazy(() => import("./pages/Services"));
+const OpsecConsulting = React.lazy(() => import("./pages/services/OpsecConsulting"));
+const FullStackReview = React.lazy(() => import("./pages/services/FullStackReview"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,12 +62,14 @@ const App = () => {
         <ThemeProvider defaultTheme="dark">
           <BrowserRouter>
             <QueryClientProvider client={queryClient}>
-              <TooltipProvider>
+              <SecurityStateProvider>
+                <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <Analytics />
                 <PageTransition>
-                  <Routes>
+                  <React.Suspense fallback={<main className="min-h-screen grid place-items-center" aria-busy="true"><span className="text-muted-foreground">Loading…</span></main>}>
+                    <Routes>
                     <Route path="/" element={<><MetaTags /><Index /></>} />
                     <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
                     <Route path="/threat-intel" element={<><MetaTags /><News /></>} />
@@ -96,12 +100,14 @@ const App = () => {
                     <Route path="/admin/cron" element={<CronMonitor />} />
                     <Route path="/admin/api-keys" element={<AdminApiKeys />} />
                     <Route path="*" element={<><MetaTags /><NotFound /></>} />
-                  </Routes>
+                    </Routes>
+                  </React.Suspense>
                 </PageTransition>
                 <MobileBottomNav />
                 <FloatingActionButton />
                 <OfflineIndicator />
-              </TooltipProvider>
+                </TooltipProvider>
+              </SecurityStateProvider>
             </QueryClientProvider>
           </BrowserRouter>
         </ThemeProvider>

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 
 export type IngestionRun = {
   pipeline: 'rss' | 'web3-incidents' | 'quillmonitor' | 'ai-summary' | 'critical-alerts' | 'digest-emails';

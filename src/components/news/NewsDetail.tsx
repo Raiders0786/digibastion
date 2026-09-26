@@ -10,6 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
 import quillMonitorAsset from '@/assets/powered-by-quillmonitor.svg.asset.json';
+import { openExternalUrl, safeExternalUrl } from '@/utils/safeUrl';
+
+interface StoredBookmark {
+  id: string;
+  title: string;
+  timestamp: string;
+}
 
 interface NewsDetailProps {
   article: NewsArticle;
@@ -85,23 +92,29 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   };
 
   const handleBookmark = () => {
-    // Store in localStorage for now
-    const bookmarks = JSON.parse(localStorage.getItem('newsBookmarks') || '[]');
-    const isBookmarked = bookmarks.some((b: any) => b.id === article.id);
-    
-    if (isBookmarked) {
-      const updated = bookmarks.filter((b: any) => b.id !== article.id);
-      localStorage.setItem('newsBookmarks', JSON.stringify(updated));
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem('newsBookmarks') || '[]');
+      const bookmarks: StoredBookmark[] = Array.isArray(parsed)
+        ? parsed.filter((item): item is StoredBookmark =>
+            typeof item === 'object' && item !== null && typeof item.id === 'string',
+          )
+        : [];
+      const isBookmarked = bookmarks.some((bookmark) => bookmark.id === article.id);
+
+      if (isBookmarked) {
+        const updated = bookmarks.filter((bookmark) => bookmark.id !== article.id);
+        localStorage.setItem('newsBookmarks', JSON.stringify(updated));
+        toast({ title: 'Bookmark removed', description: 'Article removed from bookmarks' });
+      } else {
+        bookmarks.push({ id: article.id, title: article.title, timestamp: new Date().toISOString() });
+        localStorage.setItem('newsBookmarks', JSON.stringify(bookmarks));
+        toast({ title: 'Bookmarked!', description: 'Article saved to bookmarks' });
+      }
+    } catch {
       toast({
-        title: "Bookmark removed",
-        description: "Article removed from bookmarks",
-      });
-    } else {
-      bookmarks.push({ id: article.id, title: article.title, timestamp: new Date().toISOString() });
-      localStorage.setItem('newsBookmarks', JSON.stringify(bookmarks));
-      toast({
-        title: "Bookmarked!",
-        description: "Article saved to bookmarks",
+        title: 'Bookmark unavailable',
+        description: 'Your browser did not allow this bookmark to be saved.',
+        variant: 'destructive',
       });
     }
   };
@@ -211,7 +224,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 {article.metadata?.amount_display && <div><div className="text-xs text-muted-foreground">Reported loss</div><div className="font-medium">{article.metadata.amount_display}</div></div>}
               </div>
               {isQuillMonitor && <a
-                href={article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database'}
+                href={safeExternalUrl(article.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Powered by QuillMonitor"
@@ -279,7 +292,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           )}
 
           {/* Source Links - use article.link as the primary source */}
-          {article.link && (
+          {(article.link || article.sourceUrl) && (
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-primary" />
@@ -293,7 +306,16 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                   try {
                     const parsed = JSON.parse(article.sourceUrl);
                     if (Array.isArray(parsed)) {
-                      sources = parsed;
+                      sources = parsed.flatMap((source): { url: string; label: string }[] => {
+                        if (typeof source !== 'object' || source === null) return [];
+                        const candidate = source as Record<string, unknown>;
+                        const url = safeExternalUrl(candidate.url);
+                        if (!url) return [];
+                        return [{
+                          url,
+                          label: typeof candidate.label === 'string' ? candidate.label : new URL(url).hostname,
+                        }];
+                      });
                     }
                   } catch {
                     // Not JSON - sourceUrl is just the RSS feed URL, use article.link instead
@@ -301,12 +323,13 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 }
                 
                 // If no JSON sources found, use the article's direct link
-                if (sources.length === 0) {
+                const primaryLink = safeExternalUrl(article.link);
+                if (sources.length === 0 && primaryLink) {
                   try {
-                    const hostname = new URL(article.link).hostname.replace('www.', '');
-                    sources = [{ url: article.link, label: article.sourceName || hostname }];
+                    const hostname = new URL(primaryLink).hostname.replace('www.', '');
+                    sources = [{ url: primaryLink, label: article.sourceName || hostname }];
                   } catch {
-                    sources = [{ url: article.link, label: article.sourceName || 'Original Source' }];
+                    // Invalid links are intentionally omitted.
                   }
                 }
                 
@@ -318,7 +341,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                         variant="outline"
                         size="sm"
                         className="justify-start gap-2 text-left"
-                        onClick={() => window.open(source.url, '_blank', 'noopener,noreferrer')}
+                        onClick={() => openExternalUrl(source.url)}
                       >
                         <ExternalLink className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">{source.label || (() => { try { return new URL(source.url).hostname; } catch { return 'Source'; } })()}</span>

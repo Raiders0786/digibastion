@@ -9,6 +9,7 @@ import { ArticleHeader } from '@/components/article/ArticleHeader';
 import { NotFoundView } from '@/components/article/NotFoundView';
 import { MetaTags } from '../components/MetaTags';
 import { RelatedArticles } from '@/components/article/RelatedArticles';
+import { serializeJsonLd } from '@/utils/jsonLd';
 
 const ArticleDetail = () => {
   const { slug } = useParams();
@@ -81,7 +82,7 @@ const ArticleDetail = () => {
       />
       
       {/* Article Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleSchema) }} />
       
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

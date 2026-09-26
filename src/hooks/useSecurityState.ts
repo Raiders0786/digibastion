@@ -1,9 +1,9 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { SecurityStats } from '../types/security';
 import { ThreatLevel } from '../types/threatProfile';
 import { toast } from 'sonner';
-import { ScoreCache, SecurityStateContextType } from '../types/securityState';
+import { SecurityStateContextType } from '../types/securityState';
 import { 
   loadThreatLevel, 
   saveThreatLevel,
@@ -14,10 +14,9 @@ import { useCategoryManagement } from './security/useCategoryManagement';
 import { useSecurityScoring } from './security/useSecurityScoring';
 import { useSecurityCompletion } from './security/useSecurityCompletion';
 
-// Create a global state variable to track threat level changes
-let globalThreatLevelChangeCount = 0;
+const SecurityStateContext = createContext<SecurityStateContextType | undefined>(undefined);
 
-export const useSecurityState = (): SecurityStateContextType => {
+const useSecurityStateValue = (): SecurityStateContextType => {
   // Load threat level from localStorage or default to 'all'
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(() => {
     try {
@@ -28,7 +27,6 @@ export const useSecurityState = (): SecurityStateContextType => {
     }
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [scoreCache, setScoreCache] = useState<ScoreCache>({});
   // Add a change counter to force re-renders when threat level changes
   const [changeCount, setChangeCount] = useState(0);
   
@@ -50,27 +48,14 @@ export const useSecurityState = (): SecurityStateContextType => {
   // Extract scoring logic to a custom hook
   const { getCategoryScore, getOverallScore } = useSecurityScoring(
     categories, 
-    threatLevel, 
-    scoreCache, 
-    setScoreCache
+    threatLevel,
   );
 
   // Save threat level to localStorage and synchronize global state
   useEffect(() => {
     try {
       saveThreatLevel(threatLevel);
-      console.log(`Threat level changed to: ${threatLevel}`);
-      
-      // Clear score cache for the changed threat level
-      setScoreCache(prev => {
-        const newCache = { ...prev };
-        delete newCache[threatLevel];
-        return newCache;
-      });
-
-      // Update global counter to inform other components of the change
-      globalThreatLevelChangeCount++;
-      setChangeCount(globalThreatLevelChangeCount);
+      setChangeCount(count => count + 1);
     } catch (error) {
       console.error('Error saving threat level:', error);
       toast.error('Error saving security profile', {
@@ -87,9 +72,6 @@ export const useSecurityState = (): SecurityStateContextType => {
       // Just update the threat level in localStorage
       setThreatLevel(newThreatLevel);
       
-      // Force a re-render by updating change count
-      globalThreatLevelChangeCount++;
-      setChangeCount(globalThreatLevelChangeCount);
     } catch (error) {
       console.error('Error changing threat level:', error);
       toast.error('Error changing security profile', {
@@ -102,10 +84,6 @@ export const useSecurityState = (): SecurityStateContextType => {
   const getStats = useCallback((): SecurityStats => {
     try {
       const stats = calculateSecurityStats(categories, threatLevel);
-      
-      // Record this score in history
-      const score = getOverallScore();
-      addScoreHistoryEntry(score, stats);
       
       return stats;
     } catch (error) {
@@ -121,7 +99,12 @@ export const useSecurityState = (): SecurityStateContextType => {
         recommendedRemaining: 0
       };
     }
-  }, [categories, threatLevel, getOverallScore, changeCount]);
+  }, [categories, threatLevel]);
+
+  useEffect(() => {
+    const stats = calculateSecurityStats(categories, threatLevel);
+    addScoreHistoryEntry(getOverallScore(), stats);
+  }, [categories, threatLevel, getOverallScore]);
 
   return {
     categories: getFilteredCategories,
@@ -135,4 +118,17 @@ export const useSecurityState = (): SecurityStateContextType => {
     isLoading,
     changeCount,
   };
+};
+
+export const SecurityStateProvider = ({ children }: { children: ReactNode }) => {
+  const value = useSecurityStateValue();
+  return createElement(SecurityStateContext.Provider, { value }, children);
+};
+
+export const useSecurityState = (): SecurityStateContextType => {
+  const context = useContext(SecurityStateContext);
+  if (!context) {
+    throw new Error('useSecurityState must be used within SecurityStateProvider');
+  }
+  return context;
 };

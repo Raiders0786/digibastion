@@ -7,6 +7,7 @@ import { toolCategories } from '@/data/tools/categories';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { serializeJsonLd } from '@/utils/jsonLd';
 
 const Tools = () => {
   return (
@@ -20,7 +21,7 @@ const Tools = () => {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             "@context": "https://schema.org",
             "@type": "CollectionPage",
             "name": "Web3 Security Tools Directory",

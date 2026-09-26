@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,8 +46,8 @@ export default function ManageSubscription() {
   // Check if we have both email and token for secure access
   const hasSecureAccess = Boolean(emailParam && tokenParam);
 
-  const loadSubscription = async () => {
-    if (!email || !token) {
+  const loadSubscription = useCallback(async () => {
+    if (!emailParam || !tokenParam) {
       setAuthError(true);
       return;
     }
@@ -57,7 +57,7 @@ export default function ManageSubscription() {
     
     try {
       const { data, error } = await supabase.functions.invoke("get-subscription", {
-        body: { email, token },
+        body: { email: emailParam, token: tokenParam },
       });
 
       if (error) throw error;
@@ -92,13 +92,13 @@ export default function ManageSubscription() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [emailParam, tokenParam, toast]);
 
   useEffect(() => {
     if (hasSecureAccess) {
       loadSubscription();
     }
-  }, [emailParam, tokenParam]);
+  }, [hasSecureAccess, loadSubscription]);
 
   const handleRequestLink = async (e: React.FormEvent) => {
     e.preventDefault();
