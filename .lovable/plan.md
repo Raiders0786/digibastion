@@ -30,12 +30,14 @@ Digibastion will present one chronological Threat Intel feed across RSS, existin
 - Show available project, chain, attack method, reported loss, and incident date directly on the card in a stable responsive layout.
 - Keep provider attribution compact in card/detail source areas. Retain the required linked “Powered by QuillMonitor” attribution only for QuillMonitor-sourced records.
 - Keep ordinary articles visually unchanged when structured incident facts are unavailable.
+- Keep **Active Alerts** provider-neutral: every critical or high record enters the tab regardless of feed filters, source, or whether it is a structured Web3 incident.
 
 ### 3. Unify administrator refresh actions
 
 - Replace the public-page QuillMonitor action with one administrator-only **Refresh Web3 Incidents** action.
 - The action will run the existing Web3 and QuillMonitor collectors independently, report each result separately, and refresh the combined feed after both finish.
 - A failure from one provider will not suppress a successful result from the other.
+- After any administrator refresh, refresh the Active Alerts dataset and badge so newly ingested critical/high records appear without a page reload.
 - Keep RSS refresh and summarization independent.
 
 ### 4. Add a private Threat Intel health view
@@ -43,6 +45,7 @@ Digibastion will present one chronological Threat Intel feed across RSS, existin
 - Extend the existing admin operations area with a Threat Intel section rather than creating another disconnected dashboard.
 - Show per pipeline: status, schedule, last attempted update, last successful run, most recent record time, records added or refreshed, failure count, and freshness warning.
 - Include summary checks for duplicate stable IDs, invalid/missing incident fields, future-dated records, category distribution, severity distribution, and recent provider volume.
+- Show the current critical/high Active Alerts count, latest alert timestamp, and a direct link to inspect the public alert view.
 - Add administrator-only actions to refresh RSS and Web3 incidents, then show a clear per-source outcome.
 - Link the admin analytics, operations, API key, and Threat Intel views through one consistent admin header that works on mobile.
 - Reuse sanitized operational records only. Never return credentials, authorization headers, raw provider payloads, subscriber details, internal service URLs, or stack traces.
@@ -66,6 +69,7 @@ Digibastion will present one chronological Threat Intel feed across RSS, existin
 ### 7. Verification and release gate
 
 - Verify mixed-source newest-first ordering and that **Web3 Incidents** includes qualifying records from multiple sources.
+- Verify all critical and high records from RSS, the existing Web3 collector, and QuillMonitor appear in Active Alerts, with critical and high groups and counts staying synchronized after manual, scheduled, and realtime ingestion.
 - Test desktop and mobile feed controls, cards, incident details, pagination, cache, and deep links.
 - Verify public users cannot trigger ingestion or access health data; verify administrators can refresh and inspect outcomes.
 - Test provider timeout/partial-failure behavior, stable-ID deduplication, pagination, URL validation, and malformed-record rejection.
