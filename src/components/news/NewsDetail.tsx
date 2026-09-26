@@ -218,6 +218,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 className="inline-flex rounded border bg-card p-2"
               >
                 <img src={quillMonitorAsset.url} width="244" height="44" alt="Powered by QuillMonitor" className="h-8 w-auto" />
+                <span className="sr-only">Powered by QuillMonitor</span>
               </a>}
             </div>
           )}

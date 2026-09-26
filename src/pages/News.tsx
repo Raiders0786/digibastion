@@ -346,6 +346,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     return activeAlerts;
   }, [activeAlerts]);
 
+  const quillMonitorAlerts = useMemo(() => {
+    return activeAlerts.filter((article) => article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor');
+  }, [activeAlerts]);
+
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
     setSearchParams(prev => {
@@ -860,6 +864,30 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     </Button>
                   </div>
                 </div>
+
+                {quillMonitorAlerts.length > 0 && (
+                  <div className="border-y border-border py-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
+                        <RadioTower className="h-3 w-3" /> QuillMonitor
+                      </Badge>
+                      <h2 className="font-semibold">Imported active alerts ({quillMonitorAlerts.length})</h2>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {quillMonitorAlerts.map((alert) => (
+                        <Button
+                          key={alert.id}
+                          variant="outline"
+                          className="h-auto min-h-12 justify-between gap-3 whitespace-normal px-3 py-2 text-left"
+                          onClick={() => handleArticleClick(alert)}
+                        >
+                          <span className="line-clamp-2 text-sm">{alert.title}</span>
+                          <Badge variant="secondary" className="shrink-0 capitalize">{alert.severity}</Badge>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Critical Alerts */}
                 {criticalAlerts.length > 0 && (
