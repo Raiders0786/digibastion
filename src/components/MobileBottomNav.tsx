@@ -1,9 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles } from 'lucide-react';
+import { Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles, Radar } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { ChevronDown, Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share, Briefcase } from 'lucide-react';
+import { Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { SwipeableBottomSheet } from './mobile/SwipeableBottomSheet';
+import { SwipeableBottomSheet, SwipeableSheetDescription, SwipeableSheetTitle } from './mobile/SwipeableBottomSheet';
 import { TouchFeedback } from './mobile/TouchFeedback';
 import { NotificationBadge } from './mobile/NotificationBadge';
 import { useMobileNotifications } from '@/hooks/useMobileNotifications';
@@ -81,6 +81,7 @@ export const MobileBottomNav = () => {
   ];
 
   const resourceItems = [
+    { route: '/services', icon: Briefcase, label: 'Services' },
     { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
     { route: '/quiz', icon: Zap, label: 'OpSec Quiz' },
     { route: '/tools', icon: Wrench, label: 'Tools' },
@@ -95,7 +96,7 @@ export const MobileBottomNav = () => {
 
   const navItems = [
     { route: '/', icon: Home, label: 'Home', badge: undefined },
-    { route: '/services', icon: Briefcase, label: 'Services', badge: undefined },
+    { route: '/quiz', icon: Zap, label: 'Quiz', badge: hasNewQuiz ? 'dot' : undefined },
     { route: '/threat-intel', icon: Newspaper, label: 'Alerts', badge: alertCount > 0 ? alertCount : undefined },
   ];
 
@@ -115,7 +116,7 @@ export const MobileBottomNav = () => {
       {/* Navigation bar - solid background to prevent blur issues */}
       <nav className="bg-background border-t border-border/50 px-2 pb-safe shadow-2xl">
         <div className="flex items-center justify-around h-16">
-          {navItems.map((item, idx) => (
+          {navItems.map((item) => (
             <TouchFeedback
               key={item.route}
               onClick={() => handleNavClick(item.route)}
@@ -158,6 +159,15 @@ export const MobileBottomNav = () => {
             </TouchFeedback>
           ))}
 
+          <TouchFeedback
+            onClick={() => window.open('https://vantage.digibastion.com', '_blank', 'noopener,noreferrer')}
+            className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl text-muted-foreground"
+            rippleColor="bg-primary/20"
+          >
+            <Radar className="w-5 h-5 text-primary" />
+            <span className="text-[10px] font-medium">Vantage</span>
+          </TouchFeedback>
+
           {/* Menu Button with Swipeable Sheet */}
           <TouchFeedback
             onClick={() => setMenuOpen(true)}
@@ -180,8 +190,8 @@ export const MobileBottomNav = () => {
                   <Shield className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-foreground">Digibastion Menu</h2>
-                  <p className="text-xs text-muted-foreground">Secure the Stack</p>
+                  <SwipeableSheetTitle className="text-base font-semibold text-foreground">Digibastion Menu</SwipeableSheetTitle>
+                  <SwipeableSheetDescription className="text-xs text-muted-foreground">Navigate products, services, and security checklists.</SwipeableSheetDescription>
                 </div>
               </div>
             </div>

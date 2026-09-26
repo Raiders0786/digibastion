@@ -2,13 +2,26 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
 import { Button } from '@/components/ui/button';
-import { Calendar, ArrowRight, ArrowUpRight } from 'lucide-react';
+import { Calendar, ArrowRight, ArrowUpRight, Radar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { serializeJsonLd } from '@/utils/jsonLd';
 
 const CAL_URL = 'https://cal.com/raiders';
+const VANTAGE_URL = 'https://vantage.digibastion.com';
 
-const services = [
+interface Service {
+  slug: string;
+  eyebrow: string;
+  title: string;
+  status: string;
+  summary: string;
+  bullets: string[];
+  available: boolean;
+  to: string;
+  external?: boolean;
+}
+
+const services: Service[] = [
   {
     slug: 'opsec-consulting',
     eyebrow: '01',
@@ -32,15 +45,16 @@ const services = [
     to: '/services/full-stack-review',
   },
   {
-    slug: 'dns-domain-monitoring',
+    slug: 'vantage-domain-intelligence',
     eyebrow: '03',
-    title: 'DNS & Domain Monitoring',
-    status: 'Coming soon',
+    title: 'Vantage — Domain Security Intelligence',
+    status: 'Live beta',
     summary:
-      'We watch your DNS, your domain, and your frontend so you find out about a change before your users do. Alerts land in PagerDuty or Slack, with the context you need to act.',
-    bullets: ['DNS and TLS posture', 'Lookalike domain watch', 'Frontend integrity checks'],
-    available: false,
-    to: '/services',
+      'External trust evidence for the domains your users and partners rely on: DNS, email, TLS, web headers, infrastructure, frontend supply chain, phishing, breach, and Web3 trust paths.',
+    bullets: ['Public domain score', 'Private evidence and remediation workflow', 'Monitoring, history, and exports'],
+    available: true,
+    external: true,
+    to: VANTAGE_URL,
   },
   {
     slug: 'threat-intel-retainer',
@@ -57,8 +71,8 @@ const services = [
 
 const credentials = [
   ['ESP 2025', 'Funded by the Ethereum Foundation'],
+  ['Vantage live', 'Domain intelligence running in public beta'],
   ['Open source', 'Read the code before you trust it'],
-  ['Named team', 'You always know who is on the call'],
 ];
 
 const process = [
@@ -81,8 +95,8 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Security Services: Web3 OpSec, DNS Monitoring & Threat Intel | DigiBastion"
-        description="The paid work behind DigiBastion. Web3 OpSec consulting, DNS and domain monitoring, and threat intel retainers, delivered by the same people who build the open-source platform."
+        title="Security Services: Web3 OpSec, Full-Stack Reviews & Vantage | Digibastion"
+        description="Work with Digibastion on Web3 OpSec and full-stack security reviews, or use Vantage for domain security intelligence and external trust evidence."
         keywords="web3 security services, opsec consulting, dns monitoring, threat intelligence, crypto security audit, digibastion services"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
@@ -116,6 +130,11 @@ const Services = () => {
                       Read about OpSec consulting <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
+                  <a href={VANTAGE_URL} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                    <Button size="lg" variant="ghost" className="w-full sm:w-auto gap-2 text-foreground hover:bg-transparent hover:text-primary">
+                      <Radar className="w-4 h-4" /> Open Vantage <ArrowUpRight className="w-4 h-4" />
+                    </Button>
+                  </a>
                 </div>
               </div>
               <ul className="hidden lg:block border-l border-border/60 pl-6 space-y-4 text-sm min-w-[14rem]">
@@ -134,52 +153,49 @@ const Services = () => {
             <div className="flex items-baseline justify-between mb-10">
               <h2 className="font-display font-normal text-3xl sm:text-4xl text-foreground">What we work on</h2>
               <span className="text-[11px] font-mono tracking-[0.18em] uppercase text-muted-foreground hidden sm:block">
-                Four engagements, two open now
+                Four ways to work with us, three open now
               </span>
             </div>
             <ul className="divide-y divide-border/60 border-y border-border/60">
               {services.map((s) => {
-                const Wrapper: any = s.available ? Link : 'div';
-                const wrapperProps = s.available ? { to: s.to } : {};
+                const content = (
+                  <>
+                    <div className="font-mono text-xs tracking-[0.18em] text-primary pt-1">{s.eyebrow}</div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h3 className="font-display font-normal text-2xl sm:text-3xl text-foreground leading-tight">
+                          {s.title}
+                        </h3>
+                        <span className={`font-mono text-[10px] tracking-[0.18em] uppercase rounded-full px-2 py-0.5 border ${s.available ? 'text-success border-success/30 bg-success/10' : 'text-muted-foreground border-border/70'}`}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground max-w-2xl leading-relaxed">{s.summary}</p>
+                      <ul className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs text-muted-foreground/90">
+                        {s.bullets.map((bullet) => (
+                          <li key={bullet} className="before:content-['+'] before:mr-2 before:text-primary/60">{bullet}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="self-center justify-self-start sm:justify-self-end">
+                      {s.available ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-primary group-hover:gap-2.5 transition-all">
+                          {s.external ? 'Open product' : 'View service'} <ArrowUpRight className="w-4 h-4" />
+                        </span>
+                      ) : <span className="text-xs text-muted-foreground">Coming soon</span>}
+                    </div>
+                  </>
+                );
+                const className = `group grid sm:grid-cols-[3.5rem_1fr_auto] gap-x-6 gap-y-3 py-7 sm:py-8 transition-colors ${s.available ? 'hover:bg-muted/20 cursor-pointer' : 'opacity-80'}`;
                 return (
                   <li key={s.slug}>
-                    <Wrapper
-                      {...wrapperProps}
-                      className={`group grid sm:grid-cols-[3.5rem_1fr_auto] gap-x-6 gap-y-3 py-7 sm:py-8 transition-colors ${
-                        s.available ? 'hover:bg-muted/20 cursor-pointer' : 'opacity-80'
-                      }`}
-                    >
-                      <div className="font-mono text-xs tracking-[0.18em] text-primary pt-1">{s.eyebrow}</div>
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-display font-normal text-2xl sm:text-3xl text-foreground leading-tight">
-                            {s.title}
-                          </h3>
-                          {!s.available && (
-                            <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground border border-border/70 rounded-full px-2 py-0.5">
-                              Soon
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-muted-foreground max-w-2xl leading-relaxed">{s.summary}</p>
-                        <ul className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs text-muted-foreground/90">
-                          {s.bullets.map((b) => (
-                            <li key={b} className="before:content-['+'] before:mr-2 before:text-primary/60">
-                              {b}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="self-center justify-self-start sm:justify-self-end">
-                        {s.available ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm text-primary group-hover:gap-2.5 transition-all">
-                            View <ArrowUpRight className="w-4 h-4" />
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Coming soon</span>
-                        )}
-                      </div>
-                    </Wrapper>
+                    {s.external ? (
+                      <a href={s.to} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>
+                    ) : s.available ? (
+                      <Link to={s.to} className={className}>{content}</Link>
+                    ) : (
+                      <div className={className}>{content}</div>
+                    )}
                   </li>
                 );
               })}

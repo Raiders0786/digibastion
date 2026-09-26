@@ -1,361 +1,186 @@
 import { useState } from 'react';
-import { Shield, Github, FileText, Book, Info, Mail, Link, Share, Wrench, Heart, Newspaper, ChevronDown, Map, Zap, Menu, X, Briefcase } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "./ui/navigation-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ThemeToggle } from './ThemeToggle';
-import { Button } from './ui/button';
-import { ScrollArea } from './ui/scroll-area';
+  ArrowUpRight, Bell, BookOpen, Briefcase, CheckCircle2, ChevronRight,
+  Github, Heart, Info, Mail, Menu, Newspaper, Radar, Share2, Shield,
+  Sparkles, Wrench, Zap,
+} from 'lucide-react';
+import {
+  NavigationMenu, NavigationMenuContent, NavigationMenuItem,
+  NavigationMenuList, NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
+
+const VANTAGE_URL = 'https://vantage.digibastion.com';
+
+const categories = [
+  { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
+  { id: 'browsing', title: 'Web Browsing', description: 'Safer browsing habits' },
+  { id: 'email', title: 'Email Security', description: 'Protect communications' },
+  { id: 'mobile', title: 'Mobile Security', description: 'Harden your phone' },
+  { id: 'social', title: 'Social Media', description: 'Secure public accounts' },
+  { id: 'wallet', title: 'Web3 Wallet', description: 'Protect crypto assets' },
+  { id: 'os', title: 'OS Security', description: 'Harden your computer' },
+  { id: 'defi', title: 'DeFi Security', description: 'Reduce transaction risk' },
+  { id: 'developers', title: 'Developer Security', description: 'Secure what you ship' },
+  { id: 'jobs', title: 'Job Search Security', description: 'Spot recruitment attacks' },
+  { id: 'opsec', title: 'Operational Security', description: 'Manage your exposure' },
+];
+
+const resourceItems = [
+  { route: '/articles', icon: BookOpen, label: 'Security guides' },
+  { route: '/tools', icon: Wrench, label: 'Tool directory' },
+  { route: '/about', icon: Info, label: 'About Digibastion' },
+  { route: '/support', icon: Heart, label: 'Support the project' },
+  { route: '/contact', icon: Mail, label: 'Contact' },
+  { route: '/share', icon: Share2, label: 'Share Digibastion' },
+];
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleCategoryClick = (categoryId: string) => {
-    setMobileMenuOpen(false);
-    if (categoryId === 'score') {
-      if (location.pathname !== '/') {
-        navigate('/', { state: { scrollTo: 'score' } });
-      } else {
-        const element = document.getElementById(categoryId);
-        if (element) {
-          const offset = 80;
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - offset;
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
-        }
-      }
-    } else {
-      navigate(`/category/${categoryId}`);
-    }
-  };
-
-  const handleRoadmapClick = () => {
+  const goToSection = (id: string) => {
     setMobileMenuOpen(false);
     if (location.pathname !== '/') {
-      navigate('/', { state: { scrollTo: 'roadmap' } });
-    } else {
-      const element = document.getElementById('roadmap');
-      if (element) {
-        const offset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - offset;
-        
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }
+      navigate('/', { state: { scrollTo: id } });
+      return;
+    }
+    const element = document.getElementById(id);
+    if (element) {
+      const top = element.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
     }
   };
 
-  const handleMobileNavigate = (route: string) => {
+  const goTo = (route: string) => {
     setMobileMenuOpen(false);
     navigate(route);
   };
 
-  const categories = [
-    { id: 'authentication', title: 'Authentication', description: 'Secure account access' },
-    { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing' },
-    { id: 'email', title: 'Email Security', description: 'Protect communications' },
-    { id: 'mobile', title: 'Mobile Security', description: 'Device protection' },
-    { id: 'social', title: 'Social Media', description: 'Social account security' },
-    { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection' },
-    { id: 'os', title: 'OS Security', description: 'System hardening' },
-    { id: 'defi', title: 'DeFi Security', description: 'Secure DeFi interactions' },
-    { id: 'developers', title: 'Developer Security', description: 'Web3 development security' },
-    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting' },
-    { id: 'opsec', title: 'OpSec', description: 'Operational security practices' }
-  ];
-
-  const resourceItems = [
-    { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
-    { route: '/quiz', icon: Zap, label: 'OpSec Quiz' },
-    { route: '/tools', icon: Wrench, label: 'Tools' },
-    { route: '/articles', icon: Book, label: 'Articles' },
-    { route: '/links', icon: Link, label: 'Useful Links' },
-    { route: '/license', icon: FileText, label: 'License' },
-    { route: '/about', icon: Info, label: 'About Us' },
-    { route: '/support', icon: Heart, label: 'Support Us' },
-    { route: '/contact', icon: Mail, label: 'Contact' },
-    { route: '/share', icon: Share, label: 'Share' }
-  ];
-
   return (
-    <nav className="bg-background/80 backdrop-blur-xl border-b border-border/50 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div 
-            className="flex items-center gap-2.5 cursor-pointer group" 
-            onClick={() => navigate('/')}
-          >
-            <div className="relative">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-300">
-                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-              </div>
-              <div className="absolute -inset-1 bg-primary/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg sm:text-xl font-semibold text-foreground tracking-tight leading-none">
-                Digibastion
-              </span>
-              <span className="text-[9px] text-muted-foreground/70 hidden sm:block tracking-wide">
-                Secure the Stack
-              </span>
-            </div>
-          </div>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden sm:flex items-center gap-1 sm:gap-2">
-            {/* Checklists Dropdown - Separate NavigationMenu */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
-                    Checklists
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="w-[320px] sm:w-[400px] p-4 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
-                      {/* Featured Card */}
-                      <button
-                        onClick={() => handleCategoryClick('score')}
-                        className="w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-5 text-left mb-4
-                          border border-primary/20 transition-all duration-300 hover:border-primary/40 hover:shadow-glow group relative overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                        <div className="relative">
-                          <h3 className="text-base font-semibold text-foreground mb-1.5">
-                            Security Score
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Track your security progress across all categories
-                          </p>
-                        </div>
-                      </button>
-                      
-                      {/* Category List */}
-                      <div className="space-y-0.5 max-h-[50vh] overflow-y-auto scrollbar-hide">
-                        {categories.map(category => (
-                          <button
-                            key={category.id}
-                            onClick={() => handleCategoryClick(category.id)}
-                            className="w-full p-3 text-left rounded-lg transition-all duration-200
-                              hover:bg-muted/50 group flex items-center justify-between"
-                          >
-                            <div>
-                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                {category.title}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {category.description}
-                              </div>
-                            </div>
-                            <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 opacity-0 group-hover:opacity-100 transition-all" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+    <nav aria-label="Primary navigation" className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <button type="button" onClick={() => navigate('/')} className="group flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+            <Shield className="h-5 w-5 text-primary" />
+          </span>
+          <span className="text-left">
+            <span className="block text-lg font-semibold leading-none tracking-tight text-foreground">Digibastion</span>
+            <span className="mt-1 hidden text-[9px] font-medium uppercase tracking-[0.15em] text-muted-foreground sm:block">Security you can act on</span>
+          </span>
+        </button>
 
-            {/* Services */}
-            <button
-              onClick={() => navigate('/services')}
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
-                transition-colors rounded-lg hover:bg-muted/50"
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>Services</span>
-            </button>
-
-            {/* Threat Intel */}
-            <button
-              onClick={() => navigate('/threat-intel')}
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-sm font-medium text-foreground hover:text-primary 
-                transition-colors rounded-lg hover:bg-muted/50"
-            >
-              <Newspaper className="w-4 h-4" />
-              <span>Threat Intel</span>
-            </button>
-
-            {/* Resources Dropdown - Separate NavigationMenu */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium px-2 sm:px-3 py-2 bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50 rounded-lg transition-colors">
-                    Resources
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="w-[200px] p-2 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-elevated">
-                      {resourceItems.map(item => (
-                        <button
-                          key={item.label}
-                          onClick={() => item.action ? item.action() : navigate(item.route!)}
-                          className="flex items-center gap-2.5 w-full p-2.5 text-sm rounded-lg 
-                            hover:bg-muted/50 text-left transition-all duration-200 group"
-                        >
-                          <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                          <span className="text-foreground group-hover:text-primary transition-colors">
-                            {item.label}
-                          </span>
+        <div className="hidden items-center gap-1 lg:flex">
+          <NavigationMenu>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className="bg-transparent text-sm">Products</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="w-[520px] rounded-xl border border-border/60 bg-popover/95 p-3 shadow-elevated backdrop-blur-xl">
+                    <a href={VANTAGE_URL} target="_blank" rel="noopener noreferrer" className="group flex items-start gap-4 rounded-xl border border-primary/20 bg-primary/10 p-4 transition-colors hover:border-primary/40">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15"><Radar className="h-5 w-5 text-primary" /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 font-semibold text-foreground">Vantage <span className="rounded-full bg-success/10 px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider text-success">Live</span></span>
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">Domain security intelligence and external trust evidence for Web3 and Web2 teams.</span>
+                      </span>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    </a>
+                    <div className="mt-2 grid grid-cols-2 gap-1">
+                      {[
+                        { icon: Zap, title: 'OpSec assessment', description: 'Find your highest-priority gaps', route: '/quiz' },
+                        { icon: Newspaper, title: 'Threat intelligence', description: 'Current incidents and alerts', route: '/threat-intel' },
+                        { icon: CheckCircle2, title: 'Security checklists', description: 'Track practical improvements', action: () => goToSection('checklists') },
+                        { icon: Sparkles, title: 'Security score', description: 'See progress across categories', action: () => goToSection('score') },
+                      ].map((item) => (
+                        <button key={item.title} type="button" onClick={() => item.action ? item.action() : navigate(item.route!)} className="group rounded-lg p-3 text-left transition-colors hover:bg-muted/60">
+                          <span className="flex items-center gap-2 text-sm font-medium text-foreground group-hover:text-primary"><item.icon className="h-4 w-4 text-primary" /> {item.title}</span>
+                          <span className="mt-1 block pl-6 text-xs text-muted-foreground">{item.description}</span>
                         </button>
                       ))}
                     </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
+          <button type="button" onClick={() => navigate('/services')} className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname.startsWith('/services') ? 'text-primary' : 'text-foreground'}`}>Services</button>
+          <button type="button" onClick={() => navigate('/articles')} className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname.startsWith('/articles') ? 'text-primary' : 'text-foreground'}`}>Guides</button>
+          <button type="button" onClick={() => navigate('/tools')} className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname === '/tools' ? 'text-primary' : 'text-foreground'}`}>Tools</button>
+          <button type="button" onClick={() => goToSection('roadmap')} className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 hover:text-primary">Roadmap</button>
+          <ThemeToggle />
+          <a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground" aria-label="Contribute to Digibastion on GitHub"><Github className="h-5 w-5" /></a>
+        </div>
 
-            {/* GitHub */}
-            <a 
-              href="https://github.com/Raiders0786/digibastion"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
-              aria-label="View on GitHub"
-            >
-              <Github className="w-5 h-5" />
-            </a>
-          </div>
+        <div className="flex items-center gap-1 lg:hidden">
+          <a href={VANTAGE_URL} target="_blank" rel="noopener noreferrer" className="hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary sm:inline-flex">Vantage <ArrowUpRight className="h-3.5 w-3.5" /></a>
+          <ThemeToggle />
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild><Button variant="ghost" size="icon" aria-label="Open navigation menu"><Menu className="h-5 w-5" /></Button></SheetTrigger>
+            <SheetContent side="right" className="w-[min(92vw,380px)] p-0">
+              <SheetHeader className="border-b border-border/60 p-5 text-left">
+                <SheetTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Digibastion</SheetTitle>
+                <SheetDescription>Navigate products, services, guides, and security checklists.</SheetDescription>
+              </SheetHeader>
+              <ScrollArea className="h-[calc(100dvh-73px)]">
+                <div className="space-y-7 p-4 pb-10">
+                  <a href={VANTAGE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/10 p-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15"><Radar className="h-5 w-5 text-primary" /></span>
+                    <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-sm font-semibold text-foreground">Vantage <span className="text-[9px] font-mono uppercase text-success">Live</span></span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Domain security intelligence and trust evidence.</span></span>
+                    <ArrowUpRight className="h-4 w-4 text-primary" />
+                  </a>
 
-          {/* Mobile Navigation - Only theme toggle and hamburger, bottom nav handles main actions */}
-          <div className="flex sm:hidden items-center gap-1">
-            <ThemeToggle />
-
-            {/* Hamburger Menu */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="p-2">
-                  <Menu className="w-5 h-5" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0">
-                <SheetHeader className="p-4 border-b border-border/50">
-                  <SheetTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-primary" />
-                    <span>Digibastion</span>
-                  </SheetTitle>
-                </SheetHeader>
-                
-                <ScrollArea className="h-[calc(100vh-80px)]">
-                  <div className="p-4 space-y-6">
-                    {/* Security Score */}
-                    <button
-                      onClick={() => handleCategoryClick('score')}
-                      className={`w-full rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 p-4 text-left
-                        border transition-all duration-300 hover:border-primary/40 hover:scale-[1.02] active:scale-[0.98]
-                        animate-fade-in ${location.pathname === '/' && location.hash === '#score' ? 'border-primary/60 shadow-glow' : 'border-primary/20'}`}
-                      style={{ animationDelay: '50ms' }}
-                    >
-                      <h3 className="text-sm font-semibold text-foreground mb-1">Security Score</h3>
-                      <p className="text-xs text-muted-foreground">Track your security progress</p>
-                    </button>
-
-                    {/* Checklists Section */}
-                    <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Security Checklists
-                      </h4>
-                      <div className="space-y-1">
-                        {categories.map((category, idx) => {
-                          const isActive = location.pathname === `/category/${category.id}`;
-                          return (
-                            <button
-                              key={category.id}
-                              onClick={() => handleCategoryClick(category.id)}
-                              className={`w-full p-3 text-left rounded-lg transition-all duration-200
-                                flex items-center justify-between group hover:scale-[1.01] active:scale-[0.99]
-                                animate-fade-in ${isActive 
-                                  ? 'bg-primary/10 border border-primary/30' 
-                                  : 'hover:bg-muted/50 border border-transparent'}`}
-                              style={{ animationDelay: `${150 + idx * 30}ms` }}
-                            >
-                              <div>
-                                <div className={`text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-foreground group-hover:text-primary'}`}>
-                                  {category.title}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {category.description}
-                                </div>
-                              </div>
-                              <ChevronDown className={`w-4 h-4 -rotate-90 transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:translate-x-0.5'}`} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Resources Section */}
-                    <div className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Resources
-                      </h4>
-                      <div className="space-y-1">
-                        {resourceItems.map((item, idx) => {
-                          const isActive = item.route && location.pathname === item.route;
-                          return (
-                            <button
-                              key={item.label}
-                              onClick={() => item.action ? item.action() : handleMobileNavigate(item.route!)}
-                              className={`flex items-center gap-3 w-full p-3 text-sm rounded-lg 
-                                text-left transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]
-                                animate-fade-in ${isActive 
-                                  ? 'bg-primary/10 border border-primary/30' 
-                                  : 'hover:bg-muted/50 border border-transparent'}`}
-                              style={{ animationDelay: `${450 + idx * 30}ms` }}
-                            >
-                              <item.icon className={`w-4 h-4 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
-                              <span className={`transition-colors ${isActive ? 'text-primary font-medium' : 'text-foreground group-hover:text-primary'}`}>
-                                {item.label}
-                              </span>
-                              {isActive && (
-                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* GitHub Link */}
-                    <div className="pt-4 border-t border-border/50 animate-fade-in" style={{ animationDelay: '700ms' }}>
-                      <a 
-                        href="https://github.com/Raiders0786/digibastion"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 w-full p-3 text-sm rounded-lg 
-                          hover:bg-muted/50 text-left transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]"
-                      >
-                        <Github className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        <span className="text-foreground group-hover:text-primary transition-colors">
-                          View on GitHub
-                        </span>
-                      </a>
+                  <div>
+                    <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Start here</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { icon: Zap, label: 'Assessment', route: '/quiz' },
+                        { icon: Bell, label: 'Threats', route: '/threat-intel' },
+                        { icon: Briefcase, label: 'Services', route: '/services' },
+                        { icon: Sparkles, label: 'My score', action: () => goToSection('score') },
+                      ].map((item) => (
+                        <button key={item.label} type="button" onClick={() => item.action ? item.action() : goTo(item.route!)} className="flex min-h-20 flex-col items-start justify-between rounded-xl border border-border/60 bg-card/50 p-3 text-left transition-colors hover:border-primary/30">
+                          <item.icon className="h-4 w-4 text-primary" /><span className="text-xs font-medium text-foreground">{item.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-          </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between px-1"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Security checklists</p><button type="button" onClick={() => goToSection('checklists')} className="text-[10px] font-medium text-primary">View all</button></div>
+                    <div className="space-y-1">
+                      {categories.map((category) => {
+                        const active = location.pathname === `/category/${category.id}`;
+                        return (
+                          <button key={category.id} type="button" onClick={() => goTo(`/category/${category.id}`)} className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-colors ${active ? 'border-primary/30 bg-primary/10' : 'border-transparent hover:bg-muted/50'}`}>
+                            <span><span className={`block text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}>{category.title}</span><span className="mt-0.5 block text-xs text-muted-foreground">{category.description}</span></span>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">More from Digibastion</p>
+                    <div className="space-y-1">
+                      {resourceItems.map((item) => (
+                        <button key={item.route} type="button" onClick={() => goTo(item.route)} className="flex w-full items-center gap-3 rounded-xl p-3 text-sm text-foreground transition-colors hover:bg-muted/50">
+                          <item.icon className="h-4 w-4 text-muted-foreground" /> {item.label}
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => goToSection('roadmap')} className="flex w-full items-center gap-3 rounded-xl p-3 text-sm text-foreground transition-colors hover:bg-muted/50"><Sparkles className="h-4 w-4 text-muted-foreground" /> Roadmap and ideas</button>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </nav>
