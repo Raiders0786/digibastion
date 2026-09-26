@@ -176,7 +176,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       cveId: row.cve_id || undefined,
       publishedAt: new Date(row.published_at),
       isProcessed: row.is_processed ?? false,
-      metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : undefined,
+      metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? row.metadata as NewsArticle['metadata']
+        : undefined,
     })));
     setActiveAlertCount((data || []).length);
     setAlertsLoading(false);
@@ -242,7 +244,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           cveId: data.cve_id || undefined,
           publishedAt: new Date(data.published_at),
           isProcessed: data.is_processed ?? false,
-          metadata: data.metadata && typeof data.metadata === 'object' ? data.metadata : undefined,
+          metadata: data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+            ? data.metadata as NewsArticle['metadata']
+            : undefined,
         });
       }
     })();
