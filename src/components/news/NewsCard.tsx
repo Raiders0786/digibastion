@@ -13,6 +13,7 @@ interface NewsCardProps {
 export const NewsCard = ({ article, onClick }: NewsCardProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
+  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || article.category === 'web3-security' || article.category === 'defi-exploits';
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -70,10 +71,10 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
               {getSeverityIcon(article.severity)}
               <span className="ml-1 capitalize">{article.severity}</span>
             </Badge>
-            {isQuillMonitor && (
+            {isWeb3Incident && (
               <Badge variant="secondary" className="gap-1">
                 <RadioTower className="w-3 h-3" />
-                QuillMonitor
+                Web3 Incident
               </Badge>
             )}
           </div>
@@ -128,7 +129,7 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
           </div>
         )}
 
-        {isQuillMonitor && (
+        {isWeb3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
           <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
             {article.metadata?.project_name && <div><span className="text-muted-foreground">Project</span><div className="font-medium truncate">{article.metadata.project_name}</div></div>}
             {article.metadata?.chain && <div><span className="text-muted-foreground">Chain</span><div className="font-medium truncate">{article.metadata.chain}</div></div>}

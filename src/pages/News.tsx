@@ -103,14 +103,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'QuillMonitor'>('all');
+  const [feedView, setFeedView] = useState<'all' | 'web3-incidents'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategories, selectedSeverities, searchQuery, dateFilter, sourceFilter]);
+  }, [selectedCategories, selectedSeverities, searchQuery, dateFilter, feedView]);
 
   // Fetch articles from database
   const { 
@@ -119,12 +119,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     error,
     refetch,
     refreshFromRSS,
-    refreshFromWeb3,
-    refreshFromQuillMonitor,
+    refreshWeb3Incidents,
     summarizeArticles,
     isRefreshing,
     isRefreshingWeb3,
-    isRefreshingQuillMonitor,
     isSummarizing,
     stats,
     pagination
@@ -134,7 +132,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     searchQuery,
     dateFilter,
     sortBy,
-    source: sourceFilter,
+    view: feedView,
     page: currentPage,
     pageSize,
   });
@@ -284,7 +282,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     setSelectedSeverities([]);
     setSearchQuery('');
     setDateFilter('all');
-    setSourceFilter('all');
+    setFeedView('all');
   };
 
   // Use database articles directly (filtering handled by hook)
@@ -322,9 +320,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Handle new articles from realtime
   const handleNewRealtimeArticle = useCallback(() => {
-    // Refetch to include the new article
-    refetch();
-  }, [refetch]);
+    void Promise.all([refetch(), fetchActiveAlerts()]);
+  }, [refetch, fetchActiveAlerts]);
 
   // Tab configuration with better visibility
   const tabs = [
@@ -489,14 +486,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       />
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      <Select value={sourceFilter} onValueChange={(value: 'all' | 'QuillMonitor') => setSourceFilter(value)}>
-                        <SelectTrigger className="w-40" aria-label="Filter by source">
+                      <Select value={feedView} onValueChange={(value: 'all' | 'web3-incidents') => setFeedView(value)}>
+                        <SelectTrigger className="w-44" aria-label="Choose feed view">
                           <RadioTower className="w-4 h-4 mr-2" />
                           <SelectValue placeholder="Source" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Sources</SelectItem>
-                          <SelectItem value="QuillMonitor">QuillMonitor</SelectItem>
+                          <SelectItem value="all">All Intelligence</SelectItem>
+                          <SelectItem value="web3-incidents">Web3 Incidents</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
@@ -560,20 +557,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       {isAdmin && (
                         <>
                       <Button 
-                        variant="outline"
-                        size="sm"
-                        onClick={refreshFromQuillMonitor}
-                        disabled={isRefreshingQuillMonitor}
-                        title="Fetch latest QuillMonitor incidents"
-                      >
-                        {isRefreshingQuillMonitor ? (
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        ) : (
-                          <RadioTower className="w-4 h-4 mr-1" />
-                        )}
-                        {isRefreshingQuillMonitor ? 'Fetching...' : 'QuillMonitor'}
-                      </Button>
-                      <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={summarizeArticles}
@@ -590,7 +573,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={refreshFromWeb3}
+                        onClick={async () => { await refreshWeb3Incidents(); await fetchActiveAlerts(); }}
                         disabled={isRefreshingWeb3}
                         className="bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20"
                         title="Fetch latest Web3 security incidents"
@@ -617,7 +600,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       </Button>
                         </>
                       )}
-                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || sourceFilter !== 'all') && (
+                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== 'all') && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                           Clear filters
                         </Button>

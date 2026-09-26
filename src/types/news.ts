@@ -30,6 +30,7 @@ export interface NewsArticle {
   sourceName?: string;
   metadata?: {
     provider?: string;
+    is_web3_incident?: boolean;
     provider_incident_id?: string;
     project_name?: string;
     chain?: string;

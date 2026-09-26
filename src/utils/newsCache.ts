@@ -20,6 +20,7 @@ export function buildFilterKey(opts: {
   dateFilter?: string;
   sortBy?: string;
   source?: string;
+  web3IncidentsOnly?: boolean;
   page?: number;
 }): string {
   return JSON.stringify({
@@ -29,6 +30,7 @@ export function buildFilterKey(opts: {
     d: opts.dateFilter ?? 'all',
     sb: opts.sortBy ?? 'date',
     src: opts.source ?? 'all',
+    w3: opts.web3IncidentsOnly ?? false,
     p: opts.page ?? 1,
   });
 }
