@@ -18,6 +18,7 @@ interface UseNewsArticlesOptions {
   searchQuery?: string;
   dateFilter?: 'all' | '7d' | '30d' | '90d';
   sortBy?: 'date' | 'severity';
+  source?: 'all' | 'QuillMonitor';
   page?: number;
   pageSize?: number;
 }
@@ -29,9 +30,11 @@ interface UseNewsArticlesResult {
   refetch: () => Promise<void>;
   refreshFromRSS: () => Promise<void>;
   refreshFromWeb3: () => Promise<void>;
+  refreshFromQuillMonitor: () => Promise<void>;
   summarizeArticles: () => Promise<void>;
   isRefreshing: boolean;
   isRefreshingWeb3: boolean;
+  isRefreshingQuillMonitor: boolean;
   isSummarizing: boolean;
   stats: {
     total: number;
@@ -55,6 +58,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRefreshingWeb3, setIsRefreshingWeb3] = useState(false);
+  const [isRefreshingQuillMonitor, setIsRefreshingQuillMonitor] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -70,7 +74,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     dateFilter = 'all', 
     sortBy = 'date', 
     page = 1, 
-    pageSize = 20 
+    pageSize = 20,
+    source = 'all',
   } = options;
 
   const currentFilterKey = buildFilterKey({
@@ -79,6 +84,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     searchQuery,
     dateFilter,
     sortBy,
+    source,
     page,
   });
 
@@ -123,6 +129,10 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       fallback = fallback.filter((article) => severities.includes(article.severity));
     }
 
+    if (source !== 'all') {
+      fallback = fallback.filter((article) => article.sourceName === source);
+    }
+
     if (dateFilter !== 'all') {
       const now = new Date();
       const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
@@ -162,7 +172,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     const paginated = fallback.slice(offset, offset + pageSize);
 
     return { articles: paginated, total };
-  }, [categories, severities, searchQuery, dateFilter, sortBy, page, pageSize]);
+  }, [categories, severities, searchQuery, dateFilter, sortBy, source, page, pageSize]);
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -189,6 +199,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         searchQuery,
         dateFilter,
         sortBy,
+        source,
         page,
       });
 
@@ -199,7 +210,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         severity_filter: severityFilter,
         date_from: dateFrom,
         result_limit: pageSize,
-        result_offset: offset
+          result_offset: offset,
+          source_filter: source === 'all' ? null : source,
       });
 
       if (fetchError) {
@@ -214,6 +226,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (categoryFilter) query = query.in('category', categoryFilter);
         if (severityFilter) query = query.in('severity', severityFilter);
         if (dateFrom) query = query.gte('published_at', dateFrom);
+        if (source !== 'all') query = query.eq('source_name', source);
         if (searchTerm) {
           query = query.or(`title.ilike.%${searchTerm}%,summary.ilike.%${searchTerm}%`);
         }
@@ -239,9 +252,10 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
           cveId: row.cve_id,
           isProcessed: row.is_processed || false,
           sourceName: row.source_name
+          ,metadata: row.metadata || undefined
         }));
 
-        const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && page === 1;
+        const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && source === 'all' && page === 1;
         if (isUnfilteredFirstPage && transformedArticles.length === 0 && (count || 0) === 0) {
           const staticFallback = getStaticFallback();
           setArticles(staticFallback.articles);
@@ -273,7 +287,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         search_query: searchTerm,
         category_filter: categoryFilter,
         severity_filter: severityFilter,
-        date_from: dateFrom
+        date_from: dateFrom,
+        source_filter: source === 'all' ? null : source,
       });
 
       setTotalCount(countData || 0);
@@ -294,7 +309,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         author: row.author || null,
         cveId: row.cve_id,
         isProcessed: row.is_processed || false,
-        sourceName: row.source_name
+        sourceName: row.source_name,
+        metadata: row.metadata || undefined,
       }));
 
       // Apply sorting (RPC already sorts by rank + date, but apply severity if needed)
@@ -307,7 +323,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         });
       }
 
-      const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && page === 1;
+      const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && source === 'all' && page === 1;
       if (isUnfilteredFirstPage && transformedArticles.length === 0 && (countData || 0) === 0) {
         const staticFallback = getStaticFallback();
         setArticles(staticFallback.articles);
@@ -343,6 +359,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         searchQuery,
         dateFilter,
         sortBy,
+        source,
         page,
       });
       const cached = loadFromCache(filterKey);
@@ -375,7 +392,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     } finally {
       setIsLoading(false);
     }
-  }, [categories, severities, searchQuery, dateFilter, sortBy, page, pageSize, getStaticFallback, toast]);
+  }, [categories, severities, searchQuery, dateFilter, sortBy, source, page, pageSize, getStaticFallback, toast]);
 
   const refreshFromRSS = useCallback(async () => {
     try {
@@ -436,6 +453,31 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       });
     } finally {
       setIsRefreshingWeb3(false);
+    }
+  }, [fetchArticles, toast]);
+
+  const refreshFromQuillMonitor = useCallback(async () => {
+    try {
+      setIsRefreshingQuillMonitor(true);
+      const { data, error: fetchError } = await supabase.functions.invoke('fetch-quillmonitor-incidents', {
+        body: { pages: 3, page_size: 100 },
+      });
+      if (fetchError) throw fetchError;
+      if (!data?.success) throw new Error(data?.error || 'Failed to fetch QuillMonitor incidents');
+      toast({
+        title: 'QuillMonitor Updated',
+        description: `${data.incidentsInserted} new and ${data.incidentsUpdated} refreshed incidents.`,
+      });
+      await fetchArticles();
+    } catch (err) {
+      console.error('Error fetching QuillMonitor incidents:', err);
+      toast({
+        title: 'QuillMonitor Fetch Failed',
+        description: err instanceof Error ? err.message : 'Failed to fetch QuillMonitor incidents',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshingQuillMonitor(false);
     }
   }, [fetchArticles, toast]);
 
@@ -511,9 +553,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     refetch: fetchArticles,
     refreshFromRSS,
     refreshFromWeb3,
+    refreshFromQuillMonitor,
     summarizeArticles,
     isRefreshing,
     isRefreshingWeb3,
+    isRefreshingQuillMonitor,
     isSummarizing,
     stats,
     pagination,

@@ -19,6 +19,7 @@ export function buildFilterKey(opts: {
   searchQuery?: string;
   dateFilter?: string;
   sortBy?: string;
+  source?: string;
   page?: number;
 }): string {
   return JSON.stringify({
@@ -27,6 +28,7 @@ export function buildFilterKey(opts: {
     q: opts.searchQuery ?? '',
     d: opts.dateFilter ?? 'all',
     sb: opts.sortBy ?? 'date',
+    src: opts.source ?? 'all',
     p: opts.page ?? 1,
   });
 }
