@@ -20,7 +20,7 @@ interface NewsDetailProps {
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
-  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || article.category === 'web3-security' || article.category === 'defi-exploits';
+  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string';
   const { toast } = useToast();
   const navigate = useNavigate();
   

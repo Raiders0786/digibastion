@@ -13,7 +13,7 @@ interface NewsCardProps {
 export const NewsCard = ({ article, onClick }: NewsCardProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
-  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || article.category === 'web3-security' || article.category === 'defi-exploits';
+  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string';
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {

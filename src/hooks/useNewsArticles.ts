@@ -127,7 +127,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     }
 
     if (view === 'web3-incidents') {
-      fallback = fallback.filter((article) => article.category === 'web3-security' || article.category === 'defi-exploits' || article.metadata?.is_web3_incident === true);
+      fallback = fallback.filter((article) => article.metadata?.is_web3_incident === true || ['quillmonitor', 'web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string');
     }
 
     if (dateFilter !== 'all') {
@@ -224,7 +224,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (categoryFilter) query = query.in('category', categoryFilter);
         if (severityFilter) query = query.in('severity', severityFilter);
         if (dateFrom) query = query.gte('published_at', dateFrom);
-        if (view === 'web3-incidents') query = query.or("category.in.(web3-security,defi-exploits),metadata->>is_web3_incident.eq.true,metadata->>provider.eq.quillmonitor");
+        if (view === 'web3-incidents') query = query.or("metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3),metadata->>data_source.not.is.null");
         if (searchTerm) {
           query = query.or(`title.ilike.%${searchTerm}%,summary.ilike.%${searchTerm}%`);
         }

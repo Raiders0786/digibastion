@@ -112,7 +112,7 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
   
   const articlesList = articles.map(article => {
     const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
-    const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || article.category === 'web3-security' || article.category === 'defi-exploits';
+    const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof (article.metadata as Record<string, unknown> | null)?.data_source === 'string';
     const incidentFacts = isWeb3Incident
       ? [article.metadata?.project_name, article.metadata?.chain, article.metadata?.attack_type, article.metadata?.amount_display]
           .filter(Boolean).map((fact) => escapeHtml(String(fact))).join(' · ')
