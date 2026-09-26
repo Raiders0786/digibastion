@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -353,6 +354,8 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
       
       // Build rich metadata for future analysis
       const metadata = {
+        provider: 'web3-incidents',
+        is_web3_incident: true,
         amount_lost_usd: amount ? amount * 1000000 : null, // Store in USD
         amount_display: amount ? `$${amount}M` : null,
         attack_type: tags[0] || null,
@@ -434,6 +437,8 @@ async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
         
         // Build rich metadata for future analysis
         const metadata = {
+          provider: 'web3-incidents',
+          is_web3_incident: true,
           project_name: name,
           amount_lost_usd: amount ? amount * 1000000 : null,
           amount_display: amountStr,
@@ -472,6 +477,8 @@ async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
 }
 
 serve(async (req) => {
+  const startedAt = Date.now();
+  const attemptedAt = new Date().toISOString();
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -561,7 +568,7 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('[fetch-web3-incidents] Primary source error:', e);
-      sourceResults.push({ source: 'primary', found: 0, errors: [e.message] });
+      sourceResults.push({ source: 'primary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
     }
     
     // Fetch from secondary source (internal only)
@@ -595,7 +602,7 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('[fetch-web3-incidents] Secondary source error:', e);
-      sourceResults.push({ source: 'secondary', found: 0, errors: [e.message] });
+      sourceResults.push({ source: 'secondary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
     }
     
     console.log(`[fetch-web3-incidents] Total incidents from all sources: ${allIncidents.length}`);
@@ -720,6 +727,13 @@ serve(async (req) => {
     }
     
     console.log(`[fetch-web3-incidents] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}, Similar: ${skippedSimilar}`);
+    await recordIngestionRun(supabase, {
+      pipeline: 'web3-incidents', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+      success: errors.length === 0, records_found: allIncidents.length, records_inserted: insertedCount,
+      records_invalid: errors.length, duration_ms: Date.now() - startedAt,
+      error_summary: errors.length ? `${errors.length} incident writes failed` : undefined,
+      metadata: { duplicates: duplicateCount, similar_skipped: skippedSimilar },
+    });
     
     // Trigger AI summarization for new articles
     if (insertedCount > 0) {
@@ -755,7 +769,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[fetch-web3-incidents] Fatal error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

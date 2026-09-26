@@ -20,6 +20,7 @@ interface NewsDetailProps {
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
+  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string';
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -201,7 +202,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           </div>
 
           {/* Affected Technologies */}
-          {isQuillMonitor && (
+          {isWeb3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
             <div className="border-y py-5">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
                 {article.metadata?.project_name && <div><div className="text-xs text-muted-foreground">Affected project</div><div className="font-medium">{article.metadata.project_name}</div></div>}
@@ -209,7 +210,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 {article.metadata?.attack_type && <div><div className="text-xs text-muted-foreground">Attack method</div><div className="font-medium">{article.metadata.attack_type}</div></div>}
                 {article.metadata?.amount_display && <div><div className="text-xs text-muted-foreground">Reported loss</div><div className="font-medium">{article.metadata.amount_display}</div></div>}
               </div>
-              <a
+              {isQuillMonitor && <a
                 href={article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database'}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -217,7 +218,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 className="inline-flex rounded border bg-card p-2"
               >
                 <img src={quillMonitorAsset.url} width="244" height="44" alt="Powered by QuillMonitor" className="h-8 w-auto" />
-              </a>
+              </a>}
             </div>
           )}
 
