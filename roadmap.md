@@ -52,3 +52,8 @@
 - [x] Add private source freshness and data-quality monitoring.
 - [x] Update alert and digest incident presentation.
 - [x] Review privileged function grants and run regression/security verification.
+
+## QuillMonitor visibility
+- [ ] Show clear QuillMonitor attribution in unified feed cards and Active Alerts.
+- [ ] Surface the latest imported QuillMonitor incident without changing chronological feed ordering.
+- [ ] Verify imported incident and Active Alert visibility in the live preview.
