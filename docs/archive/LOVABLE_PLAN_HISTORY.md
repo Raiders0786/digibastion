@@ -6,9 +6,10 @@ outcomes were either implemented, superseded, or moved into the current
 roadmap. Their full text remains available in Git history.
 
 These entries are historical context, not evidence that a production system is
-currently healthy. Revalidate private infrastructure in Supabase, Vercel,
-Search Console, the email provider, and VANTAGE before relying on an old
-completion statement.
+currently healthy. Revalidate private infrastructure through **View Backend**
+in the owning Lovable project, plus Vercel, Search Console, the email provider,
+and VANTAGE, before relying on an old completion statement. The managed backend
+does not have a separate Supabase dashboard login.
 
 ## Search and production domain
 

@@ -76,7 +76,7 @@ Browser
        |
        | publishable Supabase client / HTTPS
        v
-Supabase
+Lovable Cloud managed backend (Supabase-compatible runtime)
   Postgres + Row Level Security
   Edge Functions (Deno)
   scheduled jobs and private operational records
@@ -104,9 +104,11 @@ VANTAGE
 - `src/integrations/supabase/` contains the browser client and generated
   database types.
 
-The browser receives only publishable Supabase configuration. Checklist state
-is local-first; data-backed feeds, quiz authority, subscriptions, forms, and
-administration call Supabase.
+The browser receives only publishable backend configuration. Those public
+values are application connection settings, not separate backend credentials.
+Checklist state is local-first; data-backed feeds, quiz authority,
+subscriptions, forms, and administration call the Lovable Cloud managed
+Supabase-compatible runtime.
 
 ### Threat-intelligence boundary
 
@@ -136,7 +138,9 @@ rather than treating a provider as its own product section.
 `supabase/migrations/` is the history of tables, policies, database functions,
 rate limits, operational health, and scheduled jobs. A migration proves the
 intended database change, not the state of the live project. Production truth
-must be checked in the owning Supabase environment.
+must be checked through **View Backend** in the owning Lovable project. There
+is no separate Supabase dashboard login or separate Supabase credential set for
+this project.
 
 Several public or purpose-specific Edge Functions set `verify_jwt = false` in
 `supabase/config.toml` and enforce their own token, rate-limit, cron-secret,
@@ -157,25 +161,26 @@ Required browser values:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_PROJECT_ID`
 
-Use a non-production project when a change writes data. Run `npm run check`
-before release.
+The checked-in defaults connect the browser to the managed production backend,
+so do not exercise write paths casually. For isolated data-writing tests, use a
+separately owned external test backend and its public browser values. Run
+`npm run check` before release.
 
 ### Private deployment configuration
 
-Depending on enabled functions, the owning platform must supply service-role,
-cron, provider, email, scraping, and summarization credentials. Exact secret
-names should be derived from each function at deployment time and managed in
-the platform secret store, not copied into docs, issues, client variables, or
-Git history.
+Depending on enabled functions, Lovable Cloud must supply service-role, cron,
+provider, email, scraping, and summarization credentials. Maintainers inspect
+and manage them through **View Backend** in Lovable. Exact secret names should
+be derived from each function at deployment time and must not be copied into
+docs, issues, client variables, or Git history.
 
 Release validation should cover:
 
 1. Vercel build, redirect behavior, security headers, route metadata, PWA
    assets, robots, and sitemap responses.
-2. Supabase migration state, RLS policies, grants, function revisions, and
-   allowed/denied authorization cases.
+2. Lovable **View Backend** migration state, RLS policies, grants, function
+   revisions, and allowed/denied authorization cases.
 3. Scheduled ingestion, deduplication, partial-provider failure, operational
    run records, and feed freshness.
 4. Quiz start/submit/replay controls and leaderboard integrity.
@@ -204,8 +209,9 @@ or interpret the legal terms.
 
 ## Access required for full validation
 
-- Supabase project access for deployed functions, secrets, RLS, migrations,
-  scheduled jobs, logs, and production data checks
+- **View Backend** access in the owning Lovable project for deployed functions,
+  secrets, users, RLS, migrations, scheduled jobs, logs, and production data
+  checks; there is no separate Supabase dashboard access for this project
 - Vercel project and DNS access for deployed build, redirects, headers, and
   environment variables
 - Search Console and analytics access for indexing and user-journey evidence
@@ -213,3 +219,7 @@ or interpret the legal terms.
 - VANTAGE repository/deployment and authenticated test access
 - Owner confirmation of licensing, release stage, service intake, and content
   review ownership
+
+If direct backend ownership outside Lovable becomes a requirement, plan and
+execute a migration to a separately owned external backend project rather than
+looking for Supabase credentials that do not exist for this managed project.

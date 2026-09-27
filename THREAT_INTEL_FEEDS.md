@@ -7,8 +7,10 @@ The live public feed is at
 This document describes source policy and architecture. It intentionally does
 not label a static list of URLs “active”: source enablement, failures, and
 freshness are runtime facts held in the database and private operations view.
-The previous hand-maintained list had already diverged from migrations and
-production operations.
+For this Lovable Cloud managed backend, authorized maintainers inspect those
+facts through **View Backend** in Lovable; there is no separate Supabase
+dashboard login. The previous hand-maintained list had already diverged from
+migrations and production operations.
 
 ## Source model
 
@@ -30,7 +32,8 @@ attribution remains visible on records where it is required or useful.
 
 ## What production operators must verify
 
-The database and private admin view, not this file, are authoritative for:
+Lovable **View Backend** and the private admin view, not this file, are
+authoritative for:
 
 - enabled and disabled RSS records;
 - current feed URLs and parser behavior;
@@ -80,5 +83,7 @@ New providers must:
 - state the required public attribution.
 
 Changes to feed documentation alone do not activate a source. Activation also
-requires reviewed server code or database configuration, protected credentials,
-deployment, and a successful production health check by an authorized owner.
+requires reviewed server code or database configuration, protected credentials
+managed in Lovable, deployment, and a successful production health check by an
+authorized owner. Direct ownership outside Lovable would require migration to
+a separately owned external backend project.

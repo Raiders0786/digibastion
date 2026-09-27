@@ -44,8 +44,11 @@ The repository currently contains:
 
 These counts describe the current source tree, not usage or performance
 claims. Live application routes and the VANTAGE pages above were checked on
-2026-09-27. Backend job health and private workflows require access to the
-owning Supabase and VANTAGE environments.
+2026-09-27. This project's backend is managed by Lovable Cloud: database,
+functions, users, logs, and secrets are inspected through **View Backend** in
+the owning Lovable project, not through a separately accessible Supabase
+dashboard or separate Supabase credentials. VANTAGE private workflows require
+access to that product's own environment.
 
 See [Product and architecture](docs/PRODUCT_AND_ARCHITECTURE.md) for route,
 system, data-flow, and deployment details. See [Roadmap](ROADMAP.md) for the
@@ -58,13 +61,14 @@ Requirements:
 
 - Node.js 22.12 or later
 - npm
-- A Supabase project when testing data-backed features
+- Lovable-provided public browser configuration, or your own external backend
+  project when testing data-backed changes in isolation
 
 ```bash
 git clone https://github.com/Raiders0786/digibastion.git
 cd digibastion
 cp .env.example .env
-# Add your project-specific VITE_SUPABASE_* publishable values.
+# Add public VITE_SUPABASE_* browser values only when overriding the defaults.
 npm ci
 npm run dev
 ```
@@ -77,9 +81,11 @@ npm run check
 ```
 
 `npm run check` runs TypeScript, lint, unit tests, and a production build.
-Only Supabase browser/publishable values belong in `.env`. Service-role keys,
-cron secrets, feed credentials, and email credentials belong in the relevant
-deployment platform's secret store.
+Only browser/publishable values belong in `.env`; they do not grant backend
+ownership or dashboard access. For the deployed project, maintainers manage
+service-role keys, cron secrets, feed credentials, and email credentials via
+**View Backend** in Lovable. Moving backend ownership outside Lovable requires
+migration to a separately owned external backend project.
 
 ## Repository map
 

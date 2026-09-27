@@ -15,8 +15,9 @@ but tracking local environment files creates a dangerous precedent for later sec
 
 This was a source and local-browser review, not a live infrastructure penetration
 test. Deployment secrets, database policies, deployed Edge Function revisions, email
-delivery, scheduled jobs, and production response headers still require validation in
-the owning Supabase/Vercel projects.
+delivery, and scheduled jobs still require validation through **View Backend** in the
+Lovable project; production response headers still require validation in Vercel. This
+project does not have a separate Supabase dashboard or separate Supabase credentials.
 
 ## Remediated findings
 
@@ -112,8 +113,9 @@ service-role, or authenticated-admin checks. Public quiz, subscription, email-to
 tracking, form, sitemap, and OG endpoints intentionally disable gateway JWT validation
 and instead use purpose-specific validation/rate limiting where applicable. Because
 this architecture depends on application-level checks, every deployed function should
-be smoke-tested after deployment and Supabase Row Level Security policies should be
-reviewed in the live project before treating the backend as fully verified.
+be smoke-tested after deployment and Row Level Security policies should be reviewed
+through **View Backend** in Lovable before treating the managed backend as fully
+verified.
 
 ## Verification performed
 

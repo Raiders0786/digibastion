@@ -31,14 +31,18 @@ You need Node.js 22.12 or later and npm.
 git clone https://github.com/YOUR-USERNAME/digibastion.git
 cd digibastion
 cp .env.example .env
-# Add publishable VITE_SUPABASE_* values for your own test project.
+# Override public VITE_SUPABASE_* values only for your own external test backend.
 npm ci
 npm run dev
 ```
 
 Never use production service-role keys or provider credentials for local UI
-work. If your change needs private platform access, describe the gap in the
-pull request so a maintainer can run that validation.
+work. Digibastion's deployed backend is managed by Lovable Cloud; maintainers
+inspect its database, functions, users, logs, and secrets through **View
+Backend** in Lovable, not a separate Supabase dashboard. If your change needs
+private platform access, describe the gap in the pull request so a maintainer
+can run that validation. Direct ownership outside Lovable requires migration
+to a separately owned external backend project.
 
 Before submitting:
 

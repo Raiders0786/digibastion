@@ -35,8 +35,9 @@ approach and any alternatives considered.
 
 ## Access and coordination
 
-List anything that requires Supabase, Vercel, VANTAGE, Search Console,
-analytics, email-provider, DNS, or other owner access. Do not include secrets.
+List anything that requires Lovable **View Backend**, Vercel, VANTAGE, Search
+Console, analytics, email-provider, DNS, or other owner access. The Digibastion
+backend has no separate Supabase dashboard login. Do not include secrets.
 
 ## How you can help
 
