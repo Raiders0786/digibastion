@@ -51,7 +51,10 @@ const ArticleDetail = () => {
     buildArticleBreadcrumbSchema(schemaArticle),
   ];
 
-  const content = getArticleContent(slug || '', title);
+  const content = getArticleContent(slug || '');
+  if (!content) {
+    return <NotFoundView />;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

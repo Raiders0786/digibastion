@@ -66,17 +66,24 @@ const Articles = () => {
     });
   }, [searchQuery, selectedCategories, selectedDifficulty]);
 
-  const nonFeaturedArticles = filteredArticles.filter(a => !a.featured);
-  const displayedFeatured = filteredArticles.filter(a => a.featured);
+  const hasActiveFilters = searchQuery.trim() !== '' || selectedCategories.length > 0 || selectedDifficulty.length > 0;
+  const displayedFeatured = hasActiveFilters
+    ? []
+    : filteredArticles
+      .filter(a => a.featured)
+      .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+  const listedArticles = hasActiveFilters
+    ? filteredArticles
+    : filteredArticles.filter(a => !a.featured);
 
   const collectionSchema = buildArticleCollectionSchema(articlesMeta);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MetaTags
-        title="Web3 Security Guides & Articles | Digibastion"
-        description={`${articlesMeta.length}+ expert guides: wallet protection, phishing prevention, DeFi safety, smart-contract audits, and OpSec best practices. Free for crypto users and developers.`}
-        keywords="web3 security articles, crypto security guides, blockchain security tutorials, defi security tips, wallet security best practices, opsec for crypto, hardware wallet comparison, phishing prevention, smart contract security, rug pull detection"
+        title="Cybersecurity & Crypto Security Guides | Digibastion"
+        description={`${articlesMeta.length} practical guides and source-backed incident analyses covering phishing, account security, crypto safety, DeFi, software supply chains, and incident response.`}
+        keywords="cybersecurity guides, crypto security, threat intelligence, phishing prevention, wallet security, incident response, web3 security, software supply chain security"
       />
       
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionSchema) }} />
@@ -88,14 +95,14 @@ const Articles = () => {
           <header className="text-center mb-10 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
               <Book className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">{articlesMeta.length}+ Security Guides</span>
+              <span className="text-sm font-medium text-primary">{articlesMeta.length} practical security guides</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Web3 Security Knowledge Base
+              Cybersecurity &amp; Crypto Security Guides
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Practical guidance for protecting accounts, wallets, applications, and teams—plus source-backed
-              breakdowns of incidents worth learning from.
+              Plain-language explainers for everyday users, deeper playbooks for practitioners, and source-backed
+              breakdowns of attacks worth learning from.
             </p>
           </header>
 
@@ -125,7 +132,7 @@ const Articles = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search articles..."
+                placeholder="Search incidents, scams, wallets, or engineering..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -188,7 +195,7 @@ const Articles = () => {
             <section aria-labelledby="featured-articles" className="mb-12">
               <h2 id="featured-articles" className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Flame className="w-5 h-5 text-destructive" />
-                Featured Guides
+                Start with these guides
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {displayedFeatured.map((article) => (
@@ -206,6 +213,11 @@ const Articles = () => {
                         <Badge variant="outline" className={getDifficultyColor(article.difficulty)}>
                           {article.difficulty}
                         </Badge>
+                        {article.sources?.length ? (
+                          <Badge variant="outline" className="border-blue-500/20 bg-blue-500/10 text-blue-300">
+                            Source-backed
+                          </Badge>
+                        ) : null}
                       </div>
                       <h3 className="text-lg font-bold mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-2">
                         {article.title}
@@ -233,8 +245,8 @@ const Articles = () => {
           <section aria-labelledby="all-articles">
             <h2 id="all-articles" className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
               <Book className="w-5 h-5 text-primary" />
-              All Security Guides
-              <span className="text-sm font-normal text-muted-foreground">({filteredArticles.length} articles)</span>
+              {hasActiveFilters ? 'Matching guides' : 'More security guides'}
+              <span className="text-sm font-normal text-muted-foreground">({listedArticles.length} articles)</span>
             </h2>
             
             {filteredArticles.length === 0 ? (
@@ -245,7 +257,7 @@ const Articles = () => {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {nonFeaturedArticles.map((article) => (
+                {listedArticles.map((article) => (
                   <Link 
                     key={article.slug}
                     to={`/articles/${article.slug}`}
@@ -259,6 +271,11 @@ const Articles = () => {
                         <Badge variant="outline" className={`text-xs ${getDifficultyColor(article.difficulty)}`}>
                           {article.difficulty}
                         </Badge>
+                        {article.sources?.length ? (
+                          <Badge variant="outline" className="border-blue-500/20 bg-blue-500/10 text-xs text-blue-300">
+                            Source-backed
+                          </Badge>
+                        ) : null}
                       </div>
                       <h3 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2 text-sm">
                         {article.title}

@@ -11,6 +11,7 @@ export interface ArticleMeta {
   author: string;
   tags: string[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  status?: 'published' | 'draft';
   summary?: string;
   keyTakeaways?: string[];
   sources?: Array<{
@@ -21,7 +22,7 @@ export interface ArticleMeta {
 }
 
 // Searchable guide metadata. Keep claims and modified dates aligned with reviewed content.
-export const articlesMeta: ArticleMeta[] = [
+const articleCatalog: ArticleMeta[] = [
   // Featured guides
   {
     slug: "privacy-security-web3-opsec",
@@ -108,7 +109,148 @@ export const articlesMeta: ArticleMeta[] = [
       },
     ],
   },
-  
+  {
+    slug: "nextjs-imageresponse-rce-cve-2026-94545",
+    title: "Next.js ImageResponse RCE: CVE-2026-94545 Response Guide",
+    description: "Who is exposed to the September 2026 Next.js ImageResponse vulnerability, how to find affected routes, patch safely, and review possible impact.",
+    category: "Supply Chain",
+    readTime: "10 min read",
+    featured: true,
+    publishedAt: "2026-09-27",
+    modifiedAt: "2026-09-27",
+    author: "Digibastion Security Team",
+    tags: ["CVE-2026-94545", "Next.js security", "ImageResponse", "Satori", "remote code execution"],
+    difficulty: "intermediate",
+    summary: "Next.js versions 16.2.0 through 16.3.5 can be vulnerable when the Node.js ImageResponse implementation renders attacker-controlled values into SVG content, attributes, or styles. Upgrade to Next.js 16.3.6 or later; checking only whether a project uses Next.js is not enough to determine exposure.",
+    keyTakeaways: [
+      "Patch affected Next.js 16 installations to 16.3.6 or later and redeploy every public environment.",
+      "Inventory next/og ImageResponse routes and trace whether request data reaches generated SVG.",
+      "Preserve route, process, and deployment logs before deciding that no exploitation occurred.",
+    ],
+    sources: [
+      {
+        title: "Next.js Security Update for a Critical Upstream Issue",
+        publisher: "Next.js",
+        url: "https://nextjs.org/blog/nextjs-security-update-september-22-2026",
+      },
+      {
+        title: "Remote Code Execution in next/og ImageResponse (GHSA-vcvr-r3jv-pc5j)",
+        publisher: "Next.js Security Advisory",
+        url: "https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j",
+      },
+      {
+        title: "Improper escaping in Satori-generated SVG (GHSA-wx4j-mvgx-mqwp)",
+        publisher: "Satori Security Advisory",
+        url: "https://github.com/vercel/satori/security/advisories/GHSA-wx4j-mvgx-mqwp",
+      },
+    ],
+  },
+  {
+    slug: "operation-atlantic-approval-phishing-2026",
+    title: "Operation Atlantic: How Approval Phishing Drains Crypto Wallets",
+    description: "What the 2026 international Operation Atlantic disruption reveals about malicious token approvals, wallet checks, revocation, and recovery scams.",
+    category: "Phishing",
+    readTime: "10 min read",
+    publishedAt: "2026-09-27",
+    modifiedAt: "2026-09-27",
+    author: "Digibastion Security Team",
+    tags: ["Operation Atlantic", "approval phishing", "token approvals", "wallet drain", "crypto scam"],
+    difficulty: "beginner",
+    summary: "Approval phishing tricks a wallet owner into granting a malicious contract permission to move tokens later. The approving transaction may move nothing immediately, which is why reviewing permissions—not only transfers—is essential.",
+    keyTakeaways: [
+      "Reject unexpected approvals and verify the contract, token, spender, scope, and amount before signing.",
+      "Review existing allowances with a trusted block explorer or approval-management tool and revoke what is no longer needed.",
+      "After theft, revoke permissions or move unaffected assets from a clean device, preserve evidence, and avoid paid recovery offers.",
+    ],
+    sources: [
+      {
+        title: "Fraudsters targeting cryptocurrency stopped and $12 million frozen in NCA-led Operation Atlantic",
+        publisher: "UK National Crime Agency",
+        url: "https://www.nationalcrimeagency.gov.uk/news/fraudsters-targeting-cryptocurrency-stopped-and-12-million-frozen-in-nca-led-operation-atlantic",
+      },
+      {
+        title: "Operation ATLANTIC victim guidance",
+        publisher: "UK National Crime Agency",
+        url: "https://www.nationalcrimeagency.gov.uk/news/operation-atlantic",
+      },
+      {
+        title: "Bringing Approval Phishing Scammers to Justice",
+        publisher: "Coinbase",
+        url: "https://www.coinbase.com/blog/bringing-approval-phishing-scammers-to-justice",
+      },
+    ],
+  },
+  {
+    slug: "shai-hulud-npm-supply-chain-attack",
+    title: "Shai-Hulud npm Attacks: A Supply-Chain Response Playbook",
+    description: "How the multi-wave Shai-Hulud campaign spread through maintainer and CI credentials, and what package publishers and downstream teams should change.",
+    category: "Supply Chain",
+    readTime: "12 min read",
+    publishedAt: "2026-09-27",
+    modifiedAt: "2026-09-27",
+    author: "Digibastion Security Team",
+    tags: ["Shai-Hulud", "npm security", "software supply chain", "CI security", "trusted publishing"],
+    difficulty: "advanced",
+    summary: "Shai-Hulud was a multi-wave software supply-chain campaign. GitHub says it used compromised maintainer credentials, malicious package lifecycle scripts, secret theft, self-propagation, and later CI-focused techniques. The durable defense is to break the chain at several points, not to rely on package scanning alone.",
+    keyTakeaways: [
+      "Replace long-lived publishing tokens with trusted publishing or another short-lived identity flow.",
+      "Treat install scripts and CI runners as code-execution boundaries with minimal secrets and restricted egress.",
+      "When a package is implicated, rotate every reachable credential—not only the npm token—and rebuild from a known-good state.",
+    ],
+    sources: [
+      {
+        title: "Strengthening supply chain security: Preparing for the next malware campaign",
+        publisher: "GitHub Security",
+        url: "https://github.blog/security/supply-chain-security/strengthening-supply-chain-security-preparing-for-the-next-malware-campaign/",
+      },
+      {
+        title: "Disrupting supply chain attacks on npm and GitHub Actions",
+        publisher: "GitHub Security",
+        url: "https://github.blog/security/supply-chain-security/disrupting-supply-chain-attacks-on-npm-and-github-actions/",
+      },
+      {
+        title: "npm publish-time malware scanning and dual-use metadata",
+        publisher: "GitHub Changelog",
+        url: "https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/",
+      },
+    ],
+  },
+  {
+    slug: "react2shell-rsc-vulnerability-response",
+    title: "React2Shell and the RSC Vulnerability Chain: What to Patch",
+    description: "A plain-language response guide to the React Server Components remote-code-execution flaw and the follow-on denial-of-service and source-exposure issues.",
+    category: "Application Security",
+    readTime: "11 min read",
+    publishedAt: "2026-09-27",
+    modifiedAt: "2026-09-27",
+    author: "Digibastion Security Team",
+    tags: ["React2Shell", "React Server Components", "CVE-2025-55182", "Next.js security", "remote code execution"],
+    difficulty: "advanced",
+    summary: "React2Shell, CVE-2025-55182, allowed unauthenticated remote code execution in vulnerable React Server Components packages. Follow-on research found denial-of-service and source-code-exposure flaws, including an additional denial-of-service fix published in January 2026. Teams that applied only the first patch must verify their final installed versions again.",
+    keyTakeaways: [
+      "Determine exposure from installed server-component packages and framework features—not from the browser React version alone.",
+      "Upgrade to the latest patched release in the supported React or framework line; hosting mitigations do not replace patching.",
+      "Review secrets, process execution, outbound traffic, and deployment integrity if a vulnerable server was internet-accessible.",
+    ],
+    sources: [
+      {
+        title: "Critical Security Vulnerability in React Server Components",
+        publisher: "React",
+        url: "https://react.dev/blog/2025/12/03/critical-security-vulnerability-in-react-server-components",
+      },
+      {
+        title: "Denial of Service and Source Code Exposure in React Server Components",
+        publisher: "React",
+        url: "https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components",
+      },
+      {
+        title: "Next.js Security Update: December 11, 2025",
+        publisher: "Next.js",
+        url: "https://nextjs.org/blog/security-update-2025-12-11",
+      },
+    ],
+  },
+
   // Wallet Security
   {
     slug: "best-hardware-wallet-2025",
@@ -157,7 +299,8 @@ export const articlesMeta: ArticleMeta[] = [
     modifiedAt: "2025-01-12",
     author: "Digibastion Security Team",
     tags: ["metamask", "wallet security", "browser extension", "ethereum wallet"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "draft"
   },
   {
     slug: "revoke-token-approvals-guide",
@@ -381,7 +524,8 @@ export const articlesMeta: ArticleMeta[] = [
     modifiedAt: "2025-01-15",
     author: "Digibastion Security Team",
     tags: ["smart contract audit", "defi due diligence", "security audit", "certik", "trail of bits"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "draft"
   },
 
   // Smart Contract Security (For Developers: 45k-90k)
@@ -456,7 +600,8 @@ export const articlesMeta: ArticleMeta[] = [
     modifiedAt: "2025-01-14",
     author: "Digibastion Security Team",
     tags: ["formal verification", "certora", "symbolic execution", "mathematical proof"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "draft"
   },
 
   // Authentication & 2FA
@@ -546,7 +691,8 @@ export const articlesMeta: ArticleMeta[] = [
     modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["privacy", "tornado cash", "zero knowledge", "zcash", "monero"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "draft"
   },
   {
     slug: "wallet-address-deanonymization",
@@ -672,7 +818,8 @@ export const articlesMeta: ArticleMeta[] = [
     modifiedAt: "2025-01-11",
     author: "Digibastion Security Team",
     tags: ["advanced security", "whale security", "high value", "defense in depth", "opsec"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "draft"
   },
 
   // Exchange Security
@@ -804,9 +951,16 @@ export const articlesMeta: ArticleMeta[] = [
     modifiedAt: "2025-01-07",
     author: "Digibastion Security Team",
     tags: ["cex", "dex", "exchange comparison", "custody", "self-custody"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "draft"
   }
 ];
+
+// Drafts remain available for editorial revision but are kept out of public
+// navigation, schemas, recommendations, and article routes until reviewed.
+export const articlesMeta: ArticleMeta[] = articleCatalog.filter(
+  (article) => article.status !== 'draft',
+);
 
 // Helper function to get article by slug
 export const getArticleBySlug = (slug: string): ArticleMeta | undefined => {

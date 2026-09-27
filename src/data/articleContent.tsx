@@ -263,6 +263,394 @@ const CoinbaseSupportScamContent = () => (
   </div>
 );
 
+const NextjsImageResponseRceContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-2xl font-bold mb-4">What was disclosed on September 22, 2026?</h2>
+      <p className="mb-4">
+        Next.js disclosed CVE-2026-94545, a critical remote-code-execution vulnerability in the Node.js
+        implementation of <code>ImageResponse</code> from <code>next/og</code>. The flaw is inherited from
+        Satori's SVG generation: attacker-controlled text or style values can be escaped incorrectly before the
+        SVG is rendered.
+      </p>
+      <p>
+        An application is not exposed merely because it uses Next.js. The vulnerable range is Next.js 16.2.0
+        through 16.3.5, and a reachable Node.js <code>ImageResponse</code> path must render attacker-controlled
+        content, attributes, or styles. The Next.js advisory says the Edge implementation is not affected by this
+        RCE, and Next.js 15 is not affected by the RCE.
+      </p>
+    </section>
+
+    <section className="bg-card/50 border border-border/60 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-4">The short answer</h2>
+      <p className="text-lg leading-relaxed">
+        Upgrade affected Next.js 16 projects to 16.3.6 or later, rebuild from the updated lockfile, and redeploy
+        every environment. Until that is complete, keep untrusted data out of Node.js-generated images or disable
+        the affected route.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Exposure checklist</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-muted/50">
+              <th className="p-4 text-left">Question</th>
+              <th className="p-4 text-left">Why it matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-border/50">
+              <td className="p-4">Is the installed Next.js version at least 16.2.0 but below 16.3.6?</td>
+              <td className="p-4">That is the affected Next.js range in the official advisory.</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="p-4">Does server code import <code>ImageResponse</code> from <code>next/og</code>?</td>
+              <td className="p-4">The RCE affects the Node.js image-generation path, not every application route.</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="p-4">Can request, profile, CMS, URL, or database data reach the image tree or styles?</td>
+              <td className="p-4">Exploitation requires attacker-controlled input in generated SVG.</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="p-4">Does the route run on Node.js rather than the Edge runtime?</td>
+              <td className="p-4">The advisory explicitly excludes the Edge implementation from this RCE.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-4 bg-muted/40 rounded-lg p-4 font-mono text-sm space-y-2 overflow-x-auto">
+        <div>npm ls next @vercel/og satori</div>
+        <div>rg &quot;ImageResponse|next/og&quot; app pages src</div>
+      </div>
+      <p className="mt-3 text-sm text-muted-foreground">
+        Check the resolved version in the deployed artifact or lockfile. A permissive range in
+        <code> package.json</code> does not prove which version is running.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Patch and verification sequence</h2>
+      <ol className="list-decimal pl-6 space-y-4">
+        <li><strong>Inventory all deployments.</strong> Include preview builds, regional services, image workers, forks, and long-lived branches.</li>
+        <li><strong>Update and lock.</strong> Move to Next.js 16.3.6 or a newer supported release, refresh the lockfile, and verify the resolved dependency tree.</li>
+        <li><strong>Rebuild cleanly.</strong> Do not assume restarting an old container changes its bundled dependencies.</li>
+        <li><strong>Test image routes.</strong> Confirm social cards, dynamic images, fonts, caching, and runtime selection still behave as expected.</li>
+        <li><strong>Redeploy everywhere.</strong> Retire old images and invalidate stale deployment aliases that can still receive traffic.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">If a vulnerable route was public</h2>
+      <p className="mb-4">
+        Vulnerability does not prove exploitation. Preserve evidence before recycling hosts: request and CDN logs,
+        application errors, process starts, child-process activity, outbound network records, deployment hashes, and
+        cloud audit events. Define the review window from the first vulnerable deployment, not merely the disclosure date.
+      </p>
+      <ul className="list-disc pl-6 space-y-3">
+        <li>Look for unusual image-route inputs, bursts of rendering errors, unexpected subprocesses, and outbound connections.</li>
+        <li>Compare running files and containers with a known-good build; rebuild rather than attempting an in-place cleanup.</li>
+        <li>Rotate credentials the process could read if investigation shows execution or if reliable evidence is unavailable.</li>
+        <li>Document why each environment was classified as affected, not affected, or inconclusive.</li>
+      </ul>
+    </section>
+
+    <section className="bg-primary/10 border border-primary/20 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-3">What is not a complete fix?</h2>
+      <p>
+        Input filtering is easy to get wrong for SVG, CSS, and nested rendering values. The Satori advisory says there
+        is no complete workaround besides upgrading; avoiding attacker-controlled content is only a temporary risk
+        reduction. A WAF or hosting-provider mitigation also does not replace the patched dependency.
+      </p>
+    </section>
+  </div>
+);
+
+const OperationAtlanticContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-2xl font-bold mb-4">What Operation Atlantic revealed</h2>
+      <p className="mb-4">
+        On April 9, 2026, the UK National Crime Agency announced results from an international operation targeting
+        approval-phishing infrastructure. The NCA reported that investigators identified more than 20,000 victims,
+        traced more than $45 million in stolen cryptocurrency, and froze more than $12 million. Those figures are
+        law-enforcement findings from the operation, not estimates for all approval phishing.
+      </p>
+      <p>
+        The practical lesson is that a wallet can be drained after a transaction that appeared to transfer nothing.
+        The victim instead signed permission for another address or contract—the “spender”—to move particular tokens later.
+      </p>
+    </section>
+
+    <section className="bg-card/50 border border-border/60 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-4">What is approval phishing?</h2>
+      <p className="text-lg leading-relaxed mb-4">
+        Approval phishing disguises a token permission as a legitimate connection, claim, mint, swap, verification,
+        or security step. Once confirmed on-chain, the permission may let the approved spender transfer tokens without
+        another signature from the owner.
+      </p>
+      <p>
+        The exact risk depends on the token standard and signed method. An ERC-20 allowance can cover one token and an
+        amount; an NFT operator approval may cover every NFT from one collection; permit-style signatures can authorize
+        approvals without a separate approval transaction. Native chain currency behaves differently unless wrapped or
+        moved through contract logic.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">A signing check that takes less than a minute</h2>
+      <ol className="list-decimal pl-6 space-y-4">
+        <li><strong>Pause on the verb.</strong> “Approve,” “permit,” “set approval for all,” and “increase allowance” grant power; they are not ordinary login prompts.</li>
+        <li><strong>Verify the origin independently.</strong> Open the service from a bookmark or known documentation, not a direct message, search ad, or reply.</li>
+        <li><strong>Read the spender address.</strong> Confirm it against the project's official deployment records. A familiar token address is not enough.</li>
+        <li><strong>Reduce the scope.</strong> Prefer the amount and duration needed for the current action rather than an unlimited allowance.</li>
+        <li><strong>Reject unexplained urgency.</strong> Support staff and law enforcement do not need a wallet approval to “secure” assets.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Review and revoke safely</h2>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Choose a trusted view</h3>
+          <p>
+            Use the approval page of a reputable block explorer or a tool reached from its verified domain. Compare the
+            network, token, spender, current allowance, and last-used context. Never connect through a link sent by a stranger.
+          </p>
+        </div>
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Understand revocation</h3>
+          <p>
+            Revoking generally sends an on-chain transaction that sets an allowance to zero or disables an operator.
+            It requires network fees and cannot recover tokens already transferred. Confirm success on the relevant chain.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">If you signed or lost funds</h2>
+      <ul className="list-disc pl-6 space-y-3">
+        <li>From a clean device, identify the signed transaction, chain, token, spender, and remaining approvals.</li>
+        <li>Revoke malicious permissions promptly. If the seed phrase or device may also be compromised, move unaffected assets to a fresh wallet created on a clean device.</li>
+        <li>Save transaction hashes, addresses, URLs, messages, timestamps, and screenshots before accounts or sites disappear.</li>
+        <li>Report through official exchange, wallet, local police, and national cybercrime channels as applicable.</li>
+        <li>Ignore “recovery agents” who request an upfront fee, remote access, a seed phrase, or another signature.</li>
+      </ul>
+      <div className="mt-5 bg-destructive/10 border border-destructive/20 rounded-lg p-5">
+        <strong>Do not race a drainer from the same compromised device.</strong> If malicious automation is watching the
+        wallet, seek credible incident-response help and prioritize the safest clean signing path.
+      </div>
+    </section>
+
+    <section className="bg-primary/10 border border-primary/20 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-3">The question to ask before every approval</h2>
+      <p className="text-lg">
+        “Which exact asset can this spender move, how much, for how long, and why is that permission necessary now?”
+        If the wallet or application cannot make the answer clear, cancel.
+      </p>
+    </section>
+  </div>
+);
+
+const ShaiHuludContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-2xl font-bold mb-4">A campaign, not one malicious package</h2>
+      <p className="mb-4">
+        GitHub described Shai-Hulud as a multi-wave software supply-chain campaign. In the first wave, attackers used
+        compromised npm maintainer accounts to publish packages with malicious lifecycle behavior that searched for
+        secrets and helped propagate the compromise. The later wave—often called Shai-Hulud 2.0—expanded into CI
+        environments, exposed credentials across victims, abused self-hosted runners, and included destructive behavior.
+      </p>
+      <p>
+        Package names and indicators matter during triage, but a durable response has to address the chain: maintainer
+        identity, publication authority, install-time execution, CI secrets, runner isolation, and downstream adoption.
+      </p>
+    </section>
+
+    <section className="bg-card/50 border border-border/60 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-4">The attack path in plain language</h2>
+      <ol className="list-decimal pl-6 space-y-3">
+        <li>A publisher or automation credential is stolen.</li>
+        <li>A trusted package receives a malicious release.</li>
+        <li>A consumer installs it and a lifecycle script runs with developer or CI privileges.</li>
+        <li>The code finds npm, GitHub, cloud, or other credentials available to that process.</li>
+        <li>Stolen authority is used to publish again, alter repositories or workflows, or reach additional systems.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Controls for package maintainers</h2>
+      <div className="space-y-4">
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Remove reusable publishing secrets</h3>
+          <p>
+            Prefer npm trusted publishing with short-lived, repository-bound identity over a long-lived npm token in CI.
+            Protect the publishing environment, require review, and restrict which workflow and branch can release.
+          </p>
+        </div>
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Make releases inspectable</h3>
+          <p>
+            Stage the packed artifact, compare its file list and generated code with the reviewed commit, run malware and
+            secret scans, verify provenance where available, then publish. A clean source tree does not prove a clean tarball.
+          </p>
+        </div>
+        <div className="bg-card/50 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Constrain automation</h3>
+          <p>
+            Give release jobs only the credentials they require. Isolate self-hosted runners, clear them between jobs,
+            restrict outbound access, and never expose production secrets to untrusted pull-request code.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Controls for downstream teams</h2>
+      <ul className="list-disc pl-6 space-y-3">
+        <li><strong>Freeze resolution:</strong> use a reviewed lockfile and immutable CI install mode; investigate unexpected version or integrity changes.</li>
+        <li><strong>Control scripts:</strong> disable install scripts where feasible or explicitly allow the small set that is required. Test this policy before enforcing it.</li>
+        <li><strong>Add time for detection:</strong> use a dependency-update cooldown for newly published versions, especially in high-trust build systems.</li>
+        <li><strong>Reduce blast radius:</strong> build with minimal secrets, restricted filesystem access, limited egress, and disposable runners.</li>
+        <li><strong>Verify more than a name:</strong> review publisher changes, release provenance, package contents, advisories, and unexpected new lifecycle hooks.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Incident response when an implicated package ran</h2>
+      <ol className="list-decimal pl-6 space-y-4">
+        <li><strong>Isolate the runner or workstation.</strong> Preserve the lockfile, package cache, logs, process history, network records, and installed package tree.</li>
+        <li><strong>Map reachable secrets.</strong> Include npm and GitHub tokens, cloud credentials, CI variables, OAuth grants, SSH keys, signing keys, and credentials mounted by adjacent jobs.</li>
+        <li><strong>Revoke before replacement.</strong> End active sessions and tokens, then issue narrowly scoped replacements from a clean system.</li>
+        <li><strong>Audit actions.</strong> Review package releases, tags, workflows, repository settings, secrets, runner registrations, cloud audit trails, and downstream deployments.</li>
+        <li><strong>Rebuild cleanly.</strong> Restore from reviewed source and a known-good dependency set; notify users if a package or release under your authority was affected.</li>
+      </ol>
+    </section>
+
+    <section className="bg-primary/10 border border-primary/20 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-3">What changed in 2026?</h2>
+      <p>
+        In July 2026, GitHub and npm announced publish-time malware scanning and additional protections including safer
+        defaults and planned changes around lifecycle scripts. These ecosystem controls can interrupt parts of the chain,
+        but they cannot prove every package is safe or protect a CI job that exposes broad, reusable credentials.
+      </p>
+    </section>
+  </div>
+);
+
+const React2ShellContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-2xl font-bold mb-4">The vulnerability timeline</h2>
+      <p className="mb-4">
+        React says a researcher reported the original issue on November 29, 2025. On December 3, React disclosed
+        CVE-2025-55182—widely called React2Shell—an unauthenticated remote-code-execution flaw in React Server Components.
+        React rated it CVSS 10.0.
+      </p>
+      <p>
+        On December 11, React documented related denial-of-service and source-code-exposure issues. Its advisory was
+        updated again on January 26, 2026 after an additional denial-of-service bypass, CVE-2026-23864. That sequence is
+        why teams that installed only the first emergency patch should verify their final resolved versions again.
+      </p>
+    </section>
+
+    <section className="bg-card/50 border border-border/60 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-4">The short answer</h2>
+      <p className="text-lg leading-relaxed">
+        This was a server-side protocol vulnerability, not a flaw in every browser-only React application. Inventory the
+        installed <code>react-server-dom-*</code> packages and the framework features that expose React Server Components,
+        then upgrade to the latest security release in the supported React or framework line.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">What React2Shell affected</h2>
+      <p className="mb-4">
+        The original RCE affected versions 19.0, 19.1.0, 19.1.1, and 19.2.0 of the vulnerable React Server Components
+        packages named in React's advisory. An attacker could send a crafted request to a server endpoint that decodes
+        the RSC protocol. The dangerous behavior occurred during server-side deserialization, before an application
+        developer's expected business logic could safely reject the value.
+      </p>
+      <p>
+        Frameworks may bundle or depend on this functionality, so checking only a top-level <code>react</code> entry is
+        insufficient. Conversely, a static client-only React site without an RSC server endpoint is not made vulnerable
+        merely by the React name.
+      </p>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Separate the vulnerability classes</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse bg-card/50 rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-muted/50">
+              <th className="p-4 text-left">Issue</th>
+              <th className="p-4 text-left">Primary risk</th>
+              <th className="p-4 text-left">Response priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-border/50">
+              <td className="p-4">CVE-2025-55182</td>
+              <td className="p-4">Unauthenticated remote code execution</td>
+              <td className="p-4">Emergency patch and compromise review</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="p-4">CVE-2025-55183</td>
+              <td className="p-4">Server source-code exposure under affected conditions</td>
+              <td className="p-4">Patch and assess whether exposed source contained secrets</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="p-4">CVE-2025-55184, CVE-2025-67779, CVE-2026-23864</td>
+              <td className="p-4">Denial of service, including follow-on bypasses</td>
+              <td className="p-4">Apply the latest cumulative fix and test resource limits</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Inventory before declaring victory</h2>
+      <div className="bg-muted/40 rounded-lg p-4 font-mono text-sm mb-4 overflow-x-auto">
+        npm ls react react-dom react-server-dom-webpack react-server-dom-parcel react-server-dom-turbopack next
+      </div>
+      <ul className="list-disc pl-6 space-y-3">
+        <li>Inspect the production lockfile and built artifact, not only the manifest on the default branch.</li>
+        <li>List internet-facing RSC, Server Function, and framework App Router deployments, including previews and older containers.</li>
+        <li>Follow the current React advisory and the framework vendor's compatibility guidance; do not pin to a remembered patch number.</li>
+        <li>Rebuild and redeploy after updating, then verify the vulnerable package version is absent from each artifact.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 className="text-2xl font-bold mb-4">Review an exposed server</h2>
+      <p className="mb-4">
+        Because the primary flaw enabled unauthenticated code execution, an internet-accessible vulnerable endpoint warrants
+        more than a dependency update. Preserve evidence and review the period from first vulnerable deployment through patching.
+      </p>
+      <ol className="list-decimal pl-6 space-y-4">
+        <li>Correlate RSC endpoint requests with crashes, unusual response patterns, and application or edge logs.</li>
+        <li>Review child processes, new files, persistence, unexpected outbound connections, and cloud-control-plane events.</li>
+        <li>Determine which environment variables, workload identities, service tokens, or data the server process could access.</li>
+        <li>If execution is found—or trustworthy telemetry is missing—rotate reachable credentials and rebuild on clean infrastructure.</li>
+      </ol>
+    </section>
+
+    <section className="bg-primary/10 border border-primary/20 rounded-xl p-6">
+      <h2 className="text-2xl font-bold mb-3">Do hosting mitigations make patching optional?</h2>
+      <p>
+        No. React's advisory explicitly tells users to upgrade even if a hosting provider has deployed temporary defenses.
+        Edge filtering can reduce known exploit traffic, but it does not remove the vulnerable decoder or cover every path,
+        deployment, encoding, or future bypass.
+      </p>
+    </section>
+  </div>
+);
+
 const HardwareWalletComparisonContent = () => (
   <>
     <div className="mb-8">
@@ -3424,33 +3812,15 @@ const FormalVerificationContent = () => (
   </>
 );
 
-// Default placeholder content for articles not yet fully written
-const PlaceholderContent = ({ title }: { title: string }) => (
-  <div className="mb-8">
-    <div className="bg-card/50 p-6 rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">{title}</h2>
-      <p className="text-muted-foreground mb-4">This comprehensive guide covers essential security practices and actionable recommendations for protecting your crypto assets.</p>
-      <div className="space-y-4">
-        <div className="bg-primary/10 p-4 rounded-lg">
-          <h3 className="font-semibold mb-2">What You'll Learn</h3>
-          <ul className="list-disc pl-6 space-y-1 text-sm">
-            <li>Key security concepts and best practices</li>
-            <li>Common attack vectors and how to avoid them</li>
-            <li>Practical steps to implement today</li>
-            <li>Tools and resources for ongoing protection</li>
-          </ul>
-        </div>
-        <p className="text-sm text-muted-foreground">Full content coming soon. In the meantime, explore our other security guides or subscribe to our threat alerts to stay informed.</p>
-      </div>
-    </div>
-  </div>
-);
-
 // Map slugs to content components
 const contentMap: Record<string, React.FC> = {
   'privacy-security-web3-opsec': PrivacySecurityOpsecContent,
   'bybit-hack-2025-signing-security': BybitSigningSecurityContent,
   'coinbase-data-theft-support-scam-defense': CoinbaseSupportScamContent,
+  'nextjs-imageresponse-rce-cve-2026-94545': NextjsImageResponseRceContent,
+  'operation-atlantic-approval-phishing-2026': OperationAtlanticContent,
+  'shai-hulud-npm-supply-chain-attack': ShaiHuludContent,
+  'react2shell-rsc-vulnerability-response': React2ShellContent,
   'best-hardware-wallet-2025': HardwareWalletComparisonContent,
   'crypto-phishing-attacks-prevention': PhishingPreventionContent,
   'defi-hacks-2024-2025-analysis': DeFiHacksAnalysisContent,
@@ -3508,11 +3878,13 @@ const contentMap: Record<string, React.FC> = {
   'formal-verification-smart-contracts': FormalVerificationContent,
 };
 
+export const hasArticleContent = (slug: string): boolean => Boolean(contentMap[slug]);
+
 // Main content getter
-export const getArticleContent = (slug: string, title: string): React.ReactNode => {
+export const getArticleContent = (slug: string): React.ReactNode | null => {
   const ContentComponent = contentMap[slug];
   if (ContentComponent) {
     return <ContentComponent />;
   }
-  return <PlaceholderContent title={title} />;
+  return null;
 };

@@ -84,7 +84,7 @@ export const buildArticleCollectionSchema = (
   '@type': 'CollectionPage',
   '@id': `${absoluteUrl('/articles')}#collection`,
   name: 'Digibastion Security Guides',
-  description: 'Practical, source-backed guides for protecting crypto accounts, wallets, applications, and teams.',
+  description: 'Practical security guides plus source-backed incident analysis for people, developers, and teams.',
   url: absoluteUrl('/articles'),
   mainEntity: {
     '@type': 'ItemList',

@@ -1,10 +1,12 @@
 
 import { Link } from 'react-router-dom';
 import { Navbar } from '../Navbar';
+import { MetaTags } from '../MetaTags';
 
 export const NotFoundView = () => {
   return (
     <div className="min-h-screen bg-background">
+      <MetaTags title="Article not found | Digibastion" noindex />
       <Navbar />
       <main className="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">

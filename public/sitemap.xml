@@ -199,6 +199,30 @@
   <changefreq>monthly</changefreq>
 </url>
 <url>
+  <loc>https://www.digibastion.com/articles/nextjs-imageresponse-rce-cve-2026-94545</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/operation-atlantic-approval-phishing-2026</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/shai-hulud-npm-supply-chain-attack</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/react2shell-rsc-vulnerability-response</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
   <loc>https://www.digibastion.com/articles/privacy-security-web3-opsec</loc>
   <lastmod>2025-01-15</lastmod>
   <priority>0.9</priority>
@@ -243,12 +267,6 @@
   <changefreq>monthly</changefreq>
 </url>
 <url>
-  <loc>https://www.digibastion.com/articles/metamask-security-settings</loc>
-  <lastmod>2025-01-12</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
-<url>
   <loc>https://www.digibastion.com/articles/revoke-token-approvals-guide</loc>
   <lastmod>2025-01-15</lastmod>
   <priority>0.85</priority>
@@ -257,12 +275,6 @@
 <url>
   <loc>https://www.digibastion.com/articles/multi-signature-wallet-setup</loc>
   <lastmod>2025-01-08</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
-<url>
-  <loc>https://www.digibastion.com/articles/advanced-wallet-security</loc>
-  <lastmod>2025-01-11</lastmod>
   <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>
@@ -348,12 +360,6 @@
   <priority>0.8</priority>
   <changefreq>monthly</changefreq>
 </url>
-<url>
-  <loc>https://www.digibastion.com/articles/defi-smart-contract-audit-checklist</loc>
-  <lastmod>2025-01-15</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
 
 <!-- Smart Contract Security Articles -->
 <url>
@@ -377,12 +383,6 @@
 <url>
   <loc>https://www.digibastion.com/articles/smart-contract-audit-process</loc>
   <lastmod>2025-01-11</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
-<url>
-  <loc>https://www.digibastion.com/articles/formal-verification-smart-contracts</loc>
-  <lastmod>2025-01-14</lastmod>
   <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>
@@ -428,12 +428,6 @@
 </url>
 
 <!-- Privacy & Anonymity -->
-<url>
-  <loc>https://www.digibastion.com/articles/blockchain-privacy-tools-2025</loc>
-  <lastmod>2026-09-27</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
 <url>
   <loc>https://www.digibastion.com/articles/wallet-address-deanonymization</loc>
   <lastmod>2025-01-08</lastmod>
@@ -505,12 +499,6 @@
 <url>
   <loc>https://www.digibastion.com/articles/exchange-hack-survival-guide</loc>
   <lastmod>2025-01-13</lastmod>
-  <priority>0.85</priority>
-  <changefreq>monthly</changefreq>
-</url>
-<url>
-  <loc>https://www.digibastion.com/articles/cex-vs-dex-security-comparison</loc>
-  <lastmod>2025-01-07</lastmod>
   <priority>0.85</priority>
   <changefreq>monthly</changefreq>
 </url>
