@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
+import {
+  classifyRssRelevance,
+  determineRssSeverity,
+} from '../_shared/rss-classifier.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -169,115 +173,13 @@ function isRelevant(
   keywords: KeywordEntry[],
   feedCategory: string
 ): RelevanceResult {
-  const content = (title + ' ' + summary).toLowerCase();
-  const matchedKeywords: string[] = [];
-  let totalWeight = 0;
-  const categoryWeights: Record<string, number> = {};
-
-  for (const { keyword, category, weight } of keywords) {
-    if (content.includes(keyword.toLowerCase())) {
-      matchedKeywords.push(keyword);
-      totalWeight += weight;
-      categoryWeights[category] = (categoryWeights[category] || 0) + weight;
-    }
-  }
-
-  // Find primary keyword-category by weight
-  let keywordCategory = '';
-  let maxWeight = 0;
-  for (const [cat, w] of Object.entries(categoryWeights)) {
-    if (w > maxWeight) {
-      maxWeight = w;
-      keywordCategory = cat;
-    }
-  }
-
-  // Map keyword categories → news categories
-  const categoryMap: Record<string, string> = {
-    'vulnerability': 'vulnerability-disclosure',
-    'breach': 'operational-security',
-    'malware': 'operational-security',
-    'threat': 'operational-security',
-    'attack': 'operational-security',
-    'supply-chain': 'supply-chain',
-    'web3': 'web3-security',
-    'defi': 'defi-exploits',
-    'opsec': 'operational-security',
-    'patch': 'vulnerability-disclosure',
-    'cloud': 'vulnerability-disclosure',
-    'infrastructure': 'vulnerability-disclosure',
-    'advisory': 'vulnerability-disclosure',
-    'general': 'vulnerability-disclosure',
-  };
-
-  // Decide final category:
-  // 1) If feed has a specific category, trust it unless keywords are very strong
-  // 2) If strong keyword match exists and feed is generic, use keywords
-  // 3) Fallback to vulnerability-disclosure
-  let finalCategory: string;
-  const feedHasCategory = feedCategory && feedCategory !== 'general';
-
-  if (feedHasCategory && (!keywordCategory || maxWeight < 6)) {
-    // Feed has a meaningful category — trust it unless keywords are overwhelming
-    finalCategory = feedCategory;
-  } else if (keywordCategory && maxWeight >= 3) {
-    // Strong keyword signal on a generic feed → use keyword-derived category
-    finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
-  } else if (keywordCategory) {
-    finalCategory = categoryMap[keywordCategory] || 'vulnerability-disclosure';
-  } else {
-    finalCategory = feedHasCategory ? feedCategory : 'vulnerability-disclosure';
-  }
-
-  // A broad blockchain term alone is not enough to classify a security story as Web3.
-  const explicitWeb3Signals = ['defi exploit', 'smart contract vulnerability', 'smart contract exploit',
-    'wallet drainer', 'crypto wallet', 'seed phrase', 'rug pull', 'flash loan', 'bridge exploit',
-    'protocol hack', 'web3 security', 'on-chain exploit'];
-  const web3Context = ['blockchain', 'web3', 'defi', 'ethereum', 'solana', 'crypto', 'protocol', 'wallet'];
-  const securityContext = ['hack', 'exploit', 'breach', 'vulnerability', 'attack', 'stolen', 'drain'];
-  const hasWeb3Signal = explicitWeb3Signals.some(s => content.includes(s)) ||
-    (web3Context.some(s => content.includes(s)) && securityContext.some(s => content.includes(s)));
-
-  if (hasWeb3Signal && finalCategory !== 'defi-exploits') {
-    finalCategory = 'web3-security';
-  }
-
-  // For vendor advisory feeds, articles are always relevant even without keyword matches
-  const isVendorFeed = feedCategory === 'vulnerability-disclosure';
-  const isRelevantResult = matchedKeywords.length > 0 || isVendorFeed;
-
-  return {
-    relevant: isRelevantResult,
-    matchedKeywords,
-    category: finalCategory,
-    weight: totalWeight
-  };
+  return classifyRssRelevance(title, summary, keywords, feedCategory);
 }
 
 // ─── Severity ───────────────────────────────────────────────────────────────
 
 function determineSeverity(matchedKeywords: string[], title: string): string {
-  const titleLower = title.toLowerCase();
-  const keywordsLower = matchedKeywords.map(k => k.toLowerCase());
-
-  const criticalIndicators = ['critical', 'zero-day', '0day', '0-day', 'rce',
-    'remote code execution', 'actively exploited', 'emergency', 'cvss 9', 'cvss 10'];
-  const highIndicators = ['high severity', 'high-risk', 'exploit', 'breach', 'ransomware', 'malware',
-    'backdoor', 'lazarus', 'north korea', 'apt', 'privilege escalation',
-    'authentication bypass', 'code execution'];
-  const mediumIndicators = ['medium', 'vulnerability', 'patch', 'update',
-    'advisory', 'security bulletin', 'security notice', 'moderate'];
-
-  for (const indicator of criticalIndicators) {
-    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) return 'critical';
-  }
-  for (const indicator of highIndicators) {
-    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) return 'high';
-  }
-  for (const indicator of mediumIndicators) {
-    if (titleLower.includes(indicator) || keywordsLower.includes(indicator)) return 'medium';
-  }
-  return 'low';
+  return determineRssSeverity(matchedKeywords, title);
 }
 
 // ─── CVE Extraction ─────────────────────────────────────────────────────────

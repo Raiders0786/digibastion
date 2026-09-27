@@ -1,4 +1,9 @@
 import { assertEquals, assertNotEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import {
+  classifyRssRelevance,
+  containsSecurityTerm,
+  determineRssSeverity,
+} from "../_shared/rss-classifier.ts";
 
 // ─── Inline the pure functions from index.ts for isolated testing ───────────
 
@@ -101,15 +106,7 @@ function parseRSSFeed(xml: string): ParsedItem[] {
 }
 
 function determineSeverity(matchedKeywords: string[], title: string): string {
-  const titleLower = title.toLowerCase();
-  const keywordsLower = matchedKeywords.map(k => k.toLowerCase());
-  const criticalIndicators = ['critical', 'zero-day', '0day', '0-day', 'rce', 'remote code execution', 'actively exploited'];
-  const highIndicators = ['high', 'exploit', 'breach', 'ransomware', 'malware', 'backdoor', 'apt', 'privilege escalation'];
-  const mediumIndicators = ['medium', 'vulnerability', 'patch', 'update', 'advisory'];
-  for (const ind of criticalIndicators) { if (titleLower.includes(ind) || keywordsLower.includes(ind)) return 'critical'; }
-  for (const ind of highIndicators) { if (titleLower.includes(ind) || keywordsLower.includes(ind)) return 'high'; }
-  for (const ind of mediumIndicators) { if (titleLower.includes(ind) || keywordsLower.includes(ind)) return 'medium'; }
-  return 'low';
+  return determineRssSeverity(matchedKeywords, title);
 }
 
 function extractCVE(content: string): string | null {
@@ -201,6 +198,29 @@ Deno.test("determineSeverity: advisory → medium", () => {
 
 Deno.test("determineSeverity: generic title → low", () => {
   assertEquals(determineSeverity([], 'Some generic news'), 'low');
+});
+
+Deno.test("classifier: embedded apt/tor substrings are not relevant", () => {
+  const result = classifyRssRelevance(
+    'Friday Squid Blogging: Participatory Squid Dissection',
+    'Squid adaptations create an educational opportunity.',
+    [
+      { keyword: 'apt', category: 'threat', weight: 3 },
+      { keyword: 'tor', category: 'opsec', weight: 2 },
+    ],
+    'general',
+  );
+  assertEquals(result.relevant, false);
+  assertEquals(result.matchedKeywords, []);
+});
+
+Deno.test("classifier: genuine APT and Tor tokens still match", () => {
+  assertEquals(containsSecurityTerm('APT38 uses Tor-based infrastructure', 'apt'), true);
+  assertEquals(containsSecurityTerm('APT38 uses Tor-based infrastructure', 'tor'), true);
+});
+
+Deno.test("classifier: lowercase apt package manager is not a threat group", () => {
+  assertEquals(containsSecurityTerm('apt package manager update', 'apt'), false);
 });
 
 Deno.test("extractCVE: extracts CVE ID", () => {
