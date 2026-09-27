@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Digibastion">
+  <defs>
+    <linearGradient id="outer" x1="9" y1="10" x2="55" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fb7185"/>
+      <stop offset="0.48" stop-color="#f43f5e"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="22" y1="20" x2="42" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#fecdd3"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#outer)" d="M32 3 57 15v19c0 12.6-8.3 21.8-25 27C15.3 55.8 7 46.6 7 34V15L32 3Z"/>
+  <path fill="#be123c" fill-opacity=".38" d="m7 15 25 46V25L7 15Z"/>
+  <path fill="#fb923c" fill-opacity=".65" d="m57 15-25 46V25l25-10Z"/>
+  <path fill="url(#inner)" d="m32 19 13 7-4.4 17L32 51l-8.6-8L19 26l13-7Z"/>
+  <path fill="#fff" d="m19 26 13 5 13-5-13-7-13 7Z"/>
+  <path fill="#fda4af" d="m19 26 4.4 17L32 51V31l-13-5Z"/>
+  <path fill="#fb7185" d="M45 26 40.6 43 32 51V31l13-5Z"/>
+</svg>

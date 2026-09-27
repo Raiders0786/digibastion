@@ -10,6 +10,7 @@ import {
   loadStatsFromCache,
 } from '@/utils/newsCache';
 import { sanitizeText } from '@/utils/sanitize';
+import { summarizeFeedFreshness } from '@/utils/feedFreshness';
 
 interface UseNewsArticlesOptions {
   categories?: NewsCategory[];
@@ -37,6 +38,11 @@ interface UseNewsArticlesResult {
     source: 'loading' | 'live' | 'cache';
     isStale: boolean;
     checkedAt: Date | null;
+    activeFeedCount: number;
+    checkedFeedCount: number;
+    pipelineCheckedAt: Date | null;
+    pipelineIsStale: boolean;
+    newestPublishedAt: Date | null;
   };
   stats: {
     total: number;
@@ -60,6 +66,44 @@ const sanitizePostgrestSearchTerm = (value: string): string => value
   .replace(/\s+/g, ' ')
   .trim();
 
+const emptyFeedFreshness = {
+  activeFeedCount: 0,
+  checkedFeedCount: 0,
+  pipelineCheckedAt: null as Date | null,
+  pipelineIsStale: true,
+  newestPublishedAt: null as Date | null,
+};
+
+async function fetchFeedFreshness() {
+  try {
+    const [feedsResult, latestArticleResult] = await Promise.all([
+      supabase
+        .from('rss_feeds')
+        .select('last_fetched_at')
+        .eq('is_active', true),
+      supabase
+        .from('news_articles')
+        .select('published_at')
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (feedsResult.error) throw feedsResult.error;
+    if (latestArticleResult.error) throw latestArticleResult.error;
+
+    const feedSummary = summarizeFeedFreshness(feedsResult.data || []);
+    const newestPublishedAt = latestArticleResult.data?.published_at
+      ? new Date(latestArticleResult.data.published_at)
+      : null;
+
+    return { ...feedSummary, newestPublishedAt };
+  } catch (freshnessError) {
+    console.warn('Unable to load threat-feed freshness metadata:', freshnessError);
+    return emptyFeedFreshness;
+  }
+}
+
 export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsArticlesResult {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +117,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     source: 'loading',
     isStale: false,
     checkedAt: null,
+    ...emptyFeedFreshness,
   });
   const { toast } = useToast();
   const cacheInitialised = useRef(false);
@@ -108,7 +153,12 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       setArticles(cached.articles);
       setTotalCount(cached.totalCount);
       setIsCachedData(true);
-      setFeedStatus({ source: 'cache', isStale: cached.isStale, checkedAt: cached.cachedAt });
+      setFeedStatus({
+        source: 'cache',
+        isStale: cached.isStale,
+        checkedAt: cached.cachedAt,
+        ...emptyFeedFreshness,
+      });
     }
 
     // Also load cached stats so the hero banner has numbers instantly
@@ -120,6 +170,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   }, []);
 
   const fetchArticles = useCallback(async () => {
+    const feedFreshnessPromise = fetchFeedFreshness();
+
     try {
       setIsLoading(true);
       setError(null);
@@ -206,7 +258,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
         setArticles(transformedArticles);
         setIsCachedData(false);
-        setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date() });
+        const freshness = await feedFreshnessPromise;
+        setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
         saveToCache(transformedArticles, count || 0, filterKey);
         return;
       }
@@ -257,12 +310,14 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
       setArticles(transformedArticles);
       setIsCachedData(false);
-      setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date() });
+      const freshness = await feedFreshnessPromise;
+      setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
 
       // Persist to cache for offline / error fallback
       saveToCache(transformedArticles, resolvedCount, filterKey);
     } catch (err) {
       console.error('Error fetching news articles:', err);
+      const freshness = await feedFreshnessPromise;
 
       // Attempt to serve cached data instead of showing empty page
       const filterKey = buildFilterKey({
@@ -279,14 +334,19 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         setArticles(cached.articles);
         setTotalCount(cached.totalCount);
         setIsCachedData(true);
-        setFeedStatus({ source: 'cache', isStale: cached.isStale, checkedAt: cached.cachedAt });
+        setFeedStatus({
+          source: 'cache',
+          isStale: cached.isStale,
+          checkedAt: cached.cachedAt,
+          ...freshness,
+        });
         setError(err instanceof Error ? err : new Error('Failed to refresh articles'));
         console.info('Serving cached news data due to fetch error');
       } else {
         setArticles([]);
         setTotalCount(0);
         setIsCachedData(false);
-        setFeedStatus({ source: 'live', isStale: false, checkedAt: null });
+        setFeedStatus({ source: 'live', isStale: false, checkedAt: null, ...freshness });
         setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
       }
     } finally {

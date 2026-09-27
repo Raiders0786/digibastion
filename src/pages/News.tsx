@@ -31,7 +31,7 @@ import {
   Newspaper, Shield, AlertTriangle, Bell,
   Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 const AUTO_REFRESH_OPTIONS = [
   { value: '0', label: 'Off' },
@@ -608,7 +608,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 <div className="lg:col-span-3 space-y-4">
 {/* Results count and refresh button */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm text-muted-foreground">
                         {isLoading ? 'Loading...' : (
                           pagination.totalCount > 0 
@@ -619,14 +619,31 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       {pagination.totalCount > 0 && (
                         <Badge
                           variant="outline"
-                          className={`text-xs ${feedStatus.source === 'cache' ? 'border-yellow-500/40 text-yellow-500' : ''}`}
-                          title={feedStatus.checkedAt ? `Feed checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined}
+                          className={`text-xs ${
+                            feedStatus.source === 'cache' || feedStatus.pipelineIsStale
+                              ? 'border-yellow-500/40 text-yellow-500'
+                              : 'border-emerald-500/40 text-emerald-400'
+                          }`}
+                          title={feedStatus.pipelineCheckedAt
+                            ? `All active RSS sources checked by ${format(feedStatus.pipelineCheckedAt, 'PPpp')}`
+                            : (feedStatus.checkedAt ? `Database checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined)}
                         >
                           <Database className="w-3 h-3 mr-1" />
                           {feedStatus.source === 'cache'
                             ? (feedStatus.isStale ? 'Cached · stale' : 'Cached')
-                            : 'Live database'}
+                            : feedStatus.pipelineCheckedAt
+                              ? `${feedStatus.checkedFeedCount}/${feedStatus.activeFeedCount} sources checked ${formatDistanceToNow(feedStatus.pipelineCheckedAt, { addSuffix: true })}`
+                              : 'Live database'}
                         </Badge>
+                      )}
+                      {feedStatus.newestPublishedAt && (
+                        <span
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                          title={`Newest publisher timestamp: ${format(feedStatus.newestPublishedAt, 'PPpp')}`}
+                        >
+                          <Clock className="h-3 w-3" />
+                          Newest source report {formatDistanceToNow(feedStatus.newestPublishedAt, { addSuffix: true })}
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">

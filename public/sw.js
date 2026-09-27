@@ -1,11 +1,16 @@
 // Digibastion Service Worker for resilient caching without stale app shells
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `digibastion-static-${CACHE_VERSION}`;
 
 // Keep this list intentionally small to reduce stale-shell regressions
 const PRECACHE_ASSETS = [
   '/index.html',
+  '/favicon.svg',
   '/favicon.ico',
+  '/favicon-32x32.png',
+  '/favicon-192x192.png',
+  '/favicon-512x512.png',
+  '/apple-touch-icon.png',
   '/site.webmanifest',
 ];
 
