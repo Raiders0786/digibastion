@@ -54,6 +54,9 @@ const LegacyNewsRedirect = () => {
 };
 
 const App = () => {
+  const shouldLoadVercelAnalytics = typeof window !== 'undefined'
+    && window.location.hostname.endsWith('.vercel.app');
+
   return (
     <React.StrictMode>
       <ErrorBoundary>
@@ -64,7 +67,7 @@ const App = () => {
                 <TooltipProvider>
                 <Toaster />
                 <Sonner />
-                <Analytics />
+                {shouldLoadVercelAnalytics && <Analytics />}
                 <PageTransition>
                   <React.Suspense fallback={<main className="min-h-screen grid place-items-center" aria-busy="true"><span className="text-muted-foreground">Loading…</span></main>}>
                     <Routes>
