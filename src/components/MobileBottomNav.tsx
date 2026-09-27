@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles, Radar } from 'lucide-react';
+import { Bell, Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles, Radar } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -97,7 +97,7 @@ export const MobileBottomNav = () => {
   const navItems = [
     { route: '/', icon: Home, label: 'Home', badge: undefined },
     { route: '/quiz', icon: Zap, label: 'Quiz', badge: hasNewQuiz ? 'dot' : undefined },
-    { route: '/threat-intel', icon: Newspaper, label: 'Alerts', badge: alertCount > 0 ? alertCount : undefined },
+    { route: '/threat-intel', icon: Newspaper, label: 'Threats', badge: alertCount > 0 ? alertCount : undefined },
   ];
 
   const isActive = (route: string) => location.pathname === route;
@@ -221,6 +221,28 @@ export const MobileBottomNav = () => {
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </TouchFeedback>
+
+                <TouchFeedback
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate('/threat-intel?tab=subscribe');
+                  }}
+                  className="w-full rounded-2xl border border-primary/25 bg-primary/10 p-4 text-left"
+                  rippleColor="bg-primary/20"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+                        <Bell className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Get threat alerts</h3>
+                        <p className="text-xs text-muted-foreground">Choose the email briefings you want</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-primary" />
                   </div>
                 </TouchFeedback>
 

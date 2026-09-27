@@ -90,10 +90,9 @@ export const Navbar = () => {
                       </span>
                       <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
                     </a>
-                    <div className="mt-2 grid grid-cols-2 gap-1">
+                    <div className="mt-2 grid grid-cols-3 gap-1">
                       {[
                         { icon: Zap, title: 'OpSec assessment', description: 'Find your highest-priority gaps', route: '/quiz' },
-                        { icon: Newspaper, title: 'Threat intelligence', description: 'Current incidents and alerts', route: '/threat-intel' },
                         { icon: CheckCircle2, title: 'Security checklists', description: 'Track practical improvements', action: () => goToSection('checklists') },
                         { icon: Sparkles, title: 'Security score', description: 'See progress across categories', action: () => goToSection('score') },
                       ].map((item) => (
@@ -110,9 +109,12 @@ export const Navbar = () => {
           </NavigationMenu>
 
           <button type="button" onClick={() => navigate('/services')} className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname.startsWith('/services') ? 'text-primary' : 'text-foreground'}`}>Services</button>
-          <button type="button" onClick={() => navigate('/articles')} className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname.startsWith('/articles') ? 'text-primary' : 'text-foreground'}`}>Guides</button>
-          <button type="button" onClick={() => navigate('/tools')} className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname === '/tools' ? 'text-primary' : 'text-foreground'}`}>Tools</button>
-          <button type="button" onClick={() => goToSection('roadmap')} className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 hover:text-primary">Roadmap</button>
+          <button type="button" onClick={() => navigate('/threat-intel')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 hover:text-primary ${location.pathname.startsWith('/threat-intel') ? 'text-primary' : 'text-foreground'}`}>
+            <Newspaper className="h-4 w-4" /> Threat Intelligence
+          </button>
+          <Button type="button" size="sm" variant="outline" onClick={() => navigate('/threat-intel?tab=subscribe')} className="ml-1 gap-1.5 rounded-full border-primary/30 bg-primary/5 px-4 text-primary hover:bg-primary/10 hover:text-primary">
+            <Bell className="h-3.5 w-3.5" /> Get alerts
+          </Button>
           <ThemeToggle />
           <a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground" aria-label="Contribute to Digibastion on GitHub"><Github className="h-5 w-5" /></a>
         </div>
@@ -140,7 +142,7 @@ export const Navbar = () => {
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { icon: Zap, label: 'Assessment', route: '/quiz' },
-                        { icon: Bell, label: 'Threats', route: '/threat-intel' },
+                        { icon: Newspaper, label: 'Threat feed', route: '/threat-intel' },
                         { icon: Briefcase, label: 'Services', route: '/services' },
                         { icon: Sparkles, label: 'My score', action: () => goToSection('score') },
                       ].map((item) => (
@@ -149,6 +151,10 @@ export const Navbar = () => {
                         </button>
                       ))}
                     </div>
+                    <button type="button" onClick={() => goTo('/threat-intel?tab=subscribe')} className="mt-2 flex w-full items-center justify-between rounded-xl border border-primary/25 bg-primary/10 p-3 text-left transition-colors hover:border-primary/40">
+                      <span className="flex items-center gap-3"><Bell className="h-4 w-4 text-primary" /><span><span className="block text-sm font-medium text-foreground">Get threat alerts</span><span className="block text-xs text-muted-foreground">Choose the briefings you want by email</span></span></span>
+                      <ChevronRight className="h-4 w-4 text-primary" />
+                    </button>
                   </div>
 
                   <div>
