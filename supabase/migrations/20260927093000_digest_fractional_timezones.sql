@@ -39,16 +39,64 @@ WHERE subscription.categories && ARRAY['wallet-security', 'smart-contract-vulner
 
 SELECT cron.unschedule(jobid)
 FROM cron.job
-WHERE jobname = 'send-hourly-digests';
+WHERE jobname IN (
+  'send-hourly-digests',
+  'send-digests-hourly-00',
+  'send-digests-hourly-15',
+  'send-digests-hourly-30',
+  'send-digests-hourly-45'
+);
 
-SELECT cron.schedule('send-digests-quarter-hourly', '*/15 * * * *', $$
+-- Lovable Cloud protects against jobs that run 96 times per day. Four hourly
+-- jobs preserve quarter-hour delivery while keeping every individual job at
+-- 24 runs per day.
+SELECT cron.schedule('send-digests-hourly-00', '0 * * * *', $$
   SELECT public.record_cron_http_request(
-    'send-digests-quarter-hourly',
+    'send-digests-hourly-00',
     'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/send-digest-emails',
     jsonb_build_object(
       'source', 'cron',
       'target_hour', extract(hour FROM now() AT TIME ZONE 'UTC')::integer,
-      'target_minute', (extract(minute FROM now() AT TIME ZONE 'UTC')::integer / 15) * 15
+      'target_minute', 0
+    ),
+    180000
+  );
+$$);
+
+SELECT cron.schedule('send-digests-hourly-15', '15 * * * *', $$
+  SELECT public.record_cron_http_request(
+    'send-digests-hourly-15',
+    'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/send-digest-emails',
+    jsonb_build_object(
+      'source', 'cron',
+      'target_hour', extract(hour FROM now() AT TIME ZONE 'UTC')::integer,
+      'target_minute', 15
+    ),
+    180000
+  );
+$$);
+
+SELECT cron.schedule('send-digests-hourly-30', '30 * * * *', $$
+  SELECT public.record_cron_http_request(
+    'send-digests-hourly-30',
+    'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/send-digest-emails',
+    jsonb_build_object(
+      'source', 'cron',
+      'target_hour', extract(hour FROM now() AT TIME ZONE 'UTC')::integer,
+      'target_minute', 30
+    ),
+    180000
+  );
+$$);
+
+SELECT cron.schedule('send-digests-hourly-45', '45 * * * *', $$
+  SELECT public.record_cron_http_request(
+    'send-digests-hourly-45',
+    'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/send-digest-emails',
+    jsonb_build_object(
+      'source', 'cron',
+      'target_hour', extract(hour FROM now() AT TIME ZONE 'UTC')::integer,
+      'target_minute', 45
     ),
     180000
   );
