@@ -145,7 +145,7 @@ serve(async (req) => {
       .select("id, email, name, categories, technologies, frequency, severity_threshold, preferred_hour, timezone_offset, preferred_day, is_active, is_verified")
       .eq("email", normalizedEmail)
       .eq("verification_token", token)
-      .eq("is_active", true)
+      .eq("is_verified", true)
       .maybeSingle();
 
     if (error) {

@@ -257,6 +257,7 @@ serve(async (req) => {
       .from('subscriptions')
       .select('*')
       .eq('is_active', true)
+      .eq('is_verified', true)
       .eq('frequency', 'immediate');
 
     if (subsError) {
@@ -319,6 +320,7 @@ serve(async (req) => {
         .from('notification_log')
         .select('article_id')
         .eq('subscription_id', sub.id)
+        .eq('status', 'sent')
         .in('article_id', matchingArticles.map(a => a.id));
 
       const sentArticleIds = new Set((sentLogs || []).map(l => l.article_id));
@@ -366,11 +368,12 @@ serve(async (req) => {
         for (const article of newArticles) {
           await supabase
             .from('notification_log')
-            .insert({
+            .upsert({
               subscription_id: sub.id,
               article_id: article.id,
               status: 'sent',
-            });
+              error_message: null,
+            }, { onConflict: 'subscription_id,article_id' });
         }
 
         // Update last_notified_at
@@ -392,12 +395,12 @@ serve(async (req) => {
         for (const article of newArticles) {
           await supabase
             .from('notification_log')
-            .insert({
+            .upsert({
               subscription_id: sub.id,
               article_id: article.id,
               status: 'failed',
               error_message: errorMessage,
-            });
+            }, { onConflict: 'subscription_id,article_id' });
         }
       }
     }

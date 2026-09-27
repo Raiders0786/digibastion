@@ -12,6 +12,12 @@ const MAX_EMAIL_LENGTH = 255;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_SOCIAL_LENGTH = 100;
 const MAX_URL_LENGTH = 500;
+const VALID_CATEGORIES = new Set([
+  'operational-security', 'supply-chain', 'personal-protection', 'web3-security',
+  'defi-exploits', 'vulnerability-disclosure', 'tools-reviews',
+]);
+const VALID_FREQUENCIES = new Set(['immediate', 'daily', 'weekly']);
+const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low', 'info']);
 
 // Rate limiting configuration
 const MAX_SUBSCRIPTIONS_PER_EMAIL = 3; // Max subscription attempts per email per hour
@@ -107,17 +113,16 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!web3formsKey) {
-      console.error("WEB3FORMS_KEY not configured");
-      return new Response(
-        JSON.stringify({ success: false, error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     let formData: Record<string, string>;
 
     if (type === "contact") {
+      if (!web3formsKey) {
+        console.error("WEB3FORMS_KEY not configured");
+        return new Response(
+          JSON.stringify({ success: false, error: "Server configuration error" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       const contactData = data as ContactFormData;
       
       // Validate required fields
@@ -203,7 +208,7 @@ const handler = async (req: Request): Promise<Response> => {
       const subData = data as SubscriptionFormData;
       
       // Validate required fields
-      if (!subData.email || !subData.categories || subData.categories.length === 0) {
+      if (!subData.email || !Array.isArray(subData.categories) || subData.categories.length === 0 || subData.categories.length > 10) {
         return new Response(
           JSON.stringify({ success: false, error: "Missing required fields" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -215,6 +220,35 @@ const handler = async (req: Request): Promise<Response> => {
         return new Response(
           JSON.stringify({ success: false, error: "Invalid email address" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!subData.categories.every((category) => typeof category === 'string' && VALID_CATEGORIES.has(category))) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid security category" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (subData.technologies !== undefined && (!Array.isArray(subData.technologies) || subData.technologies.length > 20 || !subData.technologies.every((technology) => typeof technology === 'string' && technology.length <= 50))) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid technology preference" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (!VALID_FREQUENCIES.has(subData.frequency) || !VALID_SEVERITIES.has(subData.severity)) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid alert preference" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (
+        (subData.preferred_hour !== undefined && (!Number.isInteger(subData.preferred_hour) || subData.preferred_hour < 0 || subData.preferred_hour > 23)) ||
+        (subData.preferred_day !== undefined && (!Number.isInteger(subData.preferred_day) || subData.preferred_day < 0 || subData.preferred_day > 6)) ||
+        (subData.timezone_offset !== undefined && (!Number.isFinite(subData.timezone_offset) || subData.timezone_offset < -12 || subData.timezone_offset > 14 || !Number.isInteger(subData.timezone_offset * 4)))
+      ) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid delivery schedule" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -255,6 +289,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const isNewSubscription = !existingSub;
       const alreadyVerified = existingSub?.is_verified === true;
+      const inactive = existingSub?.is_active === false;
       const needsVerification = !alreadyVerified;
 
       // Keep a pending subscriber's valid token so a public retry cannot
@@ -339,6 +374,8 @@ const handler = async (req: Request): Promise<Response> => {
         // New or unverified user - send verification email
         if (resendApiKey) {
           const verifyUrl = `https://www.digibastion.com/verify-email?token=${verificationToken}`;
+          const verificationName = isNewSubscription ? subscriptionData.name : existingSub?.name || null;
+          const verificationCategories = isNewSubscription ? subscriptionData.categories : existingSub?.categories || [];
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -352,8 +389,8 @@ const handler = async (req: Request): Promise<Response> => {
                 reply_to: 'support@digibastion.com',
                 to: [subscriptionData.email],
                 subject: 'Verify your email - Digibastion Security Alerts',
-                html: generateVerificationEmail(subscriptionData.name, verifyUrl, subscriptionData.categories),
-                text: generateVerificationEmailText(subscriptionData.name, verifyUrl, subscriptionData.categories),
+                html: generateVerificationEmail(verificationName, verifyUrl, verificationCategories),
+                text: generateVerificationEmailText(verificationName, verifyUrl, verificationCategories),
               }),
             });
 
@@ -371,7 +408,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Already verified - send confirmation email with their current settings
         if (resendApiKey) {
           // BUG FIX: Use the subscriber's existing verification_token (management token), not their subscription ID
-          const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(subscriptionData.email)}&token=${encodeURIComponent(subscription.verification_token || '')}`;
+          const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(existingSub!.email)}&token=${encodeURIComponent(existingSub!.verification_token || '')}`;
           
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -384,9 +421,9 @@ const handler = async (req: Request): Promise<Response> => {
                 from: 'Digibastion Security <alerts@digibastion.com>',
                 reply_to: 'support@digibastion.com',
                 to: [subscriptionData.email],
-                subject: 'You\'re already subscribed! - Digibastion Security',
-                html: generateAlreadyVerifiedEmail(subscriptionData.name, subscriptionData.frequency, subscriptionData.preferred_hour, subscriptionData.timezone_offset, subscriptionData.categories, manageUrl),
-                text: generateAlreadyVerifiedEmailText(subscriptionData.name, subscriptionData.frequency, subscriptionData.preferred_hour, subscriptionData.timezone_offset, subscriptionData.categories, manageUrl),
+                subject: inactive ? 'Reactivate your Digibastion security alerts' : 'You\'re already subscribed! - Digibastion Security',
+                html: generateAlreadyVerifiedEmail(existingSub!.name, existingSub!.frequency, existingSub!.preferred_hour, existingSub!.timezone_offset, existingSub!.categories, manageUrl, inactive),
+                text: generateAlreadyVerifiedEmailText(existingSub!.name, existingSub!.frequency, existingSub!.preferred_hour, existingSub!.timezone_offset, existingSub!.categories, manageUrl, inactive),
               }),
             });
 
@@ -402,38 +439,14 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
-      // Also send notification to admin via Web3Forms
-      formData = {
-        access_key: web3formsKey,
-        subject: "New Digibastion Threat Intel Subscription",
-        from_name: "Digibastion Threat Intel",
-        name: sanitizeString(subData.name || "Subscriber", MAX_NAME_LENGTH),
-        email: sanitizeString(subData.email, MAX_EMAIL_LENGTH),
-        message: `
-New subscription request:
-- Email: ${subscriptionData.email}
-- Name: ${subscriptionData.name || 'Not provided'}
-- Categories: ${subscriptionData.categories.join(', ')}
-- Technologies: ${subscriptionData.technologies.join(', ') || 'None selected'}
-- Frequency: ${subscriptionData.frequency}
-- Min Severity: ${subscriptionData.severity_threshold}
-- Verified: ${subscriptionData.is_verified ? 'Yes' : 'Pending verification'}
-        `.trim()
-      };
-
-      // Send admin notification (fire and forget)
-      fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(formData),
-      }).catch(e => console.error("[submit-form] Web3Forms notification error:", e));
-
-      const responseMessage = needsVerification 
+      const responseMessage = needsVerification
         ? "Please check your email to verify your subscription."
-        : "You're already subscribed! We've sent a confirmation to your email.";
+        : inactive
+          ? "Your alerts are paused. We've emailed a secure reactivation link."
+          : "You're already subscribed! We've sent a confirmation to your email.";
 
       return new Response(
-        JSON.stringify({ success: true, message: responseMessage, needsVerification, alreadyVerified }),
+        JSON.stringify({ success: true, message: responseMessage, needsVerification, alreadyVerified, isNewSubscription, inactive }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 
@@ -576,13 +589,20 @@ function generateAlreadyVerifiedEmail(
   preferredHour: number, 
   timezoneOffset: number,
   categories: string[],
-  manageUrl: string
+  manageUrl: string,
+  inactive = false,
 ): string {
   const displayName = escapeHtml(name || 'Security Professional');
   const escapedManageUrl = escapeHtml(manageUrl);
   const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${escapeHtml(c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</li>`).join('');
   const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
   const frequencyDisplay = frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Immediate';
+  const statusLabel = inactive ? 'Alerts Paused' : 'Already Verified';
+  const heading = inactive ? 'Reactivate Your Security Alerts' : "You're Already Subscribed!";
+  const intro = inactive
+    ? 'Your email is verified, but these alerts are currently paused. Review the saved settings below and reactivate them from the secure management page:'
+    : "Good news - your email is already verified and you're receiving our security alerts! Here's a reminder of your current settings:";
+  const actionLabel = inactive ? 'Review & Reactivate' : 'Manage Preferences';
   
   return `
 <!DOCTYPE html>
@@ -614,13 +634,13 @@ function generateAlreadyVerifiedEmail(
                   <td style="padding-bottom: 24px;">
                     <div style="text-align: center; margin-bottom: 20px;">
                       <span style="display: inline-block; background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-                        ✓ Already Verified
+                        ✓ ${statusLabel}
                       </span>
                     </div>
-                    <h2 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 22px;">You're Already Subscribed!</h2>
+                    <h2 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 22px;">${heading}</h2>
                     <p style="color: #d1d5db; margin: 0; font-size: 16px; line-height: 1.6;">
                       Hi ${displayName},<br><br>
-                      Good news - your email is already verified and you're receiving our security alerts! Here's a reminder of your current settings:
+                      ${intro}
                     </p>
                   </td>
                 </tr>
@@ -656,7 +676,7 @@ function generateAlreadyVerifiedEmail(
                 <tr>
                   <td align="center" style="padding: 24px 0;">
                     <a href="${escapedManageUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                      Manage Preferences
+                      ${actionLabel}
                     </a>
                   </td>
                 </tr>
@@ -690,7 +710,8 @@ function generateAlreadyVerifiedEmailText(
   preferredHour: number, 
   timezoneOffset: number,
   categories: string[],
-  manageUrl: string
+  manageUrl: string,
+  inactive = false,
 ): string {
   const displayName = name || 'Security Professional';
   const categoryList = categories.slice(0, 5).map(c => `- ${c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n');
@@ -698,11 +719,11 @@ function generateAlreadyVerifiedEmailText(
   const frequencyDisplay = frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Immediate';
   
   return `
-Digibastion Security - You're Already Subscribed!
+Digibastion Security - ${inactive ? 'Reactivate Your Alerts' : "You're Already Subscribed!"}
 
 Hi ${displayName},
 
-Good news - your email is already verified and you're receiving our security alerts!
+${inactive ? 'Your verified subscription is currently paused. Review the saved settings below and reactivate it securely.' : "Good news - your email is already verified and you're receiving our security alerts!"}
 
 YOUR CURRENT SETTINGS:
 - Frequency: ${frequencyDisplay} digest
@@ -710,7 +731,7 @@ YOUR CURRENT SETTINGS:
 - Categories:
 ${categoryList}
 
-To update your preferences, visit: ${manageUrl}
+To ${inactive ? 'review and reactivate' : 'update'} your preferences, visit: ${manageUrl}
 
 ---
 Digibastion Security Threat Intelligence

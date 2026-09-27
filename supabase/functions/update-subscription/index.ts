@@ -14,6 +14,10 @@ const MAX_CATEGORIES = 10;
 const MAX_TECHNOLOGIES = 20;
 const VALID_FREQUENCIES = ["immediate", "daily", "weekly"];
 const VALID_SEVERITIES = ["critical", "high", "medium", "low", "info"];
+const VALID_CATEGORIES = new Set([
+  "operational-security", "supply-chain", "personal-protection", "web3-security",
+  "defi-exploits", "vulnerability-disclosure", "tools-reviews",
+]);
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
@@ -147,6 +151,18 @@ serve(async (req) => {
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+    if (categories.length > MAX_CATEGORIES || !categories.every((category) => typeof category === "string" && VALID_CATEGORIES.has(category))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid security category" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+    if (technologies !== undefined && (!Array.isArray(technologies) || technologies.length > MAX_TECHNOLOGIES || !technologies.every((technology) => typeof technology === "string" && technology.length <= 50))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid technology preference" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
 
     // Validate frequency
     if (frequency && !VALID_FREQUENCIES.includes(frequency)) {
@@ -163,6 +179,16 @@ serve(async (req) => {
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+    if (
+      (preferred_hour !== undefined && (!Number.isInteger(preferred_hour) || preferred_hour < 0 || preferred_hour > 23)) ||
+      (preferred_day !== undefined && (!Number.isInteger(preferred_day) || preferred_day < 0 || preferred_day > 6)) ||
+      (timezone_offset !== undefined && (!Number.isFinite(timezone_offset) || timezone_offset < -12 || timezone_offset > 14 || !Number.isInteger(timezone_offset * 4)))
+    ) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid delivery schedule" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
 
     console.log(`[update-subscription] Verifying token for subscription update from IP: ${clientIP}`);
 
@@ -172,7 +198,7 @@ serve(async (req) => {
       .select("id")
       .eq("email", normalizedEmail)
       .eq("verification_token", token)
-      .eq("is_active", true)
+      .eq("is_verified", true)
       .maybeSingle();
 
     if (lookupError) {
@@ -195,6 +221,7 @@ serve(async (req) => {
       technologies: (technologies || []).slice(0, MAX_TECHNOLOGIES).map((t: unknown) => String(t).slice(0, 50)),
       frequency: frequency || "daily",
       severity_threshold: severity_threshold || "medium",
+      is_active: true,
       updated_at: new Date().toISOString(),
     };
 

@@ -18,13 +18,6 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_ATTEMPTS_PER_TOKEN = 5;
-const MAX_ATTEMPTS_PER_IP = 20;
-
-function getClientIP(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
-}
 
 async function hashIdentifier(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -165,56 +158,41 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!await checkRateLimit(supabase, "unsubscribe:one-click:ip", getClientIP(req), MAX_ATTEMPTS_PER_IP)) {
-      return new Response(
-        generateErrorHtml("Too many attempts. Please try again later."),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "text/html", "Retry-After": String(RATE_LIMIT_WINDOW_SECONDS) } }
-      );
-    }
-    
-    // Support both GET and POST for RFC 8058 compliance
-    // GET: Direct link click from email
-    // POST: One-click unsubscribe from email client (List-Unsubscribe-Post header)
-    
-    let token: string | null = null;
-    let email: string | null = null;
-
+    // Link scanners routinely prefetch GET URLs in email headers. GET must
+    // therefore remain non-mutating and send a person to the confirmation UI.
     if (req.method === "GET") {
-      // Get parameters from URL query string
-      token = url.searchParams.get("token");
-      email = url.searchParams.get("email");
-    } else if (req.method === "POST") {
-      // RFC 8058: POST body should be "List-Unsubscribe=One-Click"
-      const contentType = req.headers.get("content-type") || "";
-      
-      if (contentType.includes("application/x-www-form-urlencoded")) {
-        const body = await req.text();
-        const params = new URLSearchParams(body);
-        
-        // Check for RFC 8058 one-click format
-        if (params.get("List-Unsubscribe") === "One-Click") {
-          // Get token and email from URL (they should be in the List-Unsubscribe URL)
-          token = url.searchParams.get("token");
-          email = url.searchParams.get("email");
-        }
-      } else if (contentType.includes("application/json")) {
-        const body = await req.json();
-        token = body.token || url.searchParams.get("token");
-        email = body.email || url.searchParams.get("email");
-      } else {
-        // Fallback: try URL params
-        token = url.searchParams.get("token");
-        email = url.searchParams.get("email");
-      }
-    } else {
-      return new Response(
-        generateErrorHtml("Invalid request method."),
-        { 
-          status: 405, 
-          headers: { ...corsHeaders, "Content-Type": "text/html" } 
-        }
-      );
+      const email = url.searchParams.get("email") || "";
+      const token = url.searchParams.get("token") || "";
+      const manageUrl = new URL("https://www.digibastion.com/manage-subscription");
+      if (email) manageUrl.searchParams.set("email", email);
+      if (token) manageUrl.searchParams.set("token", token);
+      return Response.redirect(manageUrl.toString(), 303);
     }
+
+    if (req.method !== "POST") {
+      return new Response(generateErrorHtml("Invalid request method."), {
+        status: 405,
+        headers: { ...corsHeaders, "Content-Type": "text/html", "Allow": "GET, POST, OPTIONS" },
+      });
+    }
+
+    // RFC 8058 requires this exact form-encoded signal for a one-click action.
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.includes("application/x-www-form-urlencoded")) {
+      return new Response(generateErrorHtml("Invalid one-click unsubscribe request."), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "text/html" },
+      });
+    }
+    const params = new URLSearchParams(await req.text());
+    if (params.get("List-Unsubscribe") !== "One-Click") {
+      return new Response(generateErrorHtml("Invalid one-click unsubscribe request."), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "text/html" },
+      });
+    }
+    const token = url.searchParams.get("token");
+    const email = url.searchParams.get("email");
 
     // Validate token
     if (!token || typeof token !== "string") {

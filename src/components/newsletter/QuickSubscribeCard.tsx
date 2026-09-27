@@ -8,36 +8,18 @@ import { Bell, Users, Loader2, CheckCircle, Mail, Shield, User, Settings, Clock 
 import { useToast } from '@/hooks/use-toast';
 import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDeliveryTime, formatUtcOffset, getDefaultTimezoneOffset } from '@/lib/digestSchedule';
 
 interface QuickSubscribeCardProps {
   className?: string;
 }
-
-// Auto-detect user's timezone offset (in whole hours)
-const getDefaultTimezoneOffset = (): number => {
-  const offsetMinutes = new Date().getTimezoneOffset();
-  const offsetHours = Math.round(-offsetMinutes / 60);
-  return Math.max(-12, Math.min(14, offsetHours));
-};
-
-// Format timezone for display
-const formatTimezone = (offset: number): string => {
-  const sign = offset >= 0 ? '+' : '';
-  return `UTC${sign}${offset}`;
-};
-
-// Format expected delivery time
-const formatDeliveryTime = (hour: number, offset: number): string => {
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  return `${displayHour}:00 ${period} ${formatTimezone(offset)}`;
-};
 
 export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submissionOutcome, setSubmissionOutcome] = useState<'new' | 'pending' | 'existing' | 'inactive'>('new');
   const { toast } = useToast();
   const { data: subscriberCount } = useSubscriberCount();
   
@@ -67,7 +49,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
           data: {
             email,
             name: name.trim() || undefined,
-            categories: ['defi-exploits', 'wallet-security', 'smart-contract-vulnerabilities'],
+            categories: ['web3-security', 'defi-exploits', 'vulnerability-disclosure'],
             frequency: 'daily',
             severity: 'high',
             preferred_hour: preferredHour,
@@ -81,10 +63,15 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
 
       if (data?.success) {
         setIsSuccess(true);
-        const toastTitle = data.alreadyVerified 
-          ? "Welcome Back! 👋" 
+        setSubmissionOutcome(data.inactive ? 'inactive' : data.alreadyVerified ? 'existing' : data.isNewSubscription ? 'new' : 'pending');
+        const toastTitle = data.inactive
+          ? "Reactivation Link Sent"
+          : data.alreadyVerified
+          ? "Welcome Back! 👋"
           : "Check Your Email! 📧";
-        const toastDesc = data.alreadyVerified
+        const toastDesc = data.inactive
+          ? "Use the secure email link to review and reactivate your alerts."
+          : data.alreadyVerified
           ? "You're already subscribed. We've sent a confirmation to your email."
           : "Please verify your subscription to start receiving alerts.";
         
@@ -96,6 +83,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
         setTimeout(() => {
           setEmail('');
           setName('');
+          setSubmissionOutcome('new');
           setIsSuccess(false);
         }, 5000);
       } else {
@@ -118,15 +106,25 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
       <Card className={`glass-card border-green-500/30 ${className}`}>
         <CardContent className="p-5 sm:p-6 text-center">
           <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-foreground mb-1">You're Almost In!</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-1">
+            {submissionOutcome === 'inactive' ? 'Reactivate Your Alerts' : submissionOutcome === 'existing' ? 'You’re Already Subscribed' : submissionOutcome === 'pending' ? 'Verification Email Resent' : 'You’re Almost In'}
+          </h3>
           <p className="text-sm text-muted-foreground mb-3">
-            Check your inbox for a verification email.
+            {submissionOutcome === 'inactive'
+              ? 'Check your inbox for a secure link to review and reactivate your alerts.'
+              : submissionOutcome === 'existing'
+              ? 'Check your inbox for a secure link to manage your saved preferences.'
+              : submissionOutcome === 'pending'
+                ? 'Verify from your inbox; your earlier preferences remain unchanged until then.'
+                : 'Check your inbox for a verification email.'}
           </p>
           <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground space-y-1">
+            {submissionOutcome === 'new' && (
             <p className="flex items-center justify-center gap-1">
               <Clock className="w-3 h-3" />
               <span>You'll receive daily alerts at <strong className="text-foreground">{deliveryTimeDisplay}</strong></span>
             </p>
+            )}
             <p>
               Want to customize?{' '}
               <Link to="/threat-intel?tab=subscribe" className="text-primary hover:underline">
@@ -202,6 +200,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
               
               <Button 
                 type="submit" 
+                aria-label={isSubmitting ? 'Subscribing to security alerts' : 'Subscribe to security alerts'}
                 disabled={isSubmitting}
                 className="shrink-0"
               >
@@ -220,7 +219,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                <span>Detected: {formatTimezone(timezoneOffset)}</span>
+                <span>Detected: {formatUtcOffset(timezoneOffset)}</span>
               </div>
               <Link 
                 to="/threat-intel?tab=subscribe" 

@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { EmailPreview } from './EmailPreview';
 import { z } from 'zod';
+import { dayOptions, formatDeliveryTime, getDefaultTimezoneOffset, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
 
 // Input validation schema
 const subscriptionSchema = z.object({
@@ -24,72 +25,9 @@ const subscriptionSchema = z.object({
   frequency: z.enum(["immediate", "daily", "weekly"]),
   severity: z.enum(["critical", "high", "medium", "low", "info"]),
   preferred_hour: z.number().min(0).max(23).optional(),
-  timezone_offset: z.number().min(-12).max(14).optional(),
+  timezone_offset: z.number().min(-12).max(14).refine((value) => Number.isInteger(value * 4), "Timezone must use a 15-minute offset").optional(),
   preferred_day: z.number().min(0).max(6).optional(),
 });
-
-// Timezone options - using whole hours only (DB stores integers)
-// For half-hour timezones, we round to nearest hour
-const timezoneOptions = [
-  { value: -12, label: 'UTC-12' },
-  { value: -11, label: 'UTC-11' },
-  { value: -10, label: 'UTC-10 (Hawaii)' },
-  { value: -9, label: 'UTC-9 (Alaska)' },
-  { value: -8, label: 'UTC-8 (Pacific)' },
-  { value: -7, label: 'UTC-7 (Mountain)' },
-  { value: -6, label: 'UTC-6 (Central)' },
-  { value: -5, label: 'UTC-5 (Eastern)' },
-  { value: -4, label: 'UTC-4 (Atlantic)' },
-  { value: -3, label: 'UTC-3 (Brazil)' },
-  { value: 0, label: 'UTC+0 (London)' },
-  { value: 1, label: 'UTC+1 (Paris)' },
-  { value: 2, label: 'UTC+2 (Cairo)' },
-  { value: 3, label: 'UTC+3 (Moscow)' },
-  { value: 4, label: 'UTC+4 (Dubai)' },
-  { value: 5, label: 'UTC+5 (Karachi/India)' },
-  { value: 6, label: 'UTC+6 (Dhaka)' },
-  { value: 7, label: 'UTC+7 (Bangkok)' },
-  { value: 8, label: 'UTC+8 (Singapore)' },
-  { value: 9, label: 'UTC+9 (Tokyo)' },
-  { value: 10, label: 'UTC+10 (Sydney)' },
-  { value: 12, label: 'UTC+12 (Auckland)' },
-];
-
-const dayOptions = [
-  { value: 0, label: 'Sunday' },
-  { value: 1, label: 'Monday' },
-  { value: 2, label: 'Tuesday' },
-  { value: 3, label: 'Wednesday' },
-  { value: 4, label: 'Thursday' },
-  { value: 5, label: 'Friday' },
-  { value: 6, label: 'Saturday' },
-];
-
-const hourOptions = [
-  { value: 6, label: '6:00 AM' },
-  { value: 7, label: '7:00 AM' },
-  { value: 8, label: '8:00 AM' },
-  { value: 9, label: '9:00 AM' },
-  { value: 10, label: '10:00 AM' },
-  { value: 11, label: '11:00 AM' },
-  { value: 12, label: '12:00 PM' },
-  { value: 13, label: '1:00 PM' },
-  { value: 14, label: '2:00 PM' },
-  { value: 15, label: '3:00 PM' },
-  { value: 16, label: '4:00 PM' },
-  { value: 17, label: '5:00 PM' },
-  { value: 18, label: '6:00 PM' },
-  { value: 19, label: '7:00 PM' },
-  { value: 20, label: '8:00 PM' },
-];
-
-// Auto-detect user's timezone offset
-const getDefaultTimezoneOffset = (): number => {
-  const offsetMinutes = new Date().getTimezoneOffset();
-  const offsetHours = Math.round(-offsetMinutes / 60); // Convert to hours and invert sign
-  // Clamp to valid range
-  return Math.max(-12, Math.min(12, offsetHours));
-};
 
 export const SubscriptionForm = () => {
   const [email, setEmail] = useState('');
@@ -103,6 +41,7 @@ export const SubscriptionForm = () => {
   const [preferredDay, setPreferredDay] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submissionOutcome, setSubmissionOutcome] = useState<'new' | 'pending' | 'existing' | 'inactive'>('new');
   const { toast } = useToast();
   const { data: subscriberCount } = useSubscriberCount();
 
@@ -160,14 +99,17 @@ export const SubscriptionForm = () => {
 
       if (data?.success) {
         setIsSuccess(true);
+        setSubmissionOutcome(data.inactive ? 'inactive' : data.alreadyVerified ? 'existing' : data.isNewSubscription ? 'new' : 'pending');
         
         // Different messages for different scenarios
         let title = "Verification Email Sent! 📧";
         let message = "Please check your email to verify your subscription.";
         
         if (data.alreadyVerified) {
-          title = "Welcome Back! 👋";
-          message = "You're already subscribed. We've sent a confirmation with your current settings.";
+          title = data.inactive ? "Reactivation Link Sent" : "Welcome Back! 👋";
+          message = data.inactive
+            ? "Your alerts are paused. Use the secure link in your email to review and reactivate them."
+            : "You're already subscribed. We've sent a confirmation with your current settings.";
         } else if (!data.needsVerification) {
           title = "Subscription Updated! 🎉";
           message = "Your preferences have been saved.";
@@ -183,6 +125,7 @@ export const SubscriptionForm = () => {
           setSelectedTechnologies([]);
           setAlertFrequency('daily');
           setSeverityThreshold('medium');
+          setSubmissionOutcome('new');
           setIsSuccess(false);
         }, 5000);
       } else {
@@ -210,19 +153,11 @@ export const SubscriptionForm = () => {
     }
   };
 
-  // Format delivery time for display
-  const formatDeliveryTime = (hour: number, offset: number): string => {
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    const sign = offset >= 0 ? '+' : '';
-    return `${displayHour}:00 ${period} UTC${sign}${offset}`;
-  };
-
   const getFrequencyLabel = () => {
     switch (alertFrequency) {
       case 'daily': return 'Daily';
       case 'weekly': return `Weekly on ${dayOptions.find(d => d.value === preferredDay)?.label || 'Sunday'}s`;
-      case 'immediate': return 'Immediate (critical only)';
+      case 'immediate': return 'Immediate (critical & high)';
     }
   };
 
@@ -232,14 +167,22 @@ export const SubscriptionForm = () => {
         <CardContent className="p-8 md:p-12">
           <div className="text-center mb-8">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">You're Subscribed!</h2>
+            <h2 className="text-2xl font-bold mb-2">
+              {submissionOutcome === 'inactive' ? 'Reactivate Your Alerts' : submissionOutcome === 'existing' ? 'You’re Already Subscribed' : submissionOutcome === 'pending' ? 'Verification Email Resent' : 'Almost There'}
+            </h2>
             <p className="text-muted-foreground">
-              You'll receive threat intelligence updates based on your preferences.
+              {submissionOutcome === 'inactive'
+                ? 'We sent a secure link to review your saved preferences and reactivate alerts.'
+                : submissionOutcome === 'existing'
+                ? 'We sent a secure management link to your email. Use it to review or change your saved preferences.'
+                : submissionOutcome === 'pending'
+                  ? 'Your earlier preferences remain unchanged until you verify your email.'
+                  : 'Verify your email to activate these threat-intelligence preferences.'}
             </p>
           </div>
 
           {/* Summary of preferences */}
-          <div className="bg-muted/30 rounded-lg p-6 space-y-4 max-w-md mx-auto">
+          {submissionOutcome === 'new' && <div className="bg-muted/30 rounded-lg p-6 space-y-4 max-w-md mx-auto">
             <h3 className="font-semibold text-center mb-4">Your Alert Settings</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -263,10 +206,10 @@ export const SubscriptionForm = () => {
                 </span>
               </div>
             </div>
-          </div>
+          </div>}
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            📧 Check your inbox for a verification email to activate your subscription.
+            📧 {submissionOutcome === 'existing' || submissionOutcome === 'inactive' ? 'Check your inbox for the management link.' : 'Check your inbox for the verification link.'}
           </p>
         </CardContent>
       </Card>
@@ -303,6 +246,7 @@ export const SubscriptionForm = () => {
               <Input
                 id="name"
                 type="text"
+                autoComplete="name"
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -318,6 +262,7 @@ export const SubscriptionForm = () => {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -376,7 +321,7 @@ export const SubscriptionForm = () => {
               Your Technology Stack (Optional)
             </Label>
             <p className="text-sm text-muted-foreground">
-              Select technologies to get alerts when they're compromised
+              Prioritize technologies you use. Critical and high-severity incidents may still be included for safety.
             </p>
             <div className="space-y-4">
               {technologyCategories.map((category) => (
@@ -387,17 +332,18 @@ export const SubscriptionForm = () => {
                       const isSelected = selectedTechnologies.includes(tech.id);
                       
                       return (
-                        <Badge
+                        <button
                           key={tech.id}
-                          variant={isSelected ? "default" : "outline"}
-                          className={`cursor-pointer transition-all hover:scale-105 ${
-                            tech.isPopular ? 'border-primary/50' : ''
-                          }`}
+                          type="button"
+                          aria-pressed={isSelected}
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                            isSelected ? 'border-transparent bg-primary text-primary-foreground' : 'border-border bg-transparent text-foreground hover:bg-accent'
+                          } ${tech.isPopular ? 'border-primary/50' : ''}`}
                           onClick={() => handleTechnologyToggle(tech.id)}
                         >
                           {tech.name}
-                          {tech.isPopular && <span className="ml-1">⭐</span>}
-                        </Badge>
+                          {tech.isPopular && <span className="ml-1" aria-label="Popular">⭐</span>}
+                        </button>
                       );
                     })}
                   </div>
@@ -411,11 +357,11 @@ export const SubscriptionForm = () => {
             <div className="space-y-2">
               <Label htmlFor="frequency">Alert Frequency</Label>
               <Select value={alertFrequency} onValueChange={(value: any) => setAlertFrequency(value)}>
-                <SelectTrigger>
+                <SelectTrigger id="frequency">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="immediate">Immediate (Critical only)</SelectItem>
+                  <SelectItem value="immediate">Immediate (Critical &amp; high)</SelectItem>
                   <SelectItem value="daily">Daily Digest</SelectItem>
                   <SelectItem value="weekly">Weekly Summary</SelectItem>
                 </SelectContent>
@@ -425,7 +371,7 @@ export const SubscriptionForm = () => {
             <div className="space-y-2">
               <Label htmlFor="severity">Minimum Severity</Label>
               <Select value={severityThreshold} onValueChange={(value: any) => setSeverityThreshold(value)}>
-                <SelectTrigger>
+                <SelectTrigger id="severity">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -458,9 +404,9 @@ export const SubscriptionForm = () => {
               </Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Time</Label>
+                  <Label htmlFor="delivery-time" className="text-xs text-muted-foreground">Time</Label>
                   <Select value={String(preferredHour)} onValueChange={(v) => setPreferredHour(Number(v))}>
-                    <SelectTrigger>
+                    <SelectTrigger id="delivery-time">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -473,9 +419,9 @@ export const SubscriptionForm = () => {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Timezone</Label>
+                  <Label htmlFor="delivery-timezone" className="text-xs text-muted-foreground">Timezone</Label>
                   <Select value={String(timezoneOffset)} onValueChange={(v) => setTimezoneOffset(Number(v))}>
-                    <SelectTrigger>
+                    <SelectTrigger id="delivery-timezone">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -489,9 +435,9 @@ export const SubscriptionForm = () => {
                 </div>
                 {alertFrequency === 'weekly' && (
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Day</Label>
+                    <Label htmlFor="delivery-day" className="text-xs text-muted-foreground">Day</Label>
                     <Select value={String(preferredDay)} onValueChange={(v) => setPreferredDay(Number(v))}>
-                      <SelectTrigger>
+                      <SelectTrigger id="delivery-day">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

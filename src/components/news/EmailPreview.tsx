@@ -1,8 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Eye, Clock } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { newsCategoryConfig } from '@/data/newsData';
+import { formatDeliveryTime } from '@/lib/digestSchedule';
 
 interface EmailPreviewProps {
   categories: NewsCategory[];
@@ -20,36 +21,40 @@ const mockArticles = [
     title: "Critical RCE Vulnerability in Popular DeFi Protocol",
     summary: "A severe remote code execution flaw affecting smart contract interactions has been discovered. Immediate patching recommended.",
     severity: "critical",
-    category: "defi",
+    category: "defi-exploits",
     published_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     cve_id: "CVE-2024-1234",
+    source_name: "Security Research Lab",
     link: "#",
   },
   {
     title: "High-Severity Phishing Campaign Targeting Wallet Users",
     summary: "New sophisticated phishing attacks impersonating major wallet providers detected across social media platforms.",
     severity: "high",
-    category: "wallet",
+    category: "personal-protection",
     published_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     cve_id: null,
+    source_name: "Digibastion Intelligence",
     link: "#",
   },
   {
     title: "Medium-Risk API Exposure in Exchange Platform",
     summary: "Security researchers disclosed an API vulnerability that could leak partial user data under specific conditions.",
     severity: "medium",
-    category: "exchange",
+    category: "vulnerability-disclosure",
     published_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     cve_id: null,
+    source_name: "Vendor Advisory",
     link: "#",
   },
   {
     title: "Bridge Protocol Security Audit Reveals Issues",
     summary: "A comprehensive audit of a popular cross-chain bridge identified potential vulnerabilities in the validation logic.",
     severity: "low",
-    category: "defi",
+    category: "defi-exploits",
     published_at: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
     cve_id: null,
+    source_name: "Audit Report",
     link: "#",
   },
 ];
@@ -82,13 +87,6 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function formatDeliveryTime(hour: number, offset: number): string {
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const sign = offset >= 0 ? '+' : '';
-  return `${displayHour}:00 ${period} UTC${sign}${offset}`;
-}
-
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const EmailPreview = ({ 
@@ -114,7 +112,7 @@ export const EmailPreview = ({
   const otherArticles = filteredArticles.filter(a => !['critical', 'high'].includes(a.severity));
 
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
-  const displayName = name || 'Security Professional';
+  const displayName = name || 'there';
   const periodStart = new Date(Date.now() - (frequency === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
   const periodEnd = new Date();
   const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
@@ -125,8 +123,8 @@ export const EmailPreview = ({
 
   const renderArticle = (article: typeof mockArticles[0]) => (
     <tr key={article.title}>
-      <td style={{ padding: '12px 0', borderBottom: '1px solid #333' }}>
-        <div style={{ marginBottom: '6px' }}>
+      <td style={{ padding: '18px 0', borderBottom: '1px solid #334155' }}>
+        <div style={{ marginBottom: '9px' }}>
           <span style={{ 
             background: getSeverityColor(article.severity), 
             color: 'white', 
@@ -137,26 +135,14 @@ export const EmailPreview = ({
           }}>
             {article.severity}
           </span>
-          <span style={{ color: '#6b7280', fontSize: '11px', marginLeft: '8px' }}>
-            {formatDate(article.published_at)}
-          </span>
-          {article.cve_id && (
-            <span style={{ 
-              background: '#4b5563', 
-              color: 'white', 
-              padding: '2px 6px', 
-              borderRadius: '4px', 
-              fontSize: '10px', 
-              marginLeft: '8px' 
-            }}>
-              {article.cve_id}
-            </span>
-          )}
         </div>
-        <a href={article.link} style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 500, fontSize: '14px', lineHeight: 1.4 }}>
+        <p style={{ margin: '0 0 7px', color: '#a8b3c7', fontSize: '12px', lineHeight: '18px' }}>
+          {article.source_name} · {formatDate(article.published_at)}{article.cve_id ? ` · ${article.cve_id}` : ''}
+        </p>
+        <a href={article.link} style={{ color: '#93c5fd', textDecoration: 'none', fontWeight: 700, fontSize: '17px', lineHeight: 1.45 }}>
           {article.title}
         </a>
-        <p style={{ margin: '6px 0 0 0', color: '#9ca3af', fontSize: '13px', lineHeight: 1.4 }}>
+        <p style={{ margin: '8px 0 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.55 }}>
           {article.summary.slice(0, 150)}{article.summary.length > 150 ? '...' : ''}
         </p>
       </td>
@@ -193,17 +179,21 @@ export const EmailPreview = ({
             <Eye className="w-5 h-5" />
             Email Preview
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Preview of the security briefing generated from your current alert preferences.
+          </DialogDescription>
         </DialogHeader>
         
         {/* Email Preview */}
         <div style={{ backgroundColor: '#111827', padding: '16px' }}>
-          <table width="100%" cellPadding={0} cellSpacing={0} style={{ maxWidth: '600px', margin: '0 auto', backgroundColor: '#1f2937', borderRadius: '8px', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+          <table width="100%" cellPadding={0} cellSpacing={0} style={{ maxWidth: '640px', margin: '0 auto', backgroundColor: '#1f2937', borderRadius: '10px', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
             {/* Header */}
             <tbody>
               <tr>
-                <td style={{ padding: '24px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }}>
-                  <h1 style={{ margin: 0, color: 'white', fontSize: '22px' }}>📊 {periodLabel} Security Digest</h1>
-                  <p style={{ margin: '6px 0 0 0', color: 'rgba(255,255,255,0.85)', fontSize: '13px' }}>
+                <td style={{ padding: '26px 28px', background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' }}>
+                  <p style={{ margin: '0 0 10px', color: '#ede9fe', fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px' }}>DIGIBASTION · THREAT INTELLIGENCE</p>
+                  <h1 style={{ margin: 0, color: 'white', fontSize: '24px' }}>{periodLabel} Security Briefing</h1>
+                  <p style={{ margin: '7px 0 0 0', color: '#ede9fe', fontSize: '13px' }}>
                     {dateRange}
                   </p>
                 </td>
@@ -227,7 +217,7 @@ export const EmailPreview = ({
                         <td width="4%"></td>
                         <td width="33%" style={{ textAlign: 'center', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px' }}>
                           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>{filteredArticles.length}</div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const }}>Total</div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const }}>Updates</div>
                         </td>
                       </tr>
                     </tbody>
@@ -239,7 +229,7 @@ export const EmailPreview = ({
               <tr>
                 <td style={{ padding: '0 24px 16px 24px' }}>
                   <p style={{ color: '#d1d5db', margin: 0, fontSize: '14px' }}>
-                    Hi {displayName}, here's your {frequency} security digest with {filteredArticles.length} threat{filteredArticles.length !== 1 ? 's' : ''} matching your preferences.
+                    Hi {displayName}, here are {filteredArticles.length} security update{filteredArticles.length !== 1 ? 's' : ''} matching your preferences.
                   </p>
                 </td>
               </tr>
@@ -273,7 +263,7 @@ export const EmailPreview = ({
               <tr>
                 <td style={{ padding: '24px', textAlign: 'center' }}>
                   <a href="#" style={{ display: 'inline-block', background: '#3b82f6', color: 'white', padding: '12px 28px', borderRadius: '6px', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
-                    View All Threats
+                    Open Threat Intelligence
                   </a>
                 </td>
               </tr>

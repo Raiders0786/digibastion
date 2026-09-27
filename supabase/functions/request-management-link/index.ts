@@ -157,14 +157,14 @@ serve(async (req) => {
       if (!limit?.allowed) return new Response(JSON.stringify({ success: false, error: 'Too many requests. Please try again later.', retryAfter: 3600 }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } });
     }
 
-    console.log("[request-management-link] Looking up active subscription");
+    console.log("[request-management-link] Looking up subscription");
 
     // Find the subscription
     const { data: subscription, error: findError } = await supabase
       .from("subscriptions")
       .select("id, email, name, is_active, is_verified, verification_token")
       .eq("email", normalizedEmail)
-      .eq("is_active", true)
+      .eq("is_verified", true)
       .maybeSingle();
 
     if (findError) {
@@ -175,11 +175,11 @@ serve(async (req) => {
     // Always return success to prevent email enumeration attacks
     // Even if the email doesn't exist, we don't reveal that
     if (!subscription) {
-      console.log("[request-management-link] No active subscription found");
+      console.log("[request-management-link] No subscription found");
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "If an active subscription exists for this email, a management link will be sent shortly." 
+          message: "If a subscription exists for this email, a management link will be sent shortly."
         }),
         { headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
@@ -193,7 +193,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "If an active subscription exists for this email, a management link will be sent shortly."
+          message: "If a subscription exists for this email, a management link will be sent shortly."
         }),
         { headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
@@ -236,7 +236,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "If an active subscription exists for this email, a management link will be sent shortly." 
+        message: "If a subscription exists for this email, a management link will be sent shortly."
       }),
       { headers: { "Content-Type": "application/json", ...corsHeaders } }
     );

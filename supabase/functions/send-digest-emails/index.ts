@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { normalizeUtcMinuteToQuarterHour, prepareDigestArticles, severityRank, shouldSendToSubscriber } from "../_shared/digest-logic.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,15 +43,6 @@ interface Subscription {
   timezone_offset: number;
   preferred_day: number;
 }
-
-// Severity ranking for comparison
-const severityRank: Record<string, number> = {
-  'critical': 0,
-  'high': 1,
-  'medium': 2,
-  'low': 3,
-  'info': 4,
-};
 
 // Strip HTML tags and decode entities (handles double-encoded feeds)
 function stripHtml(text: string | null | undefined): string {
@@ -97,11 +89,16 @@ function shouldIncludeArticle(article: NewsArticle, subscription: Subscription):
   }
 
   // Check technology match (optional filter)
-  if (subscription.technologies.length > 0 && article.tags.length > 0) {
+  if (subscription.technologies.length > 0) {
     const techMatch = subscription.technologies.some(tech => 
-      article.tags.some(tag => tag.toLowerCase().includes(tech.toLowerCase()))
+      (article.tags || []).some(tag => {
+        const normalizedTag = tag.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        const normalizedTech = tech.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        return normalizedTag === normalizedTech || normalizedTag.includes(normalizedTech) || normalizedTech.includes(normalizedTag);
+      })
     );
-    // If they specified technologies but none match, include only critical/high
+    // Technology choices prioritize relevant coverage; urgent critical/high items
+    // still pass so subscribers do not miss broadly actionable incidents.
     if (!techMatch && articleRank > 1) {
       return false;
     }
@@ -112,10 +109,10 @@ function shouldIncludeArticle(article: NewsArticle, subscription: Subscription):
 
 function getSeverityColor(severity: string): string {
   switch (severity) {
-    case 'critical': return '#dc2626';
-    case 'high': return '#ea580c';
-    case 'medium': return '#eab308';
-    case 'low': return '#3b82f6';
+    case 'critical': return '#b91c1c';
+    case 'high': return '#9a3412';
+    case 'medium': return '#854d0e';
+    case 'low': return '#1e40af';
     default: return '#6b7280';
   }
 }
@@ -127,7 +124,7 @@ const categoryConfig: Record<string, { label: string; color: string; icon: strin
   'operational-security': { label: 'OpSec', color: '#ef4444', icon: '🛡️' },
   'supply-chain': { label: 'Supply Chain', color: '#f97316', icon: '📦' },
   'personal-protection': { label: 'Personal Security', color: '#3b82f6', icon: '🔐' },
-  'vulnerability-disclosure': { label: 'CVE / Vuln', color: '#eab308', icon: '⚠️' },
+  'vulnerability-disclosure': { label: 'Vulnerability', color: '#facc15', icon: '⚠️' },
   'tools-reviews': { label: 'Tools', color: '#22c55e', icon: '🛠️' },
 };
 
@@ -141,8 +138,40 @@ function formatDate(dateStr: string): string {
     weekday: 'short', 
     month: 'short', 
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'UTC',
   });
+}
+
+function generateDigestEmailText(
+  articles: NewsArticle[],
+  subscriberName: string | null,
+  frequency: string,
+  periodStart: Date,
+  periodEnd: Date,
+  manageUrl: string,
+): string {
+  const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
+  const displayedArticles = articles.slice(0, 20);
+  const lines = displayedArticles.map((article) => {
+    const source = article.source_name ? ` · ${article.source_name}` : '';
+    const cve = article.cve_id ? ` · ${article.cve_id}` : '';
+    return `[${article.severity.toUpperCase()}] ${stripHtml(article.title)}${cve}${source}\n${article.link}`;
+  });
+
+  return [
+    `${periodLabel} Security Briefing`,
+    `${formatDate(periodStart.toISOString())} – ${formatDate(periodEnd.toISOString())}`,
+    '',
+    `Hi ${subscriberName || 'Security Professional'},`,
+    `${articles.length} security update${articles.length === 1 ? '' : 's'} matched your preferences.`,
+    ...(articles.length > displayedArticles.length ? [`Showing the top ${displayedArticles.length}; ${articles.length - displayedArticles.length} more are available online.`] : []),
+    '',
+    ...lines,
+    '',
+    'View all threat intelligence: https://www.digibastion.com/threat-intel',
+    `Manage preferences or unsubscribe: ${manageUrl}`,
+  ].join('\n');
 }
 
 function generateDigestEmailHtml(
@@ -155,7 +184,7 @@ function generateDigestEmailHtml(
   periodEnd: Date,
   trackingId: string
 ): string {
-  const name = escapeHtml(subscriberName || 'Security Professional');
+  const greeting = subscriberName ? `Hi ${escapeHtml(subscriberName)},` : 'Hi there,';
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
   const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
   
@@ -163,20 +192,20 @@ function generateDigestEmailHtml(
   const trackingBaseUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/email-tracking`;
   const trackingPixelUrl = `${trackingBaseUrl}?tid=${trackingId}&a=o`;
   
-  // Helper to wrap links with click tracking
-  const trackLink = (url: string) => {
-    const encodedUrl = encodeURIComponent(url);
-    return `${trackingBaseUrl}?tid=${trackingId}&a=c&r=${encodedUrl}`;
-  };
-  
-  // Group articles by severity
-  const criticalArticles = articles.filter(a => a.severity === 'critical');
-  const highArticles = articles.filter(a => a.severity === 'high');
-  const otherArticles = articles.filter(a => !['critical', 'high'].includes(a.severity));
+  // The full unique count remains visible, while rendering is capped to keep
+  // Gmail from clipping the footer and unsubscribe controls.
+  const displayedArticles = articles.slice(0, 20);
+  const criticalArticles = displayedArticles.filter(a => a.severity === 'critical');
+  const highArticles = displayedArticles.filter(a => a.severity === 'high');
+  const otherArticles = displayedArticles.filter(a => !['critical', 'high'].includes(a.severity));
 
   const renderArticle = (article: NewsArticle) => {
     const cat = getCategoryDisplay(article.category);
-    const digiLink = `https://www.digibastion.com/threat-intel?article=${article.id}`;
+    const digiLink = `https://www.digibastion.com/threat-intel/${article.id}`;
+    const cleanSummary = stripHtml(article.summary);
+    const safeOriginalLink = /^https?:\/\//i.test(article.link) ? escapeHtml(article.link) : escapeHtml(digiLink);
+    const attributionLink = article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database';
+    const safeAttributionLink = /^https?:\/\//i.test(attributionLink) ? escapeHtml(attributionLink) : 'https://www.quillaudits.com/web3-hacks-database';
     const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
     const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof (article.metadata as Record<string, unknown> | null)?.data_source === 'string';
     const incidentFacts = isWeb3Incident
@@ -185,28 +214,24 @@ function generateDigestEmailHtml(
       : '';
     return `
     <tr>
-      <td style="padding: 12px 0; border-bottom: 1px solid #333;">
-        <div style="margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-          <span style="background: ${getSeverityColor(article.severity)}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; font-weight: 600;">
-            ${escapeHtml(article.severity)}
-          </span>
-          <span style="background: ${cat.color}20; color: ${cat.color}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; border: 1px solid ${cat.color}40;">
-            ${cat.icon} ${cat.label}
-          </span>
-          <span style="color: #6b7280; font-size: 11px;">
-            ${formatDate(article.published_at)}
-          </span>
-          ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${escapeHtml(article.cve_id)}</span>` : ''}
-        </div>
-        <a href="${trackLink(digiLink)}" style="color: #60a5fa; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;">
+      <td style="padding: 18px 0; border-bottom: 1px solid #334155;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 9px;"><tr>
+          <td style="background: ${getSeverityColor(article.severity)}; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; line-height: 14px; text-transform: uppercase; font-weight: 700;">${escapeHtml(article.severity)}</td>
+          <td width="6"></td>
+          <td style="color: ${cat.color}; padding: 3px 7px; border: 1px solid ${cat.color}; border-radius: 4px; font-size: 11px; line-height: 14px; font-weight: 600;">${cat.icon} ${cat.label}</td>
+        </tr></table>
+        <p style="margin: 0 0 7px; color: #a8b3c7; font-size: 12px; line-height: 18px;">
+          ${escapeHtml(article.source_name || 'Digibastion Intelligence')} · ${formatDate(article.published_at)}${article.cve_id ? ` · ${escapeHtml(article.cve_id)}` : ''}
+        </p>
+        <a href="${digiLink}" style="color: #93c5fd; text-decoration: none; font-weight: 700; font-size: 17px; line-height: 1.45;">
           ${escapeHtml(stripHtml(article.title))}
         </a>
-        ${article.summary ? `<p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.4;">${escapeHtml(stripHtml(article.summary)?.slice(0, 150) || '')}${(stripHtml(article.summary)?.length || 0) > 150 ? '...' : ''}</p>` : ''}
+        ${cleanSummary ? `<p style="margin: 8px 0 0; color: #cbd5e1; font-size: 14px; line-height: 1.55;">${escapeHtml(cleanSummary.slice(0, 190))}${cleanSummary.length > 190 ? '…' : ''}</p>` : ''}
         ${isWeb3Incident ? `<p style="margin:6px 0 0;color:#60a5fa;font-size:11px;font-weight:600;">Web3 Incident</p>` : ''}
         ${incidentFacts ? `<p style="margin: 6px 0 0 0; color: #d1d5db; font-size: 12px; line-height: 1.4;">${incidentFacts}</p>` : ''}
-        <div style="margin-top: 4px;">
-          <a href="${trackLink(article.link)}" style="color: #6b7280; text-decoration: none; font-size: 11px;">Read original →</a>
-          ${isQuillMonitor ? ` <span style="color:#4b5563;">·</span> <a href="${trackLink(article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database')}" style="color:#60a5fa;text-decoration:none;font-size:11px;">Powered by QuillMonitor</a>` : ''}
+        <div style="margin-top: 10px;">
+          <a href="${safeOriginalLink}" style="color: #93c5fd; text-decoration: underline; font-size: 13px;">Read source report</a>
+          ${isQuillMonitor ? ` <span style="color:#64748b;">·</span> <a href="${safeAttributionLink}" style="color:#93c5fd;text-decoration:underline;font-size:12px;">QuillMonitor database</a>` : ''}
         </div>
       </td>
     </tr>
@@ -218,9 +243,9 @@ function generateDigestEmailHtml(
     return `
       <tr>
         <td style="padding: 16px 0 8px 0;">
-          <h3 style="margin: 0; color: ${bgColor}; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+          <h2 style="margin: 0; color: ${bgColor}; font-size: 15px; text-transform: uppercase; letter-spacing: 0.6px;">
             ${title} (${sectionArticles.length})
-          </h3>
+          </h2>
         </td>
       </tr>
       ${sectionArticles.map(renderArticle).join('')}
@@ -234,24 +259,41 @@ function generateDigestEmailHtml(
     : `https://www.digibastion.com/manage-subscription?email=${encodedEmail}`;
 
   // Summary stats
-  const criticalCount = criticalArticles.length;
-  const highCount = highArticles.length;
+  const criticalCount = articles.filter(a => a.severity === 'critical').length;
+  const highCount = articles.filter(a => a.severity === 'high').length;
   const totalCount = articles.length;
+  const hiddenCount = Math.max(0, totalCount - displayedArticles.length);
 
   return `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <title>${periodLabel} Security Briefing</title>
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    @media only screen and (max-width: 680px) {
+      .email-shell { padding: 0 !important; }
+      .email-card { border-radius: 0 !important; }
+      .email-pad { padding-left: 18px !important; padding-right: 18px !important; }
+    }
+  </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #1f2937; border-radius: 8px; overflow: hidden;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${criticalCount > 0 ? `${criticalCount} critical · ` : ''}${totalCount} security updates matched your preferences.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#111827;">
+    <tr><td class="email-shell" align="center" style="padding:24px 12px;">
+  <table role="presentation" width="640" cellpadding="0" cellspacing="0" class="email-card" style="width:100%;max-width:640px;margin:0 auto;background-color:#1f2937;border-radius:10px;overflow:hidden;">
     <!-- Header -->
     <tr>
-      <td style="padding: 24px; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);">
-        <h1 style="margin: 0; color: white; font-size: 22px;">📊 ${periodLabel} Security Digest</h1>
-        <p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.85); font-size: 13px;">
+      <td class="email-pad" style="padding:26px 28px;background-color:#6d4aff;background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);">
+        <p style="margin:0 0 10px;color:#ede9fe;font-size:12px;line-height:16px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;">DIGIBASTION · THREAT INTELLIGENCE</p>
+        <h1 style="margin:0;color:#ffffff;font-size:24px;line-height:31px;">${periodLabel} Security Briefing</h1>
+        <p style="margin:7px 0 0;color:#ede9fe;font-size:13px;line-height:20px;">
           ${dateRange}
         </p>
       </td>
@@ -259,22 +301,22 @@ function generateDigestEmailHtml(
     
     <!-- Summary Stats -->
     <tr>
-      <td style="padding: 20px 24px;">
-        <table width="100%" cellpadding="0" cellspacing="0">
+      <td class="email-pad" style="padding:22px 28px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td width="33%" style="text-align: center; padding: 12px; background: rgba(220, 38, 38, 0.1); border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: bold; color: #dc2626;">${criticalCount}</div>
-              <div style="font-size: 11px; color: #9ca3af; text-transform: uppercase;">Critical</div>
+            <td width="31%" style="text-align:center;padding:13px 4px;background-color:#3b2530;border-radius:7px;">
+              <div style="font-size:24px;line-height:28px;font-weight:bold;color:#f87171;">${criticalCount}</div>
+              <div style="font-size:11px;line-height:16px;color:#cbd5e1;text-transform:uppercase;">Critical</div>
             </td>
-            <td width="4%"></td>
-            <td width="33%" style="text-align: center; padding: 12px; background: rgba(234, 88, 12, 0.1); border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: bold; color: #ea580c;">${highCount}</div>
-              <div style="font-size: 11px; color: #9ca3af; text-transform: uppercase;">High</div>
+            <td width="3%"></td>
+            <td width="31%" style="text-align:center;padding:13px 4px;background-color:#3a2d2b;border-radius:7px;">
+              <div style="font-size:24px;line-height:28px;font-weight:bold;color:#fb923c;">${highCount}</div>
+              <div style="font-size:11px;line-height:16px;color:#cbd5e1;text-transform:uppercase;">High</div>
             </td>
-            <td width="4%"></td>
-            <td width="33%" style="text-align: center; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">${totalCount}</div>
-              <div style="font-size: 11px; color: #9ca3af; text-transform: uppercase;">Total</div>
+            <td width="3%"></td>
+            <td width="32%" style="text-align:center;padding:13px 4px;background-color:#263752;border-radius:7px;">
+              <div style="font-size:24px;line-height:28px;font-weight:bold;color:#60a5fa;">${totalCount}</div>
+              <div style="font-size:11px;line-height:16px;color:#cbd5e1;text-transform:uppercase;">Updates</div>
             </td>
           </tr>
         </table>
@@ -283,20 +325,25 @@ function generateDigestEmailHtml(
 
     <!-- Greeting -->
     <tr>
-      <td style="padding: 0 24px 16px 24px;">
-        <p style="color: #d1d5db; margin: 0; font-size: 14px;">
-          Hi ${name}, here's your ${frequency} security digest with ${totalCount} threat${totalCount !== 1 ? 's' : ''} matching your preferences.
+      <td class="email-pad" style="padding:0 28px 18px;">
+        <p style="color:#e2e8f0;margin:0;font-size:15px;line-height:23px;">
+          ${greeting} here are ${totalCount} security update${totalCount !== 1 ? 's' : ''} matching your preferences.
         </p>
       </td>
     </tr>
 
     <!-- Articles -->
     <tr>
-      <td style="padding: 0 24px;">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${renderSection('🚨 Critical Threats', criticalArticles, '#dc2626')}
-          ${renderSection('⚠️ High Severity', highArticles, '#ea580c')}
-          ${renderSection('📋 Other Alerts', otherArticles.slice(0, 10), '#6b7280')}
+      <td class="email-pad" style="padding:0 28px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${renderSection('🚨 Critical Threats', criticalArticles, '#f87171')}
+          ${renderSection('⚠️ High Severity', highArticles, '#fb923c')}
+          ${renderSection('📋 Other Alerts', otherArticles.slice(0, 10), '#cbd5e1')}
+          ${hiddenCount > 0 ? `
+            <tr><td style="padding:18px 0;color:#cbd5e1;font-size:13px;line-height:20px;text-align:center;">
+              Showing the top ${displayedArticles.length} of ${totalCount} unique updates. Open Threat Intelligence to review the remaining ${hiddenCount}.
+            </td></tr>
+          ` : ''}
           ${otherArticles.length > 10 ? `
             <tr>
               <td style="padding: 12px 0; color: #6b7280; font-size: 12px;">
@@ -310,72 +357,30 @@ function generateDigestEmailHtml(
 
     <!-- CTA Button -->
     <tr>
-      <td style="padding: 24px; text-align: center;">
-        <a href="${trackLink('https://www.digibastion.com/threat-intel')}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
-          View All Threats
+      <td class="email-pad" style="padding:28px;text-align:center;">
+        <a href="https://www.digibastion.com/threat-intel" style="display:inline-block;background-color:#2563eb;color:#ffffff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;line-height:20px;">
+          Open Threat Intelligence
         </a>
       </td>
     </tr>
 
     <!-- Footer -->
     <tr>
-      <td style="padding: 16px 24px; background: #111827; text-align: center;">
-        <p style="margin: 0; color: #6b7280; font-size: 11px;">
+      <td class="email-pad" style="padding:20px 28px;background-color:#111827;text-align:center;">
+        <p style="margin:0;color:#a8b3c7;font-size:12px;line-height:19px;">
           You're receiving this ${frequency} digest because you subscribed to Digibastion Threat Intel.<br>
-          <a href="${manageUrl}" style="color: #60a5fa;">Manage preferences</a> | <a href="${manageUrl}" style="color: #60a5fa;">Unsubscribe</a>
+          <a href="${manageUrl}" style="color:#93c5fd;">Manage preferences</a> &nbsp;·&nbsp; <a href="${manageUrl}" style="color:#93c5fd;">Unsubscribe</a>
         </p>
         <!-- Tracking pixel -->
         <img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display: block; width: 1px; height: 1px; border: 0;" />
       </td>
     </tr>
   </table>
+    </td></tr>
+  </table>
 </body>
 </html>
   `;
-}
-
-// Check if a subscriber should receive digest at this hour
-function shouldSendToSubscriber(sub: Subscription, currentUtcHour: number, currentUtcDay: number): boolean {
-  // Handle null/undefined values with defaults
-  const preferredHour = sub.preferred_hour ?? 9;
-  const timezoneOffset = sub.timezone_offset ?? 0;
-  const preferredDay = sub.preferred_day ?? 0;
-  
-  // Convert preferred local hour to UTC
-  // preferred_hour is stored as subscriber's local time
-  // timezone_offset is their UTC offset (e.g., +5 for UTC+5)
-  // To find what UTC hour corresponds to their preferred local hour:
-  // UTC hour = local hour - timezone offset
-  let preferredUtcHour = preferredHour - timezoneOffset;
-  
-  // Normalize to 0-23 range
-  while (preferredUtcHour < 0) preferredUtcHour += 24;
-  while (preferredUtcHour >= 24) preferredUtcHour -= 24;
-  
-  if (Math.floor(preferredUtcHour) !== currentUtcHour) {
-    return false;
-  }
-  
-  // For weekly digests, also check the day
-  if (sub.frequency === 'weekly') {
-    // Calculate what day it is in subscriber's timezone when we send
-    // If timezone_offset is positive (ahead of UTC), and current UTC hour is small,
-    // they might already be on the next day
-    let subscriberLocalDay = currentUtcDay;
-    const subscriberLocalHour = currentUtcHour + timezoneOffset;
-    
-    if (subscriberLocalHour >= 24) {
-      subscriberLocalDay = (subscriberLocalDay + 1) % 7;
-    } else if (subscriberLocalHour < 0) {
-      subscriberLocalDay = (subscriberLocalDay - 1 + 7) % 7;
-    }
-    
-    if (subscriberLocalDay !== preferredDay) {
-      return false;
-    }
-  }
-  
-  return true;
 }
 
 async function timingSafeEqual(left: string, right: string): Promise<boolean> {
@@ -444,6 +449,7 @@ serve(async (req) => {
   try {
     // Parse request body
     let targetHour: number | null = null;
+    let targetMinute: number | null = null;
     let targetFrequency: 'daily' | 'weekly' | 'both' = 'both';
     let testEmail: string | null = null;
     
@@ -451,6 +457,9 @@ serve(async (req) => {
       const body = await req.json();
       if (typeof body.target_hour === 'number') {
         targetHour = body.target_hour;
+      }
+      if (typeof body.target_minute === 'number') {
+        targetMinute = body.target_minute;
       }
       if (body.frequency === 'daily' || body.frequency === 'weekly') {
         targetFrequency = body.frequency;
@@ -464,9 +473,10 @@ serve(async (req) => {
 
     const now = new Date();
     const currentUtcHour = targetHour !== null ? targetHour : now.getUTCHours();
+    const currentUtcMinute = targetMinute !== null ? targetMinute : normalizeUtcMinuteToQuarterHour(now.getUTCMinutes());
     const currentUtcDay = now.getUTCDay(); // 0 = Sunday
 
-    console.log(`[send-digest-emails] Starting digest for hour: ${currentUtcHour}, day: ${currentUtcDay}, frequency: ${targetFrequency}`);
+    console.log(`[send-digest-emails] Starting digest for UTC ${currentUtcHour}:${String(currentUtcMinute).padStart(2, '0')}, day: ${currentUtcDay}, frequency: ${targetFrequency}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -535,12 +545,22 @@ serve(async (req) => {
         );
       }
       
-      console.log(`[send-digest-emails] Found ${articles.length} articles for test email`);
+      const testArticles = prepareDigestArticles(
+        articles.filter((article) => shouldIncludeArticle(article as NewsArticle, mockSubscription)) as NewsArticle[],
+        Number.POSITIVE_INFINITY,
+      );
+      if (testArticles.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'No articles match the test subscription preferences', sent: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      console.log(`[send-digest-emails] Prepared ${testArticles.length} articles for test email`);
       
       // Generate and send test email
       const trackingId = crypto.randomUUID();
       const emailHtml = generateDigestEmailHtml(
-        articles as NewsArticle[],
+        testArticles,
         mockSubscription.name,
         testEmail,
         mockSubscription.verification_token,
@@ -557,6 +577,8 @@ serve(async (req) => {
         );
       }
       
+      const testManageUrl = 'https://www.digibastion.com/manage-subscription';
+      const emailText = generateDigestEmailText(testArticles, mockSubscription.name, mockSubscription.frequency, testPeriodStart, now, testManageUrl);
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -566,8 +588,10 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'Digibastion Alerts <alerts@digibastion.com>',
           to: [testEmail],
-          subject: `[TEST] 📊 Security Digest - ${articles.length} Threats`,
+          subject: `[TEST] ${testArticles.length} security update${testArticles.length === 1 ? '' : 's'}`,
           html: emailHtml,
+          text: emailText,
+          reply_to: 'support@digibastion.com',
         }),
       });
       
@@ -596,8 +620,8 @@ serve(async (req) => {
           success: true, 
           message: `Test digest sent to ${testEmail}`, 
           sent: 1,
-          articles_included: articles.length,
-          categories: [...new Set(articles.map(a => a.category))]
+          articles_included: testArticles.length,
+          categories: [...new Set(testArticles.map(a => a.category))]
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -629,7 +653,7 @@ serve(async (req) => {
 
     // Filter subscribers who should receive at this hour
     const eligibleSubscriptions = subscriptions.filter((sub: Subscription) => 
-      shouldSendToSubscriber(sub, currentUtcHour, currentUtcDay)
+      shouldSendToSubscriber(sub, currentUtcHour, currentUtcMinute, currentUtcDay)
     );
 
     console.log(`[send-digest-emails] ${eligibleSubscriptions.length} subscribers eligible for this hour`);
@@ -642,6 +666,7 @@ serve(async (req) => {
           sent: 0,
           checked: subscriptions.length,
           currentUtcHour,
+          currentUtcMinute,
           currentUtcDay
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -663,9 +688,8 @@ serve(async (req) => {
     for (const subscription of eligibleSubscriptions) {
       const sub = subscription as Subscription;
       
-      // Determine period based on frequency
-      // ALWAYS use the full period (24h for daily, 7d for weekly) to ensure fresh articles
-      // This prevents issues where last_notified_at might exclude recent articles
+      // Determine the maximum lookback, then advance from the last successful
+      // delivery when possible so overlapping windows do not resend articles.
       let periodStart: Date;
       if (sub.frequency === 'weekly') {
         periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -674,19 +698,27 @@ serve(async (req) => {
         periodStart = new Date(now.getTime() - 26 * 60 * 60 * 1000);
       }
 
-      // Only use last_notified_at if it's within the expected period to avoid duplicates
-      // But never make the window smaller than the base period
-      const effectivePeriodStart = periodStart;
+      const lastNotifiedAt = sub.last_notified_at ? new Date(sub.last_notified_at) : null;
+      const effectivePeriodStart = lastNotifiedAt && !Number.isNaN(lastNotifiedAt.getTime()) && lastNotifiedAt > periodStart && lastNotifiedAt < now
+        ? lastNotifiedAt
+        : periodStart;
 
       console.log(`[send-digest-emails] Fetching articles since ${effectivePeriodStart.toISOString()} for subscription ${sub.id}`);
 
-      // Fetch articles for this period
-      const { data: articles, error: articlesError } = await supabase
+      // Push stable preference filters into the database before limiting so a
+      // busy unrelated category cannot crowd out this subscriber's matches.
+      const thresholdRank = severityRank[sub.severity_threshold] ?? 2;
+      const allowedSeverities = Object.keys(severityRank).filter((severity) => severityRank[severity] <= thresholdRank);
+      let articlesQuery = supabase
         .from('news_articles')
-        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, source_name, metadata')
-        .gte('published_at', effectivePeriodStart.toISOString())
-        .order('published_at', { ascending: false })
-        .limit(100); // Limit to prevent huge emails
+        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, source_name, metadata, created_at')
+        .gte('created_at', effectivePeriodStart.toISOString())
+        .lte('created_at', now.toISOString())
+        .in('severity', allowedSeverities)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (sub.categories.length > 0) articlesQuery = articlesQuery.in('category', sub.categories);
+      const { data: articles, error: articlesError } = await articlesQuery;
 
       if (articlesError) {
         console.error(`[send-digest-emails] Error fetching articles for subscription ${sub.id}:`, articlesError);
@@ -701,7 +733,10 @@ serve(async (req) => {
       console.log(`[send-digest-emails] Found ${articles.length} articles for subscription ${sub.id}`);
 
       // Filter articles based on subscriber preferences
-      const matchingArticles = articles.filter(a => shouldIncludeArticle(a as NewsArticle, sub));
+      const matchingArticles = prepareDigestArticles(
+        articles.filter(a => shouldIncludeArticle(a as NewsArticle, sub)) as NewsArticle[],
+        Number.POSITIVE_INFINITY,
+      );
 
       if (matchingArticles.length === 0) {
         console.log(`[send-digest-emails] No matching articles for subscription ${sub.id}`);
@@ -720,29 +755,23 @@ serve(async (req) => {
           sub.email,
           sub.verification_token,
           sub.frequency,
-          periodStart,
+          effectivePeriodStart,
           now,
           trackingId
         );
         
-        // Log sent event for analytics
-        await supabase
-          .from('email_events')
-          .insert({
-            subscription_id: sub.id,
-            email_type: 'digest',
-            event_type: 'sent',
-            tracking_id: trackingId,
-          });
-        
         const periodLabel = sub.frequency === 'weekly' ? 'Weekly' : 'Daily';
         const criticalCount = matchingArticles.filter(a => a.severity === 'critical').length;
-        const subjectPrefix = criticalCount > 0 ? '🚨 ' : '📊 ';
+        const subject = criticalCount > 0
+          ? `${periodLabel} security briefing · ${criticalCount} critical · ${matchingArticles.length} updates`
+          : `${periodLabel} security briefing · ${matchingArticles.length} update${matchingArticles.length === 1 ? '' : 's'}`;
         
         // Build one-click unsubscribe URL for RFC 8058 compliance
         const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
         const encodedEmail = encodeURIComponent(sub.email);
         const oneClickUnsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
+        const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`;
+        const emailText = generateDigestEmailText(matchingArticles, sub.name, sub.frequency, effectivePeriodStart, now, manageUrl);
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -753,8 +782,10 @@ serve(async (req) => {
           body: JSON.stringify({
             from: 'Digibastion Digest <alerts@digibastion.com>',
             to: [sub.email],
-            subject: `${subjectPrefix}${periodLabel} Security Digest: ${matchingArticles.length} Threat${matchingArticles.length !== 1 ? 's' : ''} Detected`,
+            subject,
             html: emailHtml,
+            text: emailText,
+            reply_to: 'support@digibastion.com',
             headers: {
               'List-Unsubscribe': `<${oneClickUnsubUrl}>`,
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -766,6 +797,17 @@ serve(async (req) => {
           const errorText = await emailResponse.text();
           throw new Error(`Resend API error: ${emailResponse.status} - ${errorText}`);
         }
+
+        // Only count a message as sent after the provider accepts it.
+        const { error: eventError } = await supabase
+          .from('email_events')
+          .insert({
+            subscription_id: sub.id,
+            email_type: 'digest',
+            event_type: 'sent',
+            tracking_id: trackingId,
+          });
+        if (eventError) console.error(`[send-digest-emails] Failed to log sent event for ${sub.id}:`, eventError);
 
         // Update last_notified_at
         await supabase
@@ -792,6 +834,7 @@ serve(async (req) => {
         failed,
         targetFrequency,
         currentUtcHour,
+        currentUtcMinute,
         currentUtcDay,
         eligibleCount: eligibleSubscriptions.length,
         errors: errors.length > 0 ? errors : undefined

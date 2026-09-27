@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock, Send, Clock } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
@@ -15,11 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { dayOptions, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
 
 export default function ManageSubscription() {
   const [searchParams] = useSearchParams();
   const emailParam = searchParams.get('email') || '';
   const tokenParam = searchParams.get('token') || '';
+  const hasSecureAccess = Boolean(emailParam && tokenParam);
   
   const [email, setEmail] = useState(emailParam);
   const [token] = useState(tokenParam); // Token from URL, not editable
@@ -31,10 +32,11 @@ export default function ManageSubscription() {
   const [preferredHour, setPreferredHour] = useState<number>(9);
   const [timezoneOffset, setTimezoneOffset] = useState<number>(0);
   const [preferredDay, setPreferredDay] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(hasSecureAccess);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [subscriptionFound, setSubscriptionFound] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [unsubscribeSuccess, setUnsubscribeSuccess] = useState(false);
   const [authError, setAuthError] = useState(false);
@@ -42,9 +44,6 @@ export default function ManageSubscription() {
   const [isRequestingLink, setIsRequestingLink] = useState(false);
   const [linkRequested, setLinkRequested] = useState(false);
   const { toast } = useToast();
-
-  // Check if we have both email and token for secure access
-  const hasSecureAccess = Boolean(emailParam && tokenParam);
 
   const loadSubscription = useCallback(async () => {
     if (!emailParam || !tokenParam) {
@@ -65,13 +64,14 @@ export default function ManageSubscription() {
       if (data?.success && data?.subscription) {
         const sub = data.subscription;
         setName(sub.name || '');
-        setSelectedCategories(sub.categories || []);
+        setSelectedCategories((sub.categories || []).filter((category: string): category is NewsCategory => category in newsCategoryConfig));
         setSelectedTechnologies(sub.technologies || []);
         setAlertFrequency(sub.frequency || 'daily');
         setSeverityThreshold(sub.severity_threshold || 'medium');
         setPreferredHour(sub.preferred_hour ?? 9);
         setTimezoneOffset(sub.timezone_offset ?? 0);
         setPreferredDay(sub.preferred_day ?? 0);
+        setIsActive(sub.is_active !== false);
         setSubscriptionFound(true);
       } else {
         setAuthError(true);
@@ -124,7 +124,7 @@ export default function ManageSubscription() {
       setLinkRequested(true);
       toast({
         title: "Check Your Email",
-        description: "If an active subscription exists, a management link will be sent shortly.",
+        description: "If a verified subscription exists, a management link will be sent shortly.",
       });
     } catch (error) {
       console.error('Request link error:', error);
@@ -196,6 +196,7 @@ export default function ManageSubscription() {
       if (error) throw error;
 
       if (data?.success) {
+        setIsActive(true);
         setUpdateSuccess(true);
         toast({
           title: "Preferences Updated! ✓",
@@ -320,7 +321,7 @@ export default function ManageSubscription() {
                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2">Check Your Email</h2>
                     <p className="text-muted-foreground mb-6">
-                      If an active subscription exists for <strong>{requestLinkEmail}</strong>, 
+                      If a verified subscription exists for <strong>{requestLinkEmail}</strong>,
                       a management link will be sent shortly. Please check your inbox and spam folder.
                     </p>
                     <div className="space-y-3">
@@ -351,8 +352,11 @@ export default function ManageSubscription() {
                         Enter your email to receive a new management link.
                       </p>
                       <form onSubmit={handleRequestLink} className="space-y-3">
+                        <Label htmlFor="management-email" className="sr-only">Subscription email address</Label>
                         <Input
+                          id="management-email"
                           type="email"
+                          autoComplete="email"
                           placeholder="your@email.com"
                           value={requestLinkEmail}
                           onChange={(e) => setRequestLinkEmail(e.target.value)}
@@ -412,7 +416,9 @@ export default function ManageSubscription() {
                 Manage Your Subscription
               </CardTitle>
               <CardDescription>
-                Update your security alert preferences or unsubscribe.
+                {isActive
+                  ? 'Update your security alert preferences or unsubscribe.'
+                  : 'Your alerts are paused. Review your preferences, then reactivate them securely.'}
               </CardDescription>
             </CardHeader>
 
@@ -488,6 +494,9 @@ export default function ManageSubscription() {
                       <Zap className="w-4 h-4" />
                       Your Technology Stack
                     </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Prioritize technologies you use. Critical and high-severity incidents may still be included for safety.
+                    </p>
                     <div className="space-y-4">
                       {technologyCategories.map((category) => (
                         <div key={category.id} className="space-y-2">
@@ -497,17 +506,18 @@ export default function ManageSubscription() {
                               const isSelected = selectedTechnologies.includes(tech.id);
                               
                               return (
-                                <Badge
+                                <button
                                   key={tech.id}
-                                  variant={isSelected ? "default" : "outline"}
-                                  className={`cursor-pointer transition-all hover:scale-105 ${
-                                    tech.isPopular ? 'border-primary/50' : ''
-                                  }`}
+                                  type="button"
+                                  aria-pressed={isSelected}
+                                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                                    isSelected ? 'border-transparent bg-primary text-primary-foreground' : 'border-border bg-transparent text-foreground hover:bg-accent'
+                                  } ${tech.isPopular ? 'border-primary/50' : ''}`}
                                   onClick={() => handleTechnologyToggle(tech.id)}
                                 >
                                   {tech.name}
-                                  {tech.isPopular && <span className="ml-1">⭐</span>}
-                                </Badge>
+                                  {tech.isPopular && <span className="ml-1" aria-label="Popular">⭐</span>}
+                                </button>
                               );
                             })}
                           </div>
@@ -521,11 +531,11 @@ export default function ManageSubscription() {
                     <div className="space-y-2">
                       <Label htmlFor="frequency">Alert Frequency</Label>
                       <Select value={alertFrequency} onValueChange={(value: any) => setAlertFrequency(value)}>
-                        <SelectTrigger>
+                        <SelectTrigger id="frequency">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="immediate">Immediate (Critical only)</SelectItem>
+                          <SelectItem value="immediate">Immediate (Critical &amp; high)</SelectItem>
                           <SelectItem value="daily">Daily Digest</SelectItem>
                           <SelectItem value="weekly">Weekly Summary</SelectItem>
                         </SelectContent>
@@ -535,7 +545,7 @@ export default function ManageSubscription() {
                     <div className="space-y-2">
                       <Label htmlFor="severity">Minimum Severity</Label>
                       <Select value={severityThreshold} onValueChange={(value: any) => setSeverityThreshold(value)}>
-                        <SelectTrigger>
+                        <SelectTrigger id="severity">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -568,30 +578,30 @@ export default function ManageSubscription() {
                       </Label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Time</Label>
+                          <Label htmlFor="manage-delivery-time" className="text-xs text-muted-foreground">Time</Label>
                           <Select value={String(preferredHour)} onValueChange={(v) => setPreferredHour(Number(v))}>
-                            <SelectTrigger>
+                            <SelectTrigger id="manage-delivery-time">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map((h) => (
-                                <SelectItem key={h} value={String(h)}>
-                                  {h <= 12 ? `${h}:00 AM` : `${h-12}:00 PM`}
+                              {hourOptions.map((hour) => (
+                                <SelectItem key={hour.value} value={String(hour.value)}>
+                                  {hour.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Timezone</Label>
+                          <Label htmlFor="manage-delivery-timezone" className="text-xs text-muted-foreground">Timezone</Label>
                           <Select value={String(timezoneOffset)} onValueChange={(v) => setTimezoneOffset(Number(v))}>
-                            <SelectTrigger>
+                            <SelectTrigger id="manage-delivery-timezone">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[-8,-5,0,1,5,8,9].map((tz) => (
-                                <SelectItem key={tz} value={String(tz)}>
-                                  UTC{tz >= 0 ? '+' : ''}{tz}
+                              {timezoneOptions.map((timezone) => (
+                                <SelectItem key={timezone.value} value={String(timezone.value)}>
+                                  {timezone.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -599,14 +609,14 @@ export default function ManageSubscription() {
                         </div>
                         {alertFrequency === 'weekly' && (
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Day</Label>
+                            <Label htmlFor="manage-delivery-day" className="text-xs text-muted-foreground">Day</Label>
                             <Select value={String(preferredDay)} onValueChange={(v) => setPreferredDay(Number(v))}>
-                              <SelectTrigger>
+                              <SelectTrigger id="manage-delivery-day">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => (
-                                  <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                              {dayOptions.map((day) => (
+                                <SelectItem key={day.value} value={String(day.value)}>{day.label}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -634,12 +644,13 @@ export default function ManageSubscription() {
                           Saved!
                         </>
                       ) : (
-                        'Save Preferences'
+                        isActive ? 'Save Preferences' : 'Reactivate Alerts'
                       )}
                     </Button>
                     
-                    <Button 
+                    {isActive && <Button
                       type="button"
+                      aria-label={isUnsubscribing ? 'Unsubscribing from security alerts' : 'Unsubscribe from security alerts'}
                       variant="destructive"
                       onClick={handleUnsubscribe}
                       disabled={isUnsubscribing}
@@ -652,7 +663,7 @@ export default function ManageSubscription() {
                           Unsubscribe
                         </>
                       )}
-                    </Button>
+                    </Button>}
                   </div>
                 </form>
               ) : null}
