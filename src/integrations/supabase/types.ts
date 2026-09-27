@@ -557,6 +557,7 @@ export type Database = {
       subscriptions: {
         Row: {
           categories: string[]
+          content_scope: string
           created_at: string
           email: string
           frequency: string
@@ -576,6 +577,7 @@ export type Database = {
         }
         Insert: {
           categories?: string[]
+          content_scope?: string
           created_at?: string
           email: string
           frequency?: string
@@ -595,6 +597,7 @@ export type Database = {
         }
         Update: {
           categories?: string[]
+          content_scope?: string
           created_at?: string
           email?: string
           frequency?: string
