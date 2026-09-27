@@ -205,7 +205,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const deepLinkLoaded = useRef('');
   useEffect(() => {
     if (!requestedArticleId) {
+      // Article content is route-owned. Browser Back/Forward can change the
+      // URL without calling our in-page back button, so clear stale detail
+      // state whenever the route no longer identifies an article.
+      setSelectedArticle(null);
       setDeepLinkState('idle');
+      deepLinkLoaded.current = '';
       return;
     }
     if (!/^[A-Za-z0-9._:-]{1,128}$/.test(requestedArticleId)) {
@@ -224,6 +229,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     }
 
     // Fetch from DB
+    let cancelled = false;
     (async () => {
       setDeepLinkState('loading');
       const { data, error: articleError } = await supabase
@@ -231,6 +237,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         .select('*')
         .eq('id', requestedArticleId)
         .maybeSingle();
+      if (cancelled) return;
       if (articleError) {
         setDeepLinkState('error');
         return;
@@ -276,6 +283,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         setDeepLinkState('not-found');
       }
     })();
+
+    return () => {
+      // Prevent an article request that finishes after browser Back/Forward
+      // from restoring detail content for a route the user already left.
+      cancelled = true;
+    };
   }, [requestedArticleId, dbArticles]);
 
   // Auto-refresh for Active Alerts tab

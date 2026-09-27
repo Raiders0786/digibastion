@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import { z } from 'npm:zod@3.23.8';
 import {
+  assessQuillMonitorRunHealth,
   normalizeQuillMonitorIncident,
   parseQuillMonitorIncident,
   type NormalizedQuillMonitorArticle,
@@ -16,6 +17,7 @@ const RequestSchema = z.object({
   pages: z.number().int().min(1).max(20).optional().default(3),
   page_size: z.number().int().min(1).max(100).optional().default(100),
 }).strict();
+const DATABASE_BATCH_SIZE = 50;
 
 async function timingSafeEqual(left: string, right: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -108,12 +110,14 @@ Deno.serve(async (req) => {
     const db = createClient(url, serviceKey);
     const articles: NormalizedQuillMonitorArticle[] = [];
     let invalidRecords = 0;
+    let recordsFound = 0;
     let pagesFetched = 0;
     let nextPage: number | null = 1;
 
     while (nextPage !== null && pagesFetched < request.data.pages) {
       const payload = await fetchPage(apiKey, nextPage, request.data.page_size);
       if (payload.success !== true || !Array.isArray(payload.data)) throw new Error('QuillMonitor response did not match the documented format');
+      recordsFound += payload.data.length;
       for (const value of payload.data) {
         const incident = parseQuillMonitorIncident(value);
         if (!incident) {
@@ -130,29 +134,45 @@ Deno.serve(async (req) => {
     let inserted = 0;
     let updated = 0;
     const errors: string[] = [];
-    for (const article of articles) {
-      const { data: existing, error: readError } = await db.from('news_articles').select('id').eq('uid', article.uid).maybeSingle();
+    for (let offset = 0; offset < articles.length; offset += DATABASE_BATCH_SIZE) {
+      const batch = articles.slice(offset, offset + DATABASE_BATCH_SIZE);
+      const uids = batch.map((article) => article.uid);
+      const { data: existing, error: readError } = await db.from('news_articles').select('uid').in('uid', uids);
       if (readError) {
-        errors.push(`${article.uid}: lookup failed`);
+        errors.push(`${batch.length} incident lookups failed`);
         continue;
       }
-      const { error: writeError } = await db.from('news_articles').upsert(article, { onConflict: 'uid' });
-      if (writeError) errors.push(`${article.uid}: write failed`);
-      else if (existing) updated++;
-      else inserted++;
+      const existingUids = new Set((existing ?? []).map((article) => article.uid));
+      const { error: writeError } = await db.from('news_articles').upsert(batch, { onConflict: 'uid' });
+      if (writeError) {
+        errors.push(`${batch.length} incident writes failed`);
+        continue;
+      }
+      const updatedInBatch = batch.filter((article) => existingUids.has(article.uid)).length;
+      updated += updatedInBatch;
+      inserted += batch.length - updatedInBatch;
     }
 
-    console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} normalized=${articles.length} inserted=${inserted} updated=${updated} invalid=${invalidRecords} errors=${errors.length}`);
+    const persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
+    const health = assessQuillMonitorRunHealth(recordsFound, invalidRecords, persistenceErrors);
+    console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} found=${recordsFound} normalized=${articles.length} inserted=${inserted} updated=${updated} invalid=${invalidRecords} persistence_errors=${persistenceErrors} healthy=${health.success}`);
     await recordIngestionRun(db, {
       pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
-      success: errors.length === 0, records_found: articles.length, records_inserted: inserted,
-      records_updated: updated, records_invalid: invalidRecords + errors.length,
+      success: health.success, records_found: recordsFound, records_inserted: inserted,
+      records_updated: updated, records_invalid: invalidRecords + persistenceErrors,
       duration_ms: Date.now() - startedAt,
-      error_summary: errors.length ? `${errors.length} incident writes failed` : undefined,
-      metadata: { pages_fetched: pagesFetched, has_more: nextPage !== null },
+      error_summary: health.errorSummary,
+      metadata: {
+        pages_fetched: pagesFetched,
+        has_more: nextPage !== null,
+        records_accepted: articles.length,
+        validation_rejection_ratio: Number(health.invalidRatio.toFixed(4)),
+        persistence_errors: persistenceErrors,
+      },
     });
     return new Response(JSON.stringify({
-      success: errors.length === 0,
+      success: health.success,
+      recordsFound,
       incidentsFound: articles.length,
       incidentsInserted: inserted,
       incidentsUpdated: updated,
@@ -160,7 +180,7 @@ Deno.serve(async (req) => {
       pagesFetched,
       hasMore: nextPage !== null,
       errors: errors.length ? errors.slice(0, 10) : undefined,
-    }), { status: errors.length ? 207 : 200, headers: jsonHeaders });
+    }), { status: health.success ? 200 : 207, headers: jsonHeaders });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'QuillMonitor synchronization failed';
     console.error(`[fetch-quillmonitor-incidents] ${message}`);

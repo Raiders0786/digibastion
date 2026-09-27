@@ -10,12 +10,7 @@ import { MetaTags } from '../components/MetaTags';
 import { RelatedArticles } from '@/components/article/RelatedArticles';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import { buildArticleBreadcrumbSchema, buildArticleSchema } from '@/utils/seo';
-
-const retiredArticleRedirects: Record<string, string> = {
-  'web3-wallet-security-guide': '/articles/getting-started-web3-security',
-  'defi-security-best-practices': '/category/defi',
-  'nft-security-guide': '/articles/nft-marketplace-security',
-};
+import { retiredArticleRedirects } from '@/data/articleRedirects';
 
 const ArticleDetail = () => {
   const { slug } = useParams();

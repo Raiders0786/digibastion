@@ -66,6 +66,52 @@ function includesAny(value: string, signals: string[]): boolean {
   return signals.some((signal) => value.includes(signal));
 }
 
+function normalizeIncidentDate(value: unknown): string | null {
+  const date = cleanText(value, 40);
+  if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(date)) return null;
+
+  const calendarDate = date.slice(0, 10);
+  const parsedCalendarDate = new Date(`${calendarDate}T00:00:00.000Z`);
+  if (Number.isNaN(parsedCalendarDate.getTime()) || parsedCalendarDate.toISOString().slice(0, 10) !== calendarDate) {
+    return null;
+  }
+
+  const parsed = new Date(date.length === 10 ? `${date}T00:00:00.000Z` : date);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+export interface QuillMonitorRunHealth {
+  success: boolean;
+  invalidRatio: number;
+  errorSummary?: string;
+}
+
+export function assessQuillMonitorRunHealth(
+  recordsFound: number,
+  recordsInvalid: number,
+  persistenceErrors: number,
+): QuillMonitorRunHealth {
+  const invalidRatio = recordsFound > 0 ? recordsInvalid / recordsFound : 1;
+  const unhealthyValidation = recordsFound === 0 || invalidRatio > 0.1;
+  const success = persistenceErrors === 0 && !unhealthyValidation;
+  const summaries: string[] = [];
+
+  if (recordsFound === 0) summaries.push('Provider returned no incident records');
+  else if (unhealthyValidation) {
+    summaries.push(
+      `Provider validation rejected ${recordsInvalid} of ${recordsFound} records (${(invalidRatio * 100).toFixed(1)}%)`,
+    );
+  }
+  if (persistenceErrors > 0) summaries.push(`${persistenceErrors} incident persistence operations failed`);
+
+  return {
+    success,
+    invalidRatio,
+    errorSummary: summaries.length > 0 ? summaries.join('; ') : undefined,
+  };
+}
+
 export function mapQuillMonitorCategory(incident: QuillMonitorIncident): NormalizedQuillMonitorArticle['category'] {
   const text = `${incident.category} ${incident.attackedMethod} ${incident.description}`.toLowerCase();
   if (includesAny(text, SUPPLY_CHAIN_SIGNALS)) return 'supply-chain';
@@ -99,9 +145,8 @@ export function parseQuillMonitorIncident(value: unknown): QuillMonitorIncident 
   const row = value as Record<string, unknown>;
   const id = cleanText(row.id, 200);
   const target = cleanText(row.target, 200);
-  const date = cleanText(row.date, 40);
-  const parsedDate = new Date(`${date}T00:00:00.000Z`);
-  if (!id || !target || !date || Number.isNaN(parsedDate.getTime())) return null;
+  const date = normalizeIncidentDate(row.date);
+  if (!id || !target || !date) return null;
 
   const rawAmount = row.amountInUsd;
   const amount = rawAmount === null || rawAmount === undefined || rawAmount === ''

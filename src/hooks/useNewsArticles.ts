@@ -11,6 +11,7 @@ import {
 } from '@/utils/newsCache';
 import { sanitizeText } from '@/utils/sanitize';
 import { summarizeFeedFreshness } from '@/utils/feedFreshness';
+import type { Database } from '@/integrations/supabase/types';
 
 interface UseNewsArticlesOptions {
   categories?: NewsCategory[];
@@ -65,6 +66,66 @@ const sanitizePostgrestSearchTerm = (value: string): string => value
   .replace(/[,%_*()"'\\]/g, ' ')
   .replace(/\s+/g, ' ')
   .trim();
+
+const NEWS_ARTICLE_COLUMNS = [
+  'id',
+  'title',
+  'summary',
+  'content',
+  'category',
+  'severity',
+  'tags',
+  'affected_technologies',
+  'link',
+  'source_url',
+  'source_name',
+  'author',
+  'cve_id',
+  'published_at',
+  'is_processed',
+  'metadata',
+].join(',');
+
+type NewsArticleTableRow = Database['public']['Tables']['news_articles']['Row'];
+type NewsArticleQueryRow = Pick<NewsArticleTableRow,
+  | 'id'
+  | 'title'
+  | 'summary'
+  | 'content'
+  | 'category'
+  | 'severity'
+  | 'tags'
+  | 'affected_technologies'
+  | 'link'
+  | 'source_url'
+  | 'source_name'
+  | 'author'
+  | 'cve_id'
+  | 'published_at'
+  | 'is_processed'
+  | 'metadata'
+>;
+
+const toNewsArticle = (row: NewsArticleQueryRow): NewsArticle => ({
+  id: row.id,
+  title: sanitizeText(row.title),
+  content: sanitizeText(row.content || row.summary),
+  summary: sanitizeText(row.summary),
+  category: row.category as NewsCategory,
+  tags: row.tags || [],
+  severity: row.severity as SeverityLevel,
+  sourceUrl: row.source_url || undefined,
+  link: row.link || undefined,
+  publishedAt: new Date(row.published_at),
+  affectedTechnologies: row.affected_technologies || [],
+  author: row.author || undefined,
+  cveId: row.cve_id || undefined,
+  isProcessed: row.is_processed || false,
+  sourceName: row.source_name || undefined,
+  metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+    ? row.metadata as NewsArticle['metadata']
+    : undefined,
+});
 
 const emptyFeedFreshness = {
   activeFeedCount: 0,
@@ -200,24 +261,58 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         page,
       });
 
-      // Use the full-text search RPC function
-      const { data, error: fetchError } = await supabase.rpc('search_news_articles', {
-        search_query: searchTerm,
-        category_filter: categoryFilter,
-        severity_filter: severityFilter,
-        date_from: dateFrom,
-        result_limit: pageSize,
+      // The normal feed is an indexed date query. Sending it through the
+      // full-text RPC forces PostgreSQL through the generic ranking plan even
+      // when there is no search term, which has caused statement timeouts as
+      // the article corpus has grown. Keep the RPC for ranked searches only.
+      let data: NewsArticleQueryRow[] | null = null;
+      let fetchError: { message?: string } | null = null;
+      let queryCount: number | null = null;
+
+      if (!searchTerm) {
+        let query = supabase
+          .from('news_articles')
+          // Estimated count is exact for small result sets and planner-based
+          // for large feeds, keeping pagination responsive without a full
+          // table count on every visit.
+          .select(NEWS_ARTICLE_COLUMNS, { count: 'estimated' })
+          .order('published_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (categoryFilter) query = query.in('category', categoryFilter);
+        if (severityFilter) query = query.in('severity', severityFilter);
+        if (dateFrom) query = query.gte('published_at', dateFrom);
+        if (view === 'web3-incidents') {
+          query = query.or("metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3),metadata->>data_source.not.is.null");
+        }
+
+        const directResult = await query;
+        data = directResult.data;
+        fetchError = directResult.error;
+        queryCount = directResult.count;
+      } else {
+        const rpcResult = await supabase.rpc('search_news_articles', {
+          search_query: searchTerm,
+          category_filter: categoryFilter,
+          severity_filter: severityFilter,
+          date_from: dateFrom,
+          result_limit: pageSize,
           result_offset: offset,
           source_filter: null,
           web3_incidents_only: view === 'web3-incidents',
-      });
+        });
+        data = rpcResult.data;
+        fetchError = rpcResult.error;
+      }
 
       if (fetchError) {
-        console.error('RPC error, falling back to direct query:', fetchError);
-        // Fallback to direct query if RPC fails
+        console.error('Primary threat-feed query failed, retrying without a count:', fetchError);
+        // Fall back to a narrow direct query. Select only public card/detail
+        // fields so large raw payloads and search vectors are never copied to
+        // the browser as part of recovery.
         let query = supabase
           .from('news_articles')
-          .select('*', { count: 'exact' })
+          .select(NEWS_ARTICLE_COLUMNS)
           .order('published_at', { ascending: false })
           .range(offset, offset + pageSize - 1);
 
@@ -232,71 +327,56 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
           }
         }
 
-        const { data: fallbackData, error: fallbackError, count } = await query;
+        const { data: fallbackData, error: fallbackError } = await query;
         if (fallbackError) throw fallbackError;
-        
-        setTotalCount(count || 0);
 
-        const transformedArticles: NewsArticle[] = (fallbackData || []).map((row: any) => ({
-          id: row.id,
-          title: sanitizeText(row.title),
-          content: sanitizeText(row.content || row.summary),
-          summary: sanitizeText(row.summary),
-          category: row.category as NewsCategory,
-          tags: row.tags || [],
-          severity: row.severity as SeverityLevel,
-          sourceUrl: row.source_url || null,
-          link: row.link || null,
-          publishedAt: new Date(row.published_at),
-          affectedTechnologies: row.affected_technologies || [],
-          author: row.author || null,
-          cveId: row.cve_id,
-          isProcessed: row.is_processed || false,
-          sourceName: row.source_name,
-          metadata: row.metadata || undefined,
-        }));
+        const resultCountFloor = offset
+          + (fallbackData || []).length
+          + ((fallbackData || []).length === pageSize ? 1 : 0);
+        const cachedStats = !categoryFilter
+          && !severityFilter
+          && !searchTerm
+          && dateFilter === 'all'
+          && view === 'all'
+          ? loadStatsFromCache()
+          : null;
+        const fallbackTotal = Math.max(resultCountFloor, cachedStats?.total || 0);
+        setTotalCount(fallbackTotal);
+
+        const transformedArticles = (fallbackData || []).map(toNewsArticle);
 
         setArticles(transformedArticles);
         setIsCachedData(false);
         const freshness = await feedFreshnessPromise;
         setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
-        saveToCache(transformedArticles, count || 0, filterKey);
+        saveToCache(transformedArticles, fallbackTotal, filterKey);
         return;
       }
 
-      // Get total count for pagination
-      const { data: countData, error: countError } = await supabase.rpc('count_news_articles', {
-        search_query: searchTerm,
-        category_filter: categoryFilter,
-        severity_filter: severityFilter,
-        date_from: dateFrom,
-        source_filter: null,
-        web3_incidents_only: view === 'web3-incidents',
-      });
+      // The direct feed query already carries its count, avoiding a second
+      // full-table RPC on every page load. Ranked search still needs the count
+      // RPC; failure is non-fatal and keeps forward pagination available.
+      let resolvedCount = queryCount;
+      if (searchTerm) {
+        const { data: countData, error: countError } = await supabase.rpc('count_news_articles', {
+          search_query: searchTerm,
+          category_filter: categoryFilter,
+          severity_filter: severityFilter,
+          date_from: dateFrom,
+          source_filter: null,
+          web3_incidents_only: view === 'web3-incidents',
+        });
 
-      if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
-      const resolvedCount = countError ? (data || []).length : (countData || 0);
+        if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
+        resolvedCount = countError
+          ? offset + (data || []).length + ((data || []).length === pageSize ? 1 : 0)
+          : (countData || 0);
+      }
+      resolvedCount ??= offset + (data || []).length;
       setTotalCount(resolvedCount);
 
       // Transform RPC results to NewsArticle format
-      const transformedArticles: NewsArticle[] = (data || []).map((row: any) => ({
-        id: row.id,
-        title: sanitizeText(row.title),
-        content: sanitizeText(row.content || row.summary),
-        summary: sanitizeText(row.summary),
-        category: row.category as NewsCategory,
-        tags: row.tags || [],
-        severity: row.severity as SeverityLevel,
-        sourceUrl: row.source_url || null,
-        link: row.link || null,
-        publishedAt: new Date(row.published_at),
-        affectedTechnologies: row.affected_technologies || [],
-        author: row.author || null,
-        cveId: row.cve_id,
-        isProcessed: row.is_processed || false,
-        sourceName: row.source_name,
-        metadata: row.metadata || undefined,
-      }));
+      const transformedArticles = (data || []).map(toNewsArticle);
 
       // Apply sorting (RPC already sorts by rank + date, but apply severity if needed)
       if (sortBy === 'severity') {

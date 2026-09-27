@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { articlesMeta, getArticleBySlug } from '../articlesData';
 import { hasArticleContent } from '../articleContent';
+import { retiredArticleRedirects } from '../articleRedirects';
 import { coreGuideEnhancements } from '../contentBatches/coreGuideEnhancements';
 import { legacyProtocolEnhancements } from '../contentBatches/legacyProtocolEnhancements';
 import { legacyScamEnhancements } from '../contentBatches/legacyScamEnhancements';
@@ -9,6 +10,11 @@ import { legacyWalletEnhancements } from '../contentBatches/legacyWalletEnhancem
 
 const RELEASE_DATE = '2026-09-27';
 const sitemap = readFileSync(new URL('../../../public/sitemap.xml', import.meta.url), 'utf8');
+const vercelConfig = JSON.parse(
+  readFileSync(new URL('../../../vercel.json', import.meta.url), 'utf8'),
+) as {
+  redirects: Array<{ source: string; destination: string; permanent: boolean }>;
+};
 const editorialEnhancements = {
   ...coreGuideEnhancements,
   ...legacyWalletEnhancements,
@@ -126,5 +132,21 @@ describe('article publishing data', () => {
 
     expect(new Set(sitemapSlugs).size).toBe(sitemapSlugs.length);
     expect([...sitemapSlugs].sort()).toEqual([...metadataSlugs].sort());
+  });
+
+  it('keeps retired article redirects aligned and pointed at published guides', () => {
+    for (const [retiredSlug, destination] of Object.entries(retiredArticleRedirects)) {
+      expect(destination).toMatch(/^\/articles\/[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+      const destinationSlug = destination.slice('/articles/'.length);
+      expect(getArticleBySlug(destinationSlug), `${destination} must be published`).toBeDefined();
+      expect(hasArticleContent(destinationSlug), `${destination} needs article content`).toBe(true);
+
+      expect(vercelConfig.redirects).toContainEqual({
+        source: `/articles/${retiredSlug}`,
+        destination,
+        permanent: true,
+      });
+    }
   });
 });
