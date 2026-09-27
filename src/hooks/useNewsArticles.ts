@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { NewsArticle, NewsCategory, SeverityLevel } from '@/types/news';
 import { useToast } from '@/hooks/use-toast';
-import { mockNewsArticles } from '@/data/newsData';
 import {
   buildFilterKey,
   saveToCache,
@@ -34,6 +33,11 @@ interface UseNewsArticlesResult {
   isRefreshing: boolean;
   isRefreshingWeb3: boolean;
   isSummarizing: boolean;
+  feedStatus: {
+    source: 'loading' | 'live' | 'cache';
+    isStale: boolean;
+    checkedAt: Date | null;
+  };
   stats: {
     total: number;
     critical: number;
@@ -51,6 +55,11 @@ interface UseNewsArticlesResult {
   };
 }
 
+const sanitizePostgrestSearchTerm = (value: string): string => value
+  .replace(/[,%_*()"'\\]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsArticlesResult {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,9 +69,13 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [isCachedData, setIsCachedData] = useState(false);
+  const [feedStatus, setFeedStatus] = useState<UseNewsArticlesResult['feedStatus']>({
+    source: 'loading',
+    isStale: false,
+    checkedAt: null,
+  });
   const { toast } = useToast();
   const cacheInitialised = useRef(false);
-  const hasShownFallbackNotice = useRef(false);
 
   const { 
     categories, 
@@ -95,6 +108,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       setArticles(cached.articles);
       setTotalCount(cached.totalCount);
       setIsCachedData(true);
+      setFeedStatus({ source: 'cache', isStale: cached.isStale, checkedAt: cached.cachedAt });
     }
 
     // Also load cached stats so the hero banner has numbers instantly
@@ -104,72 +118,6 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const getStaticFallback = useCallback(() => {
-    const severityOrder: Record<SeverityLevel, number> = {
-      critical: 0,
-      high: 1,
-      medium: 2,
-      low: 3,
-      info: 4,
-    };
-
-    const normalizedSearch = searchQuery?.trim().toLowerCase() || '';
-
-    let fallback = [...mockNewsArticles];
-
-    if (categories && categories.length > 0) {
-      fallback = fallback.filter((article) => categories.includes(article.category));
-    }
-
-    if (severities && severities.length > 0) {
-      fallback = fallback.filter((article) => severities.includes(article.severity));
-    }
-
-    if (view === 'web3-incidents') {
-      fallback = fallback.filter((article) => article.metadata?.is_web3_incident === true || ['quillmonitor', 'web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string');
-    }
-
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
-      const cutoff = new Date(now.getTime() - daysMap[dateFilter] * 24 * 60 * 60 * 1000);
-      fallback = fallback.filter((article) => new Date(article.publishedAt).getTime() >= cutoff.getTime());
-    }
-
-    if (normalizedSearch) {
-      fallback = fallback.filter((article) => {
-        const searchableText = [
-          article.title,
-          article.summary,
-          article.content,
-          article.category,
-          article.author || '',
-          article.cveId || '',
-          (article.tags || []).join(' '),
-          (article.affectedTechnologies || []).join(' '),
-        ]
-          .join(' ')
-          .toLowerCase();
-
-        return searchableText.includes(normalizedSearch);
-      });
-    }
-
-    fallback.sort((a, b) => {
-      if (sortBy === 'severity') {
-        const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
-        if (severityDiff !== 0) return severityDiff;
-      }
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-    });
-
-    const total = fallback.length;
-    const offset = (page - 1) * pageSize;
-    const paginated = fallback.slice(offset, offset + pageSize);
-
-    return { articles: paginated, total };
-  }, [categories, severities, searchQuery, dateFilter, sortBy, view, page, pageSize]);
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -226,7 +174,10 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (dateFrom) query = query.gte('published_at', dateFrom);
         if (view === 'web3-incidents') query = query.or("metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3),metadata->>data_source.not.is.null");
         if (searchTerm) {
-          query = query.or(`title.ilike.%${searchTerm}%,summary.ilike.%${searchTerm}%`);
+          const safeSearchTerm = sanitizePostgrestSearchTerm(searchTerm);
+          if (safeSearchTerm) {
+            query = query.or(`title.ilike.%${safeSearchTerm}%,summary.ilike.%${safeSearchTerm}%`);
+          }
         }
 
         const { data: fallbackData, error: fallbackError, count } = await query;
@@ -249,39 +200,19 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
           author: row.author || null,
           cveId: row.cve_id,
           isProcessed: row.is_processed || false,
-          sourceName: row.source_name
-          ,metadata: row.metadata || undefined
+          sourceName: row.source_name,
+          metadata: row.metadata || undefined,
         }));
-
-        const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && view === 'all' && page === 1;
-        if (isUnfilteredFirstPage && transformedArticles.length === 0 && (count || 0) === 0) {
-          const staticFallback = getStaticFallback();
-          setArticles(staticFallback.articles);
-          setTotalCount(staticFallback.total);
-          setIsCachedData(true);
-          setError(null);
-
-          if (!hasShownFallbackNotice.current) {
-            hasShownFallbackNotice.current = true;
-            toast({
-              title: 'Using backup threat feed',
-              description: 'Live feed is temporarily unavailable. Showing built-in threat intelligence data.',
-            });
-          }
-
-          saveToCache(staticFallback.articles, staticFallback.total, filterKey);
-          return;
-        }
 
         setArticles(transformedArticles);
         setIsCachedData(false);
-        hasShownFallbackNotice.current = false;
+        setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date() });
         saveToCache(transformedArticles, count || 0, filterKey);
         return;
       }
 
       // Get total count for pagination
-      const { data: countData } = await supabase.rpc('count_news_articles', {
+      const { data: countData, error: countError } = await supabase.rpc('count_news_articles', {
         search_query: searchTerm,
         category_filter: categoryFilter,
         severity_filter: severityFilter,
@@ -290,7 +221,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         web3_incidents_only: view === 'web3-incidents',
       });
 
-      setTotalCount(countData || 0);
+      if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
+      const resolvedCount = countError ? (data || []).length : (countData || 0);
+      setTotalCount(resolvedCount);
 
       // Transform RPC results to NewsArticle format
       const transformedArticles: NewsArticle[] = (data || []).map((row: any) => ({
@@ -322,32 +255,12 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         });
       }
 
-      const isUnfilteredFirstPage = !searchTerm && !categoryFilter && !severityFilter && !dateFrom && view === 'all' && page === 1;
-      if (isUnfilteredFirstPage && transformedArticles.length === 0 && (countData || 0) === 0) {
-        const staticFallback = getStaticFallback();
-        setArticles(staticFallback.articles);
-        setTotalCount(staticFallback.total);
-        setIsCachedData(true);
-        setError(null);
-
-        if (!hasShownFallbackNotice.current) {
-          hasShownFallbackNotice.current = true;
-          toast({
-            title: 'Using backup threat feed',
-            description: 'Live feed is temporarily unavailable. Showing built-in threat intelligence data.',
-          });
-        }
-
-        saveToCache(staticFallback.articles, staticFallback.total, filterKey);
-        return;
-      }
-
       setArticles(transformedArticles);
       setIsCachedData(false);
-      hasShownFallbackNotice.current = false;
+      setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date() });
 
       // Persist to cache for offline / error fallback
-      saveToCache(transformedArticles, countData || 0, filterKey);
+      saveToCache(transformedArticles, resolvedCount, filterKey);
     } catch (err) {
       console.error('Error fetching news articles:', err);
 
@@ -366,32 +279,20 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         setArticles(cached.articles);
         setTotalCount(cached.totalCount);
         setIsCachedData(true);
+        setFeedStatus({ source: 'cache', isStale: cached.isStale, checkedAt: cached.cachedAt });
+        setError(err instanceof Error ? err : new Error('Failed to refresh articles'));
         console.info('Serving cached news data due to fetch error');
       } else {
-        const staticFallback = getStaticFallback();
-        if (staticFallback.total > 0) {
-          setArticles(staticFallback.articles);
-          setTotalCount(staticFallback.total);
-          setIsCachedData(true);
-          setError(null);
-
-          if (!hasShownFallbackNotice.current) {
-            hasShownFallbackNotice.current = true;
-            toast({
-              title: 'Using backup threat feed',
-              description: 'Live feed is temporarily unavailable. Showing built-in threat intelligence data.',
-            });
-          }
-
-          saveToCache(staticFallback.articles, staticFallback.total, filterKey);
-        } else {
-          setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
-        }
+        setArticles([]);
+        setTotalCount(0);
+        setIsCachedData(false);
+        setFeedStatus({ source: 'live', isStale: false, checkedAt: null });
+        setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
       }
     } finally {
       setIsLoading(false);
     }
-  }, [categories, severities, searchQuery, dateFilter, sortBy, view, page, pageSize, getStaticFallback, toast]);
+  }, [categories, severities, searchQuery, dateFilter, sortBy, view, page, pageSize]);
 
   const refreshFromRSS = useCallback(async () => {
     try {
@@ -405,8 +306,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
       if (data?.success) {
         toast({
-          title: 'News Updated',
-          description: `Found ${data.articlesFound} articles, ${data.articlesInserted} new.`,
+          title: data.partial ? 'News updated with warnings' : 'News updated',
+          description: `Found ${data.articlesFound} articles, ${data.articlesInserted} new.${data.partial ? ' Review ingestion health for provider or write errors.' : ''}`,
         });
         await fetchArticles();
       } else {
@@ -524,6 +425,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     isRefreshing,
     isRefreshingWeb3,
     isSummarizing,
+    feedStatus,
     stats,
     pagination,
   };

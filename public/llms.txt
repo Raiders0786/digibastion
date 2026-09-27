@@ -10,13 +10,22 @@ Digibastion helps crypto users, developers, and DAOs defend against phishing, wa
 - [About](/about): Mission, team, funding (Ethereum Foundation ESP 2025), and methodology.
 - [Threat Intelligence Feed](/threat-intel): Real-time Web3 and Web2 incident feed (July 2024 onward) with severity, category, and source attribution.
 - [News](/news): Legacy route that redirects to the Threat Intelligence Feed.
-- [Articles](/articles): 56 published guides on wallet security, phishing prevention, incident response, software supply chains, DeFi risks, smart-contract auditing, and OpSec.
+- [Articles](/articles): 65 published guides on wallet security, phishing prevention, incident response, software supply chains, DeFi risks, smart-contract auditing, and OpSec.
 - [Bybit 2025 signing-security case study](/articles/bybit-hack-2025-signing-security): Source-backed analysis of compromised transaction presentation and multisig verification controls.
 - [Coinbase data-theft defense guide](/articles/coinbase-data-theft-support-scam-defense): What the 2025 disclosure teaches users and support teams about impersonation and insider risk.
 - [Next.js ImageResponse RCE response guide](/articles/nextjs-imageresponse-rce-cve-2026-94545): Exposure checks, patching, and investigation steps for CVE-2026-94545.
 - [Operation Atlantic approval-phishing guide](/articles/operation-atlantic-approval-phishing-2026): How malicious token permissions work, with signing and recovery checks.
 - [Shai-Hulud npm response playbook](/articles/shai-hulud-npm-supply-chain-attack): Practical controls for package publishers, CI systems, and downstream teams.
 - [React2Shell and RSC patch guide](/articles/react2shell-rsc-vulnerability-response): Inventory and response guidance for the React Server Components vulnerability chain.
+- [Passkeys vs authenticator apps](/articles/passkeys-vs-authenticator-apps-security-keys-crypto): Phishing resistance, recovery, and security-key trade-offs for crypto accounts.
+- [Address poisoning and token impersonation](/articles/crypto-address-poisoning-token-impersonation): A recipient and token-verification workflow for lookalike attacks.
+- [Cryptocurrency scam recovery](/articles/cryptocurrency-scam-recovery-steps-recovery-scams): Evidence preservation, reporting, provider contact, and recovery-scam avoidance.
+- [EIP-7702 wallet delegation security](/articles/eip-7702-wallet-delegation-security): User and developer controls for delegated EOAs.
+- [Clear signing and ERC-7730](/articles/clear-signing-erc-7730-guide): Human-readable signing for users, wallets, and dapp teams.
+- [DNS security for Web3 frontends](/articles/dns-domain-security-web3-dapps): Registrar, DNS, certificate, monitoring, and response controls.
+- [DPRK remote IT worker risk](/articles/dprk-remote-it-worker-risk-crypto-web3): Identity, endpoint, access, and incident-response controls for teams.
+- [Browser-wallet infostealer response](/articles/browser-wallet-infostealer-malware-response): Prevention and clean-device recovery after suspected malware.
+- [Exchange API key security](/articles/exchange-api-key-security-trading-bots): Least privilege, secret isolation, monitoring, rotation, and revocation for automation.
 - [Tools](/tools): Directory of vetted Web3 security tools (wallets, scanners, monitors, audit firms).
 - [Links](/links): Curated security resources across application, cloud, on-chain, smart-contract, and private-key categories.
 - [OpSec Quiz](/quiz): Interactive Satoshi-level OpSec assessment with HMAC-signed scoring.

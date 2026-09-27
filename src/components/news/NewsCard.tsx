@@ -98,6 +98,9 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
             <Clock className="w-3 h-3" />
             {formatDistanceToNow(article.publishedAt, { addSuffix: true })}
           </div>
+          {article.sourceName && (
+            <span className="truncate" title={article.sourceName}>Source: {article.sourceName}</span>
+          )}
           {article.author && (
             <span>by {article.author}</span>
           )}

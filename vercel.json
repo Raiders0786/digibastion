@@ -27,6 +27,13 @@
       ]
     }
   ],
+  "redirects": [
+    { "source": "/news", "destination": "/threat-intel", "permanent": true },
+    { "source": "/present", "destination": "/about", "permanent": true },
+    { "source": "/articles/web3-wallet-security-guide", "destination": "/articles/getting-started-web3-security", "permanent": true },
+    { "source": "/articles/defi-security-best-practices", "destination": "/category/defi", "permanent": true },
+    { "source": "/articles/nft-security-guide", "destination": "/articles/nft-marketplace-security", "permanent": true }
+  ],
   "rewrites": [
     { 
       "source": "/quiz-result",

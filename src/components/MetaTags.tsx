@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
+const EMPTY_TAGS: string[] = [];
+
 interface MetaTagsProps {
   title?: string;
   description?: string;
@@ -13,6 +15,10 @@ interface MetaTagsProps {
   modifiedTime?: string;
   author?: string;
   imageAlt?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  section?: string;
+  tags?: string[];
 }
 
 export const MetaTags = ({ 
@@ -27,9 +33,14 @@ export const MetaTags = ({
   modifiedTime,
   author,
   imageAlt = "Digibastion security guide",
+  imageWidth = 1920,
+  imageHeight = 1060,
+  section,
+  tags = EMPTY_TAGS,
 }: MetaTagsProps) => {
   const location = useLocation();
-  const url = `https://www.digibastion.com${location.pathname}`;
+  const path = location.pathname === '/' ? '/' : location.pathname.replace(/\/+$/, '');
+  const url = `https://www.digibastion.com${path}`;
   const actualCanonical = canonical || url;
   useEffect(() => {
     // Update document title
@@ -64,13 +75,31 @@ export const MetaTags = ({
     setMeta('property', 'og:description', description);
     setMeta('property', 'og:image', image);
     setMeta('property', 'og:image:alt', imageAlt);
+    setMeta('property', 'og:image:width', String(imageWidth));
+    setMeta('property', 'og:image:height', String(imageHeight));
     setMeta('property', 'og:url', actualCanonical);
     setMeta('property', 'og:type', type);
+    setMeta('property', 'og:site_name', 'Digibastion');
+    setMeta('property', 'og:locale', 'en_US');
     setMeta('property', 'article:published_time', publishedTime);
     setMeta('property', 'article:modified_time', modifiedTime);
     setMeta('property', 'article:author', author);
+    setMeta('property', 'article:section', section);
+
+    document.querySelectorAll('meta[property="article:tag"][data-digibastion-managed="true"]')
+      .forEach((tag) => tag.remove());
+    if (type === 'article') {
+      tags.forEach((value) => {
+        const tag = document.createElement('meta');
+        tag.setAttribute('property', 'article:tag');
+        tag.setAttribute('content', value);
+        tag.setAttribute('data-digibastion-managed', 'true');
+        document.head.appendChild(tag);
+      });
+    }
 
     // Twitter
+    setMeta('name', 'twitter:card', 'summary_large_image');
     setMeta('name', 'twitter:title', title);
     setMeta('name', 'twitter:description', description);
     setMeta('name', 'twitter:image', image);
@@ -78,12 +107,15 @@ export const MetaTags = ({
     setMeta('name', 'twitter:url', actualCanonical);
 
     // Canonical
-    const canonicalTag = document.querySelector('link[rel="canonical"]');
-    if (canonicalTag) {
-      canonicalTag.setAttribute('href', actualCanonical);
+    let canonicalTag = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonicalTag) {
+      canonicalTag = document.createElement('link');
+      canonicalTag.rel = 'canonical';
+      document.head.appendChild(canonicalTag);
     }
+    canonicalTag.href = actualCanonical;
 
-  }, [title, description, image, type, actualCanonical, keywords, noindex, publishedTime, modifiedTime, author, imageAlt]);
+  }, [title, description, image, type, actualCanonical, keywords, noindex, publishedTime, modifiedTime, author, imageAlt, imageWidth, imageHeight, section, tags]);
 
   return null;
 };

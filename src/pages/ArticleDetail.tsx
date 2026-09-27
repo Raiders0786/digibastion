@@ -13,7 +13,7 @@ import { buildArticleBreadcrumbSchema, buildArticleSchema } from '@/utils/seo';
 
 const retiredArticleRedirects: Record<string, string> = {
   'web3-wallet-security-guide': '/articles/getting-started-web3-security',
-  'defi-security-best-practices': '/articles/defi-smart-contract-audit-checklist',
+  'defi-security-best-practices': '/category/defi',
   'nft-security-guide': '/articles/nft-marketplace-security',
 };
 
@@ -68,6 +68,8 @@ const ArticleDetail = () => {
         publishedTime={publishedDate}
         modifiedTime={modifiedDate}
         author={author}
+        section={category}
+        tags={tags}
         imageAlt={`${title} — Digibastion security guide`}
       />
       

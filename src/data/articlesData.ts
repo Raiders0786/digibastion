@@ -1,4 +1,8 @@
 // Article metadata; full content is rendered separately.
+import { enterpriseThreatsMeta } from './contentBatches/enterpriseThreatsMeta';
+import { identitySafetyArticlesMeta } from './contentBatches/identitySafetyMeta';
+import { protocolSecurityMeta } from './contentBatches/protocolSecurityMeta';
+
 export interface ArticleMeta {
   slug: string;
   title: string;
@@ -11,7 +15,7 @@ export interface ArticleMeta {
   author: string;
   tags: string[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
-  status?: 'published' | 'draft';
+  status: 'published' | 'draft';
   summary?: string;
   keyTakeaways?: string[];
   sources?: Array<{
@@ -35,7 +39,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-15",
     author: "Digibastion Security Team",
     tags: ["opsec", "privacy", "web3", "anonymity", "blockchain privacy"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "bybit-hack-2025-signing-security",
@@ -49,6 +54,7 @@ const articleCatalog: ArticleMeta[] = [
     author: "Digibastion Security Team",
     tags: ["Bybit hack", "multisig security", "transaction signing", "Safe wallet", "DPRK"],
     difficulty: "advanced",
+    status: "published",
     summary: "The Bybit theft was not a failure of offline keys alone. Attackers compromised the interface used by authorized signers, causing a legitimate approval process to authorize malicious transaction logic. Cold storage is only as strong as the transaction-verification path around it.",
     keyTakeaways: [
       "Verify decoded transaction intent on an independent, trusted device—not only in a browser.",
@@ -85,6 +91,7 @@ const articleCatalog: ArticleMeta[] = [
     author: "Digibastion Security Team",
     tags: ["Coinbase data breach", "support scam", "social engineering", "insider threat", "account security"],
     difficulty: "beginner",
+    status: "published",
     summary: "Attackers do not need a password or private key to sound convincing. Stolen support records can supply names, contact details, balance snapshots, and transaction history—the context a scammer needs to manufacture urgency and trust.",
     keyTakeaways: [
       "End unsolicited support calls and reopen support through the official app or a bookmarked domain.",
@@ -121,6 +128,7 @@ const articleCatalog: ArticleMeta[] = [
     author: "Digibastion Security Team",
     tags: ["CVE-2026-94545", "Next.js security", "ImageResponse", "Satori", "remote code execution"],
     difficulty: "intermediate",
+    status: "published",
     summary: "Next.js versions 16.2.0 through 16.3.5 can be vulnerable when the Node.js ImageResponse implementation renders attacker-controlled values into SVG content, attributes, or styles. Upgrade to Next.js 16.3.6 or later; checking only whether a project uses Next.js is not enough to determine exposure.",
     keyTakeaways: [
       "Patch affected Next.js 16 installations to 16.3.6 or later and redeploy every public environment.",
@@ -156,6 +164,7 @@ const articleCatalog: ArticleMeta[] = [
     author: "Digibastion Security Team",
     tags: ["Operation Atlantic", "approval phishing", "token approvals", "wallet drain", "crypto scam"],
     difficulty: "beginner",
+    status: "published",
     summary: "Approval phishing tricks a wallet owner into granting a malicious contract permission to move tokens later. The approving transaction may move nothing immediately, which is why reviewing permissions—not only transfers—is essential.",
     keyTakeaways: [
       "Reject unexpected approvals and verify the contract, token, spender, scope, and amount before signing.",
@@ -191,6 +200,7 @@ const articleCatalog: ArticleMeta[] = [
     author: "Digibastion Security Team",
     tags: ["Shai-Hulud", "npm security", "software supply chain", "CI security", "trusted publishing"],
     difficulty: "advanced",
+    status: "published",
     summary: "Shai-Hulud was a multi-wave software supply-chain campaign. GitHub says it used compromised maintainer credentials, malicious package lifecycle scripts, secret theft, self-propagation, and later CI-focused techniques. The durable defense is to break the chain at several points, not to rely on package scanning alone.",
     keyTakeaways: [
       "Replace long-lived publishing tokens with trusted publishing or another short-lived identity flow.",
@@ -226,6 +236,7 @@ const articleCatalog: ArticleMeta[] = [
     author: "Digibastion Security Team",
     tags: ["React2Shell", "React Server Components", "CVE-2025-55182", "Next.js security", "remote code execution"],
     difficulty: "advanced",
+    status: "published",
     summary: "React2Shell, CVE-2025-55182, allowed unauthenticated remote code execution in vulnerable React Server Components packages. Follow-on research found denial-of-service and source-code-exposure flaws, including an additional denial-of-service fix published in January 2026. Teams that applied only the first patch must verify their final installed versions again.",
     keyTakeaways: [
       "Determine exposure from installed server-component packages and framework features—not from the browser React version alone.",
@@ -263,7 +274,14 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["hardware wallet", "ledger", "trezor", "cold storage", "best crypto wallet"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published",
+    summary: "A hardware wallet can isolate signing keys from a general-purpose computer, but it cannot make an unclear transaction safe. Compare devices as part of a complete signing and recovery workflow.",
+    keyTakeaways: [
+      "Choose a device whose trusted display can show the transaction details you need to verify.",
+      "Generate recovery material on the device, protect it from disclosure and physical loss, and rehearse recovery safely.",
+      "For team custody, combine independent signers with independent transaction verification, limits, and an incident plan.",
+    ],
   },
   {
     slug: "seed-phrase-security-guide",
@@ -275,7 +293,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-10",
     author: "Digibastion Security Team",
     tags: ["seed phrase", "recovery phrase", "backup", "private key security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "hot-wallet-vs-cold-wallet",
@@ -287,7 +306,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-05",
     author: "Digibastion Security Team",
     tags: ["hot wallet", "cold wallet", "metamask", "ledger", "wallet security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "metamask-security-settings",
@@ -309,10 +329,29 @@ const articleCatalog: ArticleMeta[] = [
     category: "Wallet Security",
     readTime: "8 min read",
     publishedAt: "2024-11-10",
-    modifiedAt: "2025-01-15",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["token approval", "revoke", "wallet drainer", "allowance", "erc20"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published",
+    summary: "A token approval lets a spender contract move assets within the permission you granted. Revoking stale or suspicious allowances can cut off that permission, but it cannot repair a leaked seed phrase or undo assets already transferred.",
+    keyTakeaways: [
+      "Confirm the chain, token or NFT collection, spender address, scope, and current allowance before revoking.",
+      "Use a trusted block explorer or approval-management tool reached from a bookmarked or independently verified address.",
+      "If keys or recovery material may be exposed, move unaffected assets to a newly generated wallet from a clean device; revocation alone is not enough.",
+    ],
+    sources: [
+      {
+        title: "Operation ATLANTIC victim guidance",
+        publisher: "UK National Crime Agency",
+        url: "https://www.nationalcrimeagency.gov.uk/news/operation-atlantic",
+      },
+      {
+        title: "Bringing Approval Phishing Scammers to Justice",
+        publisher: "Coinbase",
+        url: "https://www.coinbase.com/blog/bringing-approval-phishing-scammers-to-justice",
+      },
+    ],
   },
   {
     slug: "multi-signature-wallet-setup",
@@ -324,7 +363,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-08",
     author: "Digibastion Security Team",
     tags: ["multisig", "gnosis safe", "safe wallet", "multi-signature"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
 
   // Phishing and scams
@@ -336,10 +376,29 @@ const articleCatalog: ArticleMeta[] = [
     readTime: "14 min read",
     featured: true,
     publishedAt: "2024-12-01",
-    modifiedAt: "2025-01-17",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["phishing", "wallet drainer", "scam", "social engineering", "crypto scam"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published",
+    summary: "Crypto phishing often targets the signing decision rather than only a password. Slow down, verify the destination through an independent path, and understand the exact approval, permit, message, or transaction before authorizing it.",
+    keyTakeaways: [
+      "Treat urgency, unexpected wallet connections, and unclear signature requests as reasons to stop and verify.",
+      "Check the domain, chain, contract, spender, assets, amount, and duration instead of relying on a wallet prompt's headline.",
+      "After an incident, distinguish a malicious approval from key compromise because the containment steps are different.",
+    ],
+    sources: [
+      {
+        title: "Operation ATLANTIC victim guidance",
+        publisher: "UK National Crime Agency",
+        url: "https://www.nationalcrimeagency.gov.uk/news/operation-atlantic",
+      },
+      {
+        title: "Bringing Approval Phishing Scammers to Justice",
+        publisher: "Coinbase",
+        url: "https://www.coinbase.com/blog/bringing-approval-phishing-scammers-to-justice",
+      },
+    ],
   },
   {
     slug: "ice-phishing-explained",
@@ -351,7 +410,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-14",
     author: "Digibastion Security Team",
     tags: ["ice phishing", "permit", "approval", "signature phishing", "wallet attack"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "fake-airdrop-scams",
@@ -363,7 +423,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-11",
     author: "Digibastion Security Team",
     tags: ["airdrop scam", "fake airdrop", "giveaway scam", "token scam"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "discord-crypto-scams",
@@ -375,7 +436,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-09",
     author: "Digibastion Security Team",
     tags: ["discord", "crypto scam", "nft scam", "social engineering", "discord security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "twitter-crypto-impersonation",
@@ -387,7 +449,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-16",
     author: "Digibastion Security Team",
     tags: ["twitter scam", "impersonation", "fake account", "crypto fraud", "x scam"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "honeypot-tokens-detection",
@@ -399,7 +462,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-13",
     author: "Digibastion Security Team",
     tags: ["honeypot", "scam token", "rug pull", "token scanner", "dex trading"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // Rug Pulls & Exit Scams
@@ -413,7 +477,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-10",
     author: "Digibastion Security Team",
     tags: ["rug pull", "crypto scam", "red flags", "dyor", "scam detection"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "soft-rug-vs-hard-rug",
@@ -425,7 +490,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-07",
     author: "Digibastion Security Team",
     tags: ["soft rug", "hard rug", "exit scam", "liquidity pull", "crypto fraud"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "locked-liquidity-explained",
@@ -437,7 +503,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-12",
     author: "Digibastion Security Team",
     tags: ["liquidity lock", "unicrypt", "team finance", "rug proof", "dex safety"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // DeFi security
@@ -452,7 +519,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["defi hack", "exploit", "crypto hack", "security breach", "protocol risk"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "flash-loan-attacks-explained",
@@ -464,7 +532,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-08",
     author: "Digibastion Security Team",
     tags: ["flash loan", "defi attack", "price manipulation", "arbitrage exploit"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "oracle-manipulation-attacks",
@@ -476,7 +545,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-11",
     author: "Digibastion Security Team",
     tags: ["oracle", "price feed", "chainlink", "twap", "defi exploit"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "bridge-security-risks",
@@ -488,7 +558,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-14",
     author: "Digibastion Security Team",
     tags: ["bridge hack", "cross-chain", "ronin", "wormhole", "multichain"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "sandwich-attack-prevention",
@@ -500,7 +571,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-09",
     author: "Digibastion Security Team",
     tags: ["sandwich attack", "mev", "front-running", "slippage", "dex trading"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "impermanent-loss-risks",
@@ -512,7 +584,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-06",
     author: "Digibastion Security Team",
     tags: ["impermanent loss", "liquidity pool", "amm", "yield farming", "lp tokens"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "defi-smart-contract-audit-checklist",
@@ -539,7 +612,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-10",
     author: "Digibastion Security Team",
     tags: ["reentrancy", "smart contract vulnerability", "solidity security", "dao hack"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "solidity-security-best-practices",
@@ -552,7 +626,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["solidity", "smart contract security", "ethereum development", "best practices"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "erc20-token-vulnerabilities",
@@ -564,7 +639,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-07",
     author: "Digibastion Security Team",
     tags: ["erc20", "token vulnerability", "integer overflow", "solidity bug"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "smart-contract-fuzzing-guide",
@@ -576,7 +652,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-13",
     author: "Digibastion Security Team",
     tags: ["fuzzing", "echidna", "foundry", "security testing", "automated testing"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "smart-contract-audit-process",
@@ -588,7 +665,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-11",
     author: "Digibastion Security Team",
     tags: ["security audit", "code review", "audit preparation", "defi security"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "formal-verification-smart-contracts",
@@ -615,7 +693,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-08",
     author: "Digibastion Security Team",
     tags: ["2fa", "two-factor authentication", "yubikey", "authenticator app", "totp"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "sim-swap-attack-prevention",
@@ -627,7 +706,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-12",
     author: "Digibastion Security Team",
     tags: ["sim swap", "sms 2fa", "phone hacking", "identity theft", "telecom fraud"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "password-manager-crypto-security",
@@ -639,7 +719,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-09",
     author: "Digibastion Security Team",
     tags: ["password manager", "1password", "bitwarden", "exchange security", "account security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
 
   // Supply Chain & Infrastructure (Lower Volume: 12k-27k)
@@ -653,7 +734,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-10",
     author: "Digibastion Security Team",
     tags: ["supply chain attack", "npm", "dependency", "malicious package", "developer security"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
   {
     slug: "rpc-endpoint-security",
@@ -665,7 +747,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-15",
     author: "Digibastion Security Team",
     tags: ["rpc", "ethereum node", "infura", "alchemy", "blockchain infrastructure"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "frontend-attack-vectors",
@@ -677,7 +760,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-11",
     author: "Digibastion Security Team",
     tags: ["frontend attack", "dns hijacking", "badger hack", "web security", "defi security"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // Privacy & Anonymity
@@ -704,7 +788,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-08",
     author: "Digibastion Security Team",
     tags: ["deanonymization", "blockchain analysis", "chainalysis", "privacy", "kyc"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "vpn-tor-crypto-trading",
@@ -716,7 +801,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-06",
     author: "Digibastion Security Team",
     tags: ["vpn", "tor", "privacy", "anonymous trading", "ip protection"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
 
   // NFT Security
@@ -730,7 +816,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-10",
     author: "Digibastion Security Team",
     tags: ["nft", "opensea", "blur", "nft trading", "marketplace security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "nft-scam-red-flags",
@@ -742,7 +829,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-12",
     author: "Digibastion Security Team",
     tags: ["nft scam", "rug pull", "pfp project", "nft red flags", "art theft"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "setapprovalforall-risks",
@@ -754,7 +842,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-14",
     author: "Digibastion Security Team",
     tags: ["setApprovalForAll", "nft approval", "erc721", "wallet drainer", "nft theft"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // Social Engineering
@@ -768,7 +857,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-07",
     author: "Digibastion Security Team",
     tags: ["social engineering", "psychology", "manipulation", "scam tactics", "cognitive bias"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "crypto-job-scams",
@@ -780,7 +870,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-09",
     author: "Digibastion Security Team",
     tags: ["job scam", "employment fraud", "developer targeting", "lazarus group", "crypto hiring"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "romance-scams-crypto",
@@ -792,7 +883,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-16",
     author: "Digibastion Security Team",
     tags: ["romance scam", "pig butchering", "investment fraud", "sha zhu pan", "dating app scam"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
 
   // Beginner Guides
@@ -803,10 +895,17 @@ const articleCatalog: ArticleMeta[] = [
     category: "Basics",
     readTime: "10 min read",
     publishedAt: "2024-05-20",
-    modifiedAt: "2025-01-05",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["beginner", "crypto security basics", "first steps", "new to crypto", "wallet setup"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published",
+    summary: "Start with the controls that prevent the most costly mistakes: unique account credentials, phishing-resistant authentication where available, protected recovery material, deliberate wallet separation, and careful transaction review.",
+    keyTakeaways: [
+      "Secure the email account and password-manager vault that sit behind exchange and wallet-recovery workflows.",
+      "Keep recovery phrases offline and private; no support agent or website needs them.",
+      "Use separate wallets for long-term holdings and higher-risk interactions, with amounts based on your own threat model.",
+    ],
   },
   {
     slug: "advanced-wallet-security",
@@ -833,7 +932,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-08",
     author: "Digibastion Security Team",
     tags: ["exchange security", "binance", "coinbase", "cex", "api security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "exchange-hack-survival-guide",
@@ -845,7 +945,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-13",
     author: "Digibastion Security Team",
     tags: ["exchange hack", "asset recovery", "ftx", "mt gox", "exchange failure"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // Mobile Security
@@ -859,7 +960,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-10",
     author: "Digibastion Security Team",
     tags: ["mobile wallet", "trust wallet", "phantom", "ios security", "android security"],
-    difficulty: "beginner"
+    difficulty: "beginner",
+    status: "published"
   },
   {
     slug: "physical-security-crypto",
@@ -871,7 +973,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-15",
     author: "Digibastion Security Team",
     tags: ["physical security", "wrench attack", "home security", "real world threat", "personal safety"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // Governance & DAO Security
@@ -885,7 +988,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-09",
     author: "Digibastion Security Team",
     tags: ["dao security", "governance attack", "flash loan voting", "proposal attack", "beanstalk"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
 
   // Incident Response
@@ -896,10 +1000,24 @@ const articleCatalog: ArticleMeta[] = [
     category: "Incident Response",
     readTime: "12 min read",
     publishedAt: "2024-07-20",
-    modifiedAt: "2025-01-12",
+    modifiedAt: "2026-09-27",
     author: "Digibastion Security Team",
     tags: ["incident response", "wallet hack", "asset recovery", "emergency", "compromised wallet"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published",
+    summary: "Containment depends on what was compromised. A malicious allowance may call for revocation; exposed signing keys or recovery material require a clean wallet. Preserve evidence before changing more than necessary.",
+    keyTakeaways: [
+      "Use a clean device to inspect recent transfers, approvals, signatures, and connected accounts before choosing a response path.",
+      "Revoke malicious permissions when the keys remain trustworthy; rotate to a new wallet when they do not.",
+      "Record transaction hashes, addresses, timestamps, communications, and account alerts, then report through relevant official channels.",
+    ],
+    sources: [
+      {
+        title: "Operation ATLANTIC victim guidance",
+        publisher: "UK National Crime Agency",
+        url: "https://www.nationalcrimeagency.gov.uk/news/operation-atlantic",
+      },
+    ],
   },
   {
     slug: "blockchain-forensics-basics",
@@ -911,7 +1029,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-14",
     author: "Digibastion Security Team",
     tags: ["blockchain forensics", "chain analysis", "fund tracing", "investigation", "asset recovery"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
 
   // Layer 2 & Emerging Tech
@@ -925,7 +1044,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-16",
     author: "Digibastion Security Team",
     tags: ["layer 2", "optimism", "arbitrum", "zksync", "rollup security"],
-    difficulty: "intermediate"
+    difficulty: "intermediate",
+    status: "published"
   },
   {
     slug: "account-abstraction-security",
@@ -937,7 +1057,8 @@ const articleCatalog: ArticleMeta[] = [
     modifiedAt: "2025-01-17",
     author: "Digibastion Security Team",
     tags: ["account abstraction", "erc4337", "smart wallet", "bundler", "paymaster"],
-    difficulty: "advanced"
+    difficulty: "advanced",
+    status: "published"
   },
 
   // CEX vs DEX
@@ -953,7 +1074,10 @@ const articleCatalog: ArticleMeta[] = [
     tags: ["cex", "dex", "exchange comparison", "custody", "self-custody"],
     difficulty: "beginner",
     status: "draft"
-  }
+  },
+  ...identitySafetyArticlesMeta,
+  ...protocolSecurityMeta,
+  ...enterpriseThreatsMeta,
 ];
 
 // Drafts remain available for editorial revision but are kept out of public

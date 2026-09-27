@@ -223,6 +223,60 @@
   <changefreq>monthly</changefreq>
 </url>
 <url>
+  <loc>https://www.digibastion.com/articles/passkeys-vs-authenticator-apps-security-keys-crypto</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/crypto-address-poisoning-token-impersonation</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/cryptocurrency-scam-recovery-steps-recovery-scams</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/eip-7702-wallet-delegation-security</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/clear-signing-erc-7730-guide</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/dns-domain-security-web3-dapps</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/dprk-remote-it-worker-risk-crypto-web3</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/browser-wallet-infostealer-malware-response</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
+  <loc>https://www.digibastion.com/articles/exchange-api-key-security-trading-bots</loc>
+  <lastmod>2026-09-27</lastmod>
+  <priority>0.9</priority>
+  <changefreq>monthly</changefreq>
+</url>
+<url>
   <loc>https://www.digibastion.com/articles/privacy-security-web3-opsec</loc>
   <lastmod>2025-01-15</lastmod>
   <priority>0.9</priority>

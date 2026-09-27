@@ -85,6 +85,13 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const apiKey = Deno.env.get('QUILLMONITOR_API_KEY');
   if (!url || !anonKey || !serviceKey || !apiKey) {
+    if (url && serviceKey) {
+      await recordIngestionRun(createClient(url, serviceKey), {
+        pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+        success: false, duration_ms: Date.now() - startedAt,
+        error_summary: 'Server configuration is incomplete',
+      });
+    }
     return new Response(JSON.stringify({ error: 'Server configuration is incomplete' }), { status: 500, headers: jsonHeaders });
   }
   if (!await authorize(req, url, anonKey, serviceKey)) {
@@ -157,6 +164,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'QuillMonitor synchronization failed';
     console.error(`[fetch-quillmonitor-incidents] ${message}`);
+    await recordIngestionRun(createClient(url, serviceKey), {
+      pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+      success: false, duration_ms: Date.now() - startedAt,
+      error_summary: 'Provider synchronization failed before completion',
+    });
     return new Response(JSON.stringify({ success: false, error: message }), { status: 502, headers: jsonHeaders });
   }
 });

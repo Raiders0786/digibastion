@@ -24,8 +24,8 @@ export function buildFilterKey(opts: {
   page?: number;
 }): string {
   return JSON.stringify({
-    c: opts.categories?.sort() ?? [],
-    s: opts.severities?.sort() ?? [],
+    c: opts.categories ? [...opts.categories].sort() : [],
+    s: opts.severities ? [...opts.severities].sort() : [],
     q: opts.searchQuery ?? '',
     d: opts.dateFilter ?? 'all',
     sb: opts.sortBy ?? 'date',
@@ -57,6 +57,7 @@ export function loadFromCache(filterKey: string): {
   articles: NewsArticle[];
   totalCount: number;
   isStale: boolean;
+  cachedAt: Date;
 } | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -75,7 +76,7 @@ export function loadFromCache(filterKey: string): {
 
     const isStale = Date.now() - data.timestamp > CACHE_TTL_MS;
 
-    return { articles, totalCount: data.totalCount, isStale };
+    return { articles, totalCount: data.totalCount, isStale, cachedAt: new Date(data.timestamp) };
   } catch {
     return null;
   }

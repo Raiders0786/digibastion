@@ -1,4 +1,7 @@
 import React from 'react';
+import { enterpriseThreatsContentMap } from './contentBatches/enterpriseThreatsContent';
+import { identitySafetyContentMap } from './contentBatches/identitySafetyContent';
+import { protocolSecurityContentMap } from './contentBatches/protocolSecurityContent';
 
 // Article content components - separated from metadata for better code organization
 // Each article content is a React component for flexibility
@@ -664,9 +667,9 @@ const HardwareWalletComparisonContent = () => (
     <div className="space-y-8">
       <section>
         <h2 className="text-2xl font-bold mb-4">Why Hardware Wallets Matter</h2>
-        <p className="mb-4">Unlike software wallets, hardware wallets keep your private keys offline, protected from malware, phishing, and remote attacks. Even if your computer is compromised, your keys remain secure.</p>
+        <p className="mb-4">A hardware wallet is designed to keep signing keys inside a dedicated device instead of exposing them to a general-purpose computer. That reduces key-extraction risk, but a compromised computer can still present a malicious transaction. Verify the destination, amount, network, and contract action on the trusted device display whenever the device can show them.</p>
         <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20 mb-4">
-          <strong className="text-destructive">Warning:</strong> Only buy hardware wallets directly from the manufacturer. Tampered devices from third parties have led to significant losses.
+          <strong className="text-destructive">Authenticity check:</strong> Prefer the manufacturer or an authorized reseller, inspect packaging, and complete the vendor's device-authenticity checks. Never use recovery words supplied in the box or by a seller.
         </div>
       </section>
 
@@ -732,12 +735,12 @@ const HardwareWalletComparisonContent = () => (
         <div className="bg-card/50 p-6 rounded-lg">
           <ol className="list-decimal pl-6 space-y-3">
             <li>Verify package seal and manufacturer authenticity</li>
-            <li>Set up on a clean, offline computer if possible</li>
-            <li>Generate a new seed phrase - never use a pre-generated one</li>
+            <li>Use a trusted, updated computer and the vendor's independently verified application or website</li>
+            <li>Generate new recovery material on the device; reject any phrase supplied by a seller, website, or support contact</li>
             <li>Choose a recovery medium that matches fire, water, theft, and access risks</li>
-            <li>Test recovery before depositing significant funds</li>
+            <li>Test the documented recovery process before relying on the wallet for meaningful value</li>
             <li>Set up a PIN that's not easily guessable</li>
-            <li>Enable passphrase for an additional security layer</li>
+            <li>Use an optional passphrase only if you understand that losing or mistyping it can make the wallet unrecoverable</li>
           </ol>
         </div>
       </section>
@@ -763,7 +766,7 @@ const PhishingPreventionContent = () => (
             <h3 className="text-xl font-semibold mb-3">🎣 Fake Airdrop Sites</h3>
             <p className="mb-3">Attackers create convincing copies of legitimate DeFi protocols or NFT projects, promoting "exclusive airdrops" through social media ads and compromised accounts.</p>
             <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-              <strong>Red Flag:</strong> Any site asking you to connect wallet and sign a transaction to "claim" tokens
+              <strong>Red flag:</strong> An unexpected claim page asks for a broad approval, an unexplained signature, or a transaction unrelated to receiving the advertised token.
             </div>
           </div>
           
@@ -777,7 +780,7 @@ const PhishingPreventionContent = () => (
 
           <div className="bg-card/50 p-6 rounded-lg">
             <h3 className="text-xl font-semibold mb-3">✍️ Malicious Signatures</h3>
-            <p className="mb-3">The most dangerous attacks don't require transactions - they trick you into signing messages that grant approvals or transfer assets.</p>
+            <p className="mb-3">Some phishing flows ask for an off-chain signature rather than an immediate transfer. Depending on the message and protocol, that signature may authorize a later permit, order, or asset movement.</p>
             <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
               <strong>Red Flag:</strong> Requests to sign permits, approvals, or messages you don't fully understand
             </div>
@@ -786,38 +789,38 @@ const PhishingPreventionContent = () => (
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">Protection Strategies</h2>
+        <h2 className="text-2xl font-bold mb-4">A Verification Routine That Survives Urgency</h2>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-card/50 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-3">Browser Security</h3>
+            <h3 className="text-xl font-semibold mb-3">Verify the destination</h3>
             <ul className="list-disc pl-6 space-y-2">
-              <li>Install Wallet Guard or Pocket Universe for transaction simulation</li>
-              <li>Use bookmarks or verified project channels instead of trusting sponsored search results</li>
-              <li>Use a dedicated browser profile for crypto</li>
-              <li>Enable phishing protection extensions</li>
+              <li>Open a bookmark or type a previously verified domain instead of following the message that created the urgency</li>
+              <li>Confirm announcements through a second official channel and check whether the destination contract is documented there</li>
+              <li>Use a dedicated browser profile with the minimum extensions needed for wallet activity</li>
+              <li>Treat warnings and transaction simulations as supporting evidence, not guarantees</li>
             </ul>
           </div>
           <div className="bg-card/50 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-3">Verification Habits</h3>
+            <h3 className="text-xl font-semibold mb-3">Verify the requested authority</h3>
             <ul className="list-disc pl-6 space-y-2">
-              <li>Check URLs character by character</li>
-              <li>Verify announcements on official Twitter</li>
-              <li>Never trust DMs - projects don't DM first</li>
-              <li>Use transaction simulators before signing</li>
+              <li>Check the chain, destination, function, token or collection, spender, amount, and approval duration</li>
+              <li>Reject opaque prompts and requests you cannot explain in plain language</li>
+              <li>Assume unsolicited direct messages are untrusted until independently verified</li>
+              <li>Use a low-value interaction wallet when a new application does not need access to long-term holdings</li>
             </ul>
           </div>
         </div>
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">What To Do If You're Phished</h2>
+        <h2 className="text-2xl font-bold mb-4">What to Do If You Signed</h2>
         <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20">
           <ol className="list-decimal pl-6 space-y-3">
-            <li><strong>Act immediately</strong> - Time is critical for asset recovery</li>
-            <li><strong>Transfer remaining assets</strong> to a fresh wallet</li>
-            <li><strong>Revoke all approvals</strong> using revoke.cash</li>
-            <li><strong>Document everything</strong> for potential law enforcement</li>
-            <li><strong>Report the phishing site</strong> to the community</li>
+            <li><strong>Stop interacting.</strong> Close the site and do not accept help from accounts contacting you because of the incident.</li>
+            <li><strong>Identify what was authorized.</strong> From a clean device, review recent transactions, token allowances, NFT operator approvals, and signed messages on every relevant chain.</li>
+            <li><strong>Contain the correct failure.</strong> Revoke malicious permissions if the keys remain trustworthy. If a seed phrase or private key was exposed, create a new wallet from a clean device and move unaffected assets.</li>
+            <li><strong>Preserve evidence.</strong> Save URLs, screenshots, transaction hashes, addresses, timestamps, and messages before accounts or pages disappear.</li>
+            <li><strong>Report through official channels.</strong> Notify the impersonated project or platform and the relevant law-enforcement or fraud-reporting service for your jurisdiction.</li>
           </ol>
         </div>
       </section>
@@ -1048,37 +1051,34 @@ const SeedPhraseSecurityContent = () => (
 const RevokeApprovalContent = () => (
   <>
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">Why Token Approvals Are Dangerous</h2>
+      <h2 className="text-2xl font-bold mb-4">What Revoking a Token Approval Actually Does</h2>
       <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
-        <p>When you approve a token for a dApp, you're giving permission to move your tokens. <strong>Unlimited approvals</strong> let contracts drain your entire balance - even months later.</p>
+        <p>An ERC-20 approval authorizes a spender address to move up to an allowance from your balance. An unlimited allowance can remain usable until you revoke it, the token or spender changes state, or the permission is otherwise consumed. Revocation sends a new on-chain transaction that reduces or removes that authorization; it does not recover assets already moved.</p>
       </div>
     </div>
     <div className="space-y-8">
       <section>
-        <h2 className="text-2xl font-bold mb-4">How to Check & Revoke Approvals</h2>
+        <h2 className="text-2xl font-bold mb-4">How to Check and Revoke Approvals Safely</h2>
         <div className="bg-card/50 p-6 rounded-lg">
           <ol className="list-decimal pl-6 space-y-4">
-            <li><strong>Visit Revoke.cash</strong> - Connect your wallet to see all active approvals</li>
-            <li><strong>Sort by Risk</strong> - Look for "Unlimited" approvals on valuable tokens</li>
-            <li><strong>Revoke Suspicious Approvals</strong> - Click revoke and confirm the transaction</li>
-            <li><strong>Set Limited Approvals</strong> - For future interactions, approve only what you need</li>
+            <li><strong>Choose the correct network.</strong> Permissions are chain-specific, so check every network on which the wallet has assets or recent activity.</li>
+            <li><strong>Open a trusted viewer.</strong> Use a bookmarked approval manager or the relevant block explorer. Verify the domain independently before connecting.</li>
+            <li><strong>Inspect the spender.</strong> Compare the spender address, token or collection, allowance, and last-used context. A familiar dApp name is not a substitute for checking the address.</li>
+            <li><strong>Revoke what is stale or suspicious.</strong> Review the transaction on the wallet display, confirm it changes the intended allowance, and remember that network fees apply.</li>
+            <li><strong>Limit future scope.</strong> When an application supports it, approve only the amount and duration needed for the intended action.</li>
           </ol>
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-bold mb-4">Revocation Tools</h2>
-        <div className="grid md:grid-cols-3 gap-4">
+        <h2 className="text-2xl font-bold mb-4">What Revocation Cannot Fix</h2>
+        <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-card/50 p-4 rounded-lg text-center">
-            <h3 className="font-semibold mb-2">Revoke.cash</h3>
-            <p className="text-sm text-muted-foreground">Multi-chain support, easy interface</p>
+            <h3 className="font-semibold mb-2">Exposed keys or recovery phrase</h3>
+            <p className="text-sm text-muted-foreground">If another person can sign as you, create a new wallet from a clean device and move unaffected assets. Revoking one spender does not remove their key access.</p>
           </div>
           <div className="bg-card/50 p-4 rounded-lg text-center">
-            <h3 className="font-semibold mb-2">Etherscan Token Approvals</h3>
-            <p className="text-sm text-muted-foreground">Ethereum-focused, official tool</p>
-          </div>
-          <div className="bg-card/50 p-4 rounded-lg text-center">
-            <h3 className="font-semibold mb-2">DeBank</h3>
-            <p className="text-sm text-muted-foreground">Portfolio tracking with approvals</p>
+            <h3 className="font-semibold mb-2">Completed transfers or signatures</h3>
+            <p className="text-sm text-muted-foreground">Revocation does not reverse confirmed transfers, invalidate every off-chain signature, or cancel permissions on a different chain. Preserve evidence and inspect each exposure separately.</p>
           </div>
         </div>
       </section>
@@ -1234,42 +1234,52 @@ const IncidentResponseContent = () => (
     <div className="mb-8">
       <h2 className="text-2xl font-bold mb-4">Emergency Response for Wallet Compromise</h2>
       <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 mb-6">
-        <h3 className="font-bold mb-2">🚨 Time Is Critical</h3>
-        <p>If you suspect your wallet is compromised, every second counts. Act immediately using this playbook.</p>
+        <h3 className="font-bold mb-2">Act quickly, but match the action to the compromise</h3>
+        <p>A malicious allowance, an exposed seed phrase, a compromised device, and a breached exchange account require different containment steps. Use a clean device, avoid unsolicited recovery offers, and preserve evidence as you work.</p>
       </div>
     </div>
     <div className="space-y-8">
       <section>
-        <h2 className="text-2xl font-bold mb-4">Immediate Actions (First 5 Minutes)</h2>
+        <h2 className="text-2xl font-bold mb-4">Immediate Triage</h2>
         <div className="bg-card/50 p-6 rounded-lg">
           <ol className="list-decimal pl-6 space-y-3">
-            <li><strong>Transfer remaining assets</strong> to a NEW wallet (never compromised device)</li>
-            <li><strong>Revoke all approvals</strong> on revoke.cash immediately</li>
-            <li><strong>Check all chains</strong> - ETH, Polygon, Arbitrum, BSC, etc.</li>
-            <li><strong>Move NFTs</strong> - Use setApprovalForAll=false if possible</li>
+            <li><strong>Move to a clean device.</strong> Do not continue from a computer or phone that may be compromised.</li>
+            <li><strong>Record the current state.</strong> Save suspicious URLs, messages, account alerts, transaction hashes, addresses, and timestamps.</li>
+            <li><strong>Inspect every relevant chain and account.</strong> Review transfers, token allowances, NFT operator approvals, recent signatures, exchange sessions, and email access.</li>
+            <li><strong>Classify the exposure.</strong> Determine whether the evidence points to a malicious permission, leaked key or recovery phrase, device compromise, or account takeover.</li>
           </ol>
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-bold mb-4">After Securing Remaining Assets</h2>
-        <div className="bg-card/50 p-6 rounded-lg">
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Document everything (screenshots, transaction hashes)</li>
-            <li>Report to local authorities (for insurance/legal purposes)</li>
-            <li>File reports with blockchain forensics (Chainalysis, TRM Labs)</li>
-            <li>Alert the community (prevent others from falling victim)</li>
-            <li>Change all related passwords</li>
-          </ul>
+        <h2 className="text-2xl font-bold mb-4">Contain by Failure Mode</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-card/50 p-5 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Permission or malicious signature</h3>
+            <p>Revoke the identified token or NFT permissions using a trusted explorer or approval manager. Check other chains and related signatures. Revocation does not reverse completed transfers.</p>
+          </div>
+          <div className="bg-card/50 p-5 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Key or recovery material exposed</h3>
+            <p>Create a new wallet from a clean device using newly generated recovery material, then move unaffected assets. Do not reuse the old seed phrase or rely on approval revocation alone.</p>
+          </div>
+          <div className="bg-card/50 p-5 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Exchange or email takeover</h3>
+            <p>Use the service's official account-lock or support path, secure the email account first, terminate sessions, rotate unique credentials, and replace compromised authentication factors.</p>
+          </div>
+          <div className="bg-card/50 p-5 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Device compromise</h3>
+            <p>Disconnect the device from sensitive accounts, preserve it if an investigation is likely, and rebuild or replace it before restoring access. Treat secrets used on it as potentially exposed.</p>
+          </div>
         </div>
       </section>
       <section>
-        <h2 className="text-2xl font-bold mb-4">Prevention for Next Time</h2>
+        <h2 className="text-2xl font-bold mb-4">Evidence and Reporting</h2>
         <div className="bg-primary/10 p-6 rounded-lg">
           <ul className="list-disc pl-6 space-y-2">
-            <li>Use hardware wallet for significant holdings</li>
-            <li>Enable transaction simulation (Wallet Guard, Pocket Universe)</li>
-            <li>Never share your screen with wallet visible</li>
-            <li>Regularly audit and revoke old approvals</li>
+            <li>Keep an incident timeline with transaction hashes, wallet and destination addresses, amounts, networks, and UTC timestamps</li>
+            <li>Preserve the original messages, domains, email headers, screenshots, and account-security notifications</li>
+            <li>Report through the affected platform's official channel and the appropriate fraud or law-enforcement service for your jurisdiction</li>
+            <li>Warn relevant contacts without publishing recovery phrases, private keys, personal data, or details that would help an attacker</li>
+            <li>Be skeptical of paid recovery offers; nobody can reverse a confirmed blockchain transfer merely by knowing its hash</li>
           </ul>
         </div>
       </section>
@@ -3050,16 +3060,27 @@ const GettingStartedContent = () => (
         <h2 className="text-2xl font-bold mb-4">Essential Security Checklist</h2>
         <div className="bg-card/50 p-6 rounded-lg">
           <ol className="list-decimal pl-6 space-y-4">
-            <li><strong>Get a hardware wallet:</strong> Ledger or Trezor for anything over $1,000</li>
-            <li><strong>Secure your seed phrase:</strong> Write on metal, store safely, never digitize</li>
-            <li><strong>Use a password manager:</strong> Unique passwords for every exchange</li>
-            <li><strong>Enable 2FA everywhere:</strong> Authenticator app or hardware key, not SMS</li>
-            <li><strong>Bookmark official sites:</strong> Never use search results or links from messages</li>
-            <li><strong>Disable Discord DMs:</strong> Scammers' favorite attack vector</li>
-            <li><strong>Verify before signing:</strong> Read every transaction request</li>
-            <li><strong>Use burner wallets:</strong> For minting and testing new protocols</li>
-            <li><strong>Revoke old approvals:</strong> Check revoke.cash monthly</li>
-            <li><strong>Stay skeptical:</strong> If it seems too good to be true, it is</li>
+            <li><strong>Secure your email first:</strong> Use a unique password and the strongest phishing-resistant authentication the provider supports</li>
+            <li><strong>Use a password manager:</strong> Generate a unique credential for every exchange and security-sensitive service</li>
+            <li><strong>Protect recovery material:</strong> Keep seed phrases offline and private; no support agent, website, or wallet check needs them</li>
+            <li><strong>Choose custody deliberately:</strong> Consider a hardware wallet when its transaction display and recovery model improve your threat model—not at an arbitrary balance threshold</li>
+            <li><strong>Bookmark verified destinations:</strong> Open sensitive services from a known address and verify unexpected announcements through a second channel</li>
+            <li><strong>Treat direct messages as untrusted:</strong> Do not use a link or support contact simply because it appears inside a familiar community</li>
+            <li><strong>Verify before signing:</strong> Check the network, destination, function, assets, amount, spender, and permission scope</li>
+            <li><strong>Separate wallet roles:</strong> Keep long-term holdings apart from new mints, unfamiliar applications, and routine transactions</li>
+            <li><strong>Review permissions after use:</strong> Remove token and NFT approvals that are stale, unnecessary, or broader than intended</li>
+            <li><strong>Write down an incident path:</strong> Know how to lock accounts, reach official support, preserve evidence, and move assets from a clean device</li>
+          </ol>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Before Every Wallet Prompt</h2>
+        <div className="bg-primary/10 p-6 rounded-lg">
+          <p className="mb-3">Ask three questions before approving anything:</p>
+          <ol className="list-decimal pl-6 space-y-2">
+            <li><strong>Where am I?</strong> Confirm the domain, application, network, and contract through a source independent of the link that brought you there.</li>
+            <li><strong>What authority am I granting?</strong> Distinguish a login signature from a permit, token allowance, NFT operator approval, contract call, or asset transfer.</li>
+            <li><strong>What happens if this is malicious?</strong> If the wallet holds assets unrelated to the action, stop and use a lower-exposure wallet.</li>
           </ol>
         </div>
       </section>
@@ -3876,6 +3897,9 @@ const contentMap: Record<string, React.FC> = {
   'defi-smart-contract-audit-checklist': DefiAuditChecklistContent,
   'password-manager-crypto-security': PasswordManagerContent,
   'formal-verification-smart-contracts': FormalVerificationContent,
+  ...identitySafetyContentMap,
+  ...protocolSecurityContentMap,
+  ...enterpriseThreatsContentMap,
 };
 
 export const hasArticleContent = (slug: string): boolean => Boolean(contentMap[slug]);

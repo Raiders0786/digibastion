@@ -33,7 +33,7 @@ changes over time. No automated score or checklist guarantees security.
 | Security plan | `/`, `/category/:categoryId`, `/share` | 11 categories and 274 checklist items; progress stored in the browser |
 | OpSec assessment | `/quiz`, `/quiz-result`, `/leaderboard` | Eight-question quiz with server-issued sessions and server-validated score submission |
 | Threat intelligence | `/threat-intel`; `/news` redirects here | Unified public feed, Web3 incident and active-alert views, subscriptions, and provider-aware details |
-| Learning | `/articles`, `/articles/:slug`, `/tools`, `/links` | 56 published article entries, 28 product-tool entries, and resource collections |
+| Learning | `/articles`, `/articles/:slug`, `/tools`, `/links` | 65 published article entries, 28 product-tool entries, and resource collections |
 | Organization help | `/services`, `/services/opsec-consulting`, `/services/full-stack-review`, `/contact` | Public discovery and inquiry surfaces |
 | Project | `/about`, `/support`, `/license` | Project, support, and legal information |
 | Subscriber utility | `/manage-subscription`, `/unsubscribe`, `/verify-email` | Token- or email-workflow destinations; not primary navigation pages |

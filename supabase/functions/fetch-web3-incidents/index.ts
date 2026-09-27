@@ -523,16 +523,20 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     if (!firecrawlApiKey) {
       console.error('[fetch-web3-incidents] FIRECRAWL_API_KEY not configured');
+      await recordIngestionRun(supabase, {
+        pipeline: 'web3-incidents', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+        success: false, duration_ms: Date.now() - startedAt,
+        error_summary: 'Provider configuration is incomplete',
+      });
       return new Response(
         JSON.stringify({ success: false, error: 'Firecrawl not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const allIncidents: any[] = [];
     const sourceResults: { source: string; found: number; errors: string[] }[] = [];
@@ -562,6 +566,8 @@ serve(async (req) => {
           allIncidents.push(...incidents1);
           sourceResults.push({ source: 'primary', found: incidents1.length, errors: [] });
           console.log(`[fetch-web3-incidents] Primary source: ${incidents1.length} incidents`);
+        } else {
+          sourceResults.push({ source: 'primary', found: 0, errors: ['Empty provider response'] });
         }
       } else {
         sourceResults.push({ source: 'primary', found: 0, errors: ['Failed to fetch'] });
@@ -596,6 +602,8 @@ serve(async (req) => {
           allIncidents.push(...incidents2);
           sourceResults.push({ source: 'secondary', found: incidents2.length, errors: [] });
           console.log(`[fetch-web3-incidents] Secondary source: ${incidents2.length} incidents`);
+        } else {
+          sourceResults.push({ source: 'secondary', found: 0, errors: ['Empty provider response'] });
         }
       } else {
         sourceResults.push({ source: 'secondary', found: 0, errors: ['Failed to fetch'] });
@@ -727,12 +735,22 @@ serve(async (req) => {
     }
     
     console.log(`[fetch-web3-incidents] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}, Similar: ${skippedSimilar}`);
+    const sourceFailures = sourceResults.filter((source) => source.errors.length > 0).length;
+    const sourcesSucceeded = sourceResults.length - sourceFailures;
     await recordIngestionRun(supabase, {
       pipeline: 'web3-incidents', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
-      success: errors.length === 0, records_found: allIncidents.length, records_inserted: insertedCount,
+      success: errors.length === 0 && sourceFailures === 0,
+      records_found: allIncidents.length, records_inserted: insertedCount,
       records_invalid: errors.length, duration_ms: Date.now() - startedAt,
-      error_summary: errors.length ? `${errors.length} incident writes failed` : undefined,
-      metadata: { duplicates: duplicateCount, similar_skipped: skippedSimilar },
+      error_summary: errors.length || sourceFailures
+        ? `${sourceFailures} provider fetches and ${errors.length} incident writes failed`
+        : undefined,
+      metadata: {
+        duplicates: duplicateCount,
+        similar_skipped: skippedSimilar,
+        sources_checked: sourceResults.length,
+        sources_succeeded: sourcesSucceeded,
+      },
     });
     
     // Trigger AI summarization for new articles
@@ -755,7 +773,8 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        success: true,
+        success: sourcesSucceeded > 0 && errors.length === 0,
+        partial: sourceFailures > 0 || errors.length > 0,
         message: 'Web3 incidents fetched from multiple sources',
         incidentsFound: allIncidents.length,
         incidentsInserted: insertedCount,
@@ -768,6 +787,15 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('[fetch-web3-incidents] Fatal error:', error);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (supabaseUrl && supabaseServiceKey) {
+      await recordIngestionRun(createClient(supabaseUrl, supabaseServiceKey), {
+        pipeline: 'web3-incidents', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+        success: false, duration_ms: Date.now() - startedAt,
+        error_summary: 'Web3 incident synchronization failed before completion',
+      });
+    }
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

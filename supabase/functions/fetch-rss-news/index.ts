@@ -448,6 +448,7 @@ serve(async (req) => {
     // Insert new articles
     let insertedCount = 0;
     let duplicateCount = 0;
+    let writeErrorCount = 0;
 
     for (const article of allArticles) {
       const { data: existing } = await supabase
@@ -470,6 +471,7 @@ serve(async (req) => {
           duplicateCount++;
         } else {
           console.error('[fetch-rss-news] Insert error:', insertError);
+          writeErrorCount++;
         }
       } else {
         insertedCount++;
@@ -479,10 +481,13 @@ serve(async (req) => {
     console.log(`[fetch-rss-news] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}`);
     await recordIngestionRun(supabase, {
       pipeline: 'rss', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
-      success: errors.length === 0, records_found: allArticles.length, records_inserted: insertedCount,
-      records_invalid: errors.length, duration_ms: Date.now() - startedAt,
-      error_summary: errors.length ? `${errors.length} feeds reported errors` : undefined,
-      metadata: { feeds_checked: feeds.length, duplicates: duplicateCount },
+      success: errors.length === 0 && writeErrorCount === 0,
+      records_found: allArticles.length, records_inserted: insertedCount,
+      records_invalid: errors.length + writeErrorCount, duration_ms: Date.now() - startedAt,
+      error_summary: errors.length || writeErrorCount
+        ? `${errors.length} feeds and ${writeErrorCount} article writes reported errors`
+        : undefined,
+      metadata: { feeds_checked: feeds.length, duplicates: duplicateCount, write_errors: writeErrorCount },
     });
 
     // Trigger AI summarization for new articles
@@ -505,7 +510,8 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: feeds.length > 0 && errors.length < feeds.length,
+        partial: errors.length > 0 || writeErrorCount > 0,
         message: `Processed ${feeds.length} feeds`,
         articlesFound: allArticles.length,
         articlesInserted: insertedCount,
@@ -517,6 +523,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[fetch-rss-news] Fatal error:', error);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (supabaseUrl && supabaseServiceKey) {
+      await recordIngestionRun(createClient(supabaseUrl, supabaseServiceKey), {
+        pipeline: 'rss', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+        success: false, duration_ms: Date.now() - startedAt,
+        error_summary: 'RSS synchronization failed before completion',
+      });
+    }
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

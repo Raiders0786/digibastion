@@ -5,7 +5,6 @@ import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
-import { ThreatStatsDashboard } from '@/components/news/ThreatStatsDashboard';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -22,8 +21,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
+import { serializeJsonLd } from '@/utils/jsonLd';
+import {
+  buildNewsArticleSchema,
+  buildNewsBreadcrumbSchema,
+  buildThreatIntelCollectionSchema,
+} from '@/utils/seo';
 import { 
-  Newspaper, Shield, AlertTriangle, Bell, BarChart3, 
+  Newspaper, Shield, AlertTriangle, Bell,
   Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -41,7 +46,10 @@ const News = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
-  const [selectedTab, setSelectedTab] = useState(() => searchParams.get('tab') || 'feed');
+  const [selectedTab, setSelectedTab] = useState(() => {
+    const requestedTab = searchParams.get('tab');
+    return requestedTab && ['feed', 'alerts', 'subscribe'].includes(requestedTab) ? requestedTab : 'feed';
+  });
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState<NewsArticle[]>([]);
@@ -90,7 +98,7 @@ const News = () => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
-    if (tabFromUrl && ['feed', 'alerts', 'dashboard', 'subscribe'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['feed', 'alerts', 'subscribe'].includes(tabFromUrl)) {
       setSelectedTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -101,6 +109,7 @@ const News = () => {
     setSearchParams(params);
   };
 const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [deepLinkState, setDeepLinkState] = useState<'idle' | 'loading' | 'not-found' | 'error'>('idle');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
@@ -125,6 +134,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     isRefreshing,
     isRefreshingWeb3,
     isSummarizing,
+    feedStatus,
     stats,
     pagination
   } = useNewsArticles({
@@ -194,7 +204,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const requestedArticleId = (routeArticleId || searchParams.get('article') || '').trim();
   const deepLinkLoaded = useRef('');
   useEffect(() => {
-    if (!requestedArticleId || !/^[A-Za-z0-9_-]{1,128}$/.test(requestedArticleId)) return;
+    if (!requestedArticleId) {
+      setDeepLinkState('idle');
+      return;
+    }
+    if (!/^[A-Za-z0-9._:-]{1,128}$/.test(requestedArticleId)) {
+      setDeepLinkState('not-found');
+      return;
+    }
     if (deepLinkLoaded.current === requestedArticleId) return;
     deepLinkLoaded.current = requestedArticleId;
 
@@ -202,16 +219,22 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     const found = dbArticles.find(a => a.id === requestedArticleId);
     if (found) {
       setSelectedArticle(found);
+      setDeepLinkState('idle');
       return;
     }
 
     // Fetch from DB
     (async () => {
-      const { data } = await supabase
+      setDeepLinkState('loading');
+      const { data, error: articleError } = await supabase
         .from('news_articles')
         .select('*')
         .eq('id', requestedArticleId)
         .maybeSingle();
+      if (articleError) {
+        setDeepLinkState('error');
+        return;
+      }
       if (data) {
         const sanitize = (t: string | null | undefined) => {
           if (!t) return '';
@@ -248,6 +271,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             ? data.metadata as NewsArticle['metadata']
             : undefined,
         });
+        setDeepLinkState('idle');
+      } else {
+        setDeepLinkState('not-found');
       }
     })();
   }, [requestedArticleId, dbArticles]);
@@ -313,6 +339,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   const handleBackToNews = () => {
     setSelectedArticle(null);
+    setDeepLinkState('idle');
     deepLinkLoaded.current = '';
     navigate(selectedTab === 'feed' ? '/threat-intel' : `/threat-intel?tab=${encodeURIComponent(selectedTab)}`);
   };
@@ -326,7 +353,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const tabs = [
     { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
     { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: activeAlertCount || actionRequiredAlerts.length },
-    { id: 'dashboard', label: 'Analytics', icon: BarChart3 },
     { id: 'subscribe', label: 'Subscribe', icon: Bell },
   ];
 
@@ -346,15 +372,58 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     await refetch();
   };
 
+  if (requestedArticleId && deepLinkState === 'not-found') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <MetaTags
+          title="Threat-intelligence article not found | Digibastion"
+          description="This threat-intelligence article is unavailable or the link is invalid."
+          noindex
+        />
+        <Navbar />
+        <main className="flex-grow pt-28 pb-12 px-4">
+          <div className="mx-auto max-w-xl rounded-xl border border-border/60 bg-card/50 p-8 text-center">
+            <h1 className="text-2xl font-semibold">Threat-intelligence article not found</h1>
+            <p className="mt-3 text-muted-foreground">The record may have been removed, or the link may be incomplete.</p>
+            <Button className="mt-6" onClick={() => navigate('/threat-intel')}>Browse verified threat intelligence</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   // If an article is selected, show the detail view
   if (selectedArticle) {
+    const articleStructuredData = [
+      buildNewsArticleSchema({
+        id: selectedArticle.id,
+        title: selectedArticle.title,
+        description: selectedArticle.summary,
+        category: selectedArticle.category,
+        publishedAt: selectedArticle.publishedAt,
+        author: selectedArticle.author,
+        tags: selectedArticle.tags,
+        sourceUrl: selectedArticle.link,
+      }),
+      buildNewsBreadcrumbSchema(selectedArticle),
+    ];
+
     return (
       <div className="min-h-screen bg-background">
         <MetaTags 
           title={`${selectedArticle.title} | Digibastion Threat Intel`}
           description={selectedArticle.summary}
           canonical={`https://www.digibastion.com/threat-intel/${encodeURIComponent(selectedArticle.id)}`}
+          image="https://www.digibastion.com/og-threat-intel.png"
+          imageAlt={`${selectedArticle.title} — Digibastion threat intelligence`}
+          type="article"
+          publishedTime={selectedArticle.publishedAt.toISOString()}
+          author={selectedArticle.author || selectedArticle.sourceName || 'Digibastion'}
+          section={selectedArticle.category}
+          tags={selectedArticle.tags}
         />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleStructuredData) }} />
         <Navbar />
         <main className="pt-20 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -385,6 +454,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         keywords="crypto security alerts, web3 threat intelligence, defi exploits, phishing detection, wallet drainer alerts, supply chain attacks, blockchain security news"
         image="https://www.digibastion.com/og-threat-intel.png"
       />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildThreatIntelCollectionSchema()) }} />
       
       <Navbar />
       
@@ -547,9 +617,15 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         )}
                       </span>
                       {pagination.totalCount > 0 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${feedStatus.source === 'cache' ? 'border-yellow-500/40 text-yellow-500' : ''}`}
+                          title={feedStatus.checkedAt ? `Feed checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined}
+                        >
                           <Database className="w-3 h-3 mr-1" />
-                          Live
+                          {feedStatus.source === 'cache'
+                            ? (feedStatus.isStale ? 'Cached · stale' : 'Cached')
+                            : 'Live database'}
                         </Badge>
                       )}
                     </div>
@@ -608,6 +684,24 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     </div>
                   </div>
 
+                  {error && (
+                    <Card className="border-yellow-500/30 bg-yellow-500/5">
+                      <CardContent className="p-4 text-sm">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
+                          <div>
+                            <p className="font-medium">Live feed refresh unavailable</p>
+                            <p className="text-muted-foreground">
+                              {feedStatus.source === 'cache'
+                                ? `Showing the last cached response${feedStatus.checkedAt ? ` from ${format(feedStatus.checkedAt, 'PPpp')}` : ''}. Verify time-sensitive details with the linked source.`
+                                : 'No verified feed response is available right now. Try again shortly.'}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {isLoading ? (
                     <NewsListSkeleton count={5} />
                   ) : filteredArticles.length > 0 ? (
@@ -627,7 +721,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         </h3>
                         <p className="text-muted-foreground mb-4">
                           {stats.total === 0 
-                            ? 'Click "Refresh" to fetch the latest security news from RSS feeds'
+                            ? (error ? 'The verified threat feed could not be loaded.' : 'No verified threat-intelligence articles are available for this view yet.')
                             : 'Try adjusting your search, category, or severity filters'
                           }
                         </p>
@@ -936,36 +1030,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   </CardContent>
                 </Card>
               )}
-              </div>
-            </ErrorBoundary>
-          )}
-
-          {selectedTab === 'dashboard' && (
-            <ErrorBoundary>
-              <div className="space-y-4">
-                {/* Breadcrumb Navigation */}
-                <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => navigate('/')}
-                    className="h-auto p-1 hover:text-foreground"
-                  >
-                    <Home className="w-4 h-4" />
-                  </Button>
-                  <span>/</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSelectedTab('feed')}
-                    className="h-auto p-1 hover:text-foreground"
-                  >
-                    Threat Intel
-                  </Button>
-                  <span>/</span>
-                  <span className="text-foreground">Analytics</span>
-                </nav>
-                <ThreatStatsDashboard />
               </div>
             </ErrorBoundary>
           )}

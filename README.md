@@ -32,7 +32,7 @@ The repository currently contains:
 - A unified threat-intelligence experience for RSS advisories, Web3 incidents,
   and provider-attributed incident records, plus optional email alerts and
   digests.
-- 58 security guides covering wallet safety, phishing, DeFi, smart contracts,
+- 65 published security guides covering wallet safety, phishing, DeFi, smart contracts,
   privacy, incident response, and developer security.
 - 28 curated security-tool entries and a broader resources directory.
 - OpSec consulting and full-stack review service pages.

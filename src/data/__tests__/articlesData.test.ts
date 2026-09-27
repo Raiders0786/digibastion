@@ -35,6 +35,19 @@ describe('article publishing data', () => {
     }
   });
 
+  it('requires an explicit publishing decision and complete searchable metadata', () => {
+    for (const article of articles) {
+      expect(article.status).toBe('published');
+      expect(article.title.trim().length).toBeGreaterThanOrEqual(20);
+      expect(article.description.trim().length).toBeGreaterThanOrEqual(70);
+      expect(article.tags.length).toBeGreaterThanOrEqual(3);
+      expect(new Set(article.tags.map((tag) => tag.toLowerCase())).size).toBe(article.tags.length);
+      expect(article.readTime).toMatch(/^\d+ min read$/);
+      expect(article.author.trim().length).toBeGreaterThan(0);
+      expect(article.category.trim().length).toBeGreaterThan(0);
+    }
+  });
+
   it('uses valid publication dates and HTTPS source links', () => {
     for (const article of articles) {
       expect(article.publishedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -48,6 +61,18 @@ describe('article publishing data', () => {
         expect(() => new URL(source.url)).not.toThrow();
         expect(new URL(source.url).protocol).toBe('https:');
       }
+    }
+  });
+
+  it('holds release-day publications to the source-backed editorial standard', () => {
+    const releaseArticles = articles.filter((article) => article.publishedAt === RELEASE_DATE);
+
+    expect(releaseArticles.length).toBeGreaterThanOrEqual(15);
+    for (const article of releaseArticles) {
+      expect(article.summary?.trim().length, `${article.slug} needs an answer-first summary`).toBeGreaterThanOrEqual(100);
+      expect(article.keyTakeaways, `${article.slug} needs key takeaways`).toHaveLength(3);
+      expect(article.sources?.length, `${article.slug} needs primary sources`).toBeGreaterThanOrEqual(2);
+      expect(new Set(article.sources?.map((source) => source.url)).size).toBe(article.sources?.length);
     }
   });
 

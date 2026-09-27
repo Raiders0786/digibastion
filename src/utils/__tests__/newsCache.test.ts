@@ -28,6 +28,14 @@ describe('buildFilterKey', () => {
     expect(key1).toBe(key2);
   });
 
+  it('does not mutate filter arrays while building a key', () => {
+    const categories = ['web3-security', 'operational-security'];
+    const severities = ['medium', 'critical'];
+    buildFilterKey({ categories, severities });
+    expect(categories).toEqual(['web3-security', 'operational-security']);
+    expect(severities).toEqual(['medium', 'critical']);
+  });
+
   it('produces different keys for different filters', () => {
     const key1 = buildFilterKey({ categories: ['web3-security'] });
     const key2 = buildFilterKey({ categories: ['operational-security'] });
@@ -60,6 +68,8 @@ describe('saveToCache / loadFromCache', () => {
     expect(result!.articles).toHaveLength(1);
     expect(result!.totalCount).toBe(1);
     expect(result!.articles[0].title).toBe('Test');
+    expect(result!.cachedAt).toBeInstanceOf(Date);
+    expect(result!.isStale).toBe(false);
   });
 
   it('returns null for mismatched filter key', () => {

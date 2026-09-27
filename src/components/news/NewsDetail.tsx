@@ -7,7 +7,7 @@ import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookma
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
 import quillMonitorAsset from '@/assets/powered-by-quillmonitor.svg.asset.json';
 import { openExternalUrl, safeExternalUrl } from '@/utils/safeUrl';
@@ -29,7 +29,6 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
   const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string';
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   const { relatedArticles, isLoading: isLoadingRelated } = useRelatedArticles({
     currentArticleId: article.id,
@@ -122,26 +121,18 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate('/')}
-          className="h-auto p-1 hover:text-foreground"
-        >
-          <Home className="w-4 h-4" />
-        </Button>
-        <span>/</span>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate('/threat-intel')}
-          className="h-auto p-1 hover:text-foreground"
-        >
-          Threat Intel
-        </Button>
-        <span>/</span>
-        <span className="text-foreground truncate max-w-[200px]">{article.title}</span>
+      <nav className="text-sm text-muted-foreground mb-4" aria-label="Breadcrumb">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link to="/" aria-label="Home" className="inline-flex rounded p-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <Home className="w-4 h-4" aria-hidden="true" />
+            </Link>
+          </li>
+          <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+          <li><Link to="/threat-intel" className="hover:text-foreground">Threat Intelligence</Link></li>
+          <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+          <li className="text-foreground truncate max-w-[200px]" aria-current="page">{article.title}</li>
+        </ol>
       </nav>
 
       {/* Header with Back Button */}
@@ -182,9 +173,9 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           </div>
 
           {/* Title */}
-          <CardTitle className="text-2xl md:text-3xl leading-tight mb-4">
+          <h1 className="text-2xl md:text-3xl font-semibold leading-tight tracking-tight mb-4">
             {article.title}
-          </CardTitle>
+          </h1>
 
           {/* Meta Information */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
