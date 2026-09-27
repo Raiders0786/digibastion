@@ -10,7 +10,7 @@ Digibastion helps crypto users, developers, and DAOs defend against phishing, wa
 - [About](/about): Mission, team, funding (Ethereum Foundation ESP 2025), and methodology.
 - [Threat Intelligence Feed](/threat-intel): Real-time Web3 and Web2 incident feed (July 2024 onward) with severity, category, and source attribution.
 - [News](/news): Legacy route that redirects to the Threat Intelligence Feed.
-- [Articles](/articles): 65 published guides on wallet security, phishing prevention, incident response, software supply chains, DeFi risks, smart-contract auditing, and OpSec.
+- [Articles](/articles): 71 published guides on wallet security, phishing prevention, incident response, software supply chains, DeFi risks, smart-contract auditing, and OpSec.
 - [Bybit 2025 signing-security case study](/articles/bybit-hack-2025-signing-security): Source-backed analysis of compromised transaction presentation and multisig verification controls.
 - [Coinbase data-theft defense guide](/articles/coinbase-data-theft-support-scam-defense): What the 2025 disclosure teaches users and support teams about impersonation and insider risk.
 - [Next.js ImageResponse RCE response guide](/articles/nextjs-imageresponse-rce-cve-2026-94545): Exposure checks, patching, and investigation steps for CVE-2026-94545.

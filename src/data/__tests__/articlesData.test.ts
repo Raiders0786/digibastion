@@ -2,15 +2,29 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { articlesMeta, getArticleBySlug } from '../articlesData';
 import { hasArticleContent } from '../articleContent';
+import { coreGuideEnhancements } from '../contentBatches/coreGuideEnhancements';
+import { legacyProtocolEnhancements } from '../contentBatches/legacyProtocolEnhancements';
+import { legacyScamEnhancements } from '../contentBatches/legacyScamEnhancements';
+import { legacyWalletEnhancements } from '../contentBatches/legacyWalletEnhancements';
 
 const RELEASE_DATE = '2026-09-27';
 const sitemap = readFileSync(new URL('../../../public/sitemap.xml', import.meta.url), 'utf8');
+const editorialEnhancements = {
+  ...coreGuideEnhancements,
+  ...legacyWalletEnhancements,
+  ...legacyScamEnhancements,
+  ...legacyProtocolEnhancements,
+};
 
 describe('article publishing data', () => {
   const articles = articlesMeta;
 
-  it('keeps articles awaiting editorial review out of public routes', () => {
-    const drafts = [
+  it('keeps the documented public article inventory in sync', () => {
+    expect(articles).toHaveLength(71);
+  });
+
+  it('publishes former drafts only after the complete editorial upgrade', () => {
+    const upgradedDrafts = [
       'advanced-wallet-security',
       'blockchain-privacy-tools-2025',
       'cex-vs-dex-security-comparison',
@@ -19,9 +33,16 @@ describe('article publishing data', () => {
       'metamask-security-settings',
     ];
 
-    for (const slug of drafts) {
-      expect(getArticleBySlug(slug)).toBeUndefined();
-      expect(sitemap).not.toContain(`/articles/${slug}</loc>`);
+    for (const slug of upgradedDrafts) {
+      const article = getArticleBySlug(slug);
+
+      expect(article?.status).toBe('published');
+      expect(article?.modifiedAt).toBe(RELEASE_DATE);
+      expect(article?.summary?.length).toBeGreaterThanOrEqual(100);
+      expect(article?.keyTakeaways).toHaveLength(3);
+      expect(article?.sources?.length).toBeGreaterThanOrEqual(2);
+      expect(hasArticleContent(slug)).toBe(true);
+      expect(sitemap).toContain(`/articles/${slug}</loc>`);
     }
   });
 
@@ -73,6 +94,26 @@ describe('article publishing data', () => {
       expect(article.keyTakeaways, `${article.slug} needs key takeaways`).toHaveLength(3);
       expect(article.sources?.length, `${article.slug} needs primary sources`).toBeGreaterThanOrEqual(2);
       expect(new Set(article.sources?.map((source) => source.url)).size).toBe(article.sources?.length);
+    }
+  });
+
+  it('holds every upgraded legacy guide to the source-backed editorial standard', () => {
+    const enhancedSlugs = Object.keys(editorialEnhancements);
+
+    expect(enhancedSlugs).toHaveLength(52);
+    for (const slug of enhancedSlugs) {
+      const article = getArticleBySlug(slug);
+
+      expect(article, `${slug} must be publicly available`).toBeDefined();
+      expect(article?.modifiedAt).toBe(RELEASE_DATE);
+      expect(article?.summary?.trim().length, `${slug} needs an answer-first summary`).toBeGreaterThanOrEqual(100);
+      expect(article?.keyTakeaways, `${slug} needs exactly three takeaways`).toHaveLength(3);
+      expect(article?.sources?.length, `${slug} needs at least two sources`).toBeGreaterThanOrEqual(2);
+      expect(new Set(article?.sources?.map((source) => source.url)).size).toBe(article?.sources?.length);
+      expect(hasArticleContent(slug), `${slug} needs upgraded content`).toBe(true);
+      expect(sitemap).toMatch(
+        new RegExp(`/articles/${slug}</loc>\\s*<lastmod>${RELEASE_DATE}</lastmod>`),
+      );
     }
   });
 

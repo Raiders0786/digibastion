@@ -1,6 +1,10 @@
 // Article metadata; full content is rendered separately.
 import { enterpriseThreatsMeta } from './contentBatches/enterpriseThreatsMeta';
+import { coreGuideEnhancements } from './contentBatches/coreGuideEnhancements';
 import { identitySafetyArticlesMeta } from './contentBatches/identitySafetyMeta';
+import { legacyProtocolEnhancements } from './contentBatches/legacyProtocolEnhancements';
+import { legacyScamEnhancements } from './contentBatches/legacyScamEnhancements';
+import { legacyWalletEnhancements } from './contentBatches/legacyWalletEnhancements';
 import { protocolSecurityMeta } from './contentBatches/protocolSecurityMeta';
 
 export interface ArticleMeta {
@@ -1080,9 +1084,21 @@ const articleCatalog: ArticleMeta[] = [
   ...enterpriseThreatsMeta,
 ];
 
+const articleEnhancements: Record<string, Partial<ArticleMeta>> = {
+  ...coreGuideEnhancements,
+  ...legacyWalletEnhancements,
+  ...legacyScamEnhancements,
+  ...legacyProtocolEnhancements,
+};
+
+const enhancedArticleCatalog = articleCatalog.map((article) => ({
+  ...article,
+  ...articleEnhancements[article.slug],
+}));
+
 // Drafts remain available for editorial revision but are kept out of public
 // navigation, schemas, recommendations, and article routes until reviewed.
-export const articlesMeta: ArticleMeta[] = articleCatalog.filter(
+export const articlesMeta: ArticleMeta[] = enhancedArticleCatalog.filter(
   (article) => article.status !== 'draft',
 );
 

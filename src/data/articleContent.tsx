@@ -1,6 +1,10 @@
 import React from 'react';
+import { coreGuideContentMap } from './contentBatches/coreGuideContent';
 import { enterpriseThreatsContentMap } from './contentBatches/enterpriseThreatsContent';
 import { identitySafetyContentMap } from './contentBatches/identitySafetyContent';
+import { legacyProtocolContentMap } from './contentBatches/legacyProtocolContent';
+import { legacyScamContentMap } from './contentBatches/legacyScamContent';
+import { legacyWalletContentMap } from './contentBatches/legacyWalletContent';
 import { protocolSecurityContentMap } from './contentBatches/protocolSecurityContent';
 
 // Article content components - separated from metadata for better code organization
@@ -3900,6 +3904,10 @@ const contentMap: Record<string, React.FC> = {
   ...identitySafetyContentMap,
   ...protocolSecurityContentMap,
   ...enterpriseThreatsContentMap,
+  ...coreGuideContentMap,
+  ...legacyWalletContentMap,
+  ...legacyScamContentMap,
+  ...legacyProtocolContentMap,
 };
 
 export const hasArticleContent = (slug: string): boolean => Boolean(contentMap[slug]);

@@ -13,7 +13,7 @@ production behavior has been checked with the required platform access.
 | --- | --- | --- |
 | People can assess and improve personal security | 274 checklist items in 11 categories; `/quiz`, `/category/:categoryId`, `/share`, and `/leaderboard` routes | Public routes and local flows checked; production analytics require owner access |
 | People can follow current threats | `/threat-intel`, RSS/Web3/QuillMonitor ingestion functions, alerts, digests, and subscription management | Public feed checked; schedules, email delivery, and private health data require Lovable **View Backend** access |
-| People can learn by topic | 65 published article entries, 28 tool entries, resources, search, filters, related links, and structured data | Public article index checked; the older corpus still needs a source-by-source editorial freshness review |
+| People can learn by topic | 71 published article entries, 28 tool entries, resources, search, filters, related links, and structured data | 52 legacy and flagship guides received a source-backed editorial upgrade; recurring freshness review remains ongoing |
 | Teams can request expert help | `/services`, `/services/opsec-consulting`, `/services/full-stack-review`, and `/contact` | Public routes checked; inquiry and conversion performance require production data |
 | Teams can inspect domain trust evidence | [VANTAGE](https://vantage.digibastion.com/) public score previews plus research, knowledge, checks, use cases, and incident notes | Public routes returned successfully on 2026-09-27; authenticated scans and remediation workflows were not tested |
 | Operators can manage the platform | Admin analytics, scheduled-job health, ingestion health, and API-key routes | Present in source; requires authorized **View Backend** access in the owning Lovable project to validate |
@@ -70,7 +70,8 @@ response, chosen Google canonical, valid structured data, and no orphan pages.
 
 ### 4. Editorial integrity and incident publishing
 
-- Audit all 65 published guides for accuracy, primary citations, author/reviewer,
+- Complete source-by-source review for the remaining older guides, then maintain
+  all 71 published guides for accuracy, primary citations, author/reviewer,
   reviewed date, version-sensitive screenshots, and claims that have aged out.
 - Update year-specific titles only when the body has actually been reviewed.
 - Publish incident analysis from a repeatable brief: event timeline, affected
