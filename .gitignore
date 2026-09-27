@@ -12,6 +12,7 @@ dist
 dist-ssr
 output
 .playwright-cli
+supabase/.temp/
 *.local
 .env
 .env.*

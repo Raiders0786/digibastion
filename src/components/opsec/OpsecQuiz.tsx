@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Shield, ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle, Lock, Zap, Twitter, Copy, User, Award, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { SUPABASE_URL } from '@/integrations/supabase/publicConfig';
 
 interface OpsecQuizProps {
   isOpen: boolean;
@@ -384,7 +385,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     setIsStartingSession(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-quiz-session`,
+        `${SUPABASE_URL}/functions/v1/start-quiz-session`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -472,7 +473,7 @@ export const OpsecQuiz = ({ isOpen, onClose }: OpsecQuizProps) => {
     if (sessionToken) {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-quiz-score`,
+          `${SUPABASE_URL}/functions/v1/submit-quiz-score`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -40,6 +40,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { SUPABASE_URL } from '@/integrations/supabase/publicConfig';
 import { useToast } from '@/hooks/use-toast';
 
 interface ApiKeyRecord {
@@ -67,7 +68,7 @@ interface UsageLog {
   created_at: string;
 }
 
-const API_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/threat-intel-api`;
+const API_BASE_URL = `${SUPABASE_URL}/functions/v1/threat-intel-api`;
 
 export default function AdminApiKeys() {
   const [isLoading, setIsLoading] = useState(true);
