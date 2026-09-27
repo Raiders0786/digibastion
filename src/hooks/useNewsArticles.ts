@@ -74,24 +74,7 @@ const sanitizePostgrestSearchTerm = (value: string): string => value
   .replace(/\s+/g, ' ')
   .trim();
 
-const NEWS_ARTICLE_COLUMNS = [
-  'id',
-  'title',
-  'summary',
-  'content',
-  'category',
-  'severity',
-  'tags',
-  'affected_technologies',
-  'link',
-  'source_url',
-  'source_name',
-  'author',
-  'cve_id',
-  'published_at',
-  'is_processed',
-  'metadata',
-].join(',');
+const NEWS_ARTICLE_COLUMNS = 'id,title,summary,content,category,severity,tags,affected_technologies,link,source_url,source_name,author,cve_id,published_at,is_processed,metadata' as const;
 
 type NewsArticleTableRow = Database['public']['Tables']['news_articles']['Row'];
 type NewsArticleQueryRow = Pick<NewsArticleTableRow,
@@ -299,12 +282,6 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         else if (categoryFilter) query = query.in('category', categoryFilter);
         if (severityFilter) query = query.in('severity', severityFilter);
         if (dateFrom) query = query.gte('published_at', dateFrom);
-        if (view === 'web3-incidents') query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
-        if (searchTerm) {
-          const safeSearchTerm = sanitizePostgrestSearchTerm(searchTerm);
-          if (safeSearchTerm) query = query.or(`title.ilike.%${safeSearchTerm}%,summary.ilike.%${safeSearchTerm}%`);
-        }
-
         const directResult = await query;
         data = directResult.data;
         fetchError = directResult.error;
