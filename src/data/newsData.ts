@@ -156,7 +156,7 @@ export const newsCategoryConfig = {
   },
   'web3-security': {
     name: 'Web3 Security',
-    description: 'Blockchain and crypto security',
+    description: 'All Web3 and blockchain security, including DeFi incidents',
     color: 'text-purple-400'
   },
   'defi-exploits': {

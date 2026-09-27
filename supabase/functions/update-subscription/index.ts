@@ -14,6 +14,7 @@ const MAX_CATEGORIES = 10;
 const MAX_TECHNOLOGIES = 20;
 const VALID_FREQUENCIES = ["immediate", "daily", "weekly"];
 const VALID_SEVERITIES = ["critical", "high", "medium", "low", "info"];
+const VALID_CONTENT_SCOPES = ["all", "web3-incidents"];
 const VALID_CATEGORIES = new Set([
   "operational-security", "supply-chain", "personal-protection", "web3-security",
   "defi-exploits", "vulnerability-disclosure", "tools-reviews",
@@ -90,7 +91,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, token, name, categories, technologies, frequency, severity_threshold, preferred_hour, timezone_offset, preferred_day } = await req.json();
+    const { email, token, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day } = await req.json();
 
     // Validate email
     if (!email || typeof email !== "string") {
@@ -179,6 +180,12 @@ serve(async (req) => {
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+    if (content_scope !== undefined && !VALID_CONTENT_SCOPES.includes(content_scope)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid content scope" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
     if (
       (preferred_hour !== undefined && (!Number.isInteger(preferred_hour) || preferred_hour < 0 || preferred_hour > 23)) ||
       (preferred_day !== undefined && (!Number.isInteger(preferred_day) || preferred_day < 0 || preferred_day > 6)) ||
@@ -195,7 +202,7 @@ serve(async (req) => {
     // First verify the token matches the email
     const { data: existingSubscription, error: lookupError } = await supabase
       .from("subscriptions")
-      .select("id")
+      .select("id, content_scope")
       .eq("email", normalizedEmail)
       .eq("verification_token", token)
       .eq("is_verified", true)
@@ -221,6 +228,7 @@ serve(async (req) => {
       technologies: (technologies || []).slice(0, MAX_TECHNOLOGIES).map((t: unknown) => String(t).slice(0, 50)),
       frequency: frequency || "daily",
       severity_threshold: severity_threshold || "medium",
+      content_scope: content_scope || existingSubscription.content_scope || "all",
       is_active: true,
       updated_at: new Date().toISOString(),
     };
@@ -242,7 +250,7 @@ serve(async (req) => {
       .from("subscriptions")
       .update(updateData)
       .eq("id", existingSubscription.id)
-      .select("id, email, name, categories, technologies, frequency, severity_threshold, preferred_hour, timezone_offset, preferred_day")
+      .select("id, email, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day")
       .single();
 
     if (error) {

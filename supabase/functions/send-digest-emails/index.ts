@@ -1,6 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { normalizeUtcMinuteToQuarterHour, prepareDigestArticles, severityRank, shouldSendToSubscriber } from "../_shared/digest-logic.ts";
+import {
+  escapeHtml,
+  formatDeliveryArticleText,
+  matchesDeliveryPreferences,
+  renderIncidentContextHtml,
+  safeHttpUrl,
+  stripHtml,
+  type ContentScope,
+} from "../_shared/subscription-delivery.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,25 +25,18 @@ interface NewsArticle {
   link: string;
   published_at: string;
   cve_id?: string;
-  tags: string[];
+  tags: string[] | null;
+  affected_technologies?: string[] | null;
   source_name?: string;
-  metadata?: {
-    provider?: string;
-    project_name?: string;
-    chain?: string;
-    attack_type?: string;
-    amount_display?: string;
-    attribution_url?: string;
-    is_web3_incident?: boolean;
-  } | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface Subscription {
   id: string;
   email: string;
   name: string | null;
-  categories: string[];
-  technologies: string[];
+  categories: string[] | null;
+  technologies: string[] | null;
   frequency: string;
   severity_threshold: string;
   last_notified_at: string | null;
@@ -42,69 +44,7 @@ interface Subscription {
   preferred_hour: number;
   timezone_offset: number;
   preferred_day: number;
-}
-
-// Strip HTML tags and decode entities (handles double-encoded feeds)
-function stripHtml(text: string | null | undefined): string {
-  if (!text) return '';
-  let s = text, prev = '';
-  while (s !== prev) {
-    prev = s;
-    s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
-      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-      .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
-        const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
-        return m[n.toLowerCase()] ?? '';
-      });
-    s = s.replace(/<[^>]*>/g, '');
-  }
-  return s.replace(/\s+/g, ' ').trim();
-}
-
-// HTML escape function
-function escapeHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function shouldIncludeArticle(article: NewsArticle, subscription: Subscription): boolean {
-  // Check severity threshold
-  const articleRank = severityRank[article.severity] ?? 4;
-  const thresholdRank = severityRank[subscription.severity_threshold] ?? 2;
-  
-  if (articleRank > thresholdRank) {
-    return false;
-  }
-
-  // Check category match (if subscriber has categories)
-  if (subscription.categories.length > 0) {
-    if (!subscription.categories.includes(article.category)) {
-      return false;
-    }
-  }
-
-  // Check technology match (optional filter)
-  if (subscription.technologies.length > 0) {
-    const techMatch = subscription.technologies.some(tech => 
-      (article.tags || []).some(tag => {
-        const normalizedTag = tag.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-        const normalizedTech = tech.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-        return normalizedTag === normalizedTech || normalizedTag.includes(normalizedTech) || normalizedTech.includes(normalizedTag);
-      })
-    );
-    // Technology choices prioritize relevant coverage; urgent critical/high items
-    // still pass so subscribers do not miss broadly actionable incidents.
-    if (!techMatch && articleRank > 1) {
-      return false;
-    }
-  }
-
-  return true;
+  content_scope: ContentScope;
 }
 
 function getSeverityColor(severity: string): string {
@@ -154,9 +94,10 @@ function generateDigestEmailText(
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
   const displayedArticles = articles.slice(0, 20);
   const lines = displayedArticles.map((article) => {
-    const source = article.source_name ? ` · ${article.source_name}` : '';
-    const cve = article.cve_id ? ` · ${article.cve_id}` : '';
-    return `[${article.severity.toUpperCase()}] ${stripHtml(article.title)}${cve}${source}\n${article.link}`;
+    return formatDeliveryArticleText(
+      article,
+      `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`,
+    );
   });
 
   return [
@@ -203,15 +144,7 @@ function generateDigestEmailHtml(
     const cat = getCategoryDisplay(article.category);
     const digiLink = `https://www.digibastion.com/threat-intel/${article.id}`;
     const cleanSummary = stripHtml(article.summary);
-    const safeOriginalLink = /^https?:\/\//i.test(article.link) ? escapeHtml(article.link) : escapeHtml(digiLink);
-    const attributionLink = article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database';
-    const safeAttributionLink = /^https?:\/\//i.test(attributionLink) ? escapeHtml(attributionLink) : 'https://www.quillaudits.com/web3-hacks-database';
-    const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
-    const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof (article.metadata as Record<string, unknown> | null)?.data_source === 'string';
-    const incidentFacts = isWeb3Incident
-      ? [article.metadata?.project_name, article.metadata?.chain, article.metadata?.attack_type, article.metadata?.amount_display]
-          .filter(Boolean).map((fact) => escapeHtml(String(fact))).join(' · ')
-      : '';
+    const safeOriginalLink = escapeHtml(safeHttpUrl(article.link, digiLink));
     return `
     <tr>
       <td style="padding: 18px 0; border-bottom: 1px solid #334155;">
@@ -227,11 +160,9 @@ function generateDigestEmailHtml(
           ${escapeHtml(stripHtml(article.title))}
         </a>
         ${cleanSummary ? `<p style="margin: 8px 0 0; color: #cbd5e1; font-size: 14px; line-height: 1.55;">${escapeHtml(cleanSummary.slice(0, 190))}${cleanSummary.length > 190 ? '…' : ''}</p>` : ''}
-        ${isWeb3Incident ? `<p style="margin:6px 0 0;color:#60a5fa;font-size:11px;font-weight:600;">Web3 Incident</p>` : ''}
-        ${incidentFacts ? `<p style="margin: 6px 0 0 0; color: #d1d5db; font-size: 12px; line-height: 1.4;">${incidentFacts}</p>` : ''}
+        ${renderIncidentContextHtml(article)}
         <div style="margin-top: 10px;">
           <a href="${safeOriginalLink}" style="color: #93c5fd; text-decoration: underline; font-size: 13px;">Read source report</a>
-          ${isQuillMonitor ? ` <span style="color:#64748b;">·</span> <a href="${safeAttributionLink}" style="color:#93c5fd;text-decoration:underline;font-size:12px;">QuillMonitor database</a>` : ''}
         </div>
       </td>
     </tr>
@@ -514,6 +445,7 @@ serve(async (req) => {
         name: 'Test User',
         categories: [],
         technologies: [],
+        content_scope: 'all',
         frequency: 'daily',
         severity_threshold: 'low', // Include all severities for test
         last_notified_at: null,
@@ -528,7 +460,7 @@ serve(async (req) => {
       
       const { data: articles, error: articlesError } = await supabase
         .from('news_articles')
-        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, source_name, metadata')
+        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, affected_technologies, source_name, metadata')
         .gte('published_at', testPeriodStart.toISOString())
         .order('published_at', { ascending: false })
         .limit(50);
@@ -546,7 +478,7 @@ serve(async (req) => {
       }
       
       const testArticles = prepareDigestArticles(
-        articles.filter((article) => shouldIncludeArticle(article as NewsArticle, mockSubscription)) as NewsArticle[],
+        articles.filter((article) => matchesDeliveryPreferences(article as NewsArticle, mockSubscription)) as NewsArticle[],
         Number.POSITIVE_INFINITY,
       );
       if (testArticles.length === 0) {
@@ -709,15 +641,16 @@ serve(async (req) => {
       // busy unrelated category cannot crowd out this subscriber's matches.
       const thresholdRank = severityRank[sub.severity_threshold] ?? 2;
       const allowedSeverities = Object.keys(severityRank).filter((severity) => severityRank[severity] <= thresholdRank);
-      let articlesQuery = supabase
+      const articlesQuery = supabase
         .from('news_articles')
-        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, source_name, metadata, created_at')
+        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, affected_technologies, source_name, metadata, created_at')
         .gte('created_at', effectivePeriodStart.toISOString())
         .lte('created_at', now.toISOString())
+        .gte('published_at', periodStart.toISOString())
+        .lte('published_at', now.toISOString())
         .in('severity', allowedSeverities)
         .order('created_at', { ascending: false })
         .limit(200);
-      if (sub.categories.length > 0) articlesQuery = articlesQuery.in('category', sub.categories);
       const { data: articles, error: articlesError } = await articlesQuery;
 
       if (articlesError) {
@@ -734,7 +667,7 @@ serve(async (req) => {
 
       // Filter articles based on subscriber preferences
       const matchingArticles = prepareDigestArticles(
-        articles.filter(a => shouldIncludeArticle(a as NewsArticle, sub)) as NewsArticle[],
+        articles.filter(a => matchesDeliveryPreferences(a as NewsArticle, sub)) as NewsArticle[],
         Number.POSITIVE_INFINITY,
       );
 

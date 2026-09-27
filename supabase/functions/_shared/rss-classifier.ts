@@ -1,3 +1,9 @@
+import {
+  classifyWeb3Incident,
+  detectWeb3Context,
+  WEB3_TAXONOMY_VERSION,
+} from './web3-taxonomy.ts';
+
 export interface KeywordEntry {
   keyword: string;
   category: string;
@@ -9,6 +15,9 @@ export interface RelevanceResult {
   matchedKeywords: string[];
   category: string;
   weight: number;
+  securityDomain: 'web3' | null;
+  taxonomyVersion: string;
+  classificationReasons: string[];
 }
 
 interface Token {
@@ -27,6 +36,12 @@ const TOKEN_ALIASES: Record<string, Set<string>> = {
   attack: new Set(['attacker', 'attackers']),
   drain: new Set(['drainer', 'drainers']),
 };
+
+const AMBIGUOUS_STANDALONE_KEYWORDS = new Set([
+  'package', 'dependency', 'github', 'npm', 'pypi',
+  'wallet', 'metamask', 'ledger', 'trezor', 'phantom',
+  'defi', 'smart contract', 'solidity', 'ethereum', 'bitcoin', 'solana',
+]);
 
 function tokenize(value: string): Token[] {
   const normalized = value.normalize('NFKC');
@@ -109,10 +124,11 @@ export function classifyRssRelevance(
 ): RelevanceResult {
   const content = `${title} ${summary}`;
   const matchedKeywords: string[] = [];
+  const matchedEntries = matchingSecurityKeywords(content, keywords);
   let totalWeight = 0;
   const categoryWeights: Record<string, number> = {};
 
-  for (const { keyword, category, weight } of matchingSecurityKeywords(content, keywords)) {
+  for (const { keyword, category, weight } of matchedEntries) {
     matchedKeywords.push(keyword);
     totalWeight += weight;
     categoryWeights[category] = (categoryWeights[category] || 0) + weight;
@@ -154,27 +170,60 @@ export function classifyRssRelevance(
     finalCategory = feedHasCategory ? feedCategory : 'vulnerability-disclosure';
   }
 
-  const explicitWeb3Signals = [
-    'defi exploit', 'smart contract vulnerability', 'smart contract exploit',
-    'wallet drainer', 'crypto wallet', 'seed phrase', 'rug pull', 'flash loan',
-    'bridge exploit', 'protocol hack', 'web3 security', 'on-chain exploit',
-  ];
-  const web3Context = ['blockchain', 'web3', 'defi', 'ethereum', 'solana', 'crypto', 'protocol', 'wallet'];
-  const securityContext = ['hack', 'exploit', 'breach', 'vulnerability', 'attack', 'stolen', 'drain'];
-  const hasWeb3Signal = explicitWeb3Signals.some((signal) => containsSecurityTerm(content, signal)) ||
-    (web3Context.some((signal) => containsSecurityTerm(content, signal)) &&
-      securityContext.some((signal) => containsSecurityTerm(content, signal)));
+  const web3Context = detectWeb3Context(content);
+  const web3Classification = classifyWeb3Incident({ title, description: summary });
+  const hasWeb3Keyword = matchedEntries.some(({ category }) => category === 'web3' || category === 'defi');
+  const feedIsWeb3 = ['web3', 'defi', 'web3-security', 'defi-exploits'].includes(feedCategory);
+  const isWeb3Domain = web3Context.isWeb3 || ((hasWeb3Keyword || feedIsWeb3) && web3Context.hasSecuritySignal);
+  const isDefiDomain = web3Context.isDefi ||
+    matchedEntries.some(({ category }) => category === 'defi') ||
+    feedCategory === 'defi' || feedCategory === 'defi-exploits';
+  const explicitDisclosure = [
+    'cve', 'security advisory', 'patch released', 'security update', 'cvss',
+  ].some((signal) => containsSecurityTerm(content, signal));
 
-  if (hasWeb3Signal && finalCategory !== 'defi-exploits') {
-    finalCategory = 'web3-security';
+  if (isWeb3Domain) {
+    // Supply-chain and operational-security remain useful primary labels while
+    // securityDomain keeps them discoverable through the Web3 umbrella. A
+    // confirmed DeFi attack outranks generic exploit/vulnerability wording;
+    // explicit advisories and CVEs remain vulnerability disclosures.
+    if (web3Classification.category === 'supply-chain' || web3Classification.category === 'operational-security') {
+      finalCategory = web3Classification.category;
+    } else if (explicitDisclosure) {
+      finalCategory = 'vulnerability-disclosure';
+    } else if (isDefiDomain && !explicitDisclosure) {
+      finalCategory = 'defi-exploits';
+    } else {
+      finalCategory = 'web3-security';
+    }
   }
 
   const isVendorFeed = feedCategory === 'vulnerability-disclosure';
+  const onlyGenericWeb3Keywords = matchedEntries.length > 0 && matchedEntries.every(({ category }) =>
+    category === 'web3' || category === 'defi'
+  );
+  const onlyAmbiguousKeywords = matchedEntries.length > 0 && matchedEntries.every(({ keyword }) =>
+    AMBIGUOUS_STANDALONE_KEYWORDS.has(keyword.trim().toLocaleLowerCase('en-US'))
+  );
+  const relevant = isVendorFeed || (
+    matchedKeywords.length > 0 &&
+    (!onlyGenericWeb3Keywords || isWeb3Domain) &&
+    (!onlyAmbiguousKeywords || web3Context.hasSecuritySignal)
+  );
   return {
-    relevant: matchedKeywords.length > 0 || isVendorFeed,
+    relevant,
     matchedKeywords,
     category: finalCategory,
     weight: totalWeight,
+    securityDomain: isWeb3Domain ? 'web3' : null,
+    taxonomyVersion: WEB3_TAXONOMY_VERSION,
+    classificationReasons: [
+      ...web3Context.reasons,
+      ...(!web3Context.isWeb3 && isWeb3Domain && feedIsWeb3 ? ['web3:feed-category'] : []),
+      ...(!web3Context.isWeb3 && isWeb3Domain && hasWeb3Keyword ? ['web3:keyword-category'] : []),
+      ...(explicitDisclosure ? ['primary:explicit-disclosure'] : []),
+      `primary:${finalCategory}`,
+    ].slice(0, 12),
   };
 }
 

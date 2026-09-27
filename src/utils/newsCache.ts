@@ -1,7 +1,9 @@
 import { NewsArticle } from '@/types/news';
 
-const CACHE_KEY = 'digibastion_news_cache';
-const STATS_KEY = 'digibastion_news_stats';
+// v2 excludes rows explicitly rejected by the relevance classifier. Keeping a
+// separate key prevents historical polluted counts from flashing on load.
+const CACHE_KEY = 'digibastion_news_cache_v2';
+const STATS_KEY = 'digibastion_news_stats_v2';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes – after this we still show cache but mark stale
 
 interface CachedData {

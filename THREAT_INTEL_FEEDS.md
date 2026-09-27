@@ -30,6 +30,32 @@ The public feed can filter on normalized meaning, including Web3 incidents and
 active alerts, without making any one provider its own product area. Provider
 attribution remains visible on records where it is required or useful.
 
+## Canonical taxonomy
+
+`news_articles.category` is the record's most specific primary topic. Web3 is
+also a cross-category security domain, and a confirmed incident is an
+independent content scope:
+
+- `metadata.security_domain = "web3"` makes a record discoverable through the
+  Web3 Security umbrella even when its primary category is DeFi, operational
+  security, supply chain, or vulnerability disclosure;
+- `metadata.is_web3_incident = true` marks a confirmed Web3 incident;
+- `metadata.taxonomy_version` and sanitized `classification_reasons` make
+  classifier changes reviewable without storing provider payloads;
+- `metadata.classification_relevant = false` retains a rejected historical RSS
+  record for audit while excluding it from the public feed and email delivery.
+
+The public `All Intelligence | Web3 Incidents` selector and subscription
+`content_scope` use the same `all` and `web3-incidents` semantics. Category,
+scope, severity, and technology preferences are combined; technology matching
+uses both normalized tags and `affected_technologies`.
+
+RSS history is repaired through the protected `fetch-rss-news` reclassification
+mode. It is bounded, defaults to a dry run, reuses the production classifier,
+and records aggregate results in `threat_intel_ingestion_runs`. Operators must
+review a complete dry run before setting `dryRun` to `false`; backfills must not
+invoke email senders.
+
 ## What production operators must verify
 
 Lovable **View Backend** and the private admin view, not this file, are

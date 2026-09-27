@@ -29,12 +29,29 @@ Deno.test('parses and normalizes a documented QuillMonitor incident', () => {
   assertEquals(normalized.category, 'defi-exploits');
   assertEquals(normalized.severity, 'high');
   assertEquals(normalized.metadata.amount_lost_usd, 12_500_000);
+  assertEquals(normalized.metadata.security_domain, 'web3');
+  assertEquals(normalized.metadata.is_web3_incident, true);
+  assertEquals(normalized.metadata.taxonomy_version, '2026-09-27.1');
   assertMatch(normalized.title, /\$13M loss/);
 });
 
 Deno.test('classification prioritizes operational and supply-chain signals', () => {
   assertEquals(mapQuillMonitorCategory({ ...incident, category: 'Wallet', attackedMethod: 'Private Key Compromise' }), 'operational-security');
   assertEquals(mapQuillMonitorCategory({ ...incident, category: 'Protocol', attackedMethod: 'Frontend Supply Chain' }), 'supply-chain');
+});
+
+Deno.test('classification does not treat generic protocol or smart-contract wording as DeFi', () => {
+  assertEquals(mapQuillMonitorCategory({
+    ...incident,
+    category: 'Protocol',
+    attackedMethod: 'Smart Contract Reentrancy',
+    description: 'A protocol contract was exploited.',
+  }), 'web3-security');
+  assertEquals(mapQuillMonitorCategory({
+    ...incident,
+    category: 'DEX',
+    attackedMethod: 'Reentrancy',
+  }), 'defi-exploits');
 });
 
 Deno.test('severity uses reported loss and strong attack methods', () => {

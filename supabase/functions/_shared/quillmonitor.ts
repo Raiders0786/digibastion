@@ -1,3 +1,5 @@
+import { classifyWeb3Incident } from './web3-taxonomy.ts';
+
 export interface QuillMonitorIncident {
   id: string;
   target: string;
@@ -29,21 +31,6 @@ export interface NormalizedQuillMonitorArticle {
   is_processed: boolean;
   metadata: Record<string, unknown>;
 }
-
-const OPSEC_SIGNALS = [
-  'private key', 'key compromise', 'compromised key', 'phishing', 'social engineering',
-  'insider', 'credential', 'seed phrase', 'wallet drainer', 'sim swap', 'account takeover',
-];
-
-const SUPPLY_CHAIN_SIGNALS = [
-  'supply chain', 'dependency', 'npm', 'package', 'frontend compromise', 'dns hijack',
-  'domain hijack', 'malicious library',
-];
-
-const DEFI_SIGNALS = [
-  'defi', 'bridge', 'dex', 'lending', 'staking', 'yield', 'liquidity', 'oracle',
-  'flash loan', 'reentrancy', 'governance', 'smart contract', 'protocol', 'stablecoin',
-];
 
 function cleanText(value: unknown, maxLength: number): string {
   return String(value ?? '')
@@ -113,11 +100,12 @@ export function assessQuillMonitorRunHealth(
 }
 
 export function mapQuillMonitorCategory(incident: QuillMonitorIncident): NormalizedQuillMonitorArticle['category'] {
-  const text = `${incident.category} ${incident.attackedMethod} ${incident.description}`.toLowerCase();
-  if (includesAny(text, SUPPLY_CHAIN_SIGNALS)) return 'supply-chain';
-  if (includesAny(text, OPSEC_SIGNALS)) return 'operational-security';
-  if (includesAny(text, DEFI_SIGNALS)) return 'defi-exploits';
-  return 'web3-security';
+  return classifyWeb3Incident({
+    title: incident.target,
+    description: incident.description,
+    projectCategory: incident.category,
+    attackType: incident.attackedMethod,
+  }).category;
 }
 
 export function mapQuillMonitorSeverity(incident: QuillMonitorIncident): NormalizedQuillMonitorArticle['severity'] {
@@ -175,7 +163,13 @@ export function parseQuillMonitorIncident(value: unknown): QuillMonitorIncident 
 }
 
 export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): NormalizedQuillMonitorArticle {
-  const category = mapQuillMonitorCategory(incident);
+  const classification = classifyWeb3Incident({
+    title: incident.target,
+    description: incident.description,
+    projectCategory: incident.category,
+    attackType: incident.attackedMethod,
+  });
+  const category = classification.category;
   const severity = mapQuillMonitorSeverity(incident);
   const amountDisplay = formatUsd(incident.amountInUsd);
   const attackMethod = incident.attackedMethod || 'Security incident';
@@ -227,7 +221,10 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
     is_processed: true,
     metadata: {
       provider: 'quillmonitor',
+      security_domain: classification.securityDomain,
       is_web3_incident: true,
+      taxonomy_version: classification.taxonomyVersion,
+      classification_reasons: classification.reasons,
       provider_incident_id: incident.id,
       project_name: incident.target,
       chain: incident.chain || null,

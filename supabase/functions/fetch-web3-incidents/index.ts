@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
+import { classifyCollectedWeb3Incident } from './classifier.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -150,26 +151,6 @@ function extractSources(content: string): { url: string; label: string }[] {
   return sources.slice(0, 5);
 }
 
-// Determine category based on content
-function determineCategory(title: string, content: string, issueType?: string): string {
-  const textLower = (title + ' ' + content + ' ' + (issueType || '')).toLowerCase();
-  
-  if (textLower.includes('supply chain') || textLower.includes('npm') || textLower.includes('package')) {
-    return 'supply-chain';
-  }
-  if (textLower.includes('vulnerability') || textLower.includes('cve') || textLower.includes('bug')) {
-    return 'vulnerability-disclosure';
-  }
-  if (textLower.includes('phishing') || textLower.includes('scam') || textLower.includes('rug pull')) {
-    return 'operational-security';
-  }
-  if (textLower.includes('defi') || textLower.includes('flash loan') || textLower.includes('liquidity')) {
-    return 'defi-exploits';
-  }
-  
-  return 'web3-security';
-}
-
 // Extract affected technologies
 function extractTechnologies(title: string, content: string, chain?: string): string[] {
   const techs: string[] = [];
@@ -308,7 +289,8 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
       const amount = extractAmount(title + ' ' + content);
       const severity = determineSeverity(amount, title, content);
       const sources = extractSources(content);
-      const category = determineCategory(title, content);
+      const classification = classifyCollectedWeb3Incident(title, content);
+      const category = classification.category;
       const technologies = extractTechnologies(title, content);
       const tags = extractTags(content);
       
@@ -355,7 +337,10 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
       // Build rich metadata for future analysis
       const metadata = {
         provider: 'web3-incidents',
+        security_domain: classification.securityDomain,
         is_web3_incident: true,
+        taxonomy_version: classification.taxonomyVersion,
+        classification_reasons: classification.reasons,
         amount_lost_usd: amount ? amount * 1000000 : null, // Store in USD
         amount_display: amount ? `$${amount}M` : null,
         attack_type: tags[0] || null,
@@ -426,7 +411,8 @@ async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
         const title = `${name} exploited for ${amountStr.replace('$', '').trim()}`;
         const content = `${name} was affected by a ${issueType.toLowerCase()} issue. Category: ${categoryStr}. Chain: ${chain}.`;
         const severity = determineSeverity(amount, title, content);
-        const category = determineCategory(title, content, issueType);
+        const classification = classifyCollectedWeb3Incident(title, content, issueType, categoryStr);
+        const category = classification.category;
         const technologies = extractTechnologies(title, content, chain);
         const tags = extractTags(content, issueType, categoryStr);
         
@@ -438,7 +424,10 @@ async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
         // Build rich metadata for future analysis
         const metadata = {
           provider: 'web3-incidents',
+          security_domain: classification.securityDomain,
           is_web3_incident: true,
+          taxonomy_version: classification.taxonomyVersion,
+          classification_reasons: classification.reasons,
           project_name: name,
           amount_lost_usd: amount ? amount * 1000000 : null,
           amount_display: amountStr,
@@ -737,6 +726,10 @@ serve(async (req) => {
     console.log(`[fetch-web3-incidents] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}, Similar: ${skippedSimilar}`);
     const sourceFailures = sourceResults.filter((source) => source.errors.length > 0).length;
     const sourcesSucceeded = sourceResults.length - sourceFailures;
+    const categoryCounts = deduplicatedIncidents.reduce((counts: Record<string, number>, incident) => {
+      counts[incident.category] = (counts[incident.category] || 0) + 1;
+      return counts;
+    }, {});
     await recordIngestionRun(supabase, {
       pipeline: 'web3-incidents', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
       success: errors.length === 0 && sourceFailures === 0,
@@ -750,6 +743,8 @@ serve(async (req) => {
         similar_skipped: skippedSimilar,
         sources_checked: sourceResults.length,
         sources_succeeded: sourcesSucceeded,
+        taxonomy_version: deduplicatedIncidents[0]?.metadata?.taxonomy_version || null,
+        category_counts: categoryCounts,
       },
     });
     

@@ -1,5 +1,4 @@
 import { NewsCategory, SeverityLevel } from '@/types/news';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { newsCategoryConfig } from '@/data/newsData';
@@ -62,16 +61,18 @@ export const NewsFilters = ({
               const categoryInfo = newsCategoryConfig[category];
               
               return (
-                <Badge
+                <button
                   key={category}
-                  variant={isSelected ? "default" : "outline"}
-                  className={`cursor-pointer transition-all hover:scale-105 ${
-                    isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                  type="button"
+                  aria-pressed={isSelected}
+                  title={categoryInfo.description}
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                    isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent'
                   }`}
                   onClick={() => onCategoryToggle(category)}
                 >
                   {categoryInfo.name}
-                </Badge>
+                </button>
               );
             })}
           </div>
@@ -85,10 +86,11 @@ export const NewsFilters = ({
               const isSelected = selectedSeverities.includes(severity.value);
               
               return (
-                <Badge
+                <button
                   key={severity.value}
-                  variant="outline"
-                  className={`cursor-pointer transition-all hover:scale-105 ${
+                  type="button"
+                  aria-pressed={isSelected}
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     isSelected 
                       ? 'bg-primary text-primary-foreground border-primary' 
                       : `${severity.color} hover:bg-accent`
@@ -96,7 +98,7 @@ export const NewsFilters = ({
                   onClick={() => onSeverityToggle(severity.value)}
                 >
                   {severity.label}
-                </Badge>
+                </button>
               );
             })}
           </div>

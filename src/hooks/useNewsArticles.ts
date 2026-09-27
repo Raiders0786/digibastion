@@ -11,6 +11,13 @@ import {
 } from '@/utils/newsCache';
 import { sanitizeText } from '@/utils/sanitize';
 import { summarizeFeedFreshness } from '@/utils/feedFreshness';
+import {
+  buildCategoryPostgrestFilter,
+  CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
+  isClassificationRelevant,
+  isWeb3Incident,
+  WEB3_INCIDENT_POSTGREST_FILTER,
+} from '@/utils/newsIncident';
 import type { Database } from '@/integrations/supabase/types';
 
 interface UseNewsArticlesOptions {
@@ -145,6 +152,7 @@ async function fetchFeedFreshness() {
       supabase
         .from('news_articles')
         .select('published_at')
+        .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
         .order('published_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -211,7 +219,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
     const cached = loadFromCache(currentFilterKey);
     if (cached) {
-      setArticles(cached.articles);
+      setArticles(cached.articles.filter(isClassificationRelevant));
       setTotalCount(cached.totalCount);
       setIsCachedData(true);
       setFeedStatus({
@@ -248,6 +256,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
       // Prepare filters for RPC call
       const categoryFilter = categories && categories.length > 0 ? categories : null;
+      const categoryOrFilter = categoryFilter ? buildCategoryPostgrestFilter(categoryFilter) : null;
       const severityFilter = severities && severities.length > 0 ? severities : null;
       const searchTerm = searchQuery?.trim() || null;
       const offset = (page - 1) * pageSize;
@@ -269,21 +278,31 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       let fetchError: { message?: string } | null = null;
       let queryCount: number | null = null;
 
-      if (!searchTerm) {
+      // The release migration teaches the RPC the same metadata-backed Web3
+      // umbrella and incident-scope semantics used by the client helpers. Keep
+      // ordinary unfiltered browsing on the indexed date query; use the RPC
+      // whenever ranking or metadata predicates are required so PostgREST does
+      // not build several expensive top-level OR filters.
+      const requiresMetadataFilter = view === 'web3-incidents' || Boolean(categoryOrFilter);
+      if (!searchTerm && !requiresMetadataFilter) {
         let query = supabase
           .from('news_articles')
           // Estimated count is exact for small result sets and planner-based
-          // for large feeds, keeping pagination responsive without a full
-          // table count on every visit.
+          // for large feeds, keeping pagination responsive without a second
+          // request for the ordinary chronological feed.
           .select(NEWS_ARTICLE_COLUMNS, { count: 'estimated' })
+          .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
           .order('published_at', { ascending: false })
           .range(offset, offset + pageSize - 1);
 
-        if (categoryFilter) query = query.in('category', categoryFilter);
+        if (categoryOrFilter) query = query.or(categoryOrFilter);
+        else if (categoryFilter) query = query.in('category', categoryFilter);
         if (severityFilter) query = query.in('severity', severityFilter);
         if (dateFrom) query = query.gte('published_at', dateFrom);
-        if (view === 'web3-incidents') {
-          query = query.or("metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3),metadata->>data_source.not.is.null");
+        if (view === 'web3-incidents') query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
+        if (searchTerm) {
+          const safeSearchTerm = sanitizePostgrestSearchTerm(searchTerm);
+          if (safeSearchTerm) query = query.or(`title.ilike.%${safeSearchTerm}%,summary.ilike.%${safeSearchTerm}%`);
         }
 
         const directResult = await query;
@@ -313,13 +332,15 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         let query = supabase
           .from('news_articles')
           .select(NEWS_ARTICLE_COLUMNS)
+          .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
           .order('published_at', { ascending: false })
           .range(offset, offset + pageSize - 1);
 
-        if (categoryFilter) query = query.in('category', categoryFilter);
+        if (categoryOrFilter) query = query.or(categoryOrFilter);
+        else if (categoryFilter) query = query.in('category', categoryFilter);
         if (severityFilter) query = query.in('severity', severityFilter);
         if (dateFrom) query = query.gte('published_at', dateFrom);
-        if (view === 'web3-incidents') query = query.or("metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3),metadata->>data_source.not.is.null");
+        if (view === 'web3-incidents') query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
         if (searchTerm) {
           const safeSearchTerm = sanitizePostgrestSearchTerm(searchTerm);
           if (safeSearchTerm) {
@@ -343,7 +364,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         const fallbackTotal = Math.max(resultCountFloor, cachedStats?.total || 0);
         setTotalCount(fallbackTotal);
 
-        const transformedArticles = (fallbackData || []).map(toNewsArticle);
+        const transformedArticles = (fallbackData || []).map(toNewsArticle).filter(isClassificationRelevant);
 
         setArticles(transformedArticles);
         setIsCachedData(false);
@@ -357,7 +378,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       // full-table RPC on every page load. Ranked search still needs the count
       // RPC; failure is non-fatal and keeps forward pagination available.
       let resolvedCount = queryCount;
-      if (searchTerm) {
+      if (searchTerm || requiresMetadataFilter) {
         const { data: countData, error: countError } = await supabase.rpc('count_news_articles', {
           search_query: searchTerm,
           category_filter: categoryFilter,
@@ -368,15 +389,18 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         });
 
         if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
+        const resultCountFloor = offset
+          + (data || []).length
+          + ((data || []).length === pageSize ? 1 : 0);
         resolvedCount = countError
-          ? offset + (data || []).length + ((data || []).length === pageSize ? 1 : 0)
-          : (countData || 0);
+          ? resultCountFloor
+          : Math.max(countData || 0, resultCountFloor);
       }
       resolvedCount ??= offset + (data || []).length;
       setTotalCount(resolvedCount);
 
       // Transform RPC results to NewsArticle format
-      const transformedArticles = (data || []).map(toNewsArticle);
+      const transformedArticles = (data || []).map(toNewsArticle).filter(isClassificationRelevant);
 
       // Apply sorting (RPC already sorts by rank + date, but apply severity if needed)
       if (sortBy === 'severity') {
@@ -411,7 +435,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       });
       const cached = loadFromCache(filterKey);
       if (cached && cached.articles.length > 0) {
-        setArticles(cached.articles);
+        setArticles(cached.articles.filter(isClassificationRelevant));
         setTotalCount(cached.totalCount);
         setIsCachedData(true);
         setFeedStatus({
@@ -533,7 +557,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     high: articles.filter(a => a.severity === 'high').length,
     supplyChain: articles.filter(a => a.category === 'supply-chain').length,
     aiSummarized: articles.filter(a => a.isProcessed).length,
-    web3Incidents: articles.filter(a => a.category === 'web3-security' || a.category === 'defi-exploits').length,
+    web3Incidents: articles.filter(isWeb3Incident).length,
   };
 
   // Persist stats to cache so hero banner is never blank

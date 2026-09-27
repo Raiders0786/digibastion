@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Eye, Clock } from 'lucide-react';
-import { NewsCategory, SeverityLevel } from '@/types/news';
+import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDeliveryTime } from '@/lib/digestSchedule';
 
@@ -9,14 +9,42 @@ interface EmailPreviewProps {
   categories: NewsCategory[];
   frequency: 'immediate' | 'daily' | 'weekly';
   severity: SeverityLevel;
+  contentScope?: ThreatIntelScope;
   name?: string;
   preferredHour?: number;
   timezoneOffset?: number;
   preferredDay?: number;
 }
 
+interface PreviewArticle {
+  title: string;
+  summary: string;
+  severity: SeverityLevel;
+  category: NewsCategory;
+  published_at: string;
+  cve_id: string | null;
+  source_name: string;
+  link: string;
+  is_web3_incident?: boolean;
+  security_domain?: string;
+  attribution_url?: string;
+}
+
 // Mock articles for preview
-const mockArticles = [
+const mockArticles: PreviewArticle[] = [
+  {
+    title: 'Bridge protocol exploit causes a reported $8.4M loss',
+    summary: 'A verified cross-chain bridge incident affected user funds. Teams should review protocol exposure and monitor official remediation updates.',
+    severity: 'high',
+    category: 'defi-exploits',
+    published_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    cve_id: null,
+    source_name: 'QuillMonitor',
+    link: '#',
+    is_web3_incident: true,
+    security_domain: 'web3',
+    attribution_url: 'https://www.quillaudits.com/web3-hacks-database',
+  },
   {
     title: "Critical RCE Vulnerability in Popular DeFi Protocol",
     summary: "A severe remote code execution flaw affecting smart contract interactions has been discovered. Immediate patching recommended.",
@@ -93,6 +121,7 @@ export const EmailPreview = ({
   categories, 
   frequency, 
   severity, 
+  contentScope = 'all',
   name,
   preferredHour = 9,
   timezoneOffset = 0,
@@ -103,7 +132,10 @@ export const EmailPreview = ({
   const filteredArticles = mockArticles.filter(article => {
     const articleRank = severityRank[article.severity] ?? 4;
     if (articleRank > thresholdRank) return false;
-    if (categories.length > 0 && !categories.includes(article.category as NewsCategory)) return false;
+    if (contentScope === 'web3-incidents' && !article.is_web3_incident) return false;
+    const categoryMatch = categories.includes(article.category)
+      || (categories.includes('web3-security') && article.security_domain === 'web3');
+    if (categories.length > 0 && !categoryMatch) return false;
     return true;
   });
 
@@ -145,6 +177,16 @@ export const EmailPreview = ({
         <p style={{ margin: '8px 0 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.55 }}>
           {article.summary.slice(0, 150)}{article.summary.length > 150 ? '...' : ''}
         </p>
+        {article.is_web3_incident && (
+          <p style={{ margin: '6px 0 0', color: '#60a5fa', fontSize: '11px', fontWeight: 600 }}>
+            Web3 Incident
+          </p>
+        )}
+        {article.attribution_url && (
+          <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: '11px' }}>
+            Incident data: <a href={article.attribution_url} style={{ color: '#93c5fd' }}>QuillMonitor</a>
+          </p>
+        )}
       </td>
     </tr>
   );
@@ -291,6 +333,9 @@ export const EmailPreview = ({
             <p className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               <span>Delivery schedule: <strong className="text-foreground">{deliverySchedule}</strong></span>
+            </p>
+            <p>
+              Content: {contentScope === 'web3-incidents' ? 'Web3 incidents only' : 'All intelligence'}
             </p>
             <p>
               Categories: {categories.length > 0 ? categories.map(c => newsCategoryConfig[c]?.name).join(', ') : 'none selected'}

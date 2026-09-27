@@ -5,6 +5,7 @@ import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
+import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -19,9 +20,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
+import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { serializeJsonLd } from '@/utils/jsonLd';
+import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER, isClassificationRelevant } from '@/utils/newsIncident';
 import {
   buildNewsArticleSchema,
   buildNewsBreadcrumbSchema,
@@ -40,12 +42,34 @@ const AUTO_REFRESH_OPTIONS = [
   { value: '300', label: '5m' },
 ];
 
+const NEWS_CATEGORIES = new Set<NewsCategory>([
+  'operational-security',
+  'supply-chain',
+  'personal-protection',
+  'web3-security',
+  'defi-exploits',
+  'vulnerability-disclosure',
+  'tools-reviews',
+]);
+const SEVERITY_LEVELS = new Set<SeverityLevel>(['critical', 'high', 'medium', 'low', 'info']);
+
+function parseListParam<T extends string>(value: string | null, allowed: Set<T>): T[] {
+  if (!value) return [];
+  return [...new Set(value.split(',').filter((item): item is T => allowed.has(item as T)))];
+}
+
 const News = () => {
   const navigate = useNavigate();
   const { articleId: routeArticleId } = useParams<{ articleId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
-  const [selectedSeverities, setSelectedSeverities] = useState<SeverityLevel[]>([]);
+  const selectedCategories = useMemo(
+    () => parseListParam(searchParams.get('categories') || searchParams.get('category'), NEWS_CATEGORIES),
+    [searchParams],
+  );
+  const selectedSeverities = useMemo(
+    () => parseListParam(searchParams.get('severities') || searchParams.get('severity'), SEVERITY_LEVELS),
+    [searchParams],
+  );
   const [selectedTab, setSelectedTab] = useState(() => {
     const requestedTab = searchParams.get('tab');
     return requestedTab && ['feed', 'alerts', 'subscribe'].includes(requestedTab) ? requestedTab : 'feed';
@@ -98,29 +122,46 @@ const News = () => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
-    if (tabFromUrl && ['feed', 'alerts', 'subscribe'].includes(tabFromUrl)) {
-      setSelectedTab(tabFromUrl);
-    }
+    setSelectedTab(tabFromUrl && ['feed', 'alerts', 'subscribe'].includes(tabFromUrl) ? tabFromUrl : 'feed');
   }, [searchParams]);
 
   const handleTabChange = (tabId: string) => {
     setSelectedTab(tabId);
-    const params: Record<string, string> = { tab: tabId };
-    setSearchParams(params);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (tabId === 'feed') next.delete('tab');
+      else next.set('tab', tabId);
+      return next;
+    });
   };
 const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [deepLinkState, setDeepLinkState] = useState<'idle' | 'loading' | 'not-found' | 'error'>('idle');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'severity'>('date');
-  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
-  const [feedView, setFeedView] = useState<'all' | 'web3-incidents'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const searchQuery = searchParams.get('q') || '';
+  const sortBy = searchParams.get('sort') === 'severity' ? 'severity' : 'date';
+  const dateFilter = ['7d', '30d', '90d'].includes(searchParams.get('date') || '')
+    ? searchParams.get('date') as '7d' | '30d' | '90d'
+    : 'all';
+  const feedView: ThreatIntelScope = searchParams.get('scope') === 'web3-incidents' ? 'web3-incidents' : 'all';
+  const parsedPage = Number.parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const pageSize = 20;
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategories, selectedSeverities, searchQuery, dateFilter, feedView]);
+  const updateFeedParam = useCallback((key: string, value: string | null, replace = false) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('category');
+      next.delete('severity');
+      if (value) next.set(key, value);
+      else next.delete(key);
+      if (key !== 'page') next.delete('page');
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
+
+  const setCurrentPage = useCallback((page: number | ((current: number) => number)) => {
+    const nextPage = typeof page === 'function' ? page(currentPage) : page;
+    updateFeedParam('page', nextPage > 1 ? String(nextPage) : null);
+  }, [currentPage, updateFeedParam]);
 
   // Fetch articles from database
   const { 
@@ -154,6 +195,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     const { data, error: alertsFetchError } = await supabase
       .from('news_articles')
       .select('*')
+      .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
       .in('severity', ['critical', 'high'])
       .order('published_at', { ascending: false })
       .limit(100);
@@ -258,7 +300,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           }
           return s.replace(/\s+/g, ' ').trim();
         };
-        setSelectedArticle({
+        const article: NewsArticle = {
           id: data.id,
           title: sanitize(data.title),
           summary: sanitize(data.summary),
@@ -277,7 +319,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           metadata: data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
             ? data.metadata as NewsArticle['metadata']
             : undefined,
-        });
+        };
+        if (!isClassificationRelevant(article)) {
+          setDeepLinkState('not-found');
+          return;
+        }
+        setSelectedArticle(article);
         setDeepLinkState('idle');
       } else {
         setDeepLinkState('not-found');
@@ -303,27 +350,25 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   }, [selectedTab, autoRefreshInterval, fetchActiveAlerts]);
 
   const handleCategoryToggle = (category: NewsCategory) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
+    const next = selectedCategories.includes(category)
+      ? selectedCategories.filter((current) => current !== category)
+      : [...selectedCategories, category];
+    updateFeedParam('categories', next.length > 0 ? next.join(',') : null);
   };
 
   const handleSeverityToggle = (severity: SeverityLevel) => {
-    setSelectedSeverities(prev =>
-      prev.includes(severity)
-        ? prev.filter(s => s !== severity)
-        : [...prev, severity]
-    );
+    const next = selectedSeverities.includes(severity)
+      ? selectedSeverities.filter((current) => current !== severity)
+      : [...selectedSeverities, severity];
+    updateFeedParam('severities', next.length > 0 ? next.join(',') : null);
   };
 
   const handleClearFilters = () => {
-    setSelectedCategories([]);
-    setSelectedSeverities([]);
-    setSearchQuery('');
-    setDateFilter('all');
-    setFeedView('all');
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      ['categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page'].forEach((key) => next.delete(key));
+      return next;
+    });
   };
 
   // Use database articles directly (filtering handled by hook)
@@ -341,20 +386,21 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     return activeAlerts;
   }, [activeAlerts]);
 
-  const quillMonitorAlerts = useMemo(() => {
-    return activeAlerts.filter((article) => article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor');
-  }, [activeAlerts]);
-
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
-    navigate(`/threat-intel/${encodeURIComponent(article.id)}`);
+    const query = searchParams.toString();
+    navigate(`/threat-intel/${encodeURIComponent(article.id)}${query ? `?${query}` : ''}`);
   };
 
   const handleBackToNews = () => {
     setSelectedArticle(null);
     setDeepLinkState('idle');
     deepLinkLoaded.current = '';
-    navigate(selectedTab === 'feed' ? '/threat-intel' : `/threat-intel?tab=${encodeURIComponent(selectedTab)}`);
+    const next = new URLSearchParams(searchParams);
+    next.delete('article');
+    if (selectedTab === 'feed') next.delete('tab');
+    else next.set('tab', selectedTab);
+    navigate(`/threat-intel${next.size > 0 ? `?${next.toString()}` : ''}`);
   };
 
   // Handle new articles from realtime
@@ -564,22 +610,18 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       <Input
                         placeholder="Search articles, technologies, tags..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(event) => updateFeedParam('q', event.target.value || null, true)}
                         className="pl-10"
                       />
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      <Select value={feedView} onValueChange={(value: 'all' | 'web3-incidents') => setFeedView(value)}>
-                        <SelectTrigger className="w-44" aria-label="Choose feed view">
-                          <RadioTower className="w-4 h-4 mr-2" />
-                          <SelectValue placeholder="Source" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Intelligence</SelectItem>
-                          <SelectItem value="web3-incidents">Web3 Incidents</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
+                      <ContentScopeSelector
+                        value={feedView}
+                        onChange={(value) => updateFeedParam('scope', value === 'all' ? null : value)}
+                        label="Choose intelligence scope"
+                        idPrefix="feed-scope"
+                      />
+                      <Select value={dateFilter} onValueChange={(value: 'all' | '7d' | '30d' | '90d') => updateFeedParam('date', value === 'all' ? null : value)}>
                         <SelectTrigger className="w-32">
                           <Calendar className="w-4 h-4 mr-2" />
                           <SelectValue placeholder="Date" />
@@ -591,7 +633,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                           <SelectItem value="90d">Last 90 Days</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                      <Select value={sortBy} onValueChange={(value: 'date' | 'severity') => updateFeedParam('sort', value === 'date' ? null : value)}>
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="Sort" />
                         </SelectTrigger>
@@ -921,30 +963,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     </Button>
                   </div>
                 </div>
-
-                {quillMonitorAlerts.length > 0 && (
-                  <div className="border-y border-border py-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
-                        <RadioTower className="h-3 w-3" /> QuillMonitor
-                      </Badge>
-                      <h2 className="font-semibold">Imported active alerts ({quillMonitorAlerts.length})</h2>
-                    </div>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {quillMonitorAlerts.map((alert) => (
-                        <Button
-                          key={alert.id}
-                          variant="outline"
-                          className="h-auto min-h-12 justify-between gap-3 whitespace-normal px-3 py-2 text-left"
-                          onClick={() => handleArticleClick(alert)}
-                        >
-                          <span className="line-clamp-2 text-sm">{alert.title}</span>
-                          <Badge variant="secondary" className="shrink-0 capitalize">{alert.severity}</Badge>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Critical Alerts */}
                 {criticalAlerts.length > 0 && (

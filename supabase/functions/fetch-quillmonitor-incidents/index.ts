@@ -155,6 +155,10 @@ Deno.serve(async (req) => {
 
     const persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
     const health = assessQuillMonitorRunHealth(recordsFound, invalidRecords, persistenceErrors);
+    const categoryCounts = articles.reduce((counts: Record<string, number>, article) => {
+      counts[article.category] = (counts[article.category] || 0) + 1;
+      return counts;
+    }, {});
     console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} found=${recordsFound} normalized=${articles.length} inserted=${inserted} updated=${updated} invalid=${invalidRecords} persistence_errors=${persistenceErrors} healthy=${health.success}`);
     await recordIngestionRun(db, {
       pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
@@ -168,6 +172,8 @@ Deno.serve(async (req) => {
         records_accepted: articles.length,
         validation_rejection_ratio: Number(health.invalidRatio.toFixed(4)),
         persistence_errors: persistenceErrors,
+        taxonomy_version: articles[0]?.metadata.taxonomy_version || null,
+        category_counts: categoryCounts,
       },
     });
     return new Response(JSON.stringify({

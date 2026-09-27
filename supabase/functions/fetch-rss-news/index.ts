@@ -4,7 +4,14 @@ import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import {
   classifyRssRelevance,
   determineRssSeverity,
+  type KeywordEntry,
+  type RelevanceResult,
 } from '../_shared/rss-classifier.ts';
+import {
+  buildRssReclassificationPatch,
+  parseRssIngestionRequest,
+  type RssIngestionRequest,
+} from './reclassification.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -150,17 +157,12 @@ async function generateUID(title: string, link: string): Promise<string> {
 
 // ─── Relevance + Category ───────────────────────────────────────────────────
 
-interface KeywordEntry {
-  keyword: string;
+interface RssFeedRow {
+  id: string;
+  name: string;
   category: string;
-  weight: number;
-}
-
-interface RelevanceResult {
-  relevant: boolean;
-  matchedKeywords: string[];
-  category: string;
-  weight: number;
+  is_active: boolean;
+  url: string;
 }
 
 /**
@@ -188,6 +190,98 @@ function extractCVE(content: string): string | null {
   const cvePattern = /CVE-\d{4}-\d{4,}/gi;
   const match = content.match(cvePattern);
   return match ? match[0].toUpperCase() : null;
+}
+
+async function reclassifyRssArticles(
+  supabase: ReturnType<typeof createClient>,
+  feeds: RssFeedRow[],
+  keywords: KeywordEntry[],
+  request: RssIngestionRequest,
+  attemptedAt: string,
+  startedAt: number,
+) {
+  const { data, error } = await supabase
+    .from('news_articles')
+    .select('id,title,summary,content,category,tags,metadata,source_name')
+    .eq('metadata->>provider', 'rss')
+    .order('published_at', { ascending: false })
+    .range(request.offset, request.offset + request.batchSize - 1);
+  if (error) throw error;
+
+  const rows = data || [];
+  const feedsById = new Map(feeds.map((feed) => [feed.id, feed]));
+  const feedsByName = new Map(feeds.map((feed) => [feed.name, feed]));
+  let changed = 0;
+  let updated = 0;
+  let categoryChanges = 0;
+  let newlyIrrelevant = 0;
+  let web3Domain = 0;
+  let writeErrors = 0;
+
+  for (const row of rows) {
+    const metadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? row.metadata as Record<string, unknown>
+      : {};
+    const feedId = typeof metadata.feed_id === 'string' ? metadata.feed_id : '';
+    const feed = feedsById.get(feedId) || feedsByName.get(row.source_name || '');
+    const result = classifyRssRelevance(
+      row.title || '',
+      row.content || row.summary || '',
+      keywords,
+      feed?.category || 'general',
+    );
+    const plan = buildRssReclassificationPatch(row, result);
+    if (result.securityDomain === 'web3') web3Domain++;
+    if (!result.relevant && metadata.classification_relevant !== false) newlyIrrelevant++;
+    if (!plan.changed) continue;
+    changed++;
+    if (plan.categoryChanged) categoryChanges++;
+    if (request.dryRun) continue;
+
+    const { error: updateError } = await supabase
+      .from('news_articles')
+      .update(plan.patch)
+      .eq('id', row.id);
+    if (updateError) writeErrors++;
+    else updated++;
+  }
+
+  await recordIngestionRun(supabase, {
+    pipeline: 'rss',
+    attempted_at: attemptedAt,
+    completed_at: new Date().toISOString(),
+    success: writeErrors === 0,
+    records_found: rows.length,
+    records_updated: updated,
+    records_invalid: writeErrors,
+    duration_ms: Date.now() - startedAt,
+    error_summary: writeErrors > 0 ? `${writeErrors} RSS reclassification writes failed` : undefined,
+    metadata: {
+      mode: 'reclassify',
+      dry_run: request.dryRun,
+      batch_size: request.batchSize,
+      offset: request.offset,
+      has_more: rows.length === request.batchSize,
+      records_changed: changed,
+      category_changes: categoryChanges,
+      newly_irrelevant: newlyIrrelevant,
+      web3_domain_records: web3Domain,
+    },
+  });
+
+  return new Response(JSON.stringify({
+    success: writeErrors === 0,
+    mode: 'reclassify',
+    dryRun: request.dryRun,
+    scanned: rows.length,
+    changed,
+    updated,
+    categoryChanges,
+    newlyIrrelevant,
+    web3Domain,
+    writeErrors,
+    nextOffset: rows.length === request.batchSize ? request.offset + rows.length : null,
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
 // ─── Main Handler ───────────────────────────────────────────────────────────
@@ -237,6 +331,7 @@ serve(async (req) => {
   }
 
   try {
+    const request = parseRssIngestionRequest(await req.json().catch(() => ({})));
     console.log('[fetch-rss-news] Starting RSS fetch...');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -244,16 +339,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch active RSS feeds + keywords in parallel
+    const feedsQuery = supabase.from('rss_feeds').select('*');
     const [feedsResult, keywordsResult] = await Promise.all([
-      supabase.from('rss_feeds').select('*').eq('is_active', true),
+      request.mode === 'reclassify' ? feedsQuery : feedsQuery.eq('is_active', true),
       supabase.from('security_keywords').select('keyword, category, weight'),
     ]);
 
     if (feedsResult.error) throw feedsResult.error;
     if (keywordsResult.error) throw keywordsResult.error;
 
-    const feeds = feedsResult.data || [];
+    const feeds = (feedsResult.data || []) as RssFeedRow[];
     const keywords = (keywordsResult.data || []) as KeywordEntry[];
+
+    if (request.mode === 'reclassify') {
+      console.log(`[fetch-rss-news] Reclassification ${request.dryRun ? 'dry run' : 'write'} offset=${request.offset} batch=${request.batchSize}`);
+      return await reclassifyRssArticles(supabase, feeds, keywords, request, attemptedAt, startedAt);
+    }
 
     console.log(`[fetch-rss-news] Found ${feeds.length} active feeds, ${keywords.length} keywords`);
 
@@ -263,6 +364,7 @@ serve(async (req) => {
 
     const allArticles: any[] = [];
     const errors: string[] = [];
+    let classificationRejected = 0;
 
     for (const feed of feeds) {
       try {
@@ -304,7 +406,10 @@ serve(async (req) => {
           const cleanDesc = cleanSummary(stripHtml(item.description));
 
           const relevance = isRelevant(cleanTitle, cleanDesc, keywords, feed.category);
-          if (!relevance.relevant) continue;
+          if (!relevance.relevant) {
+            classificationRejected++;
+            continue;
+          }
 
           const severity = determineSeverity(relevance.matchedKeywords, cleanTitle);
           const cveId = extractCVE(cleanTitle + ' ' + cleanDesc);
@@ -327,8 +432,13 @@ serve(async (req) => {
             metadata: {
               provider: 'rss',
               feed_id: feed.id,
+              security_domain: relevance.securityDomain,
+              is_web3_incident: false,
               matched_keywords: relevance.matchedKeywords.slice(0, 10),
               classification_weight: relevance.weight,
+              classification_relevant: relevance.relevant,
+              taxonomy_version: relevance.taxonomyVersion,
+              classification_reasons: relevance.classificationReasons,
             }
           });
         }
@@ -381,6 +491,10 @@ serve(async (req) => {
     }
 
     console.log(`[fetch-rss-news] Inserted: ${insertedCount}, Duplicates: ${duplicateCount}`);
+    const categoryCounts = allArticles.reduce((counts: Record<string, number>, article) => {
+      counts[article.category] = (counts[article.category] || 0) + 1;
+      return counts;
+    }, {});
     await recordIngestionRun(supabase, {
       pipeline: 'rss', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
       success: errors.length === 0 && writeErrorCount === 0,
@@ -389,7 +503,14 @@ serve(async (req) => {
       error_summary: errors.length || writeErrorCount
         ? `${errors.length} feeds and ${writeErrorCount} article writes reported errors`
         : undefined,
-      metadata: { feeds_checked: feeds.length, duplicates: duplicateCount, write_errors: writeErrorCount },
+      metadata: {
+        feeds_checked: feeds.length,
+        duplicates: duplicateCount,
+        write_errors: writeErrorCount,
+        classification_rejected: classificationRejected,
+        web3_domain_records: allArticles.filter((article) => article.metadata?.security_domain === 'web3').length,
+        category_counts: categoryCounts,
+      },
     });
 
     // Trigger AI summarization for new articles

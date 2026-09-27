@@ -4,6 +4,10 @@ import {
   containsSecurityTerm,
   determineRssSeverity,
 } from "../_shared/rss-classifier.ts";
+import {
+  buildRssReclassificationPatch,
+  parseRssIngestionRequest,
+} from './reclassification.ts';
 
 // ─── Inline the pure functions from index.ts for isolated testing ───────────
 
@@ -221,6 +225,150 @@ Deno.test("classifier: genuine APT and Tor tokens still match", () => {
 
 Deno.test("classifier: lowercase apt package manager is not a threat group", () => {
   assertEquals(containsSecurityTerm('apt package manager update', 'apt'), false);
+});
+
+Deno.test("classifier: ordinary package releases need a security co-signal", () => {
+  const result = classifyRssRelevance(
+    'New npm package release improves developer workflows',
+    'The dependency adds documentation and performance improvements.',
+    [
+      { keyword: 'npm', category: 'supply-chain', weight: 3 },
+      { keyword: 'package', category: 'supply-chain', weight: 2 },
+      { keyword: 'dependency', category: 'supply-chain', weight: 2 },
+    ],
+    'general',
+  );
+  assertEquals(result.relevant, false);
+});
+
+Deno.test("classifier: generic crypto market news is not security intelligence", () => {
+  const result = classifyRssRelevance(
+    'Ethereum ecosystem announces a new token launch',
+    'The blockchain project shared its product roadmap.',
+    [
+      { keyword: 'ethereum', category: 'web3', weight: 2 },
+      { keyword: 'blockchain', category: 'web3', weight: 2 },
+      { keyword: 'token', category: 'web3', weight: 2 },
+    ],
+    'general',
+  );
+  assertEquals(result.relevant, false);
+  assertEquals(result.securityDomain, null);
+});
+
+Deno.test("classifier: a Web3 feed establishes domain for a named-protocol incident", () => {
+  const result = classifyRssRelevance(
+    'Balancer protocol hacked',
+    'Attackers stole funds after compromising the protocol.',
+    [{ keyword: 'hack', category: 'breach', weight: 3 }],
+    'web3-security',
+  );
+  assertEquals(result.relevant, true);
+  assertEquals(result.category, 'web3-security');
+  assertEquals(result.securityDomain, 'web3');
+});
+
+Deno.test("classifier: a matched Web3 keyword establishes domain only with a security signal", () => {
+  const incident = classifyRssRelevance(
+    'Balancer protocol hacked',
+    'Attackers stole funds from the protocol.',
+    [
+      { keyword: 'balancer', category: 'web3', weight: 3 },
+      { keyword: 'hack', category: 'breach', weight: 3 },
+    ],
+    'general',
+  );
+  const productNews = classifyRssRelevance(
+    'Balancer releases a new product',
+    'The protocol shared its roadmap.',
+    [{ keyword: 'balancer', category: 'web3', weight: 3 }],
+    'general',
+  );
+  assertEquals(incident.securityDomain, 'web3');
+  assertEquals(incident.relevant, true);
+  assertEquals(productNews.securityDomain, null);
+  assertEquals(productNews.relevant, false);
+});
+
+Deno.test("classifier: DeFi exploit receives the narrow topic and Web3 domain", () => {
+  const result = classifyRssRelevance(
+    'DeFi lending protocol exploited in flash loan attack',
+    'Attackers drained a liquidity pool on Ethereum.',
+    [
+      { keyword: 'defi', category: 'web3', weight: 3 },
+      { keyword: 'exploit', category: 'vulnerability', weight: 3 },
+      { keyword: 'ethereum', category: 'web3', weight: 2 },
+    ],
+    'general',
+  );
+  assertEquals(result.relevant, true);
+  assertEquals(result.category, 'defi-exploits');
+  assertEquals(result.securityDomain, 'web3');
+});
+
+Deno.test("classifier: wallet phishing keeps operational primary category and Web3 domain", () => {
+  const result = classifyRssRelevance(
+    'Crypto wallet users targeted in phishing attack',
+    'The malicious campaign attempts to steal seed phrases.',
+    [
+      { keyword: 'wallet', category: 'web3', weight: 3 },
+      { keyword: 'phishing', category: 'attack', weight: 3 },
+      { keyword: 'seed phrase', category: 'web3', weight: 3 },
+    ],
+    'general',
+  );
+  assertEquals(result.category, 'operational-security');
+  assertEquals(result.securityDomain, 'web3');
+});
+
+Deno.test("classifier: explicit smart-contract CVE remains a vulnerability disclosure", () => {
+  const result = classifyRssRelevance(
+    'CVE-2026-12345 affects Ethereum smart contract tooling',
+    'A security advisory describes the vulnerability and patch.',
+    [
+      { keyword: 'cve', category: 'vulnerability', weight: 3 },
+      { keyword: 'smart contract', category: 'web3', weight: 3 },
+      { keyword: 'ethereum', category: 'web3', weight: 2 },
+    ],
+    'general',
+  );
+  assertEquals(result.category, 'vulnerability-disclosure');
+  assertEquals(result.securityDomain, 'web3');
+});
+
+Deno.test("reclassification request is bounded and defaults to a dry run", () => {
+  assertEquals(parseRssIngestionRequest({ mode: 'reclassify', batchSize: 9999, offset: -5 }), {
+    mode: 'reclassify',
+    dryRun: true,
+    batchSize: 250,
+    offset: 0,
+  });
+  assertEquals(parseRssIngestionRequest({ mode: 'reclassify', dryRun: false, batch_size: 25 }).dryRun, false);
+  assertEquals(parseRssIngestionRequest({ mode: 'unknown', dryRun: false }).mode, 'sync');
+});
+
+Deno.test("reclassification patch changes only taxonomy fields and preserves provider metadata", () => {
+  const result = classifyRssRelevance(
+    'DeFi bridge exploited in flash loan attack',
+    'Attackers drained an Ethereum liquidity pool.',
+    [
+      { keyword: 'defi', category: 'web3', weight: 3 },
+      { keyword: 'exploit', category: 'vulnerability', weight: 3 },
+      { keyword: 'ethereum', category: 'web3', weight: 2 },
+    ],
+    'general',
+  );
+  const plan = buildRssReclassificationPatch({
+    category: 'web3-security',
+    tags: ['defi'],
+    metadata: { provider: 'rss', feed_id: 'feed-1', retained: 'yes' },
+  }, result);
+  assertEquals(plan.changed, true);
+  assertEquals(plan.categoryChanged, true);
+  assertEquals(plan.patch.category, 'defi-exploits');
+  assertEquals(plan.patch.metadata.retained, 'yes');
+  assertEquals(plan.patch.metadata.security_domain, 'web3');
+  assertEquals(plan.patch.metadata.is_web3_incident, false);
 });
 
 Deno.test("extractCVE: extracts CVE ID", () => {

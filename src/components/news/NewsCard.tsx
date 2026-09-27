@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ExternalLink, Clock, AlertTriangle, Info, Zap, Sparkles, RadioTower } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow } from 'date-fns';
+import { isWeb3Incident } from '@/utils/newsIncident';
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -12,8 +13,7 @@ interface NewsCardProps {
 
 export const NewsCard = ({ article, onClick }: NewsCardProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
-  const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
-  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string';
+  const web3Incident = isWeb3Incident(article);
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -71,16 +71,10 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
               {getSeverityIcon(article.severity)}
               <span className="ml-1 capitalize">{article.severity}</span>
             </Badge>
-            {isWeb3Incident && (
+            {web3Incident && (
               <Badge variant="secondary" className="gap-1">
                 <RadioTower className="w-3 h-3" />
                 Web3 Incident
-              </Badge>
-            )}
-            {isQuillMonitor && (
-              <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
-                <RadioTower className="w-3 h-3" />
-                QuillMonitor
               </Badge>
             )}
           </div>
@@ -138,7 +132,7 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
           </div>
         )}
 
-        {isWeb3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
+        {web3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
           <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
             {article.metadata?.project_name && <div><span className="text-muted-foreground">Project</span><div className="font-medium truncate">{article.metadata.project_name}</div></div>}
             {article.metadata?.chain && <div><span className="text-muted-foreground">Chain</span><div className="font-medium truncate">{article.metadata.chain}</div></div>}

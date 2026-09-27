@@ -9,6 +9,8 @@ export type NewsCategory =
 
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
+export type ThreatIntelScope = 'all' | 'web3-incidents';
+
 export type AlertType = 'vulnerability' | 'exploit' | 'tool-update' | 'best-practice' | 'incident';
 
 export interface NewsArticle {
@@ -31,6 +33,8 @@ export interface NewsArticle {
   metadata?: {
     provider?: string;
     is_web3_incident?: boolean;
+    security_domain?: string;
+    classification_relevant?: boolean;
     provider_incident_id?: string;
     project_name?: string;
     chain?: string;

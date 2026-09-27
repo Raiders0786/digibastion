@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Clock, Users } from 'lucide-react';
-import { NewsCategory, SeverityLevel } from '@/types/news';
+import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
@@ -15,12 +15,14 @@ import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { EmailPreview } from './EmailPreview';
 import { z } from 'zod';
 import { dayOptions, formatDeliveryTime, getDefaultTimezoneOffset, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
+import { ContentScopeSelector } from './ContentScopeSelector';
 
 // Input validation schema
 const subscriptionSchema = z.object({
   name: z.string().max(100, "Name must be less than 100 characters").optional(),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   categories: z.array(z.string()).min(1, "Select at least one category").max(10),
+  content_scope: z.enum(['all', 'web3-incidents']),
   technologies: z.array(z.string()).max(20).optional(),
   frequency: z.enum(["immediate", "daily", "weekly"]),
   severity: z.enum(["critical", "high", "medium", "low", "info"]),
@@ -33,6 +35,7 @@ export const SubscriptionForm = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
+  const [contentScope, setContentScope] = useState<ThreatIntelScope>('all');
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
@@ -68,6 +71,7 @@ export const SubscriptionForm = () => {
       name: name || undefined,
       email,
       categories: selectedCategories,
+      content_scope: contentScope,
       technologies: selectedTechnologies,
       frequency: alertFrequency,
       severity: severityThreshold,
@@ -122,6 +126,7 @@ export const SubscriptionForm = () => {
           setEmail('');
           setName('');
           setSelectedCategories([]);
+          setContentScope('all');
           setSelectedTechnologies([]);
           setAlertFrequency('daily');
           setSeverityThreshold('medium');
@@ -195,6 +200,10 @@ export const SubscriptionForm = () => {
                   <span className="font-medium">{formatDeliveryTime(preferredHour, timezoneOffset)}</span>
                 </div>
               )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Content</span>
+                <span className="font-medium">{contentScope === 'web3-incidents' ? 'Web3 incidents only' : 'All intelligence'}</span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Categories</span>
                 <span className="font-medium">{selectedCategories.length} selected</span>
@@ -272,6 +281,14 @@ export const SubscriptionForm = () => {
               />
             </div>
           </div>
+
+          <ContentScopeSelector
+            value={contentScope}
+            onChange={setContentScope}
+            label="Content coverage"
+            showDescription
+            idPrefix="subscription-content-scope"
+          />
 
           {/* Categories Selection */}
           <div className="space-y-3">
@@ -484,6 +501,7 @@ export const SubscriptionForm = () => {
             {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
               <EmailPreview 
                 categories={selectedCategories}
+                contentScope={contentScope}
                 frequency={alertFrequency}
                 severity={severityThreshold}
                 name={name}

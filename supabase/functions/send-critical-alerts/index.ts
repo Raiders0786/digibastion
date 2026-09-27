@@ -1,5 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import {
+  escapeHtml,
+  formatDeliveryArticleText,
+  matchesDeliveryPreferences,
+  renderIncidentContextHtml,
+  safeHttpUrl,
+  stripHtml,
+  type ContentScope,
+} from "../_shared/subscription-delivery.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,108 +24,30 @@ interface CriticalArticle {
   link: string;
   published_at: string;
   cve_id?: string;
-  tags: string[];
+  tags: string[] | null;
+  affected_technologies?: string[] | null;
   source_name?: string;
-  metadata?: {
-    provider?: string;
-    project_name?: string;
-    chain?: string;
-    attack_type?: string;
-    amount_display?: string;
-    attribution_url?: string;
-    is_web3_incident?: boolean;
-  } | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface Subscription {
   id: string;
   email: string;
   name: string | null;
-  categories: string[];
-  technologies: string[];
+  categories: string[] | null;
+  technologies: string[] | null;
   frequency: string;
   severity_threshold: string;
   verification_token: string | null;
-}
-
-// Severity ranking for comparison
-const severityRank: Record<string, number> = {
-  'critical': 0,
-  'high': 1,
-  'medium': 2,
-  'low': 3,
-  'info': 4,
-};
-
-// Strip HTML tags and decode entities (handles double-encoded feeds)
-function stripHtml(text: string | null | undefined): string {
-  if (!text) return '';
-  let s = text, prev = '';
-  while (s !== prev) {
-    prev = s;
-    s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
-      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-      .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
-        const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
-        return m[n.toLowerCase()] ?? '';
-      });
-    s = s.replace(/<[^>]*>/g, '');
-  }
-  return s.replace(/\s+/g, ' ').trim();
-}
-
-// HTML escape function to prevent injection attacks
-function escapeHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function shouldNotify(article: CriticalArticle, subscription: Subscription): boolean {
-  // Check severity threshold
-  const articleRank = severityRank[article.severity] ?? 4;
-  const thresholdRank = severityRank[subscription.severity_threshold] ?? 2;
-  
-  if (articleRank > thresholdRank) {
-    return false;
-  }
-
-  // Check category match (if subscriber has categories)
-  if (subscription.categories.length > 0) {
-    if (!subscription.categories.includes(article.category)) {
-      return false;
-    }
-  }
-
-  // Check technology match (if subscriber has technologies and article has tags)
-  if (subscription.technologies.length > 0 && article.tags.length > 0) {
-    const techMatch = subscription.technologies.some(tech => 
-      article.tags.some(tag => tag.toLowerCase().includes(tech.toLowerCase()))
-    );
-    // Technologies are optional filter - only exclude if no match AND subscriber specified technologies
-    // For critical alerts, we still notify even without tech match
-    if (!techMatch && article.severity !== 'critical') {
-      return false;
-    }
-  }
-
-  return true;
+  content_scope: ContentScope;
 }
 
 function generateEmailHtml(articles: CriticalArticle[], subscriberName: string | null, subscriberEmail: string, verificationToken: string | null): string {
   const name = escapeHtml(subscriberName || 'Security Professional');
   
   const articlesList = articles.map(article => {
-    const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor';
-    const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof (article.metadata as Record<string, unknown> | null)?.data_source === 'string';
-    const incidentFacts = isWeb3Incident
-      ? [article.metadata?.project_name, article.metadata?.chain, article.metadata?.attack_type, article.metadata?.amount_display]
-          .filter(Boolean).map((fact) => escapeHtml(String(fact))).join(' · ')
-      : '';
+    const fallbackArticleUrl = `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`;
+    const articleUrl = safeHttpUrl(article.link, fallbackArticleUrl);
     return `
     <tr>
       <td style="padding: 16px; border-bottom: 1px solid #333;">
@@ -127,16 +58,14 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
           ${article.cve_id ? `<span style="background: #4b5563; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">${escapeHtml(article.cve_id)}</span>` : ''}
         </div>
         <h3 style="margin: 0 0 8px 0; color: #f3f4f6;">
-          <a href="${escapeHtml(article.link)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(stripHtml(article.title))}</a>
+          <a href="${escapeHtml(articleUrl)}" style="color: #60a5fa; text-decoration: none;">${escapeHtml(stripHtml(article.title))}</a>
         </h3>
         <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">
           ${escapeHtml(stripHtml(article.summary) || 'Click to read more...')}
         </p>
-        ${isWeb3Incident ? `<p style="margin:8px 0 0;color:#60a5fa;font-size:11px;font-weight:600;">Web3 Incident</p>` : ''}
-        ${incidentFacts ? `<p style="margin:8px 0 0;color:#d1d5db;font-size:12px;">${incidentFacts}</p>` : ''}
-        ${isQuillMonitor ? `<p style="margin:8px 0 0;"><a href="${escapeHtml(article.metadata?.attribution_url || 'https://www.quillaudits.com/web3-hacks-database')}" style="color:#60a5fa;font-size:11px;text-decoration:none;">Powered by QuillMonitor</a></p>` : ''}
+        ${renderIncidentContextHtml(article)}
         <div style="margin-top: 8px;">
-          ${article.tags.slice(0, 5).map(tag => 
+          ${(article.tags || []).slice(0, 5).map(tag =>
             `<span style="background: #374151; color: #d1d5db; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;">#${escapeHtml(tag)}</span>`
           ).join('')}
         </div>
@@ -204,6 +133,35 @@ function generateEmailHtml(articles: CriticalArticle[], subscriberName: string |
   `;
 }
 
+function generateEmailText(
+  articles: CriticalArticle[],
+  subscriberName: string | null,
+  subscriberEmail: string,
+  verificationToken: string | null,
+): string {
+  const encodedEmail = encodeURIComponent(subscriberEmail);
+  const encodedToken = verificationToken ? encodeURIComponent(verificationToken) : '';
+  const manageUrl = verificationToken
+    ? `https://www.digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
+    : `https://www.digibastion.com/manage-subscription?email=${encodedEmail}`;
+  const articleText = articles.map((article) => formatDeliveryArticleText(
+    article,
+    `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`,
+  )).join('\n\n');
+
+  return [
+    'Critical Security Alert',
+    '',
+    `Hi ${subscriberName || 'Security Professional'},`,
+    `${articles.length} new critical/high severity ${articles.length === 1 ? 'threat matches' : 'threats match'} your preferences.`,
+    '',
+    articleText,
+    '',
+    'View all threats: https://www.digibastion.com/threat-intel',
+    `Manage preferences or unsubscribe: ${manageUrl}`,
+  ].join('\n');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -229,13 +187,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get recent critical/high articles (last 6 hours for immediate alerts)
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const now = new Date();
+    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
     
     const { data: articles, error: articlesError } = await supabase
       .from('news_articles')
-      .select('id, title, summary, severity, category, link, published_at, cve_id, tags, source_name, metadata')
+      .select('id, title, summary, severity, category, link, published_at, cve_id, tags, affected_technologies, source_name, metadata')
       .in('severity', ['critical', 'high'])
       .gte('created_at', sixHoursAgo)
+      .lte('created_at', now.toISOString())
+      .gte('published_at', sixHoursAgo)
+      .lte('published_at', now.toISOString())
       .order('published_at', { ascending: false });
 
     if (articlesError) {
@@ -281,7 +243,7 @@ serve(async (req) => {
       // Log what would be sent
       let wouldSend = 0;
       for (const subscription of subscriptions) {
-        const matchingArticles = articles.filter(a => shouldNotify(a as CriticalArticle, subscription as Subscription));
+        const matchingArticles = articles.filter(a => matchesDeliveryPreferences(a as CriticalArticle, subscription as Subscription));
         if (matchingArticles.length > 0) {
           console.log(`[send-critical-alerts] Would notify subscription ${subscription.id} about ${matchingArticles.length} articles`);
           wouldSend++;
@@ -309,7 +271,7 @@ serve(async (req) => {
       const sub = subscription as Subscription;
       
       // Filter articles for this subscriber
-      const matchingArticles = articles.filter(a => shouldNotify(a as CriticalArticle, sub));
+      const matchingArticles = articles.filter(a => matchesDeliveryPreferences(a as CriticalArticle, sub));
       
       if (matchingArticles.length === 0) {
         continue;
@@ -335,6 +297,7 @@ serve(async (req) => {
       try {
         // Send email via Resend
         const emailHtml = generateEmailHtml(newArticles as CriticalArticle[], sub.name, sub.email, sub.verification_token);
+        const emailText = generateEmailText(newArticles as CriticalArticle[], sub.name, sub.email, sub.verification_token);
         
         // Build one-click unsubscribe URL for RFC 8058 compliance
         const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
@@ -352,6 +315,8 @@ serve(async (req) => {
             to: [sub.email],
             subject: `🚨 ${newArticles.length} Critical Security Alert${newArticles.length > 1 ? 's' : ''} - Immediate Action Required`,
             html: emailHtml,
+            text: emailText,
+            reply_to: 'support@digibastion.com',
             headers: {
               'List-Unsubscribe': `<${oneClickUnsubUrl}>`,
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

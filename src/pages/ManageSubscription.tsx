@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock, Send, Clock } from 'lucide-react';
-import { NewsCategory, SeverityLevel } from '@/types/news';
+import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { dayOptions, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
+import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
 
 export default function ManageSubscription() {
   const [searchParams] = useSearchParams();
@@ -26,6 +27,7 @@ export default function ManageSubscription() {
   const [token] = useState(tokenParam); // Token from URL, not editable
   const [name, setName] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
+  const [contentScope, setContentScope] = useState<ThreatIntelScope>('all');
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
@@ -65,6 +67,7 @@ export default function ManageSubscription() {
         const sub = data.subscription;
         setName(sub.name || '');
         setSelectedCategories((sub.categories || []).filter((category: string): category is NewsCategory => category in newsCategoryConfig));
+        setContentScope(sub.content_scope === 'web3-incidents' ? 'web3-incidents' : 'all');
         setSelectedTechnologies(sub.technologies || []);
         setAlertFrequency(sub.frequency || 'daily');
         setSeverityThreshold(sub.severity_threshold || 'medium');
@@ -184,6 +187,7 @@ export default function ManageSubscription() {
           token,
           name: name || null,
           categories: selectedCategories,
+          content_scope: contentScope,
           technologies: selectedTechnologies,
           frequency: alertFrequency,
           severity_threshold: severityThreshold,
@@ -449,6 +453,14 @@ export default function ManageSubscription() {
                       maxLength={100}
                     />
                   </div>
+
+                  <ContentScopeSelector
+                    value={contentScope}
+                    onChange={setContentScope}
+                    label="Content coverage"
+                    showDescription
+                    idPrefix="manage-content-scope"
+                  />
 
                   {/* Categories Selection */}
                   <div className="space-y-3">

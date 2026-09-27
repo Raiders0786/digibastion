@@ -18,6 +18,7 @@ const VALID_CATEGORIES = new Set([
 ]);
 const VALID_FREQUENCIES = new Set(['immediate', 'daily', 'weekly']);
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low', 'info']);
+const VALID_CONTENT_SCOPES = new Set(['all', 'web3-incidents']);
 
 // Rate limiting configuration
 const MAX_SUBSCRIPTIONS_PER_EMAIL = 3; // Max subscription attempts per email per hour
@@ -39,6 +40,7 @@ interface SubscriptionFormData {
   technologies?: string[];
   frequency: string;
   severity: string;
+  content_scope?: string;
   preferred_hour?: number;
   timezone_offset?: number;
   preferred_day?: number;
@@ -51,6 +53,7 @@ interface SanitizedSubscriptionData {
   technologies: string[];
   frequency: string;
   severity_threshold: string;
+  content_scope: string;
   preferred_hour: number;
   timezone_offset: number;
   preferred_day: number;
@@ -235,7 +238,11 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      if (!VALID_FREQUENCIES.has(subData.frequency) || !VALID_SEVERITIES.has(subData.severity)) {
+      if (
+        !VALID_FREQUENCIES.has(subData.frequency) ||
+        !VALID_SEVERITIES.has(subData.severity) ||
+        (subData.content_scope !== undefined && !VALID_CONTENT_SCOPES.has(subData.content_scope))
+      ) {
         return new Response(
           JSON.stringify({ success: false, error: "Invalid alert preference" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -283,7 +290,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Check if this email already has a verified subscription
       const { data: existingSub } = await supabase
         .from('subscriptions')
-        .select('id, email, name, is_verified, verification_token, verification_token_expires_at, frequency, preferred_hour, timezone_offset, preferred_day, categories, technologies, severity_threshold, is_active')
+        .select('id, email, name, is_verified, verification_token, verification_token_expires_at, frequency, preferred_hour, timezone_offset, preferred_day, categories, technologies, severity_threshold, content_scope, is_active')
         .eq('email', sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase())
         .maybeSingle();
 
@@ -314,6 +321,7 @@ const handler = async (req: Request): Promise<Response> => {
         technologies: (subData.technologies || []).slice(0, 20).map(t => sanitizeString(t, 50)),
         frequency: sanitizeString(subData.frequency, 20),
         severity_threshold: sanitizeString(subData.severity, 20),
+        content_scope: subData.content_scope || 'all',
         preferred_hour: typeof subData.preferred_hour === 'number' ? Math.min(23, Math.max(0, subData.preferred_hour)) : 9,
         timezone_offset: typeof subData.timezone_offset === 'number' ? Math.min(14, Math.max(-12, subData.timezone_offset)) : 0,
         preferred_day: typeof subData.preferred_day === 'number' ? Math.min(6, Math.max(0, subData.preferred_day)) : 0,

@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
 import quillMonitorAsset from '@/assets/powered-by-quillmonitor.svg.asset.json';
 import { openExternalUrl, safeExternalUrl } from '@/utils/safeUrl';
+import { isQuillMonitorArticle, isWeb3Incident } from '@/utils/newsIncident';
 
 interface StoredBookmark {
   id: string;
@@ -26,8 +27,8 @@ interface NewsDetailProps {
 
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
-  const isQuillMonitor = article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
-  const isWeb3Incident = isQuillMonitor || article.metadata?.is_web3_incident === true || ['web3-incidents', 'web3'].includes(article.metadata?.provider || '') || typeof article.metadata?.data_source === 'string';
+  const isQuillMonitor = isQuillMonitorArticle(article);
+  const web3Incident = isWeb3Incident(article);
   const { toast } = useToast();
   
   const { relatedArticles, isLoading: isLoadingRelated } = useRelatedArticles({
@@ -165,6 +166,12 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               {getSeverityIcon(article.severity)}
               <span className="capitalize">{article.severity}</span>
             </Badge>
+            {web3Incident && (
+              <Badge variant="secondary" className="gap-1">
+                <RadioTower className="h-3 w-3" aria-hidden="true" />
+                Web3 Incident
+              </Badge>
+            )}
             {article.cveId && (
               <Badge variant="destructive">
                 {article.cveId}
@@ -206,24 +213,29 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           </div>
 
           {/* Affected Technologies */}
-          {isWeb3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
+          {web3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
             <div className="border-y py-5">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {article.metadata?.project_name && <div><div className="text-xs text-muted-foreground">Affected project</div><div className="font-medium">{article.metadata.project_name}</div></div>}
                 {article.metadata?.chain && <div><div className="text-xs text-muted-foreground">Chain</div><div className="font-medium">{article.metadata.chain}</div></div>}
                 {article.metadata?.attack_type && <div><div className="text-xs text-muted-foreground">Attack method</div><div className="font-medium">{article.metadata.attack_type}</div></div>}
                 {article.metadata?.amount_display && <div><div className="text-xs text-muted-foreground">Reported loss</div><div className="font-medium">{article.metadata.amount_display}</div></div>}
               </div>
-              {isQuillMonitor && <a
+            </div>
+          )}
+
+          {isQuillMonitor && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/20 p-3">
+              <span className="text-xs text-muted-foreground">Incident data provided by</span>
+              <a
                 href={safeExternalUrl(article.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Powered by QuillMonitor"
-                className="inline-flex rounded border bg-card p-2"
+                aria-label="View this incident in the QuillMonitor database"
+                className="inline-flex rounded bg-card p-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <img src={quillMonitorAsset.url} width="244" height="44" alt="Powered by QuillMonitor" className="h-8 w-auto" />
-                <span className="sr-only">Powered by QuillMonitor</span>
-              </a>}
+                <img src={quillMonitorAsset.url} width="244" height="44" alt="QuillMonitor" className="h-8 w-auto" />
+              </a>
             </div>
           )}
 
