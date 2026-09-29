@@ -696,6 +696,10 @@ export type Database = {
       }
     }
     Functions: {
+      advance_quillmonitor_sync_cursor: {
+        Args: { candidate: string }
+        Returns: string
+      }
       cleanup_expired_quiz_sessions: { Args: never; Returns: undefined }
       cleanup_expired_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_api_usage_logs: { Args: never; Returns: undefined }
