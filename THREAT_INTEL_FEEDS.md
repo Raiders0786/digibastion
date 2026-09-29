@@ -14,11 +14,13 @@ migrations and production operations.
 
 ## Source model
 
-Digibastion currently supports three source families:
+Digibastion currently supports four source families in code:
 
 - RSS or structured advisory/news feeds configured in `rss_feeds`;
 - a protected Web3 incident collector;
-- a protected QuillMonitor integration.
+- a protected QuillMonitor integration;
+- a protected SlowMist Hacked latest-page integration, which remains disabled
+  until written reuse permission is recorded by the project owner.
 
 Each provider is fetched independently by a server-side Edge Function and
 normalized into `news_articles`. Provider-specific incident fields belong in
@@ -29,6 +31,10 @@ Sanitized aggregate outcomes are recorded in
 The public feed can filter on normalized meaning, including Web3 incidents and
 active alerts, without making any one provider its own product area. Provider
 attribution remains visible on records where it is required or useful.
+SlowMist records use only normalized public facts (target, incident date,
+reported loss, attack method, and reference URL); provider prose and images are
+not stored. Cards carry a compact source badge, and detail views link the
+provider database and original incident reference.
 
 ## Canonical taxonomy
 

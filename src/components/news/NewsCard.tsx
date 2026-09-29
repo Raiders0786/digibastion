@@ -4,7 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ExternalLink, Clock, AlertTriangle, Info, Zap, Sparkles, RadioTower } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow } from 'date-fns';
-import { isPreliminaryQuillMonitorArticle, isQuillMonitorArticle, isWeb3Incident } from '@/utils/newsIncident';
+import {
+  isPreliminaryQuillMonitorArticle,
+  isQuillMonitorArticle,
+  isSlowMistArticle,
+  isWeb3Incident,
+  SLOWMIST_ATTRIBUTION_URL,
+} from '@/utils/newsIncident';
 import { safeExternalUrl } from '@/utils/safeUrl';
 
 interface NewsCardProps {
@@ -16,7 +22,11 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const web3Incident = isWeb3Incident(article);
   const quillMonitor = isQuillMonitorArticle(article);
+  const slowMist = isSlowMistArticle(article);
   const preliminary = isPreliminaryQuillMonitorArticle(article);
+  const duplicateProviderAuthor = slowMist && article.author?.toLowerCase().includes('slowmist');
+  const providerSummary = article.metadata?.summary_origin === 'provider' ||
+    article.metadata?.summary_origin === 'provider-template';
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -111,7 +121,7 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
             <Clock className="w-3 h-3" />
             {formatDistanceToNow(article.publishedAt, { addSuffix: true })}
           </div>
-          {article.sourceName && !quillMonitor && (
+          {article.sourceName && !quillMonitor && !slowMist && (
             <span className="truncate" title={article.sourceName}>Source: {article.sourceName}</span>
           )}
           {quillMonitor && (
@@ -126,7 +136,22 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
               Powered by QuillMonitor
             </a>
           )}
-          {article.author && (
+          {slowMist && (
+            <a
+              href={safeExternalUrl(article.metadata?.attribution_url) || SLOWMIST_ATTRIBUTION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Source: SlowMist Hacked"
+              className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              <Badge variant="outline" className="border-sky-500/30 bg-sky-500/5 text-sky-300">
+                Source · SlowMist Hacked
+              </Badge>
+            </a>
+          )}
+          {article.author && !duplicateProviderAuthor && (
             <span>by {article.author}</span>
           )}
         </div>
@@ -134,7 +159,7 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
 
       <CardContent className="pt-0">
         <div className="mb-3">
-          {article.isProcessed && article.metadata?.summary_origin !== 'provider' && article.summary && article.summary.length > 50 && (
+          {article.isProcessed && !providerSummary && article.summary && article.summary.length > 50 && (
             <Badge variant="outline" className="mb-2 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">
               <Sparkles className="w-3 h-3 mr-1" />
               AI Summary

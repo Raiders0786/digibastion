@@ -1,7 +1,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 
 export type IngestionRun = {
-  pipeline: 'rss' | 'web3-incidents' | 'quillmonitor' | 'ai-summary' | 'critical-alerts' | 'digest-emails';
+  pipeline: 'rss' | 'web3-incidents' | 'quillmonitor' | 'slowmist' | 'ai-summary' | 'critical-alerts' | 'digest-emails';
   attempted_at: string;
   completed_at: string;
   success: boolean;

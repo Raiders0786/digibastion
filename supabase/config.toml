@@ -55,6 +55,9 @@ verify_jwt = false
 [functions.fetch-quillmonitor-incidents]
 verify_jwt = false
 
+[functions.fetch-slowmist-incidents]
+verify_jwt = false
+
 [functions.firecrawl-scrape]
 verify_jwt = false
 

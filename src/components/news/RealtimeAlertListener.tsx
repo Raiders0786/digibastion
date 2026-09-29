@@ -17,6 +17,7 @@ interface RealtimeArticle {
     provider?: string;
     verification_status?: string;
     provider_created_at?: string;
+    suppress_realtime_alert?: boolean;
   };
 }
 
@@ -72,7 +73,11 @@ export const RealtimeAlertListener = ({
             eventTime <= now + 5 * 60 * 1000;
 
           // Only show notifications for critical and high severity
-          if (isRecent && (article.severity === 'critical' || article.severity === 'high')) {
+          if (
+            article.metadata?.suppress_realtime_alert !== true &&
+            isRecent &&
+            (article.severity === 'critical' || article.severity === 'high')
+          ) {
             const isCritical = article.severity === 'critical';
             const isPreliminary = (
               article.metadata?.provider === 'quillmonitor' ||
@@ -147,7 +152,14 @@ export const RealtimeAlertListener = ({
           // Refresh status transitions (for example preliminary -> verified)
           // without replaying a new-incident toast or alert sound.
           const article = payload.new as RealtimeArticle;
-          if (article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor') {
+          const rawProvider = article.metadata?.provider;
+          const provider = typeof rawProvider === 'string' ? rawProvider.trim().toLowerCase() : '';
+          if (
+            provider === 'quillmonitor' ||
+            provider === 'slowmist' ||
+            article.source_name === 'QuillMonitor' ||
+            article.source_name === 'SlowMist Hacked'
+          ) {
             scheduleRefresh();
           }
         },

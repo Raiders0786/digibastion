@@ -48,7 +48,8 @@ export interface NewsArticle {
     provider_created_at?: string;
     provider_updated_at?: string;
     summary_status?: 'available' | 'pending';
-    summary_origin?: 'provider' | 'ai';
+    summary_origin?: 'provider' | 'provider-template' | 'ai';
+    suppress_realtime_alert?: boolean;
     attribution_url?: string;
     [key: string]: unknown;
   };

@@ -55,3 +55,27 @@ describe('NewsCard QuillMonitor presentation', () => {
     expect(screen.queryByText('Preliminary')).toBeNull();
   });
 });
+
+describe('NewsCard SlowMist presentation', () => {
+  it('shows a compact provider badge without duplicating the provider as author', () => {
+    render(<NewsCard article={{
+      ...preliminaryArticle,
+      id: 'slowmist:1',
+      sourceName: 'SlowMist Hacked',
+      author: 'SlowMist',
+      isProcessed: true,
+      metadata: {
+        provider: 'slowmist',
+        is_web3_incident: true,
+        summary_origin: 'provider-template',
+        attribution_url: 'https://hacked.slowmist.io/en/',
+      },
+    }} />);
+
+    const source = screen.getByRole('link', { name: 'Source: SlowMist Hacked' });
+    expect(source.getAttribute('href')).toBe('https://hacked.slowmist.io/en/');
+    expect(screen.queryByText('by SlowMist')).toBeNull();
+    expect(screen.queryByText('Powered by QuillMonitor')).toBeNull();
+    expect(screen.queryByText('AI Summary')).toBeNull();
+  });
+});

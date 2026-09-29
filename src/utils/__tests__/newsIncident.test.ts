@@ -5,6 +5,7 @@ import {
   isClassificationRelevant,
   isPreliminaryQuillMonitorArticle,
   isQuillMonitorArticle,
+  isSlowMistArticle,
   isWeb3Incident,
   isWeb3SecurityDomain,
 } from '@/utils/newsIncident';
@@ -41,6 +42,14 @@ describe('news incident classification', () => {
   it('recognizes QuillMonitor from normalized metadata or the historical source name', () => {
     expect(isQuillMonitorArticle(article({ metadata: { provider: 'quillmonitor' } }))).toBe(true);
     expect(isQuillMonitorArticle(article({ sourceName: 'QuillMonitor' }))).toBe(true);
+  });
+
+  it('recognizes SlowMist only from the normalized provider or source name', () => {
+    expect(isSlowMistArticle(article({ metadata: { provider: 'slowmist' } }))).toBe(true);
+    expect(isSlowMistArticle(article({ sourceName: 'SlowMist Hacked' }))).toBe(true);
+    expect(isSlowMistArticle(article({ metadata: { provider: 'SlowMist' } }))).toBe(true);
+    expect(isSlowMistArticle(article({ sourceName: 'Unrelated SlowMist coverage' }))).toBe(false);
+    expect(isSlowMistArticle(article({ metadata: { provider: 42 as unknown as string } }))).toBe(false);
   });
 
   it('marks only explicitly unverified QuillMonitor records as preliminary', () => {

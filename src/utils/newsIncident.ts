@@ -2,6 +2,7 @@ import type { NewsArticle, NewsCategory } from '@/types/news';
 
 const LEGACY_INCIDENT_PROVIDERS = new Set(['quillmonitor', 'web3-incidents', 'web3']);
 const LEGACY_WEB3_CATEGORIES = new Set<NewsCategory>(['web3-security', 'defi-exploits']);
+export const SLOWMIST_ATTRIBUTION_URL = 'https://hacked.slowmist.io/en/';
 
 type IncidentArticle = Pick<NewsArticle, 'category' | 'metadata' | 'sourceName'>;
 
@@ -27,6 +28,12 @@ export function isClassificationRelevant(article: Pick<NewsArticle, 'metadata'>)
 
 export function isQuillMonitorArticle(article: Pick<NewsArticle, 'metadata' | 'sourceName'>): boolean {
   return article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
+}
+
+export function isSlowMistArticle(article: Pick<NewsArticle, 'metadata' | 'sourceName'>): boolean {
+  const provider = article.metadata?.provider;
+  return (typeof provider === 'string' && provider.trim().toLowerCase() === 'slowmist') ||
+    article.sourceName?.trim().toLowerCase() === 'slowmist hacked';
 }
 
 export function isPreliminaryQuillMonitorArticle(

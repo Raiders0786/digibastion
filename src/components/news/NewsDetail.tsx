@@ -11,7 +11,14 @@ import { Link } from 'react-router-dom';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
 import quillMonitorAsset from '@/assets/powered-by-quillmonitor.svg.asset.json';
 import { openExternalUrl, safeExternalUrl } from '@/utils/safeUrl';
-import { isPreliminaryQuillMonitorArticle, isQuillMonitorArticle, isWeb3Incident } from '@/utils/newsIncident';
+import {
+  isPreliminaryQuillMonitorArticle,
+  isQuillMonitorArticle,
+  isSlowMistArticle,
+  isWeb3Incident,
+  SLOWMIST_ATTRIBUTION_URL,
+} from '@/utils/newsIncident';
+import { getNewsSourceLinks } from '@/utils/newsSources';
 
 interface StoredBookmark {
   id: string;
@@ -28,8 +35,14 @@ interface NewsDetailProps {
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const isQuillMonitor = isQuillMonitorArticle(article);
+  const isSlowMist = isSlowMistArticle(article);
   const isPreliminary = isPreliminaryQuillMonitorArticle(article);
   const web3Incident = isWeb3Incident(article);
+  const slowMistAttributionUrl = isSlowMist
+    ? safeExternalUrl(article.metadata?.attribution_url) || SLOWMIST_ATTRIBUTION_URL
+    : null;
+  const originalSources = getNewsSourceLinks(article, slowMistAttributionUrl);
+  const duplicateProviderAuthor = isSlowMist && article.author?.toLowerCase().includes('slowmist');
   const providerIncidentDate = isQuillMonitor && /^\d{4}-\d{2}-\d{2}$/.test(article.metadata?.incident_date || '')
     ? new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeZone: 'UTC' })
         .format(new Date(`${article.metadata?.incident_date}T00:00:00.000Z`))
@@ -213,7 +226,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 </div>
               </>
             )}
-            {article.author && (
+            {article.author && !duplicateProviderAuthor && (
               <>
                 <span>•</span>
                 <span>by {article.author}</span>
@@ -254,6 +267,22 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 className="inline-flex rounded bg-card p-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <img src={quillMonitorAsset.url} width="244" height="44" alt="Powered by QuillMonitor" className="h-8 w-auto" />
+              </a>
+            </div>
+          )}
+
+          {isSlowMist && slowMistAttributionUrl && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/20 p-3">
+              <span className="text-xs text-muted-foreground">Threat intelligence provided by</span>
+              <a
+                href={slowMistAttributionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <Badge variant="outline" className="border-sky-500/30 bg-sky-500/5 text-sky-300">
+                  SlowMist Hacked
+                </Badge>
               </a>
             </div>
           )}
@@ -324,64 +353,26 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           )}
 
           {/* Source Links - use article.link as the primary source */}
-          {(article.link || article.sourceUrl) && (
+          {originalSources.length > 0 && (
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-primary" />
-                Original Source
+                Original {originalSources.length === 1 ? 'Source' : 'Sources'}
               </h3>
-              {(() => {
-                // First check if sourceUrl is a JSON array (for web3 incidents with multiple sources)
-                let sources: { url: string; label: string }[] = [];
-                
-                if (article.sourceUrl) {
-                  try {
-                    const parsed = JSON.parse(article.sourceUrl);
-                    if (Array.isArray(parsed)) {
-                      sources = parsed.flatMap((source): { url: string; label: string }[] => {
-                        if (typeof source !== 'object' || source === null) return [];
-                        const candidate = source as Record<string, unknown>;
-                        const url = safeExternalUrl(candidate.url);
-                        if (!url) return [];
-                        return [{
-                          url,
-                          label: typeof candidate.label === 'string' ? candidate.label : new URL(url).hostname,
-                        }];
-                      });
-                    }
-                  } catch {
-                    // Not JSON - sourceUrl is just the RSS feed URL, use article.link instead
-                  }
-                }
-                
-                // If no JSON sources found, use the article's direct link
-                const primaryLink = safeExternalUrl(article.link);
-                if (sources.length === 0 && primaryLink) {
-                  try {
-                    const hostname = new URL(primaryLink).hostname.replace('www.', '');
-                    sources = [{ url: primaryLink, label: article.sourceName || hostname }];
-                  } catch {
-                    // Invalid links are intentionally omitted.
-                  }
-                }
-                
-                return (
-                  <div className="flex flex-col gap-2">
-                    {sources.map((source, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        className="justify-start gap-2 text-left"
-                        onClick={() => openExternalUrl(source.url)}
-                      >
-                        <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{source.label || (() => { try { return new URL(source.url).hostname; } catch { return 'Source'; } })()}</span>
-                      </Button>
-                    ))}
-                  </div>
-                );
-              })()}
+              <div className="flex flex-col gap-2">
+                {originalSources.map((source) => (
+                  <Button
+                    key={source.url}
+                    variant="outline"
+                    size="sm"
+                    className="justify-start gap-2 text-left"
+                    onClick={() => openExternalUrl(source.url)}
+                  >
+                    <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{source.label}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -456,6 +447,21 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                               onKeyDown={(event) => event.stopPropagation()}
                             >
                               Powered by QuillMonitor
+                            </a>
+                          )}
+                          {isSlowMistArticle(related) && (
+                            <a
+                              href={safeExternalUrl(related.metadata?.attribution_url) || SLOWMIST_ATTRIBUTION_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Source: SlowMist Hacked"
+                              className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              onClick={(event) => event.stopPropagation()}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            >
+                              <Badge variant="outline" className="border-sky-500/30 bg-sky-500/5 text-sky-300">
+                                Source · SlowMist Hacked
+                              </Badge>
                             </a>
                           )}
                         </div>
