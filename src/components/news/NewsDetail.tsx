@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
 import quillMonitorAsset from '@/assets/powered-by-quillmonitor.svg.asset.json';
 import { openExternalUrl, safeExternalUrl } from '@/utils/safeUrl';
-import { isQuillMonitorArticle, isWeb3Incident } from '@/utils/newsIncident';
+import { isPreliminaryQuillMonitorArticle, isQuillMonitorArticle, isWeb3Incident } from '@/utils/newsIncident';
 
 interface StoredBookmark {
   id: string;
@@ -28,7 +28,12 @@ interface NewsDetailProps {
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const isQuillMonitor = isQuillMonitorArticle(article);
+  const isPreliminary = isPreliminaryQuillMonitorArticle(article);
   const web3Incident = isWeb3Incident(article);
+  const providerIncidentDate = isQuillMonitor && /^\d{4}-\d{2}-\d{2}$/.test(article.metadata?.incident_date || '')
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeZone: 'UTC' })
+        .format(new Date(`${article.metadata?.incident_date}T00:00:00.000Z`))
+    : null;
   const { toast } = useToast();
   
   const { relatedArticles, isLoading: isLoadingRelated } = useRelatedArticles({
@@ -172,6 +177,11 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 Web3 Incident
               </Badge>
             )}
+            {isPreliminary && (
+              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">
+                Preliminary
+              </Badge>
+            )}
             {article.cveId && (
               <Badge variant="destructive">
                 {article.cveId}
@@ -186,14 +196,23 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
 
           {/* Meta Information */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>Published {formatDistanceToNow(article.publishedAt, { addSuffix: true })}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span>•</span>
-              <span>{format(article.publishedAt, 'PPP')}</span>
-            </div>
+            {providerIncidentDate ? (
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>Incident date {providerIncidentDate}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span>Published {formatDistanceToNow(article.publishedAt, { addSuffix: true })}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>•</span>
+                  <span>{format(article.publishedAt, 'PPP')}</span>
+                </div>
+              </>
+            )}
             {article.author && (
               <>
                 <span>•</span>
@@ -231,10 +250,10 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 href={safeExternalUrl(article.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="View this incident in the QuillMonitor database"
+                aria-label="Powered by QuillMonitor; view this incident in the QuillMonitor database"
                 className="inline-flex rounded bg-card p-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <img src={quillMonitorAsset.url} width="244" height="44" alt="QuillMonitor" className="h-8 w-auto" />
+                <img src={quillMonitorAsset.url} width="244" height="44" alt="Powered by QuillMonitor" className="h-8 w-auto" />
               </a>
             </div>
           )}
@@ -265,7 +284,17 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           </div>
 
           {/* Action Items */}
-          {article.severity === 'critical' && (
+          {isPreliminary ? (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+              <h3 className="mb-2 flex items-center gap-2 font-semibold text-amber-300">
+                <AlertTriangle className="h-4 w-4" />
+                Preliminary report
+              </h3>
+              <p className="text-sm text-foreground/80">
+                QuillMonitor verification is pending. Details, incident date, and reported loss may change; verify against the linked source before acting.
+              </p>
+            </div>
+          ) : article.severity === 'critical' && !isQuillMonitor ? (
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
               <h3 className="font-semibold mb-2 text-red-400 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
@@ -278,7 +307,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 <li>• Consider temporary isolation of affected systems</li>
               </ul>
             </div>
-          )}
+          ) : null}
 
           {/* Tags */}
           {article.tags.length > 0 && (
@@ -386,16 +415,15 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
             <div className="space-y-3">
               {relatedArticles.map((related) => {
                 const relatedCategoryInfo = newsCategoryConfig[related.category];
+                const openRelated = () => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  onArticleClick?.(related);
+                };
                 return (
                   <div
                     key={related.id}
                     className="group p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-all"
-                    onClick={() => {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                      if (onArticleClick) {
-                        onArticleClick(related);
-                      }
-                    }}
+                    onClick={openRelated}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -413,9 +441,35 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                           <Badge variant="secondary" className="text-xs">
                             {relatedCategoryInfo?.name || related.category}
                           </Badge>
+                          {isPreliminaryQuillMonitorArticle(related) && (
+                            <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">
+                              Preliminary
+                            </Badge>
+                          )}
+                          {isQuillMonitorArticle(related) && (
+                            <a
+                              href={safeExternalUrl(related.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary underline underline-offset-2"
+                              onClick={(event) => event.stopPropagation()}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            >
+                              Powered by QuillMonitor
+                            </a>
+                          )}
                         </div>
                         <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                          {related.title}
+                          <button
+                            type="button"
+                            className="text-left"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openRelated();
+                            }}
+                          >
+                            {related.title}
+                          </button>
                         </h4>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {related.summary}

@@ -168,6 +168,19 @@ describe('subscription email presentation', () => {
     expect(text).toContain('Powered by QuillMonitor: https://www.quillaudits.com/web3-hacks-database');
   });
 
+  it('labels unverified QuillMonitor incidents as preliminary in HTML and plain text', () => {
+    const preliminary = {
+      ...baseArticle,
+      metadata: { ...baseArticle.metadata, verification_status: 'unverified' },
+    };
+    expect(renderIncidentContextHtml(preliminary)).toContain('Web3 Incident · Preliminary');
+    expect(formatDeliveryArticleText(preliminary)).toContain('[MEDIUM · WEB3 INCIDENT · PRELIMINARY]');
+    expect(renderIncidentContextHtml({
+      ...preliminary,
+      metadata: { ...baseArticle.metadata, verification_status: 'verified' },
+    })).not.toContain('Preliminary');
+  });
+
   it('does not attribute non-QuillMonitor incident providers to QuillMonitor', () => {
     const article = {
       ...baseArticle,

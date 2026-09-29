@@ -472,7 +472,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       
       const [collector, partner] = await Promise.allSettled([
         supabase.functions.invoke('fetch-web3-incidents'),
-        supabase.functions.invoke('fetch-quillmonitor-incidents', { body: { pages: 3, page_size: 100 } }),
+        supabase.functions.invoke('fetch-quillmonitor-incidents'),
       ]);
       const outcomes = [collector, partner].map((result) => result.status === 'fulfilled' && !result.value.error && result.value.data?.success);
       if (!outcomes.some(Boolean)) throw new Error('Both Web3 incident sources failed');

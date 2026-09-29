@@ -27,6 +27,7 @@ interface PreviewArticle {
   link: string;
   is_web3_incident?: boolean;
   security_domain?: string;
+  verification_status?: 'verified' | 'unverified';
   attribution_url?: string;
 }
 
@@ -34,7 +35,7 @@ interface PreviewArticle {
 const mockArticles: PreviewArticle[] = [
   {
     title: 'Bridge protocol exploit causes a reported $8.4M loss',
-    summary: 'A verified cross-chain bridge incident affected user funds. Teams should review protocol exposure and monitor official remediation updates.',
+    summary: 'Summary pending',
     severity: 'high',
     category: 'defi-exploits',
     published_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
@@ -43,6 +44,7 @@ const mockArticles: PreviewArticle[] = [
     link: '#',
     is_web3_incident: true,
     security_domain: 'web3',
+    verification_status: 'unverified',
     attribution_url: 'https://www.quillaudits.com/web3-hacks-database',
   },
   {
@@ -179,12 +181,12 @@ export const EmailPreview = ({
         </p>
         {article.is_web3_incident && (
           <p style={{ margin: '6px 0 0', color: '#60a5fa', fontSize: '11px', fontWeight: 600 }}>
-            Web3 Incident
+            Web3 Incident{article.verification_status === 'unverified' ? ' · Preliminary' : ''}
           </p>
         )}
         {article.attribution_url && (
           <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: '11px' }}>
-            Incident data: <a href={article.attribution_url} style={{ color: '#93c5fd' }}>QuillMonitor</a>
+            <a href={article.attribution_url} style={{ color: '#93c5fd' }}>Powered by QuillMonitor</a>
           </p>
         )}
       </td>

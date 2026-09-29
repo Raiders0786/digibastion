@@ -29,6 +29,12 @@ export function isQuillMonitorArticle(article: Pick<NewsArticle, 'metadata' | 's
   return article.metadata?.provider === 'quillmonitor' || article.sourceName === 'QuillMonitor';
 }
 
+export function isPreliminaryQuillMonitorArticle(
+  article: Pick<NewsArticle, 'metadata' | 'sourceName'>,
+): boolean {
+  return isQuillMonitorArticle(article) && article.metadata?.verification_status === 'unverified';
+}
+
 export function isWeb3Incident(article: Pick<NewsArticle, 'metadata' | 'sourceName'>): boolean {
   if (article.metadata?.is_web3_incident === true) return true;
   if (article.metadata?.is_web3_incident === false) return false;

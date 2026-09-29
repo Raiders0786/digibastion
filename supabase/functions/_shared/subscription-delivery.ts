@@ -45,6 +45,11 @@ export function isQuillMonitorArticle(article: DeliverableArticle): boolean {
     article.source_name?.trim().toLowerCase() === 'quillmonitor';
 }
 
+export function isPreliminaryQuillMonitorArticle(article: DeliverableArticle): boolean {
+  return isQuillMonitorArticle(article) &&
+    metadataString(article.metadata, 'verification_status').toLowerCase() === 'unverified';
+}
+
 export function isWeb3IncidentArticle(article: DeliverableArticle): boolean {
   if (article.metadata?.is_web3_incident === true) return true;
   if (article.metadata?.is_web3_incident === false) return false;
@@ -166,6 +171,7 @@ export function safeHttpUrl(value: string | null | undefined, fallback = ''): st
 export interface DeliveryPresentation {
   isWeb3Incident: boolean;
   isQuillMonitor: boolean;
+  isPreliminary: boolean;
   incidentFacts: string[];
   articleUrl: string;
   attributionUrl: string;
@@ -173,6 +179,7 @@ export interface DeliveryPresentation {
 
 export function getDeliveryPresentation(article: DeliverableArticle, fallbackArticleUrl = ''): DeliveryPresentation {
   const isQuillMonitor = isQuillMonitorArticle(article);
+  const isPreliminary = isPreliminaryQuillMonitorArticle(article);
   const isWeb3Incident = isWeb3IncidentArticle(article);
   const incidentFacts = isWeb3Incident
     ? ['project_name', 'chain', 'attack_type', 'amount_display']
@@ -184,6 +191,7 @@ export function getDeliveryPresentation(article: DeliverableArticle, fallbackArt
   return {
     isWeb3Incident,
     isQuillMonitor,
+    isPreliminary,
     incidentFacts,
     articleUrl: safeHttpUrl(article.link, fallbackArticleUrl),
     attributionUrl: isQuillMonitor ? safeHttpUrl(rawAttribution, QUILLMONITOR_URL) : '',
@@ -199,13 +207,15 @@ export function renderIncidentContextHtml(article: DeliverableArticle): string {
   const attribution = presentation.isQuillMonitor
     ? `<p style="margin:6px 0 0;"><a href="${escapeHtml(presentation.attributionUrl)}" style="color:#93c5fd;font-size:12px;text-decoration:underline;">Powered by QuillMonitor</a></p>`
     : '';
-  return `<p style="margin:6px 0 0;color:#60a5fa;font-size:11px;font-weight:700;">Web3 Incident</p>${facts}${attribution}`;
+  const status = presentation.isPreliminary ? ' · Preliminary' : '';
+  return `<p style="margin:6px 0 0;color:#60a5fa;font-size:11px;font-weight:700;">Web3 Incident${status}</p>${facts}${attribution}`;
 }
 
 export function formatDeliveryArticleText(article: DeliverableArticle, fallbackArticleUrl = ''): string {
   const presentation = getDeliveryPresentation(article, fallbackArticleUrl);
   const labels = [article.severity.toUpperCase()];
   if (presentation.isWeb3Incident) labels.push('WEB3 INCIDENT');
+  if (presentation.isPreliminary) labels.push('PRELIMINARY');
   const source = article.source_name ? ` · ${stripHtml(article.source_name)}` : '';
   const cve = article.cve_id ? ` · ${stripHtml(article.cve_id)}` : '';
   const facts = presentation.incidentFacts.length > 0

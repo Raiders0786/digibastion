@@ -2,22 +2,28 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import { z } from 'npm:zod@3.23.8';
 import {
   assessQuillMonitorRunHealth,
+  buildQuillMonitorRequestUrl,
+  hasCompleteQuillMonitorResult,
+  isSafeQuillMonitorSyncWindow,
   normalizeQuillMonitorIncident,
+  parseQuillMonitorPage,
   parseQuillMonitorIncident,
   type NormalizedQuillMonitorArticle,
 } from '../_shared/quillmonitor.ts';
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 
-const API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 const RequestSchema = z.object({
-  pages: z.number().int().min(1).max(20).optional().default(3),
   page_size: z.number().int().min(1).max(100).optional().default(100),
+  max_pages: z.number().int().min(1).max(100).optional().default(20),
+  pages: z.number().int().min(1).max(20).optional(),
+  mode: z.enum(['auto', 'full']).optional().default('auto'),
 }).strict();
 const DATABASE_BATCH_SIZE = 50;
+const SYNC_CURSOR_KEY = 'QUILLMONITOR_SYNC_SINCE';
 
 async function timingSafeEqual(left: string, right: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -49,12 +55,18 @@ async function authorize(req: Request, url: string, anonKey: string, serviceKey:
   return Boolean(role);
 }
 
-async function fetchPage(apiKey: string, page: number, limit: number): Promise<Record<string, unknown>> {
+async function fetchPage(
+  apiKey: string,
+  page: number,
+  limit: number,
+  since?: string,
+  until?: string,
+): Promise<unknown> {
   let lastError = 'Unknown provider error';
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** (attempt - 1)));
     try {
-      const response = await fetch(`${API_URL}?page=${page}&limit=${limit}&sort=newest`, {
+      const response = await fetch(buildQuillMonitorRequestUrl({ page, limit, since, until }), {
         headers: { 'x-api-key': apiKey, 'Accept': 'application/json' },
         signal: AbortSignal.timeout(15_000),
       });
@@ -64,15 +76,27 @@ async function fetchPage(apiKey: string, page: number, limit: number): Promise<R
         if (response.status !== 429 && response.status < 500) throw new Error(lastError);
         continue;
       }
-      const parsed = JSON.parse(body);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        throw new Error('QuillMonitor returned invalid JSON');
+      }
       if (!parsed || typeof parsed !== 'object') throw new Error('QuillMonitor returned an invalid response');
-      return parsed as Record<string, unknown>;
+      return parsed;
     } catch (error) {
-      lastError = error instanceof Error ? error.message : 'QuillMonitor request failed';
+      const message = error instanceof Error ? error.message : '';
+      lastError = message.startsWith('QuillMonitor returned') ? message : 'QuillMonitor request failed';
       if (attempt === 2 || lastError.includes('HTTP 4')) throw new Error(lastError);
     }
   }
   throw new Error(lastError);
+}
+
+function normalizeSyncCursor(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 Deno.serve(async (req) => {
@@ -108,15 +132,64 @@ Deno.serve(async (req) => {
 
   try {
     const db = createClient(url, serviceKey);
-    const articles: NormalizedQuillMonitorArticle[] = [];
+    const { data: cursorConfig, error: cursorReadError } = request.data.mode === 'auto'
+      ? await db.from('app_config').select('value').eq('key', SYNC_CURSOR_KEY).maybeSingle()
+      : { data: null, error: null };
+    if (cursorReadError) throw new Error('QuillMonitor sync cursor could not be read');
+
+    const storedCursor = cursorConfig ? normalizeSyncCursor(cursorConfig.value) : null;
+    if (cursorConfig && !storedCursor) throw new Error('QuillMonitor sync cursor is invalid');
+    const isIncremental = Boolean(storedCursor);
+    const articlesByUid = new Map<string, NormalizedQuillMonitorArticle>();
     let invalidRecords = 0;
     let recordsFound = 0;
     let pagesFetched = 0;
     let nextPage: number | null = 1;
+    let pollUntil: string | null = null;
+    let expectedTotalIncidents: number | null = null;
+    let expectedTotalPages: number | null = null;
+    let verifiedRecords = 0;
+    let preliminaryRecords = 0;
 
-    while (nextPage !== null && pagesFetched < request.data.pages) {
-      const payload = await fetchPage(apiKey, nextPage, request.data.page_size);
-      if (payload.success !== true || !Array.isArray(payload.data)) throw new Error('QuillMonitor response did not match the documented format');
+    while (nextPage !== null) {
+      if (pagesFetched >= request.data.max_pages) {
+        throw new Error(`QuillMonitor pagination exceeded the ${request.data.max_pages}-page safety limit`);
+      }
+      const currentPage = nextPage;
+      const rawPayload = await fetchPage(
+        apiKey,
+        currentPage,
+        request.data.page_size,
+        storedCursor ?? undefined,
+        pollUntil ?? undefined,
+      );
+      const payload = parseQuillMonitorPage(
+        rawPayload,
+        currentPage,
+        request.data.page_size,
+        isIncremental && pagesFetched === 0,
+      );
+      if (!payload) throw new Error('QuillMonitor response did not match the documented format');
+
+      if (expectedTotalIncidents === null) {
+        if (
+          isIncremental &&
+          (!storedCursor || !payload.syncUntil ||
+            !isSafeQuillMonitorSyncWindow(storedCursor, payload.syncUntil))
+        ) {
+          throw new Error('QuillMonitor returned an unsafe synchronization window');
+        }
+        expectedTotalIncidents = payload.totalIncidents;
+        expectedTotalPages = payload.totalPages;
+        pollUntil = payload.syncUntil;
+      } else if (
+        payload.totalIncidents !== expectedTotalIncidents ||
+        payload.totalPages !== expectedTotalPages ||
+        (payload.syncUntil !== null && payload.syncUntil !== pollUntil)
+      ) {
+        throw new Error('QuillMonitor pagination window changed during synchronization');
+      }
+
       recordsFound += payload.data.length;
       for (const value of payload.data) {
         const incident = parseQuillMonitorIncident(value);
@@ -124,13 +197,26 @@ Deno.serve(async (req) => {
           invalidRecords++;
           continue;
         }
-        articles.push(normalizeQuillMonitorIncident(incident));
+        if (incident.verificationStatus === 'verified') verifiedRecords++;
+        else preliminaryRecords++;
+        const article = normalizeQuillMonitorIncident(incident);
+        if (articlesByUid.has(article.uid)) {
+          throw new Error('QuillMonitor returned a duplicate incident ID in one synchronization window');
+        }
+        articlesByUid.set(article.uid, article);
       }
       pagesFetched++;
-      const candidate = payload.nextPage;
-      nextPage = typeof candidate === 'number' && Number.isInteger(candidate) && candidate > nextPage ? candidate : null;
+      nextPage = payload.nextPage;
     }
 
+    if (
+      expectedTotalIncidents === null ||
+      !hasCompleteQuillMonitorResult(recordsFound, expectedTotalIncidents)
+    ) {
+      throw new Error('QuillMonitor response count did not match its advertised total');
+    }
+
+    const articles = [...articlesByUid.values()];
     let inserted = 0;
     let updated = 0;
     const errors: string[] = [];
@@ -153,8 +239,20 @@ Deno.serve(async (req) => {
       inserted += batch.length - updatedInBatch;
     }
 
-    const persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
-    const health = assessQuillMonitorRunHealth(recordsFound, invalidRecords, persistenceErrors);
+    let persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
+    let health = assessQuillMonitorRunHealth(recordsFound, invalidRecords, persistenceErrors, isIncremental);
+    const nextSince = isIncremental ? pollUntil : attemptedAt;
+    let persistedSince = storedCursor;
+    if (health.success && nextSince) {
+      const { data: advancedCursor, error: cursorWriteError } = await db.rpc(
+        'advance_quillmonitor_sync_cursor',
+        { candidate: nextSince },
+      );
+      persistedSince = normalizeSyncCursor(advancedCursor);
+      if (cursorWriteError || !persistedSince) errors.push('1 sync cursor write failed');
+      persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
+      health = assessQuillMonitorRunHealth(recordsFound, invalidRecords, persistenceErrors, isIncremental);
+    }
     const categoryCounts = articles.reduce((counts: Record<string, number>, article) => {
       counts[article.category] = (counts[article.category] || 0) + 1;
       return counts;
@@ -168,8 +266,12 @@ Deno.serve(async (req) => {
       error_summary: health.errorSummary,
       metadata: {
         pages_fetched: pagesFetched,
-        has_more: nextPage !== null,
+        poll_mode: isIncremental ? 'incremental' : 'full',
+        cursor_advanced: health.success,
+        next_since: health.success ? persistedSince : storedCursor,
         records_accepted: articles.length,
+        verified_records: verifiedRecords,
+        preliminary_records: preliminaryRecords,
         validation_rejection_ratio: Number(health.invalidRatio.toFixed(4)),
         persistence_errors: persistenceErrors,
         taxonomy_version: articles[0]?.metadata.taxonomy_version || null,
@@ -184,7 +286,10 @@ Deno.serve(async (req) => {
       incidentsUpdated: updated,
       invalidRecords,
       pagesFetched,
-      hasMore: nextPage !== null,
+      pollMode: isIncremental ? 'incremental' : 'full',
+      cursorAdvanced: health.success,
+      verifiedRecords,
+      preliminaryRecords,
       errors: errors.length ? errors.slice(0, 10) : undefined,
     }), { status: health.success ? 200 : 207, headers: jsonHeaders });
   } catch (error) {
@@ -193,7 +298,7 @@ Deno.serve(async (req) => {
     await recordIngestionRun(createClient(url, serviceKey), {
       pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
       success: false, duration_ms: Date.now() - startedAt,
-      error_summary: 'Provider synchronization failed before completion',
+      error_summary: message,
     });
     return new Response(JSON.stringify({ success: false, error: message }), { status: 502, headers: jsonHeaders });
   }

@@ -13,12 +13,12 @@ const options: Array<{ value: ThreatIntelScope; label: string; description: stri
   {
     value: 'all',
     label: 'All Intelligence',
-    description: 'News, advisories, disclosures, and verified incidents.',
+    description: 'News, advisories, disclosures, and published incidents.',
   },
   {
     value: 'web3-incidents',
     label: 'Web3 Incidents',
-    description: 'Only confirmed Web3 exploits, hacks, and security incidents.',
+    description: 'Verified and preliminary Web3 exploits, hacks, and security incidents.',
   },
 ];
 

@@ -44,6 +44,11 @@ export interface NewsArticle {
     amount_display?: string | null;
     reference_url?: string | null;
     incident_date?: string;
+    verification_status?: 'verified' | 'unverified';
+    provider_created_at?: string;
+    provider_updated_at?: string;
+    summary_status?: 'available' | 'pending';
+    summary_origin?: 'provider' | 'ai';
     attribution_url?: string;
     [key: string]: unknown;
   };

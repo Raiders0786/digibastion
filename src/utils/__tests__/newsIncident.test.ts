@@ -3,6 +3,7 @@ import type { NewsArticle } from '@/types/news';
 import {
   buildCategoryPostgrestFilter,
   isClassificationRelevant,
+  isPreliminaryQuillMonitorArticle,
   isQuillMonitorArticle,
   isWeb3Incident,
   isWeb3SecurityDomain,
@@ -40,6 +41,18 @@ describe('news incident classification', () => {
   it('recognizes QuillMonitor from normalized metadata or the historical source name', () => {
     expect(isQuillMonitorArticle(article({ metadata: { provider: 'quillmonitor' } }))).toBe(true);
     expect(isQuillMonitorArticle(article({ sourceName: 'QuillMonitor' }))).toBe(true);
+  });
+
+  it('marks only explicitly unverified QuillMonitor records as preliminary', () => {
+    expect(isPreliminaryQuillMonitorArticle(article({
+      metadata: { provider: 'quillmonitor', verification_status: 'unverified' },
+    }))).toBe(true);
+    expect(isPreliminaryQuillMonitorArticle(article({
+      metadata: { provider: 'quillmonitor', verification_status: 'verified' },
+    }))).toBe(false);
+    expect(isPreliminaryQuillMonitorArticle(article({
+      metadata: { provider: 'web3-incidents', verification_status: 'unverified' },
+    }))).toBe(false);
   });
 
   it('uses security_domain for the Web3 umbrella with safe legacy fallbacks', () => {

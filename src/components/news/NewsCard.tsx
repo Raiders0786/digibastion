@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ExternalLink, Clock, AlertTriangle, Info, Zap, Sparkles, RadioTower } from 'lucide-react';
 import { newsCategoryConfig } from '@/data/newsData';
 import { formatDistanceToNow } from 'date-fns';
-import { isWeb3Incident } from '@/utils/newsIncident';
+import { isPreliminaryQuillMonitorArticle, isQuillMonitorArticle, isWeb3Incident } from '@/utils/newsIncident';
+import { safeExternalUrl } from '@/utils/safeUrl';
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -14,6 +15,8 @@ interface NewsCardProps {
 export const NewsCard = ({ article, onClick }: NewsCardProps) => {
   const categoryInfo = newsCategoryConfig[article.category];
   const web3Incident = isWeb3Incident(article);
+  const quillMonitor = isQuillMonitorArticle(article);
+  const preliminary = isPreliminaryQuillMonitorArticle(article);
   
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -77,6 +80,11 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
                 Web3 Incident
               </Badge>
             )}
+            {preliminary && (
+              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">
+                Preliminary
+              </Badge>
+            )}
           </div>
           {article.sourceUrl && (
             <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -84,7 +92,18 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
         </div>
         
         <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
-          {article.title}
+          {onClick ? (
+            <button
+              type="button"
+              className="p-0 text-left text-inherit"
+              onClick={(event) => {
+                event.stopPropagation();
+                onClick();
+              }}
+            >
+              {article.title}
+            </button>
+          ) : article.title}
         </CardTitle>
         
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -92,8 +111,20 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
             <Clock className="w-3 h-3" />
             {formatDistanceToNow(article.publishedAt, { addSuffix: true })}
           </div>
-          {article.sourceName && (
+          {article.sourceName && !quillMonitor && (
             <span className="truncate" title={article.sourceName}>Source: {article.sourceName}</span>
+          )}
+          {quillMonitor && (
+            <a
+              href={safeExternalUrl(article.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate underline decoration-primary/50 underline-offset-2 hover:text-primary"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              Powered by QuillMonitor
+            </a>
           )}
           {article.author && (
             <span>by {article.author}</span>
@@ -103,7 +134,7 @@ export const NewsCard = ({ article, onClick }: NewsCardProps) => {
 
       <CardContent className="pt-0">
         <div className="mb-3">
-          {article.isProcessed && article.summary && article.summary.length > 50 && (
+          {article.isProcessed && article.metadata?.summary_origin !== 'provider' && article.summary && article.summary.length > 50 && (
             <Badge variant="outline" className="mb-2 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">
               <Sparkles className="w-3 h-3 mr-1" />
               AI Summary

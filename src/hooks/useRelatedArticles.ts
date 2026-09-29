@@ -55,13 +55,17 @@ export function useRelatedArticles({
               category: row.category as NewsCategory,
               tags: row.tags || [],
               severity: row.severity as SeverityLevel,
-              sourceUrl: row.link,
+              link: row.link,
+              sourceUrl: row.source_url || undefined,
               publishedAt: new Date(row.published_at),
               affectedTechnologies: row.affected_technologies || [],
               author: row.author || row.source_name,
               cveId: row.cve_id,
               isProcessed: row.is_processed || false,
-              sourceName: row.source_name
+              sourceName: row.source_name,
+              metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+                ? row.metadata as NewsArticle['metadata']
+                : undefined,
             } as NewsArticle,
             score: tagOverlap
           };

@@ -23,7 +23,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { serializeJsonLd } from '@/utils/jsonLd';
-import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER, isClassificationRelevant } from '@/utils/newsIncident';
+import {
+  CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
+  isClassificationRelevant,
+  isPreliminaryQuillMonitorArticle,
+  isQuillMonitorArticle,
+} from '@/utils/newsIncident';
+import { safeExternalUrl } from '@/utils/safeUrl';
 import {
   buildNewsArticleSchema,
   buildNewsBreadcrumbSchema,
@@ -337,6 +343,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       cancelled = true;
     };
   }, [requestedArticleId, dbArticles]);
+
+  useEffect(() => {
+    if (!requestedArticleId) return;
+    const refreshedArticle = dbArticles.find((article) => article.id === requestedArticleId);
+    if (refreshedArticle) {
+      setSelectedArticle((current) => current?.id === requestedArticleId ? refreshedArticle : current);
+    }
+  }, [dbArticles, requestedArticleId]);
 
   // Auto-refresh for Active Alerts tab
   useEffect(() => {
@@ -973,7 +987,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       Critical Alerts ({criticalAlerts.length})
                     </CardTitle>
                     <CardDescription>
-                      Immediate action required - these threats are actively being exploited
+                      Critical-severity threats and published incident reports requiring prompt review
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -987,17 +1001,39 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge className="bg-red-500 text-white">CRITICAL</Badge>
-                              {(alert.metadata?.provider === 'quillmonitor' || alert.sourceName === 'QuillMonitor') && (
-                                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">QuillMonitor</Badge>
+                              {isQuillMonitorArticle(alert) && (
+                                <a
+                                  href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-primary underline underline-offset-2"
+                                  onClick={(event) => event.stopPropagation()}
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                >
+                                  Powered by QuillMonitor
+                                </a>
                               )}
-                              <Badge variant="outline" className="border-red-500 text-red-400">
-                                Action Required
-                              </Badge>
+                              {isPreliminaryQuillMonitorArticle(alert) ? (
+                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">Preliminary</Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-red-500 text-red-400">Action Required</Badge>
+                              )}
                               {alert.cveId && (
                                 <Badge variant="secondary">{alert.cveId}</Badge>
                               )}
                             </div>
-                            <h3 className="font-medium mb-1">{alert.title}</h3>
+                            <h3 className="font-medium mb-1">
+                              <button
+                                type="button"
+                                className="text-left"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleArticleClick(alert);
+                                }}
+                              >
+                                {alert.title}
+                              </button>
+                            </h3>
                             <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
                             <div className="flex flex-wrap gap-1">
                               {alert.affectedTechnologies?.map((tech) => (
@@ -1008,7 +1044,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                           <div className="text-right">
                             <div className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {format(new Date(alert.publishedAt), 'MMM d, yyyy')}
+                              {alert.metadata?.incident_date || format(new Date(alert.publishedAt), 'MMM d, yyyy')}
                             </div>
                           </div>
                         </div>
@@ -1039,14 +1075,36 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge className="bg-orange-500 text-white">HIGH</Badge>
-                              {(alert.metadata?.provider === 'quillmonitor' || alert.sourceName === 'QuillMonitor') && (
-                                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">QuillMonitor</Badge>
+                              {isQuillMonitorArticle(alert) && (
+                                <a
+                                  href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-primary underline underline-offset-2"
+                                  onClick={(event) => event.stopPropagation()}
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                >
+                                  Powered by QuillMonitor
+                                </a>
                               )}
-                              <Badge variant="outline" className="border-orange-500 text-orange-400">
-                                Action Required
-                              </Badge>
+                              {isPreliminaryQuillMonitorArticle(alert) ? (
+                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">Preliminary</Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-orange-500 text-orange-400">Action Required</Badge>
+                              )}
                             </div>
-                            <h3 className="font-medium mb-1">{alert.title}</h3>
+                            <h3 className="font-medium mb-1">
+                              <button
+                                type="button"
+                                className="text-left"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleArticleClick(alert);
+                                }}
+                              >
+                                {alert.title}
+                              </button>
+                            </h3>
                             <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
                             <div className="flex flex-wrap gap-1">
                               {alert.affectedTechnologies?.map((tech) => (
@@ -1057,7 +1115,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                           <div className="text-right">
                             <div className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {format(new Date(alert.publishedAt), 'MMM d, yyyy')}
+                              {alert.metadata?.incident_date || format(new Date(alert.publishedAt), 'MMM d, yyyy')}
                             </div>
                           </div>
                         </div>

@@ -1,5 +1,7 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
 
+export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
+
 export interface QuillMonitorIncident {
   id: string;
   target: string;
@@ -10,6 +12,9 @@ export interface QuillMonitorIncident {
   amountInUsd: number | null;
   description: string;
   reference: string;
+  verificationStatus: 'verified' | 'unverified';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface NormalizedQuillMonitorArticle {
@@ -27,9 +32,108 @@ export interface NormalizedQuillMonitorArticle {
   affected_technologies: string[];
   cve_id: null;
   published_at: string;
-  raw_content: string;
+  raw_content: string | null;
   is_processed: boolean;
   metadata: Record<string, unknown>;
+}
+
+export interface QuillMonitorPage {
+  data: unknown[];
+  totalIncidents: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+  nextPage: number | null;
+  syncUntil: string | null;
+}
+
+export function buildQuillMonitorRequestUrl({
+  page,
+  limit,
+  since,
+  until,
+  baseUrl = QUILLMONITOR_API_URL,
+}: {
+  page: number;
+  limit: number;
+  since?: string;
+  until?: string;
+  baseUrl?: string;
+}): string {
+  const url = new URL(baseUrl);
+  url.searchParams.set('page', String(page));
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('includeUnverified', 'true');
+  if (since) {
+    url.searchParams.set('since', since);
+    if (until) url.searchParams.set('until', until);
+  } else {
+    url.searchParams.set('sort', 'newest');
+  }
+  return url.toString();
+}
+
+export function parseQuillMonitorPage(
+  value: unknown,
+  expectedPage: number,
+  expectedLimit: number,
+  requireSyncUntil: boolean,
+): QuillMonitorPage | null {
+  if (!value || typeof value !== 'object') return null;
+  const payload = value as Record<string, unknown>;
+  if (payload.success !== true || !Array.isArray(payload.data)) return null;
+
+  const totalIncidents = payload.totalIncidents;
+  const totalPages = payload.totalPages;
+  const currentPage = payload.currentPage;
+  const limit = payload.limit;
+  const nextPage = payload.nextPage;
+  if (
+    !Number.isInteger(totalIncidents) || Number(totalIncidents) < 0 ||
+    !Number.isInteger(totalPages) || Number(totalPages) < 0 ||
+    currentPage !== expectedPage || limit !== expectedLimit ||
+    payload.data.length > expectedLimit ||
+    (nextPage !== null && nextPage !== expectedPage + 1)
+  ) return null;
+
+  const normalizedTotalPages = Number(totalPages);
+  const calculatedTotalPages = Math.ceil(Number(totalIncidents) / expectedLimit);
+  if (
+    (calculatedTotalPages === 0
+      ? normalizedTotalPages !== 0 && normalizedTotalPages !== 1
+      : normalizedTotalPages !== calculatedTotalPages) ||
+    expectedPage > Math.max(1, normalizedTotalPages) ||
+    (nextPage !== null && (Number(nextPage) > normalizedTotalPages || Number(nextPage) > 10_000)) ||
+    (nextPage === null && expectedPage < normalizedTotalPages)
+  ) return null;
+
+  const syncUntil = normalizeProviderTimestamp(payload.syncUntil);
+  if (requireSyncUntil && !syncUntil) return null;
+
+  return {
+    data: payload.data,
+    totalIncidents: Number(totalIncidents),
+    totalPages: normalizedTotalPages,
+    currentPage: Number(currentPage),
+    limit: Number(limit),
+    nextPage: nextPage === null ? null : Number(nextPage),
+    syncUntil,
+  };
+}
+
+export function isSafeQuillMonitorSyncWindow(
+  since: string,
+  syncUntil: string,
+  receivedAt = new Date(),
+): boolean {
+  const sinceTime = new Date(since).getTime();
+  const untilTime = new Date(syncUntil).getTime();
+  if (!Number.isFinite(sinceTime) || !Number.isFinite(untilTime)) return false;
+  return untilTime >= sinceTime && untilTime <= receivedAt.getTime() + 60_000;
+}
+
+export function hasCompleteQuillMonitorResult(recordsFound: number, advertisedTotal: number): boolean {
+  return Number.isInteger(recordsFound) && recordsFound >= 0 && recordsFound === advertisedTotal;
 }
 
 function cleanText(value: unknown, maxLength: number): string {
@@ -78,13 +182,14 @@ export function assessQuillMonitorRunHealth(
   recordsFound: number,
   recordsInvalid: number,
   persistenceErrors: number,
+  allowEmpty = false,
 ): QuillMonitorRunHealth {
-  const invalidRatio = recordsFound > 0 ? recordsInvalid / recordsFound : 1;
-  const unhealthyValidation = recordsFound === 0 || invalidRatio > 0.1;
+  const invalidRatio = recordsFound > 0 ? recordsInvalid / recordsFound : 0;
+  const unhealthyValidation = (!allowEmpty && recordsFound === 0) || recordsInvalid > 0;
   const success = persistenceErrors === 0 && !unhealthyValidation;
   const summaries: string[] = [];
 
-  if (recordsFound === 0) summaries.push('Provider returned no incident records');
+  if (recordsFound === 0 && !allowEmpty) summaries.push('Provider returned no incident records');
   else if (unhealthyValidation) {
     summaries.push(
       `Provider validation rejected ${recordsInvalid} of ${recordsFound} records (${(invalidRatio * 100).toFixed(1)}%)`,
@@ -122,10 +227,18 @@ export function mapQuillMonitorSeverity(incident: QuillMonitorIncident): Normali
 
 export function formatUsd(amount: number | null): string | null {
   if (amount === null || !Number.isFinite(amount) || amount < 0) return null;
-  if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(amount >= 10_000_000_000 ? 0 : 1)}B`;
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 0 : 1)}M`;
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(amount >= 10_000 ? 0 : 1)}K`;
+  const compact = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  if (amount >= 1_000_000_000) return `$${compact(amount / 1_000_000_000)}B`;
+  if (amount >= 1_000_000) return `$${compact(amount / 1_000_000)}M`;
+  if (amount >= 1_000) return `$${compact(amount / 1_000)}K`;
   return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
+function normalizeProviderTimestamp(value: unknown): string | null {
+  const timestamp = cleanText(value, 80);
+  if (!timestamp) return null;
+  const parsed = new Date(timestamp);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 export function parseQuillMonitorIncident(value: unknown): QuillMonitorIncident | null {
@@ -134,7 +247,14 @@ export function parseQuillMonitorIncident(value: unknown): QuillMonitorIncident 
   const id = cleanText(row.id, 200);
   const target = cleanText(row.target, 200);
   const date = normalizeIncidentDate(row.date);
-  if (!id || !target || !date) return null;
+  const verificationStatus = cleanText(row.verificationStatus, 20);
+  const createdAt = normalizeProviderTimestamp(row.createdAt);
+  const updatedAt = normalizeProviderTimestamp(row.updatedAt);
+  if (
+    !id || !target || !date ||
+    (verificationStatus !== 'verified' && verificationStatus !== 'unverified') ||
+    !createdAt || !updatedAt
+  ) return null;
 
   const rawAmount = row.amountInUsd;
   const amount = rawAmount === null || rawAmount === undefined || rawAmount === ''
@@ -159,6 +279,9 @@ export function parseQuillMonitorIncident(value: unknown): QuillMonitorIncident 
     amountInUsd: amount !== null && Number.isFinite(amount) && amount >= 0 ? amount : null,
     description: cleanText(row.description, 4_000),
     reference: safeReference,
+    verificationStatus,
+    createdAt,
+    updatedAt,
   };
 }
 
@@ -175,7 +298,7 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
   const attackMethod = incident.attackedMethod || 'Security incident';
   const chain = incident.chain || 'Blockchain';
   const title = `${incident.target}: ${attackMethod}${amountDisplay ? ` (${amountDisplay} loss)` : ''}`;
-  const summary = incident.description || `${incident.target} was affected by a ${attackMethod.toLowerCase()} incident on ${chain}.`;
+  const summary = incident.description || 'Summary pending';
   const quillMonitorUrl = 'https://www.quillaudits.com/web3-hacks-database';
   const referenceUrl = incident.reference || quillMonitorUrl;
   const sourceLinks = [
@@ -217,7 +340,7 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
     affected_technologies: technologies,
     cve_id: null,
     published_at: new Date(`${incident.date}T00:00:00.000Z`).toISOString(),
-    raw_content: JSON.stringify(incident),
+    raw_content: null,
     is_processed: true,
     metadata: {
       provider: 'quillmonitor',
@@ -234,6 +357,11 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
       amount_display: amountDisplay,
       reference_url: incident.reference || null,
       incident_date: incident.date,
+      verification_status: incident.verificationStatus,
+      provider_created_at: incident.createdAt,
+      provider_updated_at: incident.updatedAt,
+      summary_status: incident.description ? 'available' : 'pending',
+      summary_origin: 'provider',
       attribution_url: quillMonitorUrl,
       synced_at: new Date().toISOString(),
     },

@@ -4,8 +4,24 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Bell, ShieldAlert } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
 
+interface RealtimeArticle {
+  id: string;
+  title: string;
+  severity: SeverityLevel;
+  category: NewsCategory;
+  summary: string;
+  cve_id?: string;
+  source_name?: string;
+  published_at?: string;
+  metadata?: {
+    provider?: string;
+    verification_status?: string;
+    provider_created_at?: string;
+  };
+}
+
 interface RealtimeAlertListenerProps {
-  onNewArticle?: (article: any) => void;
+  onNewArticle?: () => void;
   enabled?: boolean;
 }
 
@@ -15,9 +31,18 @@ export const RealtimeAlertListener = ({
 }: RealtimeAlertListenerProps) => {
   const { toast } = useToast();
   const hasShownWelcomeToast = useRef(false);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
+
+    const scheduleRefresh = () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+      refreshTimer.current = setTimeout(() => {
+        refreshTimer.current = null;
+        onNewArticle?.();
+      }, 1_500);
+    };
 
     // Show connection toast once
     if (!hasShownWelcomeToast.current) {
@@ -38,29 +63,32 @@ export const RealtimeAlertListener = ({
         (payload) => {
           console.log('[Realtime] New article received:', payload);
           
-          const article = payload.new as {
-            id: string;
-            title: string;
-            severity: SeverityLevel;
-            category: NewsCategory;
-            summary: string;
-            cve_id?: string;
-          };
+          const article = payload.new as RealtimeArticle;
+          const eventTimestamp = article.metadata?.provider_created_at || article.published_at || '';
+          const eventTime = new Date(eventTimestamp).getTime();
+          const now = Date.now();
+          const isRecent = Number.isFinite(eventTime) &&
+            eventTime >= now - 6 * 60 * 60 * 1000 &&
+            eventTime <= now + 5 * 60 * 1000;
 
           // Only show notifications for critical and high severity
-          if (article.severity === 'critical' || article.severity === 'high') {
+          if (isRecent && (article.severity === 'critical' || article.severity === 'high')) {
             const isCritical = article.severity === 'critical';
+            const isPreliminary = (
+              article.metadata?.provider === 'quillmonitor' ||
+              article.source_name === 'QuillMonitor'
+            ) && article.metadata?.verification_status === 'unverified';
             
             toast({
               title: (
                 <div className="flex items-center gap-2">
-                  {isCritical ? (
+                  {isCritical && !isPreliminary ? (
                     <ShieldAlert className="w-5 h-5 text-red-500" />
                   ) : (
-                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    <AlertTriangle className={`w-5 h-5 ${isPreliminary ? 'text-amber-400' : 'text-orange-500'}`} />
                   )}
-                  <span className={isCritical ? 'text-red-500' : 'text-orange-500'}>
-                    {isCritical ? 'CRITICAL ALERT' : 'High Priority Alert'}
+                  <span className={isPreliminary ? 'text-amber-400' : isCritical ? 'text-red-500' : 'text-orange-500'}>
+                    {isPreliminary ? 'Preliminary incident' : isCritical ? 'CRITICAL ALERT' : 'High Priority Alert'}
                   </span>
                 </div>
               ) as any,
@@ -77,12 +105,12 @@ export const RealtimeAlertListener = ({
                   </p>
                 </div>
               ) as any,
-              duration: isCritical ? 10000 : 6000, // Critical stays longer
-              variant: isCritical ? 'destructive' : 'default',
+              duration: isCritical && !isPreliminary ? 10000 : 6000,
+              variant: isCritical && !isPreliminary ? 'destructive' : 'default',
             });
 
             // Play notification sound for critical alerts
-            if (isCritical && typeof window !== 'undefined') {
+            if (isCritical && !isPreliminary && typeof window !== 'undefined') {
               try {
                 // Create a simple beep sound using Web Audio API
                 const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -105,10 +133,24 @@ export const RealtimeAlertListener = ({
           }
 
           // Notify parent component
-          if (onNewArticle) {
-            onNewArticle(article);
-          }
+          scheduleRefresh();
         }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'news_articles',
+        },
+        (payload) => {
+          // Refresh status transitions (for example preliminary -> verified)
+          // without replaying a new-incident toast or alert sound.
+          const article = payload.new as RealtimeArticle;
+          if (article.metadata?.provider === 'quillmonitor' || article.source_name === 'QuillMonitor') {
+            scheduleRefresh();
+          }
+        },
       )
       .subscribe((status) => {
         console.log('[Realtime] Subscription status:', status);
@@ -122,6 +164,7 @@ export const RealtimeAlertListener = ({
 
     return () => {
       console.log('[Realtime] Unsubscribing from critical alerts');
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
       supabase.removeChannel(channel);
     };
   }, [enabled, onNewArticle, toast]);

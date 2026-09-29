@@ -33,13 +33,14 @@ attribution remains visible on records where it is required or useful.
 ## Canonical taxonomy
 
 `news_articles.category` is the record's most specific primary topic. Web3 is
-also a cross-category security domain, and a confirmed incident is an
+also a cross-category security domain, and a published incident record is an
 independent content scope:
 
 - `metadata.security_domain = "web3"` makes a record discoverable through the
   Web3 Security umbrella even when its primary category is DeFi, operational
   security, supply chain, or vulnerability disclosure;
-- `metadata.is_web3_incident = true` marks a confirmed Web3 incident;
+- `metadata.is_web3_incident = true` marks a Web3 incident, including records
+  explicitly labelled preliminary while provider verification is pending;
 - `metadata.taxonomy_version` and sanitized `classification_reasons` make
   classifier changes reviewable without storing provider payloads;
 - `metadata.classification_relevant = false` retains a rejected historical RSS
