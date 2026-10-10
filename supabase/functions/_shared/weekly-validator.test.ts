@@ -105,6 +105,51 @@ describe('validateAndFill rejections', () => {
   });
 });
 
+describe('validateAndFill rejects invented names, quantities and claims', () => {
+  const trendsValues = { week_loss: '~$12M reported', previous_week_loss: null, incident_count: '9', unconfirmed_count: '2', top_attack: 'phishing', top_chain: 'Ethereum', funds_returned_count: '1' };
+  const trendsCtx = (values: Record<string, string | null> = trendsValues) => ctx({ section: 'trends', values });
+
+  it('rejects a sentence-initial name that is not in the input', () => {
+    expect(has(reasonsOf('{project} lost {loss} on {chain}. Lazarus is believed to be behind the attack, according to {source}.'), 'capitalised:Lazarus')).toBe(true);
+    expect(has(reasonsOf('{project} lost {loss} on {chain}. Binance froze part of the stolen funds.'), 'capitalised:Binance')).toBe(true);
+  });
+
+  it('rejects attribution and third-party actions written in lower case', () => {
+    expect(has(reasonsOf('{project} lost {loss} on {chain}, and the attacker moved the funds through tornado cash.'), 'attribution')).toBe(true);
+    expect(has(reasonsOf('{project} lost {loss} on {chain}; the attack is linked to a hacker group.'), 'attribution')).toBe(true);
+    expect(has(reasonsOf('{project} lost {loss} on {chain}, and an exchange froze part of it.'), 'attribution')).toBe(true);
+  });
+
+  it('accepts common sentence openers and allowed terms at the start of a sentence', () => {
+    const raw = '{project} lost {loss} on {chain}. The source lists it as {status}. Ethereum users should revoke stale approvals. Builders should review access controls.';
+    expect(validateAndFill(raw, ctx())).toMatchObject({ ok: true });
+  });
+
+  it('rejects fractions, multiples and small counts written as words', () => {
+    expect(has(reasonsOf('{project} lost {loss} on {chain}; roughly half of it was later recovered.'), 'number_word')).toBe(true);
+    expect(has(reasonsOf('{project} lost {loss} on {chain} within one hour, according to {source}.'), 'number_word')).toBe(true);
+    expect(has(reasonsOf('Losses doubled compared with the week before, reaching {week_loss}.', trendsCtx()), 'number_word')).toBe(true);
+    expect(has(reasonsOf('{project} lost a quarter of its reserves on {chain}, according to {source}.'), 'number_word')).toBe(true);
+  });
+
+  it('allows "each one" and "no one", which carry no count', () => {
+    expect(validateAndFill('Remove browser extensions you do not use on {chain}; each one can read pages, and no one should keep them.', ctx())).toMatchObject({ ok: true });
+  });
+
+  it('rejects a confirmed or verified claim in trends and vulnerabilities', () => {
+    expect(has(reasonsOf('All {incident_count} incidents this week were confirmed and verified, with {week_loss} lost.', trendsCtx()), 'claims_confirmed')).toBe(true);
+    const vulns = ctx({ section: 'vulnerabilities', values: { vuln_count: '4' } });
+    expect(has(reasonsOf('{vuln_count} confirmed critical reports were added; patch the affected packages.', vulns), 'claims_confirmed')).toBe(true);
+  });
+
+  it('rejects a week-on-week comparison unless both weeks have a loss value', () => {
+    expect(has(reasonsOf('Losses rose compared with the week before, reaching {week_loss}.', trendsCtx()), 'comparison')).toBe(true);
+    expect(has(reasonsOf('This week saw more than the usual {top_attack} reports, with {week_loss} lost.', trendsCtx()), 'comparison')).toBe(true);
+    const both = trendsCtx({ ...trendsValues, previous_week_loss: '~$8M reported' });
+    expect(validateAndFill('Losses rose to {week_loss} this week, against {previous_week_loss} the week before.', both)).toMatchObject({ ok: true });
+  });
+});
+
 describe('validateAndFill accepts grounded prose', () => {
   it('fills placeholders from values', () => {
     const result = validateAndFill('{project} on {chain} lost {loss} in a {attack}, according to {source} ({date}).', ctx());

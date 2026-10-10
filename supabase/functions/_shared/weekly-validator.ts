@@ -40,15 +40,27 @@ const SENTINEL = 'zzph';
 const CURRENCY_SYMBOL = /[$€£¥₿]/u;
 const CURRENCY_WORD = /\b(usd|usdc|usdt|dollars?|euros?|eth|btc|wei|gwei)\b/i;
 const MAGNITUDE_WORD = /\b(millions?|billions?|thousands?|trillions?|bn|mn)\b/i;
-const NUMBER_WORD = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|dozens?)\b(?!-factor)/i;
+const NUMBER_WORD = /\b((?<!\b(?:each|no|every)\s)one|half|halves|halved|double[sd]?|twice|triple[sd]?|quadrupl\w*|quarters?|percent|per cent|fractions?|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|dozens?)\b(?!-factor)/i;
 const URL_LIKE = /\b(?:https?:\/\/|www\.)|\b[\w-]+\.(?:com|io|xyz|org|net|finance|fi|app|dev|co|cash|exchange|network|gg|ai)\b|@\w/i;
 const MARKUP = /[<>*#[\]`{}|_]/;
 const HYPE = /\b(massive|devastating|urgent(?:ly)?|shocking|catastrophic|unprecedented|alarming|staggering|whopping|huge|enormous|insane|crazy|explosive|skyrocket(?:s|ed|ing)?|terrifying|nightmare|bloodbath|game[- ]?changer|act now|immediate action required|mind[- ]blowing)\b/i;
 const EMOJI = /\p{Extended_Pictographic}/u;
 const VERIFIED_BY = /\bverified\s+by\b/i;
 const CONFIRMED_CLAIM = /\b(confirmed|verified)\b/i;
+// Comparisons with the week before; allowed only when both weeks have a loss value.
+const COMPARISON = /\b(rose|risen|rising|rises|fell|fallen|falling|falls|increas\w*|decreas\w*|more than|less than|fewer than|up from|down from|higher|lower|compared|jump(?:ed|s)?|dropp?(?:ed|s)?|surg(?:e|ed|es)|climb(?:ed|s)?|declin(?:e|ed|es))\b/i;
+// Attribution and third-party actions that no input field carries.
+const ATTRIBUTION = /\b(attribut\w*|believed|allegedly|linked to|behind the (?:attack|exploit|hack|theft|incident)|state[- ]sponsored|hacker groups?|froze|frozen|freez\w*|seiz\w*|arrest\w*|launder\w*|mixers?|tornado)\b/i;
 const UNCONFIRMED_WORD = /\bunconfirmed\b/i;
 const UNCONFIRMED_WORDING = /\b(unconfirmed|reported)\b/i;
+// Plain words that may start a sentence with a capital. Any other
+// sentence-initial capital must be an allowed term, since it could be a name.
+const SENTENCE_OPENERS = new Set([
+  'the', 'this', 'these', 'it', 'users', 'builders', 'attackers', 'funds', 'losses', 'no', 'a', 'an', 'most',
+  'its', 'their', 'according', 'for', 'if', 'when', 'while', 'after', 'before', 'both', 'only', 'unconfirmed',
+  'reported', 'each', 'all', 'some', 'teams', 'projects', 'holders', 'wallets',
+  'check', 'revoke', 'review', 'keep', 'use', 'store', 'remove', 'commit', 'pin', 'patch', 'update', 'rotate', 'avoid', 'treat',
+]);
 const SENTENCE_END = /[.!?]["')\]’”]*$/u;
 const EDGE_PUNCTUATION = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
 
@@ -79,7 +91,7 @@ function tokenReasons(stripped: string, allowed: Set<string>): string[] {
       if (/\d/.test(part)) {
         reasons.push(`digits:${token}`);
       } else if (/\p{Lu}/u.test(part)) {
-        const sentenceCase = sentenceStart && partIndex === 0 && /^\p{Lu}[^\p{Lu}]*$/u.test(part);
+        const sentenceCase = sentenceStart && partIndex === 0 && /^\p{Lu}[^\p{Lu}]*$/u.test(part) && SENTENCE_OPENERS.has(part.toLowerCase());
         if (!sentenceCase) reasons.push(`capitalised:${token}`);
       }
     });
@@ -129,11 +141,19 @@ export function validateAndFill(raw: string, ctx: ValidationContext): Validation
   reasons.push(...projectReasons(stripped, ctx));
   reasons.push(...tokenReasons(stripped, allowedSet(ctx.allowedTerms)));
 
+  if (ATTRIBUTION.test(stripped)) reasons.push('attribution');
+
   if (ctx.section === 'item') {
     // Status words come from the source through {status}; prose may only
     // repeat a status the source actually gives.
     if (ctx.values.status !== 'confirmed' && CONFIRMED_CLAIM.test(stripped)) reasons.push('claims_confirmed');
     if (!ctx.isUnconfirmed && UNCONFIRMED_WORD.test(stripped)) reasons.push('claims_unconfirmed');
+  } else {
+    // Totals mix confirmed records with records that have no status, so a
+    // section-wide paragraph may never call them confirmed or verified.
+    if (CONFIRMED_CLAIM.test(stripped)) reasons.push('claims_confirmed');
+    const bothWeeks = Boolean(ctx.values.week_loss) && Boolean(ctx.values.previous_week_loss);
+    if (ctx.section === 'trends' && !bothWeeks && COMPARISON.test(stripped)) reasons.push('comparison');
   }
 
   const filled = source.replace(PLACEHOLDER, (_whole, name: string) => ctx.values[name] ?? '').replace(/\s+/g, ' ').trim();
