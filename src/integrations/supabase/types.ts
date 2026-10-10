@@ -714,21 +714,37 @@ export type Database = {
         }
         Returns: Json
       }
-      count_news_articles: {
-        Args: {
-          attack_type_filter?: string[]
-          category_filter?: string[]
-          chain_filter?: string[]
-          date_from?: string
-          provider_filter?: string[]
-          search_query?: string
-          severity_filter?: string[]
-          source_filter?: string
-          verification_filter?: string
-          web3_incidents_only?: boolean
-        }
-        Returns: number
-      }
+      count_news_articles:
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              search_query?: string
+              severity_filter?: string[]
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              search_query?: string
+              severity_filter?: string[]
+              source_filter?: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              search_query?: string
+              severity_filter?: string[]
+              source_filter?: string
+              web3_incidents_only?: boolean
+            }
+            Returns: number
+          }
       get_cron_auth_headers: { Args: never; Returns: Json }
       get_cron_monitor_data: { Args: { hours_back?: number }; Returns: Json }
       get_subscriber_count: { Args: never; Returns: Json }
@@ -762,62 +778,96 @@ export type Database = {
         }
         Returns: number
       }
-      search_news_articles: {
-        Args: {
-          attack_type_filter?: string[]
-          category_filter?: string[]
-          chain_filter?: string[]
-          date_from?: string
-          provider_filter?: string[]
-          result_limit?: number
-          result_offset?: number
-          search_query?: string
-          severity_filter?: string[]
-          sort_by?: string
-          source_filter?: string
-          verification_filter?: string
-          web3_incidents_only?: boolean
-        }
-        Returns: {
-          affected_technologies: string[]
-          author: string
-          category: string
-          content: string
-          created_at: string
-          cve_id: string
-          id: string
-          is_processed: boolean
-          link: string
-          metadata: Json
-          published_at: string
-          rank: number
-          severity: string
-          source_name: string
-          source_url: string
-          summary: string
-          tags: string[]
-          title: string
-        }[]
-      }
-      threat_intel_facets: {
-        Args: { p_scope?: string; p_since?: string }
-        Returns: Json
-      }
-      threat_intel_stats: {
-        Args: {
-          attack_type_filter?: string[]
-          category_filter?: string[]
-          chain_filter?: string[]
-          date_from?: string
-          provider_filter?: string[]
-          search_query?: string
-          severity_filter?: string[]
-          source_filter?: string
-          verification_filter?: string
-          web3_incidents_only?: boolean
-        }
-        Returns: Json
-      }
+      search_news_articles:
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              result_limit?: number
+              result_offset?: number
+              search_query?: string
+              severity_filter?: string[]
+              source_filter?: string
+            }
+            Returns: {
+              affected_technologies: string[]
+              author: string
+              category: string
+              content: string
+              cve_id: string
+              id: string
+              is_processed: boolean
+              link: string
+              metadata: Json
+              published_at: string
+              rank: number
+              severity: string
+              source_name: string
+              source_url: string
+              summary: string
+              tags: string[]
+              title: string
+            }[]
+          }
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              result_limit?: number
+              result_offset?: number
+              search_query?: string
+              severity_filter?: string[]
+              source_filter?: string
+              web3_incidents_only?: boolean
+            }
+            Returns: {
+              affected_technologies: string[]
+              author: string
+              category: string
+              content: string
+              cve_id: string
+              id: string
+              is_processed: boolean
+              link: string
+              metadata: Json
+              published_at: string
+              rank: number
+              severity: string
+              source_name: string
+              source_url: string
+              summary: string
+              tags: string[]
+              title: string
+            }[]
+          }
+        | {
+            Args: {
+              category_filter?: string[]
+              date_from?: string
+              result_limit?: number
+              result_offset?: number
+              search_query: string
+              severity_filter?: string[]
+            }
+            Returns: {
+              affected_technologies: string[]
+              author: string
+              category: string
+              content: string
+              cve_id: string
+              id: string
+              is_processed: boolean
+              link: string
+              published_at: string
+              rank: number
+              severity: string
+              source_name: string
+              source_url: string
+              summary: string
+              tags: string[]
+              title: string
+            }[]
+          }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

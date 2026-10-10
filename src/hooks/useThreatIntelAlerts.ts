@@ -6,6 +6,7 @@ import {
   ALERTS_PAGE_SIZE,
   buildAlertQueryParams,
   parseThreatIntelStats,
+  type ThreatIntelFilterParams,
   type ThreatIntelFilterInput,
 } from '@/lib/threatIntel/query';
 
@@ -61,7 +62,9 @@ export function useThreatIntelAlerts({ filters, page, enabled }: UseThreatIntelA
     try {
       const [listResult, statsResult] = await Promise.all([
         supabase.rpc('search_news_articles', query.search),
-        supabase.rpc('threat_intel_stats', query.filter),
+        (supabase.rpc as unknown as (
+          name: 'threat_intel_stats', args: ThreatIntelFilterParams
+        ) => ReturnType<typeof supabase.rpc>)('threat_intel_stats', query.filter),
       ]);
       if (!isCurrent()) return;
 

@@ -142,7 +142,9 @@ async function fetchFeedFreshness() {
 
 async function fetchThreatIntelStats(params: ThreatIntelFilterParams): Promise<ThreatIntelStats | null> {
   try {
-    const { data, error } = await supabase.rpc('threat_intel_stats', params);
+    const { data, error } = await (supabase.rpc as unknown as (
+      name: 'threat_intel_stats', args: ThreatIntelFilterParams
+    ) => ReturnType<typeof supabase.rpc>)('threat_intel_stats', params);
     if (error) {
       console.warn('Unable to load threat-intel stats; falling back to page counts:', error);
       return null;

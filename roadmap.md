@@ -1,5 +1,9 @@
 # Current tasks
 
+- [x] Deploy the six committed Phase 0 functions, including dedupe-incidents.
+- [x] Return the authorized 90-day duplicate dry run; stopped because Meter is absent from the matches.
+- [x] Verify preview compatibility corrections: build OK; no migrations or publishing in Stage 1.
+
 - [x] Run RSS with managed authorization and verify its ingestion result.
 - [x] Check recent scheduled HTTP responses and cron execution failures.
 - [x] Correct existing summarization compilation errors and verify deployment; authorized no-op returned 200 and unauthorized request returned 401.

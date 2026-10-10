@@ -24,7 +24,9 @@ export function useThreatIntelFacets(scope: ThreatIntelScope): ThreatIntelFacets
     let cancelled = false;
     void (async () => {
       try {
-        const { data, error } = await supabase.rpc('threat_intel_facets', { p_scope: scope });
+        const { data, error } = await (supabase.rpc as unknown as (
+          name: 'threat_intel_facets', args: { p_scope: ThreatIntelScope }
+        ) => ReturnType<typeof supabase.rpc>)('threat_intel_facets', { p_scope: scope });
         if (cancelled) return;
         if (error) {
           console.warn('Unable to load threat-intel filter options:', error);
