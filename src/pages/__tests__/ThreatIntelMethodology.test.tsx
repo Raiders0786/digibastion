@@ -48,6 +48,28 @@ describe('ThreatIntelMethodology', () => {
     expect(screen.getByText('No loss disclosed and none of the attack types above.')).not.toBeNull();
   });
 
+  it('lists the severity rules in the order the code checks them', () => {
+    renderPage();
+
+    // The rubric is the first definition list on the page.
+    const rubric = document.querySelector('dl');
+    const rows = Array.from(rubric?.querySelectorAll(':scope > div') ?? []).map((row) => [
+      row.querySelector('dt')?.textContent,
+      row.querySelector('dd')?.textContent,
+    ]);
+    expect(rows).toEqual([
+      ['Critical', 'Reported loss of $50M or more.'],
+      ['High', 'Reported loss from $10M up to $50M.'],
+      [
+        'High',
+        'Loss under $10M or not disclosed, when the attack is a private-key compromise, an access-control flaw, oracle manipulation, reentrancy or a flash-loan attack.',
+      ],
+      ['Medium', 'Reported loss from $1M up to $10M.'],
+      ['Medium', 'Any other disclosed loss under $1M.'],
+      ['Low', 'No loss disclosed and none of the attack types above.'],
+    ]);
+  });
+
   it('lists the corrections address, the official channels and the anti-impersonation note', () => {
     renderPage();
 

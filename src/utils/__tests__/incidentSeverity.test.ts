@@ -18,27 +18,36 @@ const quillIncident: QuillMonitorIncident = {
 };
 
 describe('severityFromLoss', () => {
-  it('uses loss thresholds of $50M, $10M and $1M', () => {
+  it('rates $50M or more critical and $10M up to $50M high', () => {
     expect(severityFromLoss(50_000_000, null)).toBe('critical');
     expect(severityFromLoss(49_999_999, null)).toBe('high');
     expect(severityFromLoss(10_000_000, null)).toBe('high');
-    expect(severityFromLoss(9_999_999, null)).toBe('medium');
-    expect(severityFromLoss(1_000_000, null)).toBe('medium');
   });
 
-  it('rates losses under $1M as medium and no loss as low', () => {
+  it('rates any loss under $10M high when the attack is a direct-loss method', () => {
+    expect(severityFromLoss(9_999_999, 'Access Control')).toBe('high');
+    expect(severityFromLoss(2_500_000, 'Access Control')).toBe('high');
+    expect(severityFromLoss(1_000_000, 'Reentrancy')).toBe('high');
+    expect(severityFromLoss(500_000, 'Access Control')).toBe('high');
+    expect(severityFromLoss(null, 'Private Key Compromise')).toBe('high');
+    expect(severityFromLoss(null, 'Oracle Manipulation')).toBe('high');
+    expect(severityFromLoss(null, 'Reentrancy')).toBe('high');
+    expect(severityFromLoss(null, 'Flash Loan Attack')).toBe('high');
+  });
+
+  it('never rates a larger direct-loss hack below a smaller one', () => {
+    const rank = { low: 0, medium: 1, high: 2, critical: 3 } as const;
+    expect(rank[severityFromLoss(2_500_000, 'Access Control')])
+      .toBeGreaterThanOrEqual(rank[severityFromLoss(500_000, 'Access Control')]);
+  });
+
+  it('rates other losses under $10M medium and no loss low', () => {
+    expect(severityFromLoss(9_999_999, null)).toBe('medium');
+    expect(severityFromLoss(1_000_000, null)).toBe('medium');
     expect(severityFromLoss(999_999, 'Phishing')).toBe('medium');
     expect(severityFromLoss(500, null)).toBe('medium');
     expect(severityFromLoss(0, null)).toBe('low');
     expect(severityFromLoss(null, null)).toBe('low');
-  });
-
-  it('raises small or unknown losses to high for direct-loss attack methods', () => {
-    expect(severityFromLoss(null, 'Private Key Compromise')).toBe('high');
-    expect(severityFromLoss(200_000, 'Access Control')).toBe('high');
-    expect(severityFromLoss(null, 'Oracle Manipulation')).toBe('high');
-    expect(severityFromLoss(null, 'Reentrancy')).toBe('high');
-    expect(severityFromLoss(null, 'Flash Loan Attack')).toBe('high');
   });
 
   it('matches attack signals regardless of punctuation', () => {
@@ -63,6 +72,8 @@ describe('QuillMonitor severity uses the shared rubric', () => {
     expect(mapQuillMonitorSeverity({ ...quillIncident, amountInUsd: 12_500_000 })).toBe('high');
     expect(mapQuillMonitorSeverity({ ...quillIncident, attackedMethod: 'Reentrancy' })).toBe('high');
     expect(mapQuillMonitorSeverity({ ...quillIncident, amountInUsd: 250_000 })).toBe('medium');
+    expect(mapQuillMonitorSeverity({ ...quillIncident, amountInUsd: 2_500_000 })).toBe('medium');
+    expect(mapQuillMonitorSeverity({ ...quillIncident, amountInUsd: 2_500_000, attackedMethod: 'Access Control' })).toBe('high');
     expect(mapQuillMonitorSeverity(quillIncident)).toBe('low');
   });
 });

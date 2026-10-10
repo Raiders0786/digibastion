@@ -4,8 +4,8 @@
 
 export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
 
-// Attack methods that usually mean a direct loss of funds even when the
-// provider has not published an amount yet.
+// Attack methods that usually mean a direct loss of funds, at any loss below
+// $10M and even when the provider has not published an amount yet.
 const HIGH_RISK_ATTACK_SIGNALS = ['private key', 'access control', 'oracle', 'reentrancy', 'flash loan'];
 
 // Lowercase and turn punctuation into spaces so "Flash-loan" and
@@ -23,10 +23,12 @@ export function severityFromLoss(amountUsd: number | null, attackType: string | 
   const amount = typeof amountUsd === 'number' && Number.isFinite(amountUsd) && amountUsd >= 0 ? amountUsd : null;
   if (amount !== null && amount >= 50_000_000) return 'critical';
   if (amount !== null && amount >= 10_000_000) return 'high';
-  if (amount !== null && amount >= 1_000_000) return 'medium';
 
+  // Checked before the $1M tier so a bigger direct-loss hack never rates below
+  // a smaller one with the same attack method.
   const attack = normalizeAttackType(attackType ?? '');
   if (HIGH_RISK_ATTACK_SIGNALS.some((signal) => attack.includes(signal))) return 'high';
+  // Any other disclosed loss, $1M or more included.
   if (amount !== null && amount > 0) return 'medium';
   return 'low';
 }

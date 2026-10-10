@@ -37,11 +37,11 @@ const Section = ({ id, title, children }: { id: string; title: string; children:
 const severityRubric = [
   { level: 'Critical', rule: 'Reported loss of $50M or more.' },
   { level: 'High', rule: 'Reported loss from $10M up to $50M.' },
-  { level: 'Medium', rule: 'Reported loss from $1M up to $10M.' },
   {
     level: 'High',
-    rule: 'Loss under $1M or not disclosed, when the attack is a private-key compromise, an access-control flaw, oracle manipulation, reentrancy or a flash-loan attack.',
+    rule: 'Loss under $10M or not disclosed, when the attack is a private-key compromise, an access-control flaw, oracle manipulation, reentrancy or a flash-loan attack.',
   },
+  { level: 'Medium', rule: 'Reported loss from $1M up to $10M.' },
   { level: 'Medium', rule: 'Any other disclosed loss under $1M.' },
   { level: 'Low', rule: 'No loss disclosed and none of the attack types above.' },
 ];

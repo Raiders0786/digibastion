@@ -82,6 +82,7 @@ Deno.test('classification does not treat generic protocol or smart-contract word
 Deno.test('severity uses reported loss and strong attack methods', () => {
   assertEquals(mapQuillMonitorSeverity({ ...incident, amountInUsd: 75_000_000 }), 'critical');
   assertEquals(mapQuillMonitorSeverity({ ...incident, amountInUsd: null, attackedMethod: 'Reentrancy' }), 'high');
+  assertEquals(mapQuillMonitorSeverity({ ...incident, amountInUsd: 2_500_000, attackedMethod: 'Access Control' }), 'high');
   assertEquals(formatUsd(1_250_000), '$1.3M');
 });
 
