@@ -1,6 +1,7 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
 import { severityFromLoss } from './incident-severity.ts';
 import { mergeIncidentSources, readIncidentFields, type IncidentSource } from './incident-fields.ts';
+import { isPendingSummary } from './summary-text.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 
@@ -382,10 +383,21 @@ export function finalizeQuillMonitorArticle(
   duplicateSources: IncidentSource[] | null,
 ): NormalizedQuillMonitorArticle {
   const ownSources = readIncidentFields(article.metadata).sources;
+  const existingFields = readIncidentFields(existing?.metadata);
   const carriedSources = duplicateSources ??
-    readIncidentFields(existing?.metadata).sources.filter((source) => source.provider !== 'quillmonitor');
+    existingFields.sources.filter((source) => source.provider !== 'quillmonitor');
+  // While QuillMonitor has no description, keep the summary summarize-article
+  // wrote; otherwise every sync of the record would reset it to "Summary pending".
+  const keepAiSummary = article.metadata.summary_status === 'pending' &&
+    existingFields.summaryOrigin === 'ai' &&
+    !isPendingSummary(existing?.summary);
   return {
     ...article,
-    metadata: { ...article.metadata, sources: mergeIncidentSources(ownSources, carriedSources) },
+    ...(keepAiSummary ? { summary: String(existing?.summary) } : {}),
+    metadata: {
+      ...article.metadata,
+      sources: mergeIncidentSources(ownSources, carriedSources),
+      ...(keepAiSummary ? { summary_origin: 'ai' } : {}),
+    },
   };
 }

@@ -12,6 +12,7 @@ import {
   parseRssIngestionRequest,
   type RssIngestionRequest,
 } from './reclassification.ts';
+import { truncateAtWord } from '../_shared/summary-text.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -417,7 +418,7 @@ serve(async (req) => {
           allArticles.push({
             uid,
             title: cleanTitle,
-            summary: cleanDesc.substring(0, 500),
+            summary: truncateAtWord(cleanDesc, 500),
             content: cleanDesc,
             link: item.link,
             source_url: feed.url,
@@ -432,6 +433,7 @@ serve(async (req) => {
             metadata: {
               provider: 'rss',
               feed_id: feed.id,
+              summary_origin: 'publisher',
               security_domain: relevance.securityDomain,
               is_web3_incident: false,
               matched_keywords: relevance.matchedKeywords.slice(0, 10),

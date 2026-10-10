@@ -4,6 +4,7 @@ import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import { classifyCollectedWeb3Incident } from './classifier.ts';
 import { severityFromLoss } from '../_shared/incident-severity.ts';
 import { matchExistingIncident, shiftDate, type IncidentRow } from '../_shared/incident-dedup.ts';
+import { truncateAtWord } from '../_shared/summary-text.ts';
 import {
   extractSources,
   formatUsd,
@@ -212,7 +213,7 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         summary = parts.find(p => p.length > 50 && !p.startsWith('!') && !p.startsWith('[') && !p.startsWith('-')) || parts[0];
         summary = summary.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
       }
-      if (summary.length > 500) summary = summary.substring(0, 497) + '...';
+      summary = truncateAtWord(summary, 500);
       
       const sourceLinks = sources.length > 0 ? JSON.stringify(sources) : null;
       

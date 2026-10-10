@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { withSummaryOrigin } from '../_shared/summary-text.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,12 +9,19 @@ const corsHeaders = {
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// Web3 incident records are stored with is_processed=true, so the main queue
+// never sees them. Each run also takes a few recent ones that still have no
+// summary; the window keeps a stuck record from being retried forever.
+const PENDING_INCIDENT_BATCH = 5;
+const PENDING_INCIDENT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 interface ArticleToSummarize {
   id: string;
   title: string;
   content: string;
   raw_content?: string;
+  summary?: string | null;
+  metadata?: unknown;
 }
 
 async function summarizeArticle(article: ArticleToSummarize): Promise<string> {
@@ -27,6 +35,8 @@ async function summarizeArticle(article: ArticleToSummarize): Promise<string> {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
+    // QuillMonitor's placeholder is not article text.
+    .replace(/\bSummary pending\b/g, '')
     .trim()
     .substring(0, 3000); // Limit content length
 
@@ -141,7 +151,7 @@ serve(async (req) => {
 
     let query = supabase
       .from('news_articles')
-      .select('id, title, content, raw_content, summary')
+      .select('id, title, content, raw_content, summary, metadata')
       .eq('is_processed', false);
 
     if (articleId) {
@@ -150,16 +160,33 @@ serve(async (req) => {
       query = query.order('published_at', { ascending: false }).limit(limit);
     }
 
-    const { data: articles, error: fetchError } = await query;
+    const { data: queued, error: fetchError } = await query;
 
     if (fetchError) {
       console.error('[summarize-article] Fetch error:', fetchError);
       throw fetchError;
     }
 
-    console.log(`[summarize-article] Found ${articles?.length || 0} articles to summarize`);
+    let pendingIncidents: ArticleToSummarize[] = [];
+    if (!articleId) {
+      const { data: pending, error: pendingError } = await supabase
+        .from('news_articles')
+        .select('id, title, content, raw_content, summary, metadata')
+        .eq('is_processed', true)
+        .eq('metadata->>is_web3_incident', 'true')
+        .or('summary.is.null,summary.eq."",summary.eq."Summary pending"')
+        .gte('created_at', new Date(Date.now() - PENDING_INCIDENT_WINDOW_MS).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(PENDING_INCIDENT_BATCH);
+      // A failure here must not block the main queue.
+      if (pendingError) console.error('[summarize-article] Pending incident lookup failed:', pendingError.message);
+      else pendingIncidents = pending ?? [];
+    }
+    const articles = [...(queued ?? []), ...pendingIncidents];
 
-    if (!articles || articles.length === 0) {
+    console.log(`[summarize-article] Found ${articles.length} articles to summarize (${pendingIncidents.length} pending incidents)`);
+
+    if (articles.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: 'No articles to summarize', processed: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -191,7 +218,9 @@ serve(async (req) => {
           .update({ 
             summary,
             is_processed: true,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            // Lets the UI show "AI Summary" only for text we generated.
+            metadata: withSummaryOrigin(article.metadata, 'ai'),
           })
           .eq('id', article.id);
 

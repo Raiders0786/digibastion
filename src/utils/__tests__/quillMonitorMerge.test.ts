@@ -69,3 +69,30 @@ describe('finalizeQuillMonitorArticle', () => {
     ]);
   });
 });
+
+describe('finalizeQuillMonitorArticle keeps AI summaries', () => {
+  const pendingArticle = normalizeQuillMonitorIncident({ ...incident, description: '' });
+  const aiSummary = 'NEAR Intents lost about $3.8M after a private key compromise. Users should revoke approvals.';
+
+  it('keeps an AI summary while the provider has no description', () => {
+    const existing = { summary: aiSummary, metadata: { summary_origin: 'ai' } };
+    const finalized = finalizeQuillMonitorArticle(pendingArticle, existing, []);
+    expect(finalized.summary).toBe(aiSummary);
+    expect(finalized.metadata.summary_origin).toBe('ai');
+  });
+
+  it('lets a provider description replace the AI summary', () => {
+    const withDescription = normalizeQuillMonitorIncident(incident);
+    const existing = { summary: aiSummary, metadata: { summary_origin: 'ai' } };
+    const finalized = finalizeQuillMonitorArticle(withDescription, existing, []);
+    expect(finalized.summary).toBe(incident.description);
+    expect(finalized.metadata.summary_origin).toBe('provider');
+  });
+
+  it('does not keep a placeholder or a non-AI summary', () => {
+    expect(finalizeQuillMonitorArticle(pendingArticle, { summary: 'Summary pending', metadata: { summary_origin: 'ai' } }, []).summary)
+      .toBe('Summary pending');
+    expect(finalizeQuillMonitorArticle(pendingArticle, { summary: aiSummary, metadata: { summary_origin: 'provider' } }, []).summary)
+      .toBe('Summary pending');
+  });
+});
