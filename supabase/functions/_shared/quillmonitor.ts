@@ -3,6 +3,7 @@ import { severityFromLoss } from './incident-severity.ts';
 import { mergeIncidentSources, readIncidentFields, type IncidentSource } from './incident-fields.ts';
 import { isQuillMonitorUid } from './incident-dedup.ts';
 import { isPendingSummary } from './summary-text.ts';
+import { formatCompactUsd } from './usd-amount.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 
@@ -229,12 +230,7 @@ export function mapQuillMonitorSeverity(incident: QuillMonitorIncident): Normali
 }
 
 export function formatUsd(amount: number | null): string | null {
-  if (amount === null || !Number.isFinite(amount) || amount < 0) return null;
-  const compact = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  if (amount >= 1_000_000_000) return `$${compact(amount / 1_000_000_000)}B`;
-  if (amount >= 1_000_000) return `$${compact(amount / 1_000_000)}M`;
-  if (amount >= 1_000) return `$${compact(amount / 1_000)}K`;
-  return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return amount === null ? null : formatCompactUsd(amount);
 }
 
 function normalizeProviderTimestamp(value: unknown): string | null {

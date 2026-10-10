@@ -50,3 +50,33 @@ export function parseUsdAmount(text: string): number | null {
   const unit = first === dollar ? (dollar[3] ?? dollar[4]) : first[3];
   return amountFromMatch(first, unit);
 }
+
+const COMPACT_UNITS = [
+  { suffix: '', size: 1, maximumFractionDigits: 0 },
+  { suffix: 'K', size: 1_000, maximumFractionDigits: 2 },
+  { suffix: 'M', size: 1_000_000, maximumFractionDigits: 2 },
+  { suffix: 'B', size: 1_000_000_000, maximumFractionDigits: 2 },
+] as const;
+
+/**
+ * Compact USD label: "$2.25M", "$2.5M", "$7M", "$38K", "$500". Up to two
+ * decimals with trailing zeros trimmed. A value that rounds up to 1,000 of a
+ * unit moves to the next unit, so 999,999 reads "$1M", never "$1,000K".
+ */
+export function formatCompactUsd(amount: number): string | null {
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  let index = COMPACT_UNITS.length - 1;
+  while (index > 0 && amount < COMPACT_UNITS[index].size) index -= 1;
+
+  for (; index < COMPACT_UNITS.length; index += 1) {
+    const unit = COMPACT_UNITS[index];
+    const label = (amount / unit.size).toLocaleString('en-US', {
+      maximumFractionDigits: unit.maximumFractionDigits,
+    });
+    // Decide the rollover on the printed figure so rounding can never leave
+    // "1,000" in front of a unit that has a larger neighbour.
+    const isLastUnit = index === COMPACT_UNITS.length - 1;
+    if (isLastUnit || Number(label.replace(/,/g, '')) < 1_000) return `$${label}${unit.suffix}`;
+  }
+  return null;
+}

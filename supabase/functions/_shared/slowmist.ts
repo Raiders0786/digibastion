@@ -1,5 +1,6 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
 import { severityFromLoss } from './incident-severity.ts';
+import { formatCompactUsd } from './usd-amount.ts';
 import {
   incidentTargetFromTitle,
   isHighConfidenceDuplicate,
@@ -191,12 +192,7 @@ function slug(value: string): string {
 }
 
 function formatUsd(amount: number | null): string | null {
-  if (amount === null || !Number.isFinite(amount) || amount < 0) return null;
-  const compact = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  if (amount >= 1_000_000_000) return `$${compact(amount / 1_000_000_000)}B`;
-  if (amount >= 1_000_000) return `$${compact(amount / 1_000_000)}M`;
-  if (amount >= 1_000) return `$${compact(amount / 1_000)}K`;
-  return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return amount === null ? null : formatCompactUsd(amount);
 }
 
 async function digestValue(value: string, length = 24): Promise<string> {

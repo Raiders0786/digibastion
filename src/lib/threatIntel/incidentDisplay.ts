@@ -10,6 +10,7 @@ import {
 import { safeExternalUrl } from '@/utils/safeUrl';
 import { readIncidentFields, type IncidentFields } from '../../../supabase/functions/_shared/incident-fields';
 import { isLegacyAmountMetadata } from '../../../supabase/functions/_shared/legacy-amounts';
+import { formatCompactUsd } from '../../../supabase/functions/_shared/usd-amount';
 import { QUILLMONITOR_DATABASE_URL, WEB3_IS_GOING_GREAT_URL } from './officialLinks';
 
 export type VerificationDisplay = 'confirmed' | 'unconfirmed';
@@ -66,14 +67,6 @@ export const formatDay = (date: Date, timeZone: string | undefined, withYear: bo
 
 const yearOf = (date: Date, timeZone: string | undefined): string =>
   new Intl.DateTimeFormat('en-US', { year: 'numeric', timeZone }).format(date);
-
-const formatUsd = (amount: number): string => {
-  const compact = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  if (amount >= 1_000_000_000) return `$${compact(amount / 1_000_000_000)}B`;
-  if (amount >= 1_000_000) return `$${compact(amount / 1_000_000)}M`;
-  if (amount >= 1_000) return `$${compact(amount / 1_000)}K`;
-  return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-};
 
 /** Name of the tracker or publisher that supplied the record. */
 export function getProviderLabel(article: NewsArticle): string | null {
@@ -149,7 +142,7 @@ function getLossLabel(
   const rawAmount = metadata?.amount_lost_usd;
   if (typeof rawAmount === 'number' && rawAmount > MAX_PLAUSIBLE_LOSS_USD) return null;
   const amount = typeof rawAmount === 'number' && Number.isFinite(rawAmount) && rawAmount > 0 ? rawAmount : null;
-  const display = trustedDisplayAmount(metadata?.amount_display) ?? (amount !== null ? formatUsd(amount) : null);
+  const display = trustedDisplayAmount(metadata?.amount_display) ?? (amount !== null ? formatCompactUsd(amount) : null);
   if (!display) return null;
   if (fields.amountStatus === 'revised') return `${display} (revised)`;
   const confirmed = fields.amountStatus === 'confirmed'
