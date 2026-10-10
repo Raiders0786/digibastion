@@ -138,40 +138,6 @@ export const technologyCategories: TechnologyCategory[] = [
   }
 ];
 
-export const newsCategoryConfig = {
-  'operational-security': {
-    name: 'Operational Security',
-    description: 'OPSEC best practices and privacy protection',
-    color: 'text-red-400'
-  },
-  'supply-chain': {
-    name: 'Supply Chain Security',
-    description: 'Dependency and package security',
-    color: 'text-orange-400'
-  },
-  'personal-protection': {
-    name: 'Personal Protection',
-    description: 'Individual security measures',
-    color: 'text-blue-400'
-  },
-  'web3-security': {
-    name: 'Web3 Security',
-    description: 'All Web3 and blockchain security, including DeFi incidents',
-    color: 'text-purple-400'
-  },
-  'defi-exploits': {
-    name: 'DeFi Exploits',
-    description: 'DeFi protocol vulnerabilities',
-    color: 'text-pink-400'
-  },
-  'vulnerability-disclosure': {
-    name: 'Vulnerability Disclosure',
-    description: 'CVE announcements and patches',
-    color: 'text-yellow-400'
-  },
-  'tools-reviews': {
-    name: 'Tools & Reviews',
-    description: 'Security tool analysis',
-    color: 'text-green-400'
-  }
-};
+// Kept as an alias for EmailPreview and ManageSubscription. New code should
+// import NEWS_CATEGORY_CONFIG or getCategoryConfig from the taxonomy module.
+export { NEWS_CATEGORY_CONFIG as newsCategoryConfig } from '@/lib/threatIntel/taxonomy';

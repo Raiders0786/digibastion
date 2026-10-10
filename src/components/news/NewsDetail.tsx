@@ -3,8 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower } from 'lucide-react';
-import { newsCategoryConfig } from '@/data/newsData';
+import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower } from 'lucide-react';
+import { getCategoryConfig, getSeverityStyle } from '@/lib/threatIntel/taxonomy';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
@@ -33,7 +33,9 @@ interface NewsDetailProps {
 }
 
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
-  const categoryInfo = newsCategoryConfig[article.category];
+  const categoryInfo = getCategoryConfig(article.category);
+  const severityStyle = getSeverityStyle(article.severity);
+  const SeverityIcon = severityStyle.icon;
   const isQuillMonitor = isQuillMonitorArticle(article);
   const isSlowMist = isSlowMistArticle(article);
   const isPreliminary = isPreliminaryQuillMonitorArticle(article);
@@ -56,34 +58,6 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
     limit: 4
   });
   
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case 'high':
-        return <Zap className="w-5 h-5 text-orange-500" />;
-      case 'medium':
-        return <Info className="w-5 h-5 text-yellow-500" />;
-      default:
-        return <Info className="w-5 h-5 text-blue-500" />;
-    }
-  };
-
-  const getSeverityClass = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return 'severity-critical';
-      case 'high':
-        return 'severity-high';
-      case 'medium':
-        return 'severity-medium';
-      case 'low':
-        return 'severity-low';
-      default:
-        return 'glass-card';
-    }
-  };
-
   const handleShare = async () => {
     const shareUrl = `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`;
     if (navigator.share) {
@@ -173,7 +147,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
       </div>
 
       {/* Main Article Card */}
-      <Card className={`${getSeverityClass(article.severity)} glow`}>
+      <Card className={`${severityStyle.cardClass} glow`}>
         <CardHeader className="pb-4">
           {/* Category and Severity Badges */}
           <div className="flex items-center gap-2 flex-wrap mb-4">
@@ -181,8 +155,8 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               {categoryInfo.name}
             </Badge>
             <Badge variant="outline" className="flex items-center gap-1">
-              {getSeverityIcon(article.severity)}
-              <span className="capitalize">{article.severity}</span>
+              <SeverityIcon className={`w-5 h-5 ${severityStyle.iconClass}`} aria-hidden="true" />
+              <span>{severityStyle.label}</span>
             </Badge>
             {web3Incident && (
               <Badge variant="secondary" className="gap-1">
@@ -405,7 +379,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           ) : relatedArticles.length > 0 ? (
             <div className="space-y-3">
               {relatedArticles.map((related) => {
-                const relatedCategoryInfo = newsCategoryConfig[related.category];
+                const relatedCategoryInfo = getCategoryConfig(related.category);
                 const openRelated = () => {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   onArticleClick?.(related);
@@ -421,16 +395,12 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <Badge 
                             variant="outline"
-                            className={`text-xs ${
-                              related.severity === 'critical' ? 'border-red-500/50 text-red-400' :
-                              related.severity === 'high' ? 'border-orange-500/50 text-orange-400' :
-                              'border-muted'
-                            }`}
+                            className={`text-xs ${getSeverityStyle(related.severity).outlineClass}`}
                           >
                             {related.severity.toUpperCase()}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {relatedCategoryInfo?.name || related.category}
+                            {relatedCategoryInfo.name}
                           </Badge>
                           {isPreliminaryQuillMonitorArticle(related) && (
                             <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">

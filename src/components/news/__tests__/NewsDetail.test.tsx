@@ -56,3 +56,18 @@ describe('NewsDetail SlowMist attribution', () => {
     expect(screen.getAllByText('SlowMist Hacked')).toHaveLength(1);
   });
 });
+
+describe('NewsDetail category fallback', () => {
+  it('renders a neutral badge instead of crashing on an unknown category', () => {
+    render(
+      <MemoryRouter>
+        <NewsDetail
+          article={{ ...slowMistArticle, category: 'legacy-feed' as NewsArticle['category'] }}
+          onBack={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Legacy Feed')).not.toBeNull();
+  });
+});

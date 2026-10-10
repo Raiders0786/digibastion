@@ -9,6 +9,11 @@ export type NewsCategory =
 
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
+/**
+ * Threat Intel view and subscription content scope.
+ * 'web3-incidents' is the default page view (no ?scope param); 'all' is ?scope=all.
+ * The same two values are stored in subscriptions.content_scope.
+ */
 export type ThreatIntelScope = 'all' | 'web3-incidents';
 
 export type AlertType = 'vulnerability' | 'exploit' | 'tool-update' | 'best-practice' | 'incident';

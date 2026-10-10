@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Clock, Users } from 'lucide-react';
 import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
-import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
+import { technologyCategories } from '@/data/newsData';
+import { NEWS_CATEGORIES, NEWS_CATEGORY_CONFIG, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriberCount } from '@/hooks/useSubscriberCount';
@@ -148,15 +149,7 @@ export const SubscriptionForm = () => {
     }
   };
 
-  const getSeverityColor = (severity: SeverityLevel) => {
-    switch (severity) {
-      case 'critical': return 'text-red-400';
-      case 'high': return 'text-orange-400';
-      case 'medium': return 'text-yellow-400';
-      case 'low': return 'text-blue-400';
-      default: return 'text-muted-foreground';
-    }
-  };
+  const getSeverityColor = (severity: SeverityLevel) => SEVERITY_STYLES[severity].textClass;
 
   const getFrequencyLabel = () => {
     switch (alertFrequency) {
@@ -300,8 +293,8 @@ export const SubscriptionForm = () => {
               Select the types of security news you want to receive
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(Object.keys(newsCategoryConfig) as NewsCategory[]).map((category) => {
-                const categoryInfo = newsCategoryConfig[category];
+              {NEWS_CATEGORIES.map((category) => {
+                const categoryInfo = NEWS_CATEGORY_CONFIG[category];
                 const isSelected = selectedCategories.includes(category);
                 
                 return (

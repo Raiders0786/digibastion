@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
+import { NEWS_CATEGORIES, SEVERITY_LEVELS, SEVERITY_STYLES, parseListParam } from '@/lib/threatIntel/taxonomy';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
   CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
@@ -47,22 +48,6 @@ const AUTO_REFRESH_OPTIONS = [
   { value: '60', label: '1m' },
   { value: '300', label: '5m' },
 ];
-
-const NEWS_CATEGORIES = new Set<NewsCategory>([
-  'operational-security',
-  'supply-chain',
-  'personal-protection',
-  'web3-security',
-  'defi-exploits',
-  'vulnerability-disclosure',
-  'tools-reviews',
-]);
-const SEVERITY_LEVELS = new Set<SeverityLevel>(['critical', 'high', 'medium', 'low', 'info']);
-
-function parseListParam<T extends string>(value: string | null, allowed: Set<T>): T[] {
-  if (!value) return [];
-  return [...new Set(value.split(',').filter((item): item is T => allowed.has(item as T)))];
-}
 
 const News = () => {
   const navigate = useNavigate();
@@ -1000,7 +985,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-red-500 text-white">CRITICAL</Badge>
+                              <Badge className={SEVERITY_STYLES.critical.solidBadgeClass}>CRITICAL</Badge>
                               {isQuillMonitorArticle(alert) && (
                                 <a
                                   href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
@@ -1074,7 +1059,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-orange-500 text-white">HIGH</Badge>
+                              <Badge className={SEVERITY_STYLES.high.solidBadgeClass}>HIGH</Badge>
                               {isQuillMonitorArticle(alert) && (
                                 <a
                                   href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}

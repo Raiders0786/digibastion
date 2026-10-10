@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { VALID_NEWS_CATEGORIES } from "../_shared/news-categories.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,10 +16,7 @@ const MAX_TECHNOLOGIES = 20;
 const VALID_FREQUENCIES = ["immediate", "daily", "weekly"];
 const VALID_SEVERITIES = ["critical", "high", "medium", "low", "info"];
 const VALID_CONTENT_SCOPES = ["all", "web3-incidents"];
-const VALID_CATEGORIES = new Set([
-  "operational-security", "supply-chain", "personal-protection", "web3-security",
-  "defi-exploits", "vulnerability-disclosure", "tools-reviews",
-]);
+const VALID_CATEGORIES = VALID_NEWS_CATEGORIES;
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;

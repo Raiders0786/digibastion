@@ -79,3 +79,11 @@ describe('NewsCard SlowMist presentation', () => {
     expect(screen.queryByText('AI Summary')).toBeNull();
   });
 });
+
+describe('NewsCard category fallback', () => {
+  it('renders a neutral badge instead of crashing on an unknown category', () => {
+    render(<NewsCard article={{ ...preliminaryArticle, category: 'legacy-feed' as NewsArticle['category'] }} />);
+
+    expect(screen.getByText('Legacy Feed')).not.toBeNull();
+  });
+});
