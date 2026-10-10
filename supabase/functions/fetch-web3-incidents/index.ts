@@ -18,90 +18,8 @@ const corsHeaders = {
 
 // Obfuscated internal source identifiers (base64 encoded for privacy in open source)
 const _s1 = atob('d2ViM2lzZ29pbmdncmVhdC5jb20='); // Primary source
-const _s2 = atob('cXVpbGxhdWRpdHMuY29tL3dlYjMtaGFja3MtZGF0YWJhc2U='); // Secondary source
-
-// Parse date from various formats found on web3isgoinggreat.com
-function parseDate(dateStr: string): Date {
-  const months: Record<string, number> = {
-    'January': 0, 'February': 1, 'March': 2, 'April': 3,
-    'May': 4, 'June': 5, 'July': 6, 'August': 7,
-    'September': 8, 'October': 9, 'November': 10, 'December': 11
-  };
-  
-  // Try "Month Day, Year" format (e.g., "January 8, 2026")
-  const match = dateStr.match(/(\w+)\s+(\d+),?\s+(\d{4})/);
-  if (match) {
-    const month = months[match[1]];
-    if (month !== undefined) {
-      return new Date(parseInt(match[3]), month, parseInt(match[2]));
-    }
-  }
-  
-  // Try DD/MM/YY format (e.g., "07/01/26")
-  const shortMatch = dateStr.match(/(\d{2})\/(\d{2})\/(\d{2})/);
-  if (shortMatch) {
-    const day = parseInt(shortMatch[1]);
-    const month = parseInt(shortMatch[2]) - 1;
-    let year = parseInt(shortMatch[3]);
-    year = year < 50 ? 2000 + year : 1900 + year;
-    return new Date(year, month, day);
-  }
-  
-  // Fallback to Date.parse
-  const parsed = new Date(dateStr);
-  return isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-// Extract dollar amount from text
-function extractAmount(text: string): number | null {
-  const patterns = [
-    /\$\s*(\d+(?:\.\d+)?)\s*Million/i,
-    /\$\s*(\d+(?:\.\d+)?)\s*Billion/i,
-    /\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*Million/i,
-    /\$\s*(\d+(?:\.\d+)?)\s*million/i,
-    /\$\s*(\d+(?:\.\d+)?)\s*billion/i,
-    /\$(\d+(?:,\d{3})*(?:\.\d+)?)/,
-    /(\d+(?:\.\d+)?)\s*million\s*(?:dollars?|\$)/i,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let amount = parseFloat(match[1].replace(/,/g, ''));
-      if (text.toLowerCase().includes('billion')) {
-        amount *= 1000;
-      } else if (text.toLowerCase().includes('million')) {
-        // Already in millions
-      } else if (amount < 1000) {
-        // Likely already in full dollar amount, convert to millions
-        amount /= 1000000;
-      }
-      return amount;
-    }
-  }
-  return null;
-}
-
-// Determine severity based on amount and content
-function determineSeverity(amount: number | null, title: string, content: string): string {
-  const textLower = (title + ' ' + content).toLowerCase();
-  
-  // Critical indicators
-  if (amount && amount >= 50) return 'critical';
-  if (textLower.includes('supply chain') || textLower.includes('backdoor')) return 'critical';
-  if (textLower.includes('major') || textLower.includes('massive')) return 'critical';
-  
-  // High indicators
-  if (amount && amount >= 10) return 'high';
-  if (textLower.includes('exploit') || textLower.includes('hack')) return 'high';
-  if (textLower.includes('drain') || textLower.includes('stolen')) return 'high';
-  
-  // Medium indicators
-  if (amount && amount >= 1) return 'medium';
-  if (textLower.includes('vulnerability') || textLower.includes('bug')) return 'medium';
-  
-  return 'low';
-}
+// The secondary page scrape (feed-2) was retired: the QuillMonitor partner API
+// returns the same incidents with stable IDs and verification status.
 
 // Extract affected technologies
 function extractTechnologies(title: string, content: string, chain?: string): string[] {
@@ -335,98 +253,6 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
   return incidents;
 }
 
-// Parse incidents from secondary source (table format)
-async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
-  const incidents: any[] = [];
-  
-  // Find the markdown table (starts with | NAME | DATE |)
-  const tablePattern = /\|\s*NAME\s*\|\s*DATE\s*\|\s*TYPE OF ISSUE\s*\|\s*AMOUNT LOST\s*\|\s*CHAINS\s*\|\s*CATEGORY\s*\|\s*POST MORTEM\s*\|\s*\n\|[-\s|]+\|\s*\n([\s\S]*?)(?=\n\n|\n[^|]|$)/i;
-  const tableMatch = markdown.match(tablePattern);
-  
-  if (tableMatch) {
-    const tableRows = tableMatch[1].trim().split('\n');
-    
-    for (const row of tableRows) {
-      // Parse table row: | Name | Date | Issue | Amount | Chain | Category | Link |
-      const cells = row.split('|').map(c => c.trim()).filter(c => c);
-      
-      if (cells.length >= 6) {
-        const name = cells[0];
-        const dateStr = cells[1];
-        const issueType = cells[2];
-        const amountStr = cells[3];
-        const chainImg = cells[4];
-        const categoryStr = cells[5];
-        const linkCell = cells[6] || '';
-        
-        // Extract chain from image alt text
-        const chainMatch = chainImg.match(/!\[([^\]]+)\]/);
-        const chain = chainMatch ? chainMatch[1] : '';
-        
-        // Extract post-mortem link
-        const linkMatch = linkCell.match(/\]\(([^)]+)\)/);
-        const postMortemLink = linkMatch ? linkMatch[1] : '';
-        
-        // Parse data
-        const pubDate = parseDate(dateStr);
-        const amount = extractAmount(amountStr);
-        const title = `${name} exploited for ${amountStr.replace('$', '').trim()}`;
-        const content = `${name} was affected by a ${issueType.toLowerCase()} issue. Category: ${categoryStr}. Chain: ${chain}.`;
-        const severity = determineSeverity(amount, title, content);
-        const classification = classifyCollectedWeb3Incident(title, content, issueType, categoryStr);
-        const category = classification.category;
-        const technologies = extractTechnologies(title, content, chain);
-        const tags = extractTags(content, issueType, categoryStr);
-        
-        const uid = await generateUID(name, dateStr, 's');
-        
-        // Create summary
-        const summary = `${name} suffered a ${issueType.toLowerCase()} attack, losing approximately ${amountStr}. The incident occurred on the ${chain} chain and affected the ${categoryStr} sector.`;
-        
-        // Build rich metadata for future analysis
-        const metadata = {
-          provider: 'web3-incidents',
-          security_domain: classification.securityDomain,
-          is_web3_incident: true,
-          taxonomy_version: classification.taxonomyVersion,
-          classification_reasons: classification.reasons,
-          project_name: name,
-          amount_lost_usd: amount ? amount * 1000000 : null,
-          amount_display: amountStr,
-          chain: chain,
-          attack_type: issueType,
-          project_category: categoryStr,
-          post_mortem_url: postMortemLink || null,
-          data_source: 'feed-2',
-          scraped_at: new Date().toISOString(),
-        };
-        
-        incidents.push({
-          uid,
-          title: `${name} - ${issueType} (${amountStr})`,
-          summary,
-          content: `**Project:** ${name}\n**Issue Type:** ${issueType}\n**Amount Lost:** ${amountStr}\n**Chain:** ${chain}\n**Category:** ${categoryStr}\n\n${summary}`,
-          link: postMortemLink || '',
-          source_url: postMortemLink ? JSON.stringify([{ url: postMortemLink, label: 'Post-Mortem' }]) : null,
-          source_name: null,
-          author: null,
-          category,
-          severity,
-          tags,
-          affected_technologies: technologies,
-          cve_id: null,
-          published_at: pubDate.toISOString(),
-          raw_content: row,
-          is_processed: false,
-          metadata
-        });
-      }
-    }
-  }
-  
-  return incidents;
-}
-
 serve(async (req) => {
   const startedAt = Date.now();
   const attemptedAt = new Date().toISOString();
@@ -526,42 +352,6 @@ serve(async (req) => {
     } catch (e) {
       console.error('[fetch-web3-incidents] Primary source error:', e);
       sourceResults.push({ source: 'primary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
-    }
-    
-    // Fetch from secondary source (internal only)
-    try {
-      console.log('[fetch-web3-incidents] Fetching from secondary source...');
-      const response2 = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${firecrawlApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: `https://www.${_s2}`,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
-      
-      if (response2.ok) {
-        const data2 = await response2.json();
-        const md2 = data2.data?.markdown || data2.markdown || '';
-        if (md2) {
-          const incidents2 = await parseSecondaryIncidents(md2);
-          allIncidents.push(...incidents2);
-          sourceResults.push({ source: 'secondary', found: incidents2.length, errors: [] });
-          console.log(`[fetch-web3-incidents] Secondary source: ${incidents2.length} incidents`);
-        } else {
-          sourceResults.push({ source: 'secondary', found: 0, errors: ['Empty provider response'] });
-        }
-      } else {
-        sourceResults.push({ source: 'secondary', found: 0, errors: ['Failed to fetch'] });
-      }
-    } catch (e) {
-      console.error('[fetch-web3-incidents] Secondary source error:', e);
-      sourceResults.push({ source: 'secondary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
     }
     
     console.log(`[fetch-web3-incidents] Total incidents from all sources: ${allIncidents.length}`);
@@ -732,11 +522,11 @@ serve(async (req) => {
       JSON.stringify({
         success: sourcesSucceeded > 0 && errors.length === 0,
         partial: sourceFailures > 0 || errors.length > 0,
-        message: 'Web3 incidents fetched from multiple sources',
+        message: 'Web3 incidents fetched',
         incidentsFound: allIncidents.length,
         incidentsInserted: insertedCount,
         duplicatesSkipped: duplicateCount,
-        sources: sourceResults.map(s => ({ ...s, source: s.source === 'primary' ? 'feed-1' : 'feed-2' })),
+        sources: sourceResults.map(s => ({ ...s, source: 'feed-1' })),
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
