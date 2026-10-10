@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.dedupe-incidents]
 verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false

@@ -31,6 +31,7 @@ const QuizResult = React.lazy(() => import("./pages/QuizResult"));
 const Quiz = React.lazy(() => import("./pages/Quiz"));
 const Leaderboard = React.lazy(() => import("./pages/Leaderboard"));
 const ManageSubscription = React.lazy(() => import("./pages/ManageSubscription"));
+const Unsubscribe = React.lazy(() => import("./pages/Unsubscribe"));
 const VerifyEmail = React.lazy(() => import("./pages/VerifyEmail"));
 const AdminLogin = React.lazy(() => import("./pages/AdminLogin"));
 const AdminAnalytics = React.lazy(() => import("./pages/AdminAnalytics"));
@@ -95,7 +96,7 @@ const App = () => {
                     <Route path="/services/opsec-consulting" element={<><MetaTags /><OpsecConsulting /></>} />
                     <Route path="/services/full-stack-review" element={<><MetaTags /><FullStackReview /></>} />
                     <Route path="/manage-subscription" element={<ManageSubscription />} />
-                    <Route path="/unsubscribe" element={<ManageSubscription />} />
+                    <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
                     {/* Retired 2025 pitch deck: preserve old links without serving stale claims. */}
                     <Route path="/present" element={<Navigate to="/about" replace />} />

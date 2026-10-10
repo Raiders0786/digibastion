@@ -158,14 +158,18 @@ serve(async (req) => {
 
     console.log(`[unsubscribe] Unsubscribing subscription: ${existingSubscription.id}`);
 
+    // Never re-activates: re-subscribing goes through the opt-in flow.
+    const unsubscribedAt = new Date().toISOString();
     // Soft delete - mark as inactive rather than deleting
     const { error } = await supabase
       .from("subscriptions")
-      .update({ 
+      .update({
         is_active: false,
-        updated_at: new Date().toISOString()
+        unsubscribed_at: unsubscribedAt,
+        updated_at: unsubscribedAt,
       })
-      .eq("id", existingSubscription.id);
+      .eq("id", existingSubscription.id)
+      .eq("is_active", true);
 
     if (error) {
       console.error("[unsubscribe] Database error:", error);

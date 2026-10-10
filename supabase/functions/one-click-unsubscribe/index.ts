@@ -274,21 +274,25 @@ serve(async (req) => {
 
     console.log(`[one-click-unsubscribe] Unsubscribing: ${subscription.id}`);
 
+    // Never re-activates: re-subscribing goes through the opt-in flow.
+    const unsubscribedAt = new Date().toISOString();
     // Soft delete - mark as inactive
     const { error: updateError } = await supabase
       .from("subscriptions")
-      .update({ 
+      .update({
         is_active: false,
-        updated_at: new Date().toISOString()
+        unsubscribed_at: unsubscribedAt,
+        updated_at: unsubscribedAt,
       })
-      .eq("id", subscription.id);
+      .eq("id", subscription.id)
+      .eq("is_active", true);
 
     if (updateError) {
       console.error("[one-click-unsubscribe] Update error:", updateError);
       throw updateError;
     }
 
-    console.log(`[one-click-unsubscribe] Successfully unsubscribed: ${subscription.email}`);
+    console.log(`[one-click-unsubscribe] Successfully unsubscribed: ${subscription.id}`);
 
     return new Response(
       generateSuccessHtml(),
