@@ -22,6 +22,7 @@ interface ArticleToSummarize {
   raw_content?: string;
   summary?: string | null;
   metadata?: unknown;
+  updated_at?: string | null;
 }
 
 async function summarizeArticle(article: ArticleToSummarize): Promise<string> {
@@ -151,7 +152,7 @@ serve(async (req) => {
 
     let query = supabase
       .from('news_articles')
-      .select('id, title, content, raw_content, summary, metadata')
+      .select('id, title, content, raw_content, summary, metadata, updated_at')
       .eq('is_processed', false);
 
     if (articleId) {
@@ -171,7 +172,7 @@ serve(async (req) => {
     if (!articleId) {
       const { data: pending, error: pendingError } = await supabase
         .from('news_articles')
-        .select('id, title, content, raw_content, summary, metadata')
+        .select('id, title, content, raw_content, summary, metadata, updated_at')
         .eq('is_processed', true)
         .eq('metadata->>is_web3_incident', 'true')
         .or('summary.is.null,summary.eq."",summary.eq."Summary pending"')
@@ -213,7 +214,9 @@ serve(async (req) => {
         
         const summary = await summarizeArticle(article);
         
-        const { error: updateError } = await supabase
+        // Only write if the row is unchanged since we read it. The AI call can take
+        // seconds, and a provider sync landing meanwhile must not be overwritten.
+        let guarded = supabase
           .from('news_articles')
           .update({ 
             summary,
@@ -223,8 +226,12 @@ serve(async (req) => {
             metadata: withSummaryOrigin(article.metadata, 'ai'),
           })
           .eq('id', article.id);
+        if (article.updated_at) guarded = guarded.eq('updated_at', article.updated_at);
+        const { data: updatedRows, error: updateError } = await guarded.select('id');
 
-        if (updateError) {
+        if (!updateError && (updatedRows?.length ?? 0) === 0) {
+          console.log(`[summarize-article] Skipped ${article.id}: changed concurrently`);
+        } else if (updateError) {
           console.error(`[summarize-article] Update error for ${article.id}:`, updateError);
           errors.push(`${article.id}: ${updateError.message}`);
           failed++;

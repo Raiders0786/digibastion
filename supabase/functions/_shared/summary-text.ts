@@ -10,11 +10,16 @@ const TRAILING_PUNCTUATION = /[\s,;:.\-–—]+$/u;
  * is cut hard rather than dropping most of the text.
  */
 export function truncateAtWord(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
+  // Work in code points so a cut never splits a surrogate pair.
+  const chars = Array.from(text);
+  if (chars.length <= maxLength) return text;
   const room = Math.max(0, maxLength - 1); // one character for the ellipsis
-  const window = text.slice(0, room + 1);
-  const boundary = window.search(/\s\S*$/);
-  const head = boundary > room * 0.6 ? window.slice(0, boundary) : text.slice(0, room);
+  const window = chars.slice(0, room + 1).join('');
+  const boundaryIndex = window.search(/\s\S*$/); // UTF-16 index of the last whitespace
+  const boundary = boundaryIndex < 0 ? -1 : Array.from(window.slice(0, boundaryIndex)).length;
+  const head = boundary > room * 0.6
+    ? chars.slice(0, boundary).join('')
+    : chars.slice(0, room).join('');
   return `${head.replace(TRAILING_PUNCTUATION, '')}…`;
 }
 
