@@ -1,19 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { NewsArticle, NewsCategory, SeverityLevel } from '@/types/news';
+import type { NewsArticle, NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { useToast } from '@/hooks/use-toast';
 import {
   buildFilterKey,
-  saveToCache,
+  buildStatsFilterKey,
   loadFromCache,
-  saveStatsToCache,
   loadStatsFromCache,
+  saveStatsToCache,
+  saveToCache,
+  type CacheFilterInput,
 } from '@/utils/newsCache';
 import { summarizeFeedFreshness } from '@/utils/feedFreshness';
 import {
   buildCategoryPostgrestFilter,
   CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
-  isWeb3Incident,
   WEB3_INCIDENT_POSTGREST_FILTER,
 } from '@/utils/newsIncident';
 import {
@@ -21,16 +22,48 @@ import {
   mapPublishableNewsArticleRows,
   NEWS_ARTICLE_COLUMNS,
 } from '@/lib/threatIntel/articleRow';
+import { DEFAULT_SCOPE } from '@/lib/threatIntel/taxonomy';
+import {
+  buildThreatIntelFilterParams,
+  buildThreatIntelQueryParams,
+  computePageStats,
+  DEFAULT_PAGE_SIZE,
+  EMPTY_THREAT_INTEL_STATS,
+  parseThreatIntelStats,
+  requiresThreatIntelRpc,
+  type DateFilter,
+  type SortBy,
+  type ThreatIntelFilterParams,
+  type ThreatIntelFilters,
+  type ThreatIntelStats,
+} from '@/lib/threatIntel/query';
 
 interface UseNewsArticlesOptions {
   categories?: NewsCategory[];
   severities?: SeverityLevel[];
   searchQuery?: string;
-  dateFilter?: 'all' | '7d' | '30d' | '90d';
-  sortBy?: 'date' | 'severity';
-  view?: 'all' | 'web3-incidents';
+  dateFilter?: DateFilter;
+  sortBy?: SortBy;
+  view?: ThreatIntelScope;
   page?: number;
   pageSize?: number;
+}
+
+/**
+ * 'server': stats cover the whole filtered result (threat_intel_stats).
+ * 'page': the stats RPC failed and counts describe only the loaded page.
+ */
+export type StatsSource = 'server' | 'page';
+
+interface FeedStatus {
+  source: 'loading' | 'live' | 'cache';
+  isStale: boolean;
+  checkedAt: Date | null;
+  activeFeedCount: number;
+  checkedFeedCount: number;
+  pipelineCheckedAt: Date | null;
+  pipelineIsStale: boolean;
+  newestPublishedAt: Date | null;
 }
 
 interface UseNewsArticlesResult {
@@ -44,24 +77,9 @@ interface UseNewsArticlesResult {
   isRefreshing: boolean;
   isRefreshingWeb3: boolean;
   isSummarizing: boolean;
-  feedStatus: {
-    source: 'loading' | 'live' | 'cache';
-    isStale: boolean;
-    checkedAt: Date | null;
-    activeFeedCount: number;
-    checkedFeedCount: number;
-    pipelineCheckedAt: Date | null;
-    pipelineIsStale: boolean;
-    newestPublishedAt: Date | null;
-  };
-  stats: {
-    total: number;
-    critical: number;
-    high: number;
-    supplyChain: number;
-    aiSummarized: number;
-    web3Incidents: number;
-  };
+  feedStatus: FeedStatus;
+  stats: ThreatIntelStats;
+  statsSource: StatsSource;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -115,7 +133,49 @@ async function fetchFeedFreshness() {
   }
 }
 
+async function fetchThreatIntelStats(params: ThreatIntelFilterParams): Promise<ThreatIntelStats | null> {
+  try {
+    const { data, error } = await supabase.rpc('threat_intel_stats', params);
+    if (error) {
+      console.warn('Unable to load threat-intel stats; falling back to page counts:', error);
+      return null;
+    }
+    return parseThreatIntelStats(data);
+  } catch (statsError) {
+    console.warn('Unable to load threat-intel stats; falling back to page counts:', statsError);
+    return null;
+  }
+}
+
+function toCacheInput(filters: ThreatIntelFilters): CacheFilterInput {
+  return {
+    scope: filters.scope,
+    categories: filters.categories,
+    severities: filters.severities,
+    searchQuery: filters.searchQuery,
+    dateFilter: filters.dateFilter,
+    sortBy: filters.sortBy,
+    page: filters.page,
+  };
+}
+
+/** Lower bound for the result count when only one page is known. */
+function countFloor(offset: number, rowCount: number, pageSize: number): number {
+  return offset + rowCount + (rowCount === pageSize ? 1 : 0);
+}
+
 export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsArticlesResult {
+  const {
+    categories,
+    severities,
+    searchQuery = '',
+    dateFilter = 'all',
+    sortBy = 'date',
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    view = DEFAULT_SCOPE,
+  } = options;
+
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -123,8 +183,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [isCachedData, setIsCachedData] = useState(false);
-  const [feedStatus, setFeedStatus] = useState<UseNewsArticlesResult['feedStatus']>({
+  const [stats, setStats] = useState<ThreatIntelStats>(EMPTY_THREAT_INTEL_STATS);
+  const [statsSource, setStatsSource] = useState<StatsSource>('page');
+  const [feedStatus, setFeedStatus] = useState<FeedStatus>({
     source: 'loading',
     isStale: false,
     checkedAt: null,
@@ -132,38 +193,34 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   });
   const { toast } = useToast();
   const cacheInitialised = useRef(false);
+  const latestRequest = useRef(0);
 
-  const { 
-    categories, 
-    severities, 
-    searchQuery, 
-    dateFilter = 'all', 
-    sortBy = 'date', 
-    page = 1, 
-    pageSize = 20,
-    view = 'all',
-  } = options;
-
-  const currentFilterKey = buildFilterKey({
-    categories: categories as string[] | undefined,
-    severities: severities as string[] | undefined,
+  // Callers rebuild their filter arrays on every URL change, including tab
+  // switches. Key the query on the array contents so identical filters do not
+  // refetch, and so `refetch` keeps a stable identity.
+  const categoriesKey = (categories ?? []).join(',');
+  const severitiesKey = (severities ?? []).join(',');
+  const filters = useMemo<ThreatIntelFilters>(() => ({
+    scope: view,
+    categories: categoriesKey ? (categoriesKey.split(',') as NewsCategory[]) : [],
+    severities: severitiesKey ? (severitiesKey.split(',') as SeverityLevel[]) : [],
     searchQuery,
     dateFilter,
     sortBy,
-    web3IncidentsOnly: view === 'web3-incidents',
     page,
-  });
+    pageSize,
+  }), [view, categoriesKey, severitiesKey, searchQuery, dateFilter, sortBy, page, pageSize]);
 
-  // Hydrate from cache on first mount so the page is never blank
+  // Hydrate from cache on first mount so the page is never blank.
   useEffect(() => {
     if (cacheInitialised.current) return;
     cacheInitialised.current = true;
+    const cacheInput = toCacheInput(filters);
 
-    const cached = loadFromCache(currentFilterKey);
+    const cached = loadFromCache(buildFilterKey(cacheInput));
     if (cached) {
       setArticles(cached.articles.filter((article) => isPublishable(article.metadata)));
       setTotalCount(cached.totalCount);
-      setIsCachedData(true);
       setFeedStatus({
         source: 'cache',
         isStale: cached.isStale,
@@ -172,113 +229,110 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       });
     }
 
-    // Also load cached stats so the hero banner has numbers instantly
-    const cachedStats = loadStatsFromCache();
-    if (cachedStats && !cached) {
-      setTotalCount(cachedStats.total);
+    const cachedStats = loadStatsFromCache(buildStatsFilterKey(cacheInput));
+    if (cachedStats) {
+      setStats(cachedStats);
+      setStatsSource('server');
+      if (!cached) setTotalCount(cachedStats.total);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchArticles = useCallback(async () => {
+    const requestId = ++latestRequest.current;
+    // A slower response for an older filter set must not overwrite a newer one.
+    const isCurrent = () => requestId === latestRequest.current;
+
+    const now = new Date();
+    const filterParams = buildThreatIntelFilterParams(filters, now);
+    const queryParams = buildThreatIntelQueryParams(filters, now);
+    const cacheInput = toCacheInput(filters);
+    const filterKey = buildFilterKey(cacheInput);
+    const statsKey = buildStatsFilterKey(cacheInput);
+    const offset = queryParams.result_offset;
+    const limit = queryParams.result_limit;
+    const categoryOrFilter = filterParams.category_filter
+      ? buildCategoryPostgrestFilter(filterParams.category_filter)
+      : null;
+
     const feedFreshnessPromise = fetchFeedFreshness();
+    // Stats run in parallel with the page query; they never block the list.
+    const statsPromise = fetchThreatIntelStats(filterParams);
+
+    const applyStats = (
+      serverStats: ThreatIntelStats | null,
+      pageArticles: NewsArticle[],
+      fallbackTotal: number,
+      rawRowCount: number,
+    ): number => {
+      if (serverStats) {
+        const total = Math.max(serverStats.total, countFloor(offset, rawRowCount, limit));
+        const resolved = { ...serverStats, total };
+        setStats(resolved);
+        setStatsSource('server');
+        saveStatsToCache(resolved, statsKey);
+        return total;
+      }
+      setStats(computePageStats(pageArticles, fallbackTotal));
+      setStatsSource('page');
+      return fallbackTotal;
+    };
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // Calculate date filter
-      let dateFrom: string | null = null;
-      if (dateFilter !== 'all') {
-        const now = new Date();
-        const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
-        const cutoff = new Date(now.getTime() - daysMap[dateFilter] * 24 * 60 * 60 * 1000);
-        dateFrom = cutoff.toISOString();
-      }
-
-      // Prepare filters for RPC call
-      const categoryFilter = categories && categories.length > 0 ? categories : null;
-      const categoryOrFilter = categoryFilter ? buildCategoryPostgrestFilter(categoryFilter) : null;
-      const severityFilter = severities && severities.length > 0 ? severities : null;
-      const searchTerm = searchQuery?.trim() || null;
-      const offset = (page - 1) * pageSize;
-      const filterKey = buildFilterKey({
-        categories: categories as string[] | undefined,
-        severities: severities as string[] | undefined,
-        searchQuery,
-        dateFilter,
-        sortBy,
-        web3IncidentsOnly: view === 'web3-incidents',
-        page,
-      });
-
-      // The normal feed is an indexed date query. Sending it through the
-      // full-text RPC forces PostgreSQL through the generic ranking plan even
-      // when there is no search term, which has caused statement timeouts as
-      // the article corpus has grown. Keep the RPC for ranked searches only.
-      let data: unknown[] | null = null;
+      let rows: unknown[] | null = null;
       let fetchError: { message?: string } | null = null;
       let queryCount: number | null = null;
+      const useRpc = requiresThreatIntelRpc(filters);
 
-      // The release migration teaches the RPC the same metadata-backed Web3
-      // umbrella and incident-scope semantics used by the client helpers. Keep
-      // ordinary unfiltered browsing on the indexed date query; use the RPC
-      // whenever ranking or metadata predicates are required so PostgREST does
-      // not build several expensive top-level OR filters.
-      const requiresMetadataFilter = view === 'web3-incidents' || Boolean(categoryOrFilter);
-      if (!searchTerm && !requiresMetadataFilter) {
+      if (!useRpc) {
+        // Plain newest-first browsing stays on the indexed table query. The
+        // estimated count is exact for small results and planner-based for
+        // large ones; threat_intel_stats supplies the exact total.
         let query = supabase
           .from('news_articles')
-          // Estimated count is exact for small result sets and planner-based
-          // for large feeds, keeping pagination responsive without a second
-          // request for the ordinary chronological feed.
           .select(NEWS_ARTICLE_COLUMNS, { count: 'estimated' })
           .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
           .order('published_at', { ascending: false })
-          .range(offset, offset + pageSize - 1);
+          .range(offset, offset + limit - 1);
 
         if (categoryOrFilter) query = query.or(categoryOrFilter);
-        else if (categoryFilter) query = query.in('category', categoryFilter);
-        if (severityFilter) query = query.in('severity', severityFilter);
-        if (dateFrom) query = query.gte('published_at', dateFrom);
+        else if (filterParams.category_filter) query = query.in('category', filterParams.category_filter);
+        if (filterParams.severity_filter) query = query.in('severity', filterParams.severity_filter);
+        if (filterParams.date_from) query = query.gte('published_at', filterParams.date_from);
         const directResult = await query;
-        data = directResult.data;
+        rows = directResult.data;
         fetchError = directResult.error;
         queryCount = directResult.count;
       } else {
-        const rpcResult = await supabase.rpc('search_news_articles', {
-          search_query: searchTerm,
-          category_filter: categoryFilter,
-          severity_filter: severityFilter,
-          date_from: dateFrom,
-          result_limit: pageSize,
-          result_offset: offset,
-          source_filter: null,
-          web3_incidents_only: view === 'web3-incidents',
-        });
-        data = rpcResult.data;
+        // Search ranking, metadata predicates and severity ordering all run in
+        // the database so ordering is correct across pages.
+        const rpcResult = await supabase.rpc('search_news_articles', queryParams);
+        rows = rpcResult.data;
         fetchError = rpcResult.error;
       }
+      if (!isCurrent()) return;
 
       if (fetchError) {
         console.error('Primary threat-feed query failed, retrying without a count:', fetchError);
-        // Fall back to a narrow direct query. Select only public card/detail
-        // fields so large raw payloads and search vectors are never copied to
-        // the browser as part of recovery.
+        // Narrow direct query with public card/detail columns only. Ordering
+        // falls back to newest first.
         let query = supabase
           .from('news_articles')
           .select(NEWS_ARTICLE_COLUMNS)
           .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
           .order('published_at', { ascending: false })
-          .range(offset, offset + pageSize - 1);
+          .range(offset, offset + limit - 1);
 
         if (categoryOrFilter) query = query.or(categoryOrFilter);
-        else if (categoryFilter) query = query.in('category', categoryFilter);
-        if (severityFilter) query = query.in('severity', severityFilter);
-        if (dateFrom) query = query.gte('published_at', dateFrom);
-        if (view === 'web3-incidents') query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
-        if (searchTerm) {
-          const safeSearchTerm = sanitizePostgrestSearchTerm(searchTerm);
+        else if (filterParams.category_filter) query = query.in('category', filterParams.category_filter);
+        if (filterParams.severity_filter) query = query.in('severity', filterParams.severity_filter);
+        if (filterParams.date_from) query = query.gte('published_at', filterParams.date_from);
+        if (filterParams.web3_incidents_only) query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
+        if (filterParams.search_query) {
+          const safeSearchTerm = sanitizePostgrestSearchTerm(filterParams.search_query);
           if (safeSearchTerm) {
             query = query.or(`title.ilike.%${safeSearchTerm}%,summary.ilike.%${safeSearchTerm}%`);
           }
@@ -286,94 +340,69 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
         const { data: fallbackData, error: fallbackError } = await query;
         if (fallbackError) throw fallbackError;
+        const fallbackRows = fallbackData ?? [];
+        const fallbackArticles = mapPublishableNewsArticleRows(fallbackRows);
+        const serverStats = await statsPromise;
+        if (!isCurrent()) return;
 
-        const resultCountFloor = offset
-          + (fallbackData || []).length
-          + ((fallbackData || []).length === pageSize ? 1 : 0);
-        const cachedStats = !categoryFilter
-          && !severityFilter
-          && !searchTerm
-          && dateFilter === 'all'
-          && view === 'all'
-          ? loadStatsFromCache()
-          : null;
-        const fallbackTotal = Math.max(resultCountFloor, cachedStats?.total || 0);
-        setTotalCount(fallbackTotal);
-
-        const transformedArticles = mapPublishableNewsArticleRows(fallbackData);
-
-        setArticles(transformedArticles);
-        setIsCachedData(false);
+        const resolvedCount = applyStats(
+          serverStats,
+          fallbackArticles,
+          countFloor(offset, fallbackRows.length, limit),
+          fallbackRows.length,
+        );
+        setTotalCount(resolvedCount);
+        setArticles(fallbackArticles);
         const freshness = await feedFreshnessPromise;
+        if (!isCurrent()) return;
         setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
-        saveToCache(transformedArticles, fallbackTotal, filterKey);
+        saveToCache(fallbackArticles, resolvedCount, filterKey);
         return;
       }
 
-      // The direct feed query already carries its count, avoiding a second
-      // full-table RPC on every page load. Ranked search still needs the count
-      // RPC; failure is non-fatal and keeps forward pagination available.
-      let resolvedCount = queryCount;
-      if (searchTerm || requiresMetadataFilter) {
-        const { data: countData, error: countError } = await supabase.rpc('count_news_articles', {
-          search_query: searchTerm,
-          category_filter: categoryFilter,
-          severity_filter: severityFilter,
-          date_from: dateFrom,
-          source_filter: null,
-          web3_incidents_only: view === 'web3-incidents',
-        });
+      const pageRows = rows ?? [];
+      const pageArticles = mapPublishableNewsArticleRows(pageRows);
+      const serverStats = await statsPromise;
+      if (!isCurrent()) return;
 
+      let fallbackTotal = queryCount ?? countFloor(offset, pageRows.length, limit);
+      if (!serverStats && useRpc) {
+        // Stats are unavailable (for example before the migration is applied):
+        // keep pagination correct with the count RPC.
+        const { data: countData, error: countError } = await supabase.rpc('count_news_articles', filterParams);
+        if (!isCurrent()) return;
         if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
-        const resultCountFloor = offset
-          + (data || []).length
-          + ((data || []).length === pageSize ? 1 : 0);
-        resolvedCount = countError
-          ? resultCountFloor
-          : Math.max(countData || 0, resultCountFloor);
+        else fallbackTotal = Math.max(Number(countData) || 0, fallbackTotal);
       }
-      resolvedCount ??= offset + (data || []).length;
+
+      const resolvedCount = applyStats(serverStats, pageArticles, fallbackTotal, pageRows.length);
       setTotalCount(resolvedCount);
-
-      // Transform RPC results to NewsArticle format
-      const transformedArticles = mapPublishableNewsArticleRows(data);
-
-      // Apply sorting (RPC already sorts by rank + date, but apply severity if needed)
-      if (sortBy === 'severity') {
-        const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-        transformedArticles.sort((a, b) => {
-          const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
-          if (severityDiff !== 0) return severityDiff;
-          return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-        });
-      }
-
-      setArticles(transformedArticles);
-      setIsCachedData(false);
+      setArticles(pageArticles);
       const freshness = await feedFreshnessPromise;
+      if (!isCurrent()) return;
       setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
 
       // Persist to cache for offline / error fallback
-      saveToCache(transformedArticles, resolvedCount, filterKey);
+      saveToCache(pageArticles, resolvedCount, filterKey);
     } catch (err) {
       console.error('Error fetching news articles:', err);
       const freshness = await feedFreshnessPromise;
+      if (!isCurrent()) return;
 
-      // Attempt to serve cached data instead of showing empty page
-      const filterKey = buildFilterKey({
-        categories: categories as string[] | undefined,
-        severities: severities as string[] | undefined,
-        searchQuery,
-        dateFilter,
-        sortBy,
-        web3IncidentsOnly: view === 'web3-incidents',
-        page,
-      });
+      // Attempt to serve cached data instead of showing an empty page
       const cached = loadFromCache(filterKey);
       if (cached && cached.articles.length > 0) {
-        setArticles(cached.articles.filter((article) => isPublishable(article.metadata)));
+        const cachedArticles = cached.articles.filter((article) => isPublishable(article.metadata));
+        setArticles(cachedArticles);
         setTotalCount(cached.totalCount);
-        setIsCachedData(true);
+        const cachedStats = loadStatsFromCache(statsKey);
+        if (cachedStats) {
+          setStats(cachedStats);
+          setStatsSource('server');
+        } else {
+          setStats(computePageStats(cachedArticles, cached.totalCount));
+          setStatsSource('page');
+        }
         setFeedStatus({
           source: 'cache',
           isStale: cached.isStale,
@@ -385,19 +414,20 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       } else {
         setArticles([]);
         setTotalCount(0);
-        setIsCachedData(false);
+        setStats(EMPTY_THREAT_INTEL_STATS);
+        setStatsSource('page');
         setFeedStatus({ source: 'live', isStale: false, checkedAt: null, ...freshness });
         setError(err instanceof Error ? err : new Error('Failed to fetch articles'));
       }
     } finally {
-      setIsLoading(false);
+      if (isCurrent()) setIsLoading(false);
     }
-  }, [categories, severities, searchQuery, dateFilter, sortBy, view, page, pageSize]);
+  }, [filters]);
 
   const refreshFromRSS = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      
+
       const { data, error: fetchError } = await supabase.functions.invoke('fetch-rss-news');
 
       if (fetchError) {
@@ -428,7 +458,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const refreshWeb3Incidents = useCallback(async () => {
     try {
       setIsRefreshingWeb3(true);
-      
+
       const [collector, partner] = await Promise.allSettled([
         supabase.functions.invoke('fetch-web3-incidents'),
         supabase.functions.invoke('fetch-quillmonitor-incidents'),
@@ -452,7 +482,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const summarizeArticles = useCallback(async () => {
     try {
       setIsSummarizing(true);
-      
+
       const { data, error: summarizeError } = await supabase.functions.invoke('summarize-article', {
         body: { limit: 10 }
       });
@@ -483,35 +513,16 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   }, [fetchArticles, toast]);
 
   useEffect(() => {
-    fetchArticles();
+    void fetchArticles();
   }, [fetchArticles]);
 
-  // Calculate stats from current page (for display purposes)
-  const stats = {
-    total: totalCount,
-    critical: articles.filter(a => a.severity === 'critical').length,
-    high: articles.filter(a => a.severity === 'high').length,
-    supplyChain: articles.filter(a => a.category === 'supply-chain').length,
-    aiSummarized: articles.filter(a => a.isProcessed).length,
-    web3Incidents: articles.filter(isWeb3Incident).length,
-  };
-
-  // Persist stats to cache so hero banner is never blank
-  useEffect(() => {
-    if (stats.total > 0 && !isCachedData) {
-      saveStatsToCache(stats);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats.total, stats.critical, stats.high, isCachedData]);
-
-  // Calculate pagination info
   const totalPages = Math.ceil(totalCount / pageSize);
   const pagination = {
     currentPage: page,
     totalPages,
     totalCount,
     hasNextPage: page < totalPages,
-    hasPrevPage: page > 1
+    hasPrevPage: page > 1,
   };
 
   return {
@@ -527,6 +538,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     isSummarizing,
     feedStatus,
     stats,
+    statsSource,
     pagination,
   };
 }

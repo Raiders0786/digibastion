@@ -174,6 +174,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     isSummarizing,
     feedStatus,
     stats,
+    statsSource,
     pagination
   } = useNewsArticles({
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -384,6 +385,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     void Promise.all([refetch(), fetchActiveAlerts()]);
   }, [refetch, fetchActiveAlerts]);
 
+  // Tiles say "in this view" only when the server counted the whole result.
+  const statsCaption = statsSource === 'server' ? 'in this view' : 'on this page';
+
   // Tab configuration with better visibility
   const tabs = [
     { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
@@ -507,37 +511,43 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             </p>
           </div>
 
-          {/* Quick Stats Banner - Compact */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-            <Card className="glass-card border-red-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-red-400">{stats.critical}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Critical <span className="hidden sm:inline">Severity</span></div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-orange-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-orange-400">{stats.high}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">High <span className="hidden sm:inline">Severity</span></div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-purple-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-purple-400">{stats.supplyChain}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Supply Chain</div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-blue-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-blue-400">{stats.total}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Total Articles</div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">all time</div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Stats Banner - counts cover the whole filtered result (threat_intel_stats) */}
+          {isLoading && stats.total === 0 ? (
+            <div className="mb-6">
+              <StatsSkeleton />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+              <Card className="glass-card border-red-500/20">
+                <CardContent className="p-2 sm:p-3 text-center">
+                  <div className={`text-lg sm:text-xl font-bold ${SEVERITY_STYLES.critical.textClass}`}>{stats.critical}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">Critical <span className="hidden sm:inline">Severity</span></div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-orange-500/20">
+                <CardContent className="p-2 sm:p-3 text-center">
+                  <div className={`text-lg sm:text-xl font-bold ${SEVERITY_STYLES.high.textClass}`}>{stats.high}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">High <span className="hidden sm:inline">Severity</span></div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-purple-500/20">
+                <CardContent className="p-2 sm:p-3 text-center">
+                  <div className="text-lg sm:text-xl font-bold text-purple-400">{stats.supplyChain}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">Supply Chain</div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-blue-500/20">
+                <CardContent className="p-2 sm:p-3 text-center">
+                  <div className="text-lg sm:text-xl font-bold text-blue-400">{stats.total}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">Total Articles</div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Enhanced Tab Navigation - More Visible */}
           <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">

@@ -1,10 +1,13 @@
-import { NewsArticle } from '@/types/news';
+import type { NewsArticle, ThreatIntelScope } from '@/types/news';
+import type { ThreatIntelStats } from '@/lib/threatIntel/query';
 
-// v2 excludes rows explicitly rejected by the relevance classifier. Keeping a
-// separate key prevents historical polluted counts from flashing on load.
-const CACHE_KEY = 'digibastion_news_cache_v2';
-const STATS_KEY = 'digibastion_news_stats_v2';
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes – after this we still show cache but mark stale
+// v3: every key carries an explicit scope, and stats are cached per filter
+// set. The v2 stats entry was global, so a Web3-only visit seeded the counts
+// shown on unrelated URLs (for example /threat-intel?tab=subscribe).
+const CACHE_KEY = 'digibastion_news_cache_v3';
+const STATS_KEY = 'digibastion_news_stats_v3';
+const LEGACY_KEYS = ['digibastion_news_cache_v2', 'digibastion_news_stats_v2'] as const;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes: after this we still show cache but mark it stale
 
 interface CachedData {
   articles: NewsArticle[];
@@ -14,27 +17,44 @@ interface CachedData {
   filterKey: string;
 }
 
-/** Build a stable key from filter options so cache only matches same query. */
-export function buildFilterKey(opts: {
-  categories?: string[];
-  severities?: string[];
+interface CachedStats {
+  stats: ThreatIntelStats;
+  timestamp: number;
+  filterKey: string;
+}
+
+export interface CacheFilterInput {
+  scope: ThreatIntelScope;
+  categories?: readonly string[];
+  severities?: readonly string[];
   searchQuery?: string;
   dateFilter?: string;
   sortBy?: string;
   source?: string;
-  web3IncidentsOnly?: boolean;
   page?: number;
-}): string {
+}
+
+/** Build a stable key from filter options so cache only matches the same query. */
+export function buildFilterKey(opts: CacheFilterInput): string {
   return JSON.stringify({
+    sc: opts.scope,
     c: opts.categories ? [...opts.categories].sort() : [],
     s: opts.severities ? [...opts.severities].sort() : [],
     q: opts.searchQuery ?? '',
     d: opts.dateFilter ?? 'all',
     sb: opts.sortBy ?? 'date',
     src: opts.source ?? 'all',
-    w3: opts.web3IncidentsOnly ?? false,
     p: opts.page ?? 1,
   });
+}
+
+/** Stats describe the whole filtered result, so page and sort are not part of their key. */
+export function buildStatsFilterKey(opts: CacheFilterInput): string {
+  return buildFilterKey({ ...opts, sortBy: 'date', page: 1 });
+}
+
+function dropLegacyEntries(): void {
+  for (const key of LEGACY_KEYS) localStorage.removeItem(key);
 }
 
 export function saveToCache(
@@ -43,6 +63,7 @@ export function saveToCache(
   filterKey: string,
 ): void {
   try {
+    dropLegacyEntries();
     const payload: CachedData = {
       articles,
       totalCount,
@@ -84,44 +105,37 @@ export function loadFromCache(filterKey: string): {
   }
 }
 
-/** Save stats separately so the hero banner always has numbers. */
-export function saveStatsToCache(stats: {
-  total: number;
-  critical: number;
-  high: number;
-  supplyChain: number;
-  aiSummarized: number;
-  web3Incidents: number;
-}): void {
+function readCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+/** Save whole-result stats for one filter set (see buildStatsFilterKey). */
+export function saveStatsToCache(stats: ThreatIntelStats, filterKey: string): void {
   try {
-    localStorage.setItem(
-      STATS_KEY,
-      JSON.stringify({ ...stats, timestamp: Date.now() }),
-    );
+    dropLegacyEntries();
+    const payload: CachedStats = { stats, filterKey, timestamp: Date.now() };
+    localStorage.setItem(STATS_KEY, JSON.stringify(payload));
   } catch {
     // ignore
   }
 }
 
-export function loadStatsFromCache(): {
-  total: number;
-  critical: number;
-  high: number;
-  supplyChain: number;
-  aiSummarized: number;
-  web3Incidents: number;
-} | null {
+export function loadStatsFromCache(filterKey: string): ThreatIntelStats | null {
   try {
     const raw = localStorage.getItem(STATS_KEY);
     if (!raw) return null;
-    const data = JSON.parse(raw);
+    const data = JSON.parse(raw) as Partial<CachedStats>;
+    if (data.filterKey !== filterKey || typeof data.stats !== 'object' || data.stats === null) return null;
+    const stats = data.stats as unknown as Record<string, unknown>;
     return {
-      total: data.total ?? 0,
-      critical: data.critical ?? 0,
-      high: data.high ?? 0,
-      supplyChain: data.supplyChain ?? 0,
-      aiSummarized: data.aiSummarized ?? 0,
-      web3Incidents: data.web3Incidents ?? 0,
+      total: readCount(stats.total),
+      critical: readCount(stats.critical),
+      high: readCount(stats.high),
+      medium: readCount(stats.medium),
+      low: readCount(stats.low),
+      info: readCount(stats.info),
+      supplyChain: readCount(stats.supplyChain),
+      unconfirmed: readCount(stats.unconfirmed),
     };
   } catch {
     return null;

@@ -44,7 +44,8 @@ vi.mock('@/hooks/useNewsArticles', () => ({
       pipelineIsStale: false,
       newestPublishedAt: article.publishedAt,
     },
-    stats: { total: 1, critical: 0, high: 1, supplyChain: 0, aiSummarized: 0, web3Incidents: 0 },
+    stats: { total: 1, critical: 0, high: 1, medium: 0, low: 0, info: 0, supplyChain: 0, unconfirmed: 0 },
+    statsSource: 'server',
     pagination: { currentPage: 1, totalPages: 1, totalCount: 1, hasNextPage: false, hasPrevPage: false },
     });
   },
