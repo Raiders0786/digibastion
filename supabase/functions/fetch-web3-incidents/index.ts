@@ -2,6 +2,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import { classifyCollectedWeb3Incident } from './classifier.ts';
+import { severityFromLoss } from '../_shared/incident-severity.ts';
+import {
+  extractSources,
+  formatUsd,
+  parseIncidentDate,
+  parseUsdAmount,
+  web3IncidentSources,
+} from './parsing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,62 +101,6 @@ function determineSeverity(amount: number | null, title: string, content: string
   if (textLower.includes('vulnerability') || textLower.includes('bug')) return 'medium';
   
   return 'low';
-}
-
-// Extract source links from content with proper sanitization
-function extractSources(content: string): { url: string; label: string }[] {
-  const sources: { url: string; label: string }[] = [];
-  
-  // Match markdown links [text](url)
-  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-  let match;
-  
-  while ((match = linkPattern.exec(content)) !== null) {
-    const linkText = match[1].trim();
-    let url = match[2].trim();
-    
-    // Skip internal links, archive links, and attribution links
-    if (url.includes('web3isgoinggreat.com') || 
-        url.includes('archive.org') ||
-        url.includes('web.archive.org') ||
-        linkText.toLowerCase().includes('archive') ||
-        linkText.toLowerCase().includes('attribution') ||
-        !url.startsWith('http')) {
-      continue;
-    }
-    
-    // Remove any tracking parameters/referers from URLs
-    try {
-      const urlObj = new URL(url);
-      ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref_src', 'ref_url'].forEach(param => {
-        urlObj.searchParams.delete(param);
-      });
-      url = urlObj.toString();
-    } catch {
-      // If URL parsing fails, use as-is
-    }
-    
-    // Generate clean label
-    let label = linkText;
-    if (linkText.toLowerCase().includes('tweet')) {
-      if (url.includes('x.com') || url.includes('twitter.com')) {
-        const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/([^/]+)/);
-        label = usernameMatch ? `@${usernameMatch[1]}` : 'Twitter/X';
-      }
-    } else if (url.includes('etherscan.io')) {
-      label = 'Etherscan';
-    } else if (url.includes('bscscan.com')) {
-      label = 'BscScan';
-    } else if (url.includes('polygonscan.com')) {
-      label = 'PolygonScan';
-    }
-    
-    if (!sources.some(s => s.url === url)) {
-      sources.push({ url, label });
-    }
-  }
-  
-  return sources.slice(0, 5);
 }
 
 // Extract affected technologies
@@ -285,14 +237,19 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         continue;
       }
       
-      const pubDate = parseDate(section.date);
-      const amount = extractAmount(title + ' ' + content);
-      const severity = determineSeverity(amount, title, content);
+      // A missing date stays unknown instead of silently becoming "today".
+      const incidentDate = parseIncidentDate(section.date);
+      const ingestedAt = new Date().toISOString();
+      const amountUsd = parseUsdAmount(`${title} ${content}`);
       const sources = extractSources(content);
       const classification = classifyCollectedWeb3Incident(title, content);
       const category = classification.category;
       const technologies = extractTechnologies(title, content);
       const tags = extractTags(content);
+      // Loss-based rubric shared with QuillMonitor and SlowMist. All attack
+      // tags are passed (not only tags[0], which is usually "exploit"), so a
+      // "private-key-compromise" tag still raises an unknown-loss incident.
+      const severity = severityFromLoss(amountUsd, tags.join(' '));
       
       const primarySource = sources[0]?.url || '';
       const uid = await generateUID(title, section.date, 'p');
@@ -341,11 +298,16 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         is_web3_incident: true,
         taxonomy_version: classification.taxonomyVersion,
         classification_reasons: classification.reasons,
-        amount_lost_usd: amount ? amount * 1000000 : null, // Store in USD
-        amount_display: amount ? `$${amount}M` : null,
+        amount_lost_usd: amountUsd, // Full USD, never millions
+        amount_display: formatUsd(amountUsd),
         attack_type: tags[0] || null,
+        incident_date: incidentDate,
+        incident_date_unknown: incidentDate === null,
+        reference_url: primarySource || null,
+        summary_origin: 'publisher',
+        sources: web3IncidentSources(sources, amountUsd),
         data_source: 'feed-1',
-        scraped_at: new Date().toISOString(),
+        scraped_at: ingestedAt,
       };
       
       incidents.push({
@@ -362,7 +324,7 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         tags,
         affected_technologies: technologies,
         cve_id: null,
-        published_at: pubDate.toISOString(),
+        published_at: incidentDate ? `${incidentDate}T00:00:00.000Z` : ingestedAt,
         raw_content: content,
         is_processed: false,
         metadata
