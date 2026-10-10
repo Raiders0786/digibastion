@@ -5,6 +5,7 @@ import {
   isOptinTokenUsable,
   resubscribeConfirmedColumns,
 } from "../_shared/subscription-optin.ts";
+import { emailHash } from "../_shared/email-compliance.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,6 +156,27 @@ serve(async (req) => {
     if (!optin) {
       console.log("[verify-email] Token not found or already verified");
       return respond({ success: false, message: "This verification link is invalid or has already been used." }, 400);
+    }
+
+    // A bounce or complaint can arrive after the opt-in email went out. Never
+    // re-activate a suppressed address; void the link so it cannot be retried.
+    const { data: suppression, error: suppressionError } = await supabase
+      .from("email_suppressions")
+      .select("email_hash")
+      .eq("email_hash", await emailHash(optin.email))
+      .maybeSingle();
+    if (suppressionError) {
+      console.error("[verify-email] Suppression lookup error:", suppressionError);
+      return respond({ success: false, message: "An error occurred. Please try again." }, 500);
+    }
+    if (suppression) {
+      console.log(`[verify-email] Opt-in for subscription ${optin.id} refused: address suppressed`);
+      await supabase
+        .from("subscriptions")
+        .update({ optin_token: null, optin_token_expires_at: null, optin_pending: null })
+        .eq("id", optin.id)
+        .eq("optin_token", token);
+      return respond({ success: false, message: "This confirmation link is no longer valid. Please contact support@digibastion.com." }, 400);
     }
 
     const now = new Date();
