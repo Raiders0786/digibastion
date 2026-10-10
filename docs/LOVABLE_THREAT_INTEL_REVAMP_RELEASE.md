@@ -11,6 +11,10 @@ migrations.
 
 ## Stage 1: backend data fixes (Phase 0)
 
+Every `dedupe-incidents` call below is an authorized POST. Lovable sends it
+with `Authorization: Bearer <CRON_SECRET>`, reading the project's CRON_SECRET
+from the backend secrets without displaying it.
+
 ```text
 Use View Backend for the existing managed Lovable Cloud project and use GitHub
 main commit <EXACT_SHA>. Do not rewrite application source, create another
@@ -19,55 +23,116 @@ backend, or print any secret value. Do not apply any migration in this stage.
 1. Deploy the repository versions of these edge functions with their shared
    imports under supabase/functions/_shared/: fetch-web3-incidents,
    fetch-quillmonitor-incidents, fetch-slowmist-incidents, summarize-article,
-   fetch-rss-news, and the new dedupe-incidents. Confirm dedupe-incidents has
-   platform JWT verification disabled as declared in supabase/config.toml; the
-   function itself requires CRON_SECRET, the service-role key, or an admin.
-2. Invoke dedupe-incidents with an authorized POST body
-   {"dryRun":true,"days":90} and return the full JSON response.
-3. Return the deployed Git revision and the response. Do not run it with
+   fetch-rss-news, post-telegram-alerts, and the new dedupe-incidents. Confirm
+   dedupe-incidents has platform JWT verification disabled as declared in
+   supabase/config.toml; the function itself requires CRON_SECRET, the
+   service-role key, or an admin.
+2. Authenticate every dedupe-incidents call with the project's CRON_SECRET from
+   the backend secrets, sent as "Authorization: Bearer <secret>". Never display,
+   log or return the secret.
+3. Invoke dedupe-incidents with the POST body
+   {"dryRun":true,"repairLegacyAmounts":true,"days":3650} and return the full
+   JSON response.
+4. Return the deployed Git revision and the response. Do not run anything with
    dryRun false yet.
 ```
 
-Behaviour change in this stage: severity for QuillMonitor attack strings with
-punctuation (for example "Flash-loan") now rates High, where it previously
-could rate lower.
+Behaviour changes in this stage:
+
+- Severity for QuillMonitor attack strings with punctuation (for example
+  "Flash-loan") now rates High, where it previously could rate lower.
+- Telegram posts label AI-written summaries with "AI summary:". The
+  post-update sync edits posts from the last 14 days that carry an AI summary
+  so they show the label too. That is expected; those edits are not new
+  incidents.
+
+### Step 1a: repair legacy loss figures (required)
+
+The old web3-incidents importer read "$50,000" as $50,000M ("$50000M") and
+rated those rows Critical, which inflates the Critical tile, severity sort and
+alerts. The new page (Stage 4) shows no loss figure for unrepaired rows. The repair
+re-reads each figure from the row's title, summary and content, recomputes the
+severity from the amount and attack type, and stamps `amount_parser: "v2"`.
+
+Review the dry-run response from step 3 above:
+
+- `legacyAmountRows` is the number of old-importer rows; each one is stamped.
+- `legacyAmountChanges` counts the rows whose figure or severity changes, and
+  `samples` shows up to 20 of them as `before` and `after`.
+- Each `after.amountUsd` must be the figure in that row's title or text (for
+  example "$50,000" becomes 50000 and severity medium). A row with no figure
+  in its text loses its amount and is rated from its attack type.
+
+Do not paste the next block until you have reviewed the samples.
+
+```text
+Invoke dedupe-incidents with the POST body
+{"dryRun":false,"repairLegacyAmounts":true,"days":3650}, authenticated with the
+project's CRON_SECRET from the backend secrets without displaying it, and
+return the JSON response. Then invoke it again with
+{"dryRun":true,"repairLegacyAmounts":true,"days":3650} and return that
+response too. The second response must show legacyAmountRows 0.
+```
+
+If the write run returns HTTP 207 with `writeErrors`, run it again; repaired
+rows are skipped. `legacyAmountSkipped` counts rows the importer rewrote
+during the run; they already carry correct figures.
+
+### Step 1b: mark cross-provider duplicates
+
+Run this after the repair, so the duplicate pass compares corrected amounts.
+
+```text
+Invoke dedupe-incidents with the POST body {"dryRun":true,"days":90},
+authenticated with the project's CRON_SECRET from the backend secrets without
+displaying it, and return the full JSON response. Do not run it with dryRun
+false yet.
+```
 
 Review the dry-run samples yourself. They should pair the NEAR Intents
 reports and the Meter reports, must not pair Limit Break with Magic Eden,
-and must contain no pair that is two different incidents. Then:
+and must contain no pair that is two different incidents.
+
+Do not paste the next block until you have reviewed the samples.
 
 ```text
-Invoke dedupe-incidents with an authorized POST body {"dryRun":false,"days":90}
-and return the JSON response. Then invoke it again with {"dryRun":true,"days":90}
-and return that response too. The second response must show
-duplicatesToMark 0 and canonicalSourceUpdates 0. Then show the last 20 log
-lines of fetch-quillmonitor-incidents and summarize-article after their next
-scheduled run, and confirm neither logged a PostgREST filter parse error.
+Invoke dedupe-incidents with the POST body {"dryRun":false,"days":90},
+authenticated with the project's CRON_SECRET from the backend secrets without
+displaying it, and return the JSON response. Then invoke it again with
+{"dryRun":true,"days":90} and return that response too. The second response
+must show duplicatesToMark 0 and canonicalSourceUpdates 0. Then show the last
+20 log lines of fetch-quillmonitor-incidents and summarize-article after their
+next scheduled run, and confirm neither logged a PostgREST filter parse error.
 ```
 
 If the write run returns HTTP 207 with `writeErrors`, run it again; rows that
 are already correct are skipped.
 
-### Optional: clear impossible loss figures on old rows
+### Fallback only: clear impossible loss figures by SQL
 
-The old web3-incidents importer stored "$3,800,000" as 3.8 trillion USD. The
-new page already hides any figure above $100B, so this is cleanup only.
+Use this only if the Step 1a repair cannot run. It removes figures above
+$100B from old-importer rows; it does not fix smaller wrong figures such as
+"$50000M" or their severities (the new page hides those figures anyway). The
+`CASE` keeps the cast away from non-numeric values, since `AND` does not
+guarantee evaluation order.
 
 ```sql
 -- Preview
 SELECT id, title, metadata->'amount_lost_usd' AS amount, metadata->>'amount_display' AS display
 FROM public.news_articles
 WHERE metadata->>'provider' IN ('web3-incidents', 'web3')
-  AND jsonb_typeof(metadata->'amount_lost_usd') = 'number'
-  AND (metadata->'amount_lost_usd')::numeric > 100000000000;
+  AND CASE WHEN jsonb_typeof(metadata->'amount_lost_usd') = 'number'
+        THEN (metadata->>'amount_lost_usd')::numeric > 100000000000
+        ELSE false END;
 
 -- Repair: remove the wrong figures, keep a marker
 UPDATE public.news_articles
 SET metadata = (metadata - 'amount_lost_usd' - 'amount_display')
   || jsonb_build_object('amount_cleared_at', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 WHERE metadata->>'provider' IN ('web3-incidents', 'web3')
-  AND jsonb_typeof(metadata->'amount_lost_usd') = 'number'
-  AND (metadata->'amount_lost_usd')::numeric > 100000000000;
+  AND CASE WHEN jsonb_typeof(metadata->'amount_lost_usd') = 'number'
+        THEN (metadata->>'amount_lost_usd')::numeric > 100000000000
+        ELSE false END;
 ```
 
 ## Stage 2: database functions
@@ -142,8 +207,8 @@ EXPLAIN (ANALYZE, BUFFERS) SELECT public.threat_intel_stats();
 Checks from the incident filters migration (20261012090000):
 
 ```sql
--- 1. One signature per function. Expected: 4 rows, the three 10/13-argument
---    filter functions and threat_intel_facets(text, timestamp with time zone).
+-- 1. One signature per function. Expected: 4 rows: search 13 args, count 10,
+--    stats 10, facets 2.
 SELECT p.oid::regprocedure
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
