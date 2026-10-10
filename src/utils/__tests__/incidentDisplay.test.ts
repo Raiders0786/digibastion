@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NewsArticle } from '@/types/news';
-import { getIncidentDisplay } from '@/lib/threatIntel/incidentDisplay';
+import { getIncidentDisplay, getStatusHistory } from '@/lib/threatIntel/incidentDisplay';
 
 const NOW = new Date('2026-10-10T12:00:00.000Z');
 const OPTIONS = { now: NOW, timeZone: 'UTC' } as const;
@@ -209,5 +209,33 @@ describe('getIncidentDisplay', () => {
     }), OPTIONS);
     expect(display.sources.length).toBeGreaterThan(0);
     expect(display.sources.every((source) => source.url === null || source.url.startsWith('https://'))).toBe(true);
+  });
+});
+
+describe('getStatusHistory', () => {
+  it('lists the incident date, the first report and the verification for a verified incident', () => {
+    expect(getStatusHistory(
+      quillMonitor({ verification_status: 'verified', provider_updated_at: '2026-10-01T08:30:00.000Z' }),
+      { timeZone: 'UTC' },
+    )).toEqual([
+      { label: 'Incident date', detail: 'Sep 30, 2026' },
+      { label: 'First reported on Digibastion', detail: 'Oct 9, 2026, 2:05 PM UTC' },
+      { label: 'Verified by QuillMonitor', detail: 'Status as of Oct 1, 2026, 8:30 AM UTC' },
+    ]);
+  });
+
+  it('says when an incident is still waiting for verification or has no date', () => {
+    expect(getStatusHistory(
+      quillMonitor({ verification_status: 'unverified', incident_date_unknown: true }),
+      { timeZone: 'UTC' },
+    )).toEqual([
+      { label: 'Incident date', detail: 'Not given by the source' },
+      { label: 'First reported on Digibastion', detail: 'Oct 9, 2026, 2:05 PM UTC' },
+      { label: 'Awaiting verification', detail: 'QuillMonitor has not verified this report yet' },
+    ]);
+  });
+
+  it('returns nothing for ordinary news items', () => {
+    expect(getStatusHistory(base({ category: 'vulnerability-disclosure', sourceName: 'BleepingComputer' }))).toEqual([]);
   });
 });

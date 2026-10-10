@@ -4,6 +4,7 @@ import {
   isPreliminaryQuillMonitorArticle,
   isQuillMonitorArticle,
   isSlowMistArticle,
+  isWeb3Incident,
   SLOWMIST_ATTRIBUTION_URL,
 } from '@/utils/newsIncident';
 import { safeExternalUrl } from '@/utils/safeUrl';
@@ -224,4 +225,59 @@ export function getIncidentDisplay(article: NewsArticle, options: IncidentDispla
     sources: getSources(article, fields, providerLabel),
     summaryLabel: getSummaryLabel(article, fields),
   };
+}
+
+export interface StatusHistoryEntry {
+  label: string;
+  detail: string;
+}
+
+const formatDateTime = (date: Date, timeZone: string | undefined): string =>
+  new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone,
+    timeZoneName: 'short',
+  })
+    .format(date)
+    // Newer ICU builds put a narrow no-break space before AM/PM.
+    .replace(/\u202f/g, ' ');
+
+/** Incident timeline for the incident page. Empty for ordinary news items. */
+export function getStatusHistory(
+  article: NewsArticle,
+  options: Pick<IncidentDisplayOptions, 'timeZone'> = {},
+): StatusHistoryEntry[] {
+  const fields = readIncidentFields(article.metadata);
+  const verification = resolveVerification(article, fields);
+  if (!isWeb3Incident(article) && verification === null) return [];
+
+  const provider = getProviderLabel(article) ?? 'The source';
+  const entries: StatusHistoryEntry[] = [];
+
+  const incidentDate = getIncidentDate(article, fields);
+  entries.push({
+    label: 'Incident date',
+    detail: incidentDate ? formatDay(incidentDate, 'UTC', true) : 'Not given by the source',
+  });
+
+  const firstReported = toDate(article.createdAt) ?? toDate(article.publishedAt);
+  if (firstReported) {
+    entries.push({ label: 'First reported on Digibastion', detail: formatDateTime(firstReported, options.timeZone) });
+  }
+
+  if (verification === 'confirmed') {
+    const updated = toDate(article.metadata?.provider_updated_at);
+    entries.push({
+      label: `Verified by ${provider}`,
+      detail: updated ? `Status as of ${formatDateTime(updated, options.timeZone)}` : 'Date not provided',
+    });
+  } else if (verification === 'unconfirmed') {
+    entries.push({ label: 'Awaiting verification', detail: `${provider} has not verified this report yet` });
+  }
+
+  return entries;
 }

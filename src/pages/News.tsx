@@ -1239,7 +1239,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   <span>/</span>
                   <span className="text-foreground">Subscribe</span>
                 </nav>
-                <SubscriptionForm />
+                <SubscriptionForm
+                  initialCategories={selectedCategories}
+                  initialScope={searchParams.has('scope') ? feedView : undefined}
+                />
               </div>
             </ErrorBoundary>
           )}

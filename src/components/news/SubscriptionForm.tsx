@@ -32,11 +32,18 @@ const subscriptionSchema = z.object({
   preferred_day: z.number().min(0).max(6).optional(),
 });
 
-export const SubscriptionForm = () => {
+interface SubscriptionFormProps {
+  /** Pre-selected categories, e.g. from `?categories=` when opened from an incident page. */
+  initialCategories?: NewsCategory[];
+  /** Pre-selected content scope, e.g. from `?scope=`. */
+  initialScope?: ThreatIntelScope;
+}
+
+export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: SubscriptionFormProps) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
-  const [contentScope, setContentScope] = useState<ThreatIntelScope>('all');
+  const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>(() => [...(initialCategories ?? [])]);
+  const [contentScope, setContentScope] = useState<ThreatIntelScope>(initialScope);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
