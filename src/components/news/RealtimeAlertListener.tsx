@@ -36,6 +36,13 @@ export const RealtimeAlertListener = ({
   const { toast } = useToast();
   const hasShownWelcomeToast = useRef(false);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Parents pass a new callback whenever their filters change. Reading it
+  // through a ref keeps one channel for the lifetime of the listener.
+  const onNewArticleRef = useRef(onNewArticle);
+
+  useEffect(() => {
+    onNewArticleRef.current = onNewArticle;
+  }, [onNewArticle]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -44,7 +51,7 @@ export const RealtimeAlertListener = ({
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
       refreshTimer.current = setTimeout(() => {
         refreshTimer.current = null;
-        onNewArticle?.();
+        onNewArticleRef.current?.();
       }, 1_500);
     };
 
@@ -183,7 +190,7 @@ export const RealtimeAlertListener = ({
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
       supabase.removeChannel(channel);
     };
-  }, [enabled, onNewArticle, toast]);
+  }, [enabled, toast]);
 
   // This component doesn't render anything visible
   return null;

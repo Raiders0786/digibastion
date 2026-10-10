@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
 import { NEWS_CATEGORIES, SEVERITY_LEVELS, SEVERITY_STYLES, parseListParam } from '@/lib/threatIntel/taxonomy';
 import { serializeJsonLd } from '@/utils/jsonLd';
@@ -54,6 +55,8 @@ const AUTO_REFRESH_OPTIONS = [
   { value: '60', label: '1m' },
   { value: '300', label: '5m' },
 ];
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 const News = () => {
   const navigate = useNavigate();
@@ -156,6 +159,26 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     const nextPage = typeof page === 'function' ? page(currentPage) : page;
     updateFeedParam('page', nextPage > 1 ? String(nextPage) : null);
   }, [currentPage, updateFeedParam]);
+
+  // Typing stays local; ?q= (and therefore the feed query) only changes after
+  // the user pauses for SEARCH_DEBOUNCE_MS.
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
+  const lastSyncedSearch = useRef(searchQuery);
+
+  // URL -> input: Clear filters, Back/Forward and shared links.
+  useEffect(() => {
+    if (searchQuery === lastSyncedSearch.current) return;
+    lastSyncedSearch.current = searchQuery;
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  // Input -> URL, once typing pauses.
+  useEffect(() => {
+    if (debouncedSearch === lastSyncedSearch.current) return;
+    lastSyncedSearch.current = debouncedSearch;
+    updateFeedParam('q', debouncedSearch || null, true);
+  }, [debouncedSearch, updateFeedParam]);
 
   // Fetch articles from database
   const { 
@@ -402,6 +425,20 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     handleTabChange(tabs[newIndex].id);
   };
 
+  // WAI-ARIA tabs: arrow keys, Home and End move between tabs.
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') nextIndex = (currentTabIndex + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (currentTabIndex - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    handleTabChange(nextTab.id);
+    document.getElementById(`threat-intel-tab-${nextTab.id}`)?.focus();
+  };
+
   // Pull to refresh handler
   const handlePullToRefresh = async () => {
     await refetch();
@@ -547,11 +584,22 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
           {/* Enhanced Tab Navigation - More Visible */}
           <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
-            <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg min-w-max sm:min-w-0">
+            <div
+              role="tablist"
+              aria-label="Threat intelligence sections"
+              className="flex gap-1.5 sm:gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg min-w-max sm:min-w-0"
+            >
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
+                  type="button"
+                  role="tab"
+                  id={`threat-intel-tab-${tab.id}`}
+                  aria-selected={selectedTab === tab.id}
+                  aria-controls={`threat-intel-panel-${tab.id}`}
+                  tabIndex={selectedTab === tab.id ? 0 : -1}
                   onClick={() => handleTabChange(tab.id)}
+                  onKeyDown={handleTabKeyDown}
                   className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
                     selectedTab === tab.id
                       ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
@@ -582,17 +630,30 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             onSwipe={handleSwipe}
           >
           {selectedTab === 'feed' && (
-            <div className="space-y-6">
+            <div
+              className="space-y-6"
+              role="tabpanel"
+              id="threat-intel-panel-feed"
+              aria-labelledby="threat-intel-tab-feed"
+            >
               {/* Search and Sort Bar */}
               <Card className="glass-card">
                 <CardContent className="p-4">
                   <div className="flex flex-col md:flex-row gap-4">
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <label htmlFor="threat-intel-search" className="sr-only">
+                        Search threat intelligence
+                      </label>
+                      <Search
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                       <Input
+                        id="threat-intel-search"
+                        type="search"
                         placeholder="Search articles, technologies, tags..."
-                        value={searchQuery}
-                        onChange={(event) => updateFeedParam('q', event.target.value || null, true)}
+                        value={searchInput}
+                        onChange={(event) => setSearchInput(event.target.value)}
                         className="pl-10"
                       />
                     </div>
@@ -882,7 +943,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
           {selectedTab === 'alerts' && (
             <ErrorBoundary>
-              <div className="space-y-6">
+              <div
+                className="space-y-6"
+                role="tabpanel"
+                id="threat-intel-panel-alerts"
+                aria-labelledby="threat-intel-tab-alerts"
+              >
                 {/* Breadcrumb Navigation */}
                 {/* Header with breadcrumb and refresh */}
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -1141,7 +1207,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
           {selectedTab === 'subscribe' && (
             <ErrorBoundary>
-              <div className="space-y-4">
+              <div
+                className="space-y-4"
+                role="tabpanel"
+                id="threat-intel-panel-subscribe"
+                aria-labelledby="threat-intel-tab-subscribe"
+              >
                 {/* Breadcrumb Navigation */}
                 <nav className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Button 
@@ -1156,7 +1227,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => setSelectedTab('feed')}
+                    onClick={() => handleTabChange('feed')}
                     className="h-auto p-1 hover:text-foreground"
                   >
                     Threat Intel

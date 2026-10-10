@@ -13,12 +13,12 @@ const realtime = vi.hoisted(() => {
     }),
     subscribe: vi.fn(() => channel),
   };
-  return { handlers, channel, toast: vi.fn(), removeChannel: vi.fn() };
+  return { handlers, channel, channelFactory: vi.fn(() => channel), toast: vi.fn(), removeChannel: vi.fn() };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    channel: vi.fn(() => realtime.channel),
+    channel: realtime.channelFactory,
     removeChannel: realtime.removeChannel,
   },
 }));
@@ -108,5 +108,34 @@ describe('RealtimeAlertListener provider refresh behavior', () => {
 
     expect(realtime.toast).not.toHaveBeenCalled();
     expect(onNewArticle).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps one realtime channel when the refresh callback changes', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const { rerender } = render(<RealtimeAlertListener onNewArticle={first} />);
+
+    rerender(<RealtimeAlertListener onNewArticle={second} />);
+
+    expect(realtime.channelFactory).toHaveBeenCalledTimes(1);
+    expect(realtime.removeChannel).not.toHaveBeenCalled();
+
+    act(() => {
+      realtime.handlers.UPDATE({
+        new: {
+          id: 'quill-1',
+          title: 'Verified incident',
+          severity: 'high',
+          category: 'web3-security',
+          summary: 'Updated summary',
+          source_name: 'QuillMonitor',
+          metadata: { provider: 'quillmonitor' },
+        },
+      });
+      vi.advanceTimersByTime(1_500);
+    });
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });

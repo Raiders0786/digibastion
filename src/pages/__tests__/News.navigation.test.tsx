@@ -103,6 +103,10 @@ vi.mock('@/components/news/NewsCardSkeleton', () => ({
   StatsSkeleton: () => <div data-testid="stats-skeleton" />,
 }));
 
+vi.mock('@/components/news/SubscriptionForm', () => ({
+  SubscriptionForm: () => <div data-testid="subscription-form" />,
+}));
+
 const idleAlerts = {
   alerts: [],
   totalCount: 0,
@@ -283,5 +287,37 @@ describe('threat-intel article navigation', () => {
       .map((element) => element.closest('button'))
       .find((button) => button !== null);
     expect(alertsTab?.textContent).toContain('1');
+  });
+
+  it('debounces search typing before writing ?q= to the URL', async () => {
+    const router = renderAt('/threat-intel?scope=all');
+
+    const search = await screen.findByLabelText('Search threat intelligence');
+    fireEvent.change(search, { target: { value: 'drainer' } });
+
+    expect((search as HTMLInputElement).value).toBe('drainer');
+    expect(router.state.location.search).not.toContain('q=');
+    await waitFor(
+      () => expect(router.state.location.search).toContain('q=drainer'),
+      { timeout: 1500 },
+    );
+  });
+
+  it('exposes accessible tabs and returns to the feed from the Subscribe breadcrumb', async () => {
+    const router = renderAt('/threat-intel?scope=all');
+
+    expect(await screen.findByRole('tablist', { name: 'Threat intelligence sections' })).not.toBeNull();
+    const feedTab = screen.getByRole('tab', { name: /News Feed/ });
+    expect(feedTab.getAttribute('aria-selected')).toBe('true');
+    expect(feedTab.getAttribute('aria-controls')).toBe('threat-intel-panel-feed');
+    expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe('threat-intel-tab-feed');
+
+    fireEvent.click(screen.getByRole('tab', { name: /Subscribe/ }));
+    await waitFor(() => expect(router.state.location.search).toContain('tab=subscribe'));
+    expect(screen.getByRole('tab', { name: /Subscribe/ }).getAttribute('aria-selected')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Threat Intel' }));
+    await waitFor(() => expect(router.state.location.search).not.toContain('tab='));
+    expect(screen.getByRole('tab', { name: /News Feed/ }).getAttribute('aria-selected')).toBe('true');
   });
 });
