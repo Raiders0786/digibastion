@@ -25,6 +25,12 @@ interface Token {
   lower: string;
 }
 
+type TermKind = 'apt' | 'strict' | 'inflected';
+
+interface TermToken extends Token {
+  kind: TermKind;
+}
+
 const STRICT_SECURITY_TOKENS = new Set([
   'apt', 'cve', 'rce', 'lpe', 'xss', 'csrf', 'sqli', 'mitm', 'ddos',
   'npm', 'pypi', 'dprk', 'vpn', 'tor', '2fa', 'mfa', '0day', 'defi', 'cisa',
@@ -43,12 +49,34 @@ const AMBIGUOUS_STANDALONE_KEYWORDS = new Set([
   'defi', 'smart contract', 'solidity', 'ethereum', 'bitcoin', 'solana',
 ]);
 
+// Lowercasing uses the locale-independent mapping; en-US locale lowercasing is
+// identical but many times slower, and it ran once per token per keyword.
 function tokenize(value: string): Token[] {
   const normalized = value.normalize('NFKC');
   return (normalized.match(/[\p{L}\p{N}]+/gu) || []).map((original) => ({
     original,
-    lower: original.toLocaleLowerCase('en-US'),
+    lower: original.toLowerCase(),
   }));
+}
+
+// Keywords and indicator lists repeat on every item, so their tokens are
+// computed once per isolate rather than once per item.
+const termTokenCache = new Map<string, TermToken[]>();
+
+function termTokens(term: string): TermToken[] {
+  let cached = termTokenCache.get(term);
+  if (!cached) {
+    cached = tokenize(term).map((token) => ({
+      ...token,
+      kind: token.lower === 'apt'
+        ? 'apt'
+        : /^\d+$/.test(token.lower) || STRICT_SECURITY_TOKENS.has(token.lower)
+          ? 'strict'
+          : 'inflected',
+    }));
+    termTokenCache.set(term, cached);
+  }
+  return cached;
 }
 
 function matchesInflection(contentToken: string, termToken: string): boolean {
@@ -68,14 +96,14 @@ function matchesInflection(contentToken: string, termToken: string): boolean {
   return contentToken === `${termToken}ed` || contentToken === `${termToken}ing`;
 }
 
-function tokenMatches(contentToken: Token, termToken: Token, isLastToken: boolean): boolean {
-  if (termToken.lower === 'apt') {
+function tokenMatches(contentToken: Token, termToken: TermToken, isLastToken: boolean): boolean {
+  if (termToken.kind === 'apt') {
     // Preserve the uppercase threat-group acronym while rejecting Debian's
     // lowercase `apt` package manager and embedded words such as adaptations.
     return /^APT(?:\d+|s)?$/.test(contentToken.original);
   }
 
-  if (/^\d+$/.test(termToken.lower) || STRICT_SECURITY_TOKENS.has(termToken.lower)) {
+  if (termToken.kind === 'strict') {
     return contentToken.lower === termToken.lower || contentToken.lower === `${termToken.lower}s`;
   }
 
@@ -84,35 +112,42 @@ function tokenMatches(contentToken: Token, termToken: Token, isLastToken: boolea
     : contentToken.lower === termToken.lower;
 }
 
+function containsTermTokens(contentTokens: Token[], term: string): boolean {
+  const termTokenList = termTokens(term);
+  if (contentTokens.length === 0 || termTokenList.length === 0) return false;
+
+  // Every accepted form (exact, inflection, alias, APT acronym) shares the
+  // term's first character, so most positions are rejected by one comparison.
+  const firstChar = termTokenList[0].lower[0];
+  const lastOffset = termTokenList.length - 1;
+  for (let start = 0; start <= contentTokens.length - termTokenList.length; start++) {
+    if (contentTokens[start].lower[0] !== firstChar) continue;
+    let offset = 0;
+    while (
+      offset <= lastOffset &&
+      tokenMatches(contentTokens[start + offset], termTokenList[offset], offset === lastOffset)
+    ) offset++;
+    if (offset > lastOffset) return true;
+  }
+
+  return false;
+}
+
 /**
  * Matches a security term on token boundaries and only permits known/common
  * inflections. Punctuation is normalized, so `zero-day` matches `zero day`,
  * while `apt`, `tor`, `rce`, and `defi` cannot match inside ordinary words.
  */
 export function containsSecurityTerm(content: string, term: string): boolean {
-  const contentTokens = tokenize(content);
-  const termTokens = tokenize(term);
-  if (contentTokens.length === 0 || termTokens.length === 0) return false;
-
-  for (let start = 0; start <= contentTokens.length - termTokens.length; start++) {
-    const matches = termTokens.every((termToken, offset) =>
-      tokenMatches(
-        contentTokens[start + offset],
-        termToken,
-        offset === termTokens.length - 1,
-      )
-    );
-    if (matches) return true;
-  }
-
-  return false;
+  return containsTermTokens(tokenize(content), term);
 }
 
 export function matchingSecurityKeywords<T extends { keyword: string }>(
   content: string,
   keywords: T[],
 ): T[] {
-  return keywords.filter(({ keyword }) => containsSecurityTerm(content, keyword));
+  const contentTokens = tokenize(content);
+  return keywords.filter(({ keyword }) => containsTermTokens(contentTokens, keyword));
 }
 
 /** Determines whether an RSS item is security-relevant and assigns a category. */
@@ -124,7 +159,8 @@ export function classifyRssRelevance(
 ): RelevanceResult {
   const content = `${title} ${summary}`;
   const matchedKeywords: string[] = [];
-  const matchedEntries = matchingSecurityKeywords(content, keywords);
+  const contentTokens = tokenize(content);
+  const matchedEntries = keywords.filter(({ keyword }) => containsTermTokens(contentTokens, keyword));
   let totalWeight = 0;
   const categoryWeights: Record<string, number> = {};
 
@@ -180,7 +216,7 @@ export function classifyRssRelevance(
     feedCategory === 'defi' || feedCategory === 'defi-exploits';
   const explicitDisclosure = [
     'cve', 'security advisory', 'patch released', 'security update', 'cvss',
-  ].some((signal) => containsSecurityTerm(content, signal));
+  ].some((signal) => containsTermTokens(contentTokens, signal));
 
   if (isWeb3Domain) {
     // Supply-chain and operational-security remain useful primary labels while
@@ -229,6 +265,7 @@ export function classifyRssRelevance(
 
 export function determineRssSeverity(matchedKeywords: string[], title: string): string {
   const keywordsLower = matchedKeywords.map((keyword) => keyword.toLocaleLowerCase('en-US'));
+  const titleTokens = tokenize(title);
   const criticalIndicators = [
     'critical', 'zero-day', 'zero day', '0day', '0-day', 'rce',
     'remote code execution', 'actively exploited', 'emergency', 'cvss 9', 'cvss 10',
@@ -244,13 +281,13 @@ export function determineRssSeverity(matchedKeywords: string[], title: string): 
   ];
 
   for (const indicator of criticalIndicators) {
-    if (containsSecurityTerm(title, indicator) || keywordsLower.includes(indicator)) return 'critical';
+    if (containsTermTokens(titleTokens, indicator) || keywordsLower.includes(indicator)) return 'critical';
   }
   for (const indicator of highIndicators) {
-    if (containsSecurityTerm(title, indicator) || keywordsLower.includes(indicator)) return 'high';
+    if (containsTermTokens(titleTokens, indicator) || keywordsLower.includes(indicator)) return 'high';
   }
   for (const indicator of mediumIndicators) {
-    if (containsSecurityTerm(title, indicator) || keywordsLower.includes(indicator)) return 'medium';
+    if (containsTermTokens(titleTokens, indicator) || keywordsLower.includes(indicator)) return 'medium';
   }
   return 'low';
 }

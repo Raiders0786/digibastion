@@ -67,4 +67,26 @@ describe('RSS classifier token matching', () => {
   it('does not raise severity for embedded acronym text', () => {
     expect(determineRssSeverity([], 'Adaptive safeguards for open source projects')).toBe('low');
   });
+
+  it('classifies long advisories within the edge-function CPU budget', () => {
+    // Edge functions are capped at 2s of CPU per request. A sync classifies
+    // every recent item from every feed, so per-item cost must not scale with
+    // keyword count times content length.
+    const keywords = Array.from({ length: 150 }, (_, index) => ({
+      keyword: index % 3 === 0 ? `signal ${index} term` : `signal${index}`,
+      category: 'vulnerability',
+      weight: 2,
+    }));
+    const advisory = Array.from(
+      { length: 1_500 },
+      (_, index) => `Vendor component ${index} affected by remote code execution; apply the patch.`,
+    ).join(' ');
+
+    const started = performance.now();
+    for (let item = 0; item < 10; item++) {
+      const result = classifyRssRelevance(`CISA advisory ${item}`, advisory, keywords, 'vulnerability-disclosure');
+      determineRssSeverity(result.matchedKeywords, `CISA advisory ${item}`);
+    }
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
 });
