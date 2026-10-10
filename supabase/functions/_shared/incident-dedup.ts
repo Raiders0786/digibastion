@@ -18,6 +18,7 @@ export interface DuplicateCandidate {
   attackMethod: string | null;
   amountInUsd: number | null;
   reference: string | null;
+  references?: string[];
 }
 
 export interface IncidentRow {
@@ -28,6 +29,7 @@ export interface IncidentRow {
   metadata: unknown;
   // Optional: used only as a source URL fallback for rows without reference_url.
   link?: string | null;
+  source_url?: string | null;
 }
 
 function metadataRecord(value: unknown): Record<string, unknown> {
@@ -98,6 +100,11 @@ export function candidateFromRow(row: IncidentRow): DuplicateCandidate | null {
     : row.published_at.slice(0, 10);
   const date = isCalendarDate(metadata.incident_date) ? metadata.incident_date : fallbackDate;
   if (!normalizeIncidentTarget(target) || !isCalendarDate(date)) return null;
+  let sourceLinks: unknown = [];
+  try { sourceLinks = row.source_url ? JSON.parse(row.source_url) : []; } catch { /* legacy plain URL */ }
+  const references = [metadata.reference_url, row.link, ...readIncidentFields(metadata).sources.map((source) => source.url),
+    ...(Array.isArray(sourceLinks) ? sourceLinks.map((source) => metadataRecord(source).url) : [])]
+    .map(incidentReferenceKey).filter((url): url is string => url !== null);
   return {
     uid: row.uid,
     provider: rowProvider(row),
@@ -108,7 +115,18 @@ export function candidateFromRow(row: IncidentRow): DuplicateCandidate | null {
       ? metadata.amount_lost_usd
       : null,
     reference: typeof metadata.reference_url === 'string' ? metadata.reference_url : null,
+    ...(references.length ? { references: [...new Set(references)] } : {}),
   };
+}
+
+function incidentReferenceKey(value: unknown): string | null {
+  const safe = safeHttpUrl(value);
+  if (!safe) return null;
+  const url = new URL(safe);
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  if (host !== 'x.com' && host !== 'twitter.com') return null;
+  const status = url.pathname.match(/^\/[^/]+\/status\/(\d+)\/?$/);
+  return status ? `https://x.com/i/status/${status[1]}` : null;
 }
 
 // High confidence only: the same normalized project name, and either the same
@@ -120,11 +138,18 @@ export function isHighConfidenceDuplicate(
   b: Omit<DuplicateCandidate, 'uid' | 'provider'>,
 ): boolean {
   const normalizedTarget = normalizeIncidentTarget(a.target);
-  if (!normalizedTarget || normalizedTarget !== normalizeIncidentTarget(b.target)) return false;
+  if (!normalizedTarget || !normalizeIncidentTarget(b.target)) return false;
   const aTime = new Date(`${a.date}T00:00:00.000Z`).getTime();
   const bTime = new Date(`${b.date}T00:00:00.000Z`).getTime();
   if (!Number.isFinite(aTime) || !Number.isFinite(bTime)) return false;
   const dayDifference = Math.abs(aTime - bTime) / 86_400_000;
+  if (normalizedTarget !== normalizeIncidentTarget(b.target)) {
+    const aReferences = [...(a.references ?? []), incidentReferenceKey(a.reference)].filter(Boolean);
+    const bReferences = [...(b.references ?? []), incidentReferenceKey(b.reference)].filter(Boolean);
+    return dayDifference === 0 && typeof a.amountInUsd === 'number' && Number.isFinite(a.amountInUsd)
+      && a.amountInUsd > 0 && a.amountInUsd <= MAX_PLAUSIBLE_USD && a.amountInUsd === b.amountInUsd
+      && aReferences.some((reference) => bReferences.includes(reference));
+  }
   if (dayDifference === 0) return true;
   if (dayDifference > 2) return false;
 

@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await db
         .from('news_articles')
-        .select('uid,title,published_at,source_name,metadata,link')
+        .select('uid,title,published_at,source_name,metadata,link,source_url')
         .gte('published_at', since)
         .or(WEB3_INCIDENT_FILTER)
         .order('published_at', { ascending: true })
