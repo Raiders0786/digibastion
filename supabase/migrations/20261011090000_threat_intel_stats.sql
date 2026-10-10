@@ -26,6 +26,9 @@ DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timest
 DROP FUNCTION IF EXISTS public.count_news_articles(text, text[], text[], timestamptz);
 DROP FUNCTION IF EXISTS public.count_news_articles(text, text[], text[], timestamptz, text);
 
+DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text, boolean, text);
+DROP FUNCTION IF EXISTS public.threat_intel_stats(text, text[], text[], timestamptz, text, boolean);
+
 CREATE FUNCTION public.search_news_articles(
   search_query text DEFAULT NULL,
   category_filter text[] DEFAULT NULL,

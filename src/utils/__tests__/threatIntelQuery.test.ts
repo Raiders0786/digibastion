@@ -63,7 +63,6 @@ describe('buildThreatIntelQueryParams', () => {
       web3_incidents_only: true,
       result_limit: 20,
       result_offset: 0,
-      sort_by: 'date',
     });
   });
 
@@ -88,6 +87,10 @@ describe('buildThreatIntelQueryParams', () => {
       result_offset: 40,
       sort_by: 'severity',
     });
+  });
+
+  it('omits sort_by for date order so the old RPC signature keeps working', () => {
+    expect(buildThreatIntelQueryParams(baseFilters, NOW)).not.toHaveProperty('sort_by');
   });
 
   it('clamps page size to the RPC maximum and page to 1', () => {
@@ -147,7 +150,6 @@ describe('alert queries', () => {
       ...filter,
       result_limit: ALERTS_PAGE_SIZE,
       result_offset: ALERTS_PAGE_SIZE,
-      sort_by: 'date',
     });
   });
 

@@ -76,8 +76,8 @@ describe('useThreatIntelAlerts', () => {
       web3_incidents_only: true,
       result_limit: 20,
       result_offset: 20,
-      sort_by: 'date',
     }));
+    expect(db.rpc.mock.calls.find(([name]) => name === 'search_news_articles')?.[1]).not.toHaveProperty('sort_by');
     expect(db.rpc).toHaveBeenCalledWith('threat_intel_stats', expect.objectContaining({
       severity_filter: ['critical', 'high'],
       web3_incidents_only: true,

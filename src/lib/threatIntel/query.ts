@@ -48,7 +48,8 @@ export interface ThreatIntelFilterParams {
 export interface ThreatIntelSearchParams extends ThreatIntelFilterParams {
   result_limit: number;
   result_offset: number;
-  sort_by: SortBy;
+  /** Sent only for 'severity'; omitted for 'date' so date browsing works against the pre-migration function. */
+  sort_by?: 'severity';
 }
 
 export interface ThreatIntelAlertQuery {
@@ -131,7 +132,7 @@ export function buildThreatIntelQueryParams(
     ...buildThreatIntelFilterParams(filters, now),
     result_limit: pageSize,
     result_offset: (page - 1) * pageSize,
-    sort_by: filters.sortBy === 'severity' ? 'severity' : 'date',
+    ...(filters.sortBy === 'severity' ? { sort_by: 'severity' as const } : {}),
   };
 }
 

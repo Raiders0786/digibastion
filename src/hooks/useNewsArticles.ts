@@ -194,6 +194,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const { toast } = useToast();
   const cacheInitialised = useRef(false);
   const latestRequest = useRef(0);
+  const latestStatsKey = useRef<string | null>(null);
+  const requestedStatsKey = useRef<string | null>(null);
+  const serverStats = useRef<{ key: string; stats: ThreatIntelStats } | null>(null);
+  const pageFloor = useRef(0);
+  const pageArticlesRef = useRef<NewsArticle[]>([]);
 
   // Callers rebuild their filter arrays on every URL change, including tab
   // switches. Key the query on the array contents so identical filters do not
@@ -233,12 +238,13 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     if (cachedStats) {
       setStats(cachedStats);
       setStatsSource('server');
+      serverStats.current = { key: buildStatsFilterKey(cacheInput), stats: cachedStats };
       if (!cached) setTotalCount(cachedStats.total);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchArticles = useCallback(async () => {
+  const loadArticles = useCallback(async (forceStats: boolean) => {
     const requestId = ++latestRequest.current;
     // A slower response for an older filter set must not overwrite a newer one.
     const isCurrent = () => requestId === latestRequest.current;
@@ -251,31 +257,71 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     const statsKey = buildStatsFilterKey(cacheInput);
     const offset = queryParams.result_offset;
     const limit = queryParams.result_limit;
+    const useRpc = requiresThreatIntelRpc(filters);
     const categoryOrFilter = filterParams.category_filter
       ? buildCategoryPostgrestFilter(filterParams.category_filter)
       : null;
 
-    const feedFreshnessPromise = fetchFeedFreshness();
-    // Stats run in parallel with the page query; they never block the list.
-    const statsPromise = fetchThreatIntelStats(filterParams);
-
-    const applyStats = (
-      serverStats: ThreatIntelStats | null,
-      pageArticles: NewsArticle[],
-      fallbackTotal: number,
-      rawRowCount: number,
-    ): number => {
-      if (serverStats) {
-        const total = Math.max(serverStats.total, countFloor(offset, rawRowCount, limit));
-        const resolved = { ...serverStats, total };
-        setStats(resolved);
-        setStatsSource('server');
-        saveStatsToCache(resolved, statsKey);
-        return total;
-      }
-      setStats(computePageStats(pageArticles, fallbackTotal));
+    latestStatsKey.current = statsKey;
+    if (serverStats.current?.key !== statsKey) {
+      // Never show the previous view's counts under this view's caption.
+      serverStats.current = null;
+      setStats(EMPTY_THREAT_INTEL_STATS);
       setStatsSource('page');
-      return fallbackTotal;
+    }
+
+    const feedFreshnessPromise = fetchFeedFreshness();
+
+    // Stats cover the whole filtered result, so page and sort changes reuse
+    // them. They load in the background and never block the list.
+    if (forceStats || requestedStatsKey.current !== statsKey) {
+      requestedStatsKey.current = statsKey;
+      void fetchThreatIntelStats(filterParams).then(async (resolvedStats) => {
+        if (latestStatsKey.current !== statsKey) return;
+        if (resolvedStats) {
+          const total = Math.max(resolvedStats.total, pageFloor.current);
+          const resolved = { ...resolvedStats, total };
+          serverStats.current = { key: statsKey, stats: resolved };
+          setStats(resolved);
+          setStatsSource('server');
+          setTotalCount(total);
+          saveStatsToCache(resolved, statsKey);
+          return;
+        }
+        // Stats unavailable (for example before the migration is applied):
+        // fall back to page counts and keep pagination correct via the count RPC.
+        requestedStatsKey.current = null;
+        let total = pageFloor.current;
+        if (useRpc) {
+          const { data: countData, error: countError } = await supabase.rpc('count_news_articles', filterParams);
+          if (latestStatsKey.current !== statsKey) return;
+          if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
+          else total = Math.max(Number(countData) || 0, total);
+        }
+        pageFloor.current = total;
+        setTotalCount(total);
+        setStats(computePageStats(pageArticlesRef.current, total));
+        setStatsSource('page');
+      });
+    }
+
+    // Commit the list and a provisional total right away; stats arrive later.
+    const commitPage = (nextArticles: NewsArticle[], provisionalTotal: number, rawRowCount: number): number => {
+      pageArticlesRef.current = nextArticles;
+      pageFloor.current = Math.max(provisionalTotal, countFloor(offset, rawRowCount, limit));
+      const known = serverStats.current?.key === statsKey ? serverStats.current.stats : null;
+      const total = known ? Math.max(known.total, pageFloor.current) : pageFloor.current;
+      if (known) {
+        const resolved = { ...known, total };
+        serverStats.current = { key: statsKey, stats: resolved };
+        setStats(resolved);
+      } else {
+        setStats(computePageStats(nextArticles, total));
+        setStatsSource('page');
+      }
+      setTotalCount(total);
+      setArticles(nextArticles);
+      return total;
     };
 
     try {
@@ -285,7 +331,6 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       let rows: unknown[] | null = null;
       let fetchError: { message?: string } | null = null;
       let queryCount: number | null = null;
-      const useRpc = requiresThreatIntelRpc(filters);
 
       if (!useRpc) {
         // Plain newest-first browsing stays on the indexed table query. The
@@ -342,17 +387,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (fallbackError) throw fallbackError;
         const fallbackRows = fallbackData ?? [];
         const fallbackArticles = mapPublishableNewsArticleRows(fallbackRows);
-        const serverStats = await statsPromise;
-        if (!isCurrent()) return;
-
-        const resolvedCount = applyStats(
-          serverStats,
+        const resolvedCount = commitPage(
           fallbackArticles,
           countFloor(offset, fallbackRows.length, limit),
           fallbackRows.length,
         );
-        setTotalCount(resolvedCount);
-        setArticles(fallbackArticles);
         const freshness = await feedFreshnessPromise;
         if (!isCurrent()) return;
         setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
@@ -362,22 +401,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
       const pageRows = rows ?? [];
       const pageArticles = mapPublishableNewsArticleRows(pageRows);
-      const serverStats = await statsPromise;
-      if (!isCurrent()) return;
-
-      let fallbackTotal = queryCount ?? countFloor(offset, pageRows.length, limit);
-      if (!serverStats && useRpc) {
-        // Stats are unavailable (for example before the migration is applied):
-        // keep pagination correct with the count RPC.
-        const { data: countData, error: countError } = await supabase.rpc('count_news_articles', filterParams);
-        if (!isCurrent()) return;
-        if (countError) console.warn('Unable to load the complete threat-intel count:', countError);
-        else fallbackTotal = Math.max(Number(countData) || 0, fallbackTotal);
-      }
-
-      const resolvedCount = applyStats(serverStats, pageArticles, fallbackTotal, pageRows.length);
-      setTotalCount(resolvedCount);
-      setArticles(pageArticles);
+      const resolvedCount = commitPage(
+        pageArticles,
+        queryCount ?? countFloor(offset, pageRows.length, limit),
+        pageRows.length,
+      );
       const freshness = await feedFreshnessPromise;
       if (!isCurrent()) return;
       setFeedStatus({ source: 'live', isStale: false, checkedAt: new Date(), ...freshness });
@@ -399,6 +427,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (cachedStats) {
           setStats(cachedStats);
           setStatsSource('server');
+          serverStats.current = { key: statsKey, stats: cachedStats };
         } else {
           setStats(computePageStats(cachedArticles, cached.totalCount));
           setStatsSource('page');
@@ -423,6 +452,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       if (isCurrent()) setIsLoading(false);
     }
   }, [filters]);
+
+  const fetchArticles = useCallback(() => loadArticles(true), [loadArticles]);
 
   const refreshFromRSS = useCallback(async () => {
     try {
@@ -513,8 +544,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   }, [fetchArticles, toast]);
 
   useEffect(() => {
-    void fetchArticles();
-  }, [fetchArticles]);
+    void loadArticles(false);
+  }, [loadArticles]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
   const pagination = {

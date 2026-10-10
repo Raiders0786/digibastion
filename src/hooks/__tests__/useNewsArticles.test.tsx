@@ -64,7 +64,10 @@ describe('useNewsArticles', () => {
     });
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it('sorts by severity on the server and reports whole-result stats', async () => {
     const { result } = renderHook(() => useNewsArticles({ view: 'all', sortBy: 'severity', page: 1, pageSize: 20 }));
@@ -94,9 +97,11 @@ describe('useNewsArticles', () => {
       return { data: null, error: { message: 'function threat_intel_stats does not exist' } };
     });
 
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { result } = renderHook(() => useNewsArticles({ view: 'web3-incidents' }));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(warn).toHaveBeenCalled());
     expect(result.current.statsSource).toBe('page');
     expect(result.current.stats.critical).toBe(1);
     expect(result.current.pagination.totalCount).toBe(2);
@@ -109,5 +114,60 @@ describe('useNewsArticles', () => {
     expect(db.from).toHaveBeenCalledWith('news_articles');
     expect(db.rpc).not.toHaveBeenCalledWith('search_news_articles', expect.anything());
     expect(result.current.stats.total).toBe(57);
+  });
+
+  it('does not wait for stats: rows render first, stats apply when they resolve', async () => {
+    let resolveStats: (value: unknown) => void = () => {};
+    db.rpc.mockImplementation(async (name: string) => {
+      if (name === 'search_news_articles') return { data: [row('a', 'critical')], error: null };
+      if (name === 'threat_intel_stats') return new Promise((resolve) => { resolveStats = resolve; });
+      return { data: null, error: { message: `unexpected rpc ${name}` } };
+    });
+
+    const { result } = renderHook(() => useNewsArticles({ view: 'web3-incidents' }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.articles.map((article) => article.id)).toEqual(['a']);
+    expect(result.current.statsSource).toBe('page');
+    expect(result.current.pagination.totalCount).toBe(1);
+
+    resolveStats({ data: serverStats, error: null });
+    await waitFor(() => expect(result.current.statsSource).toBe('server'));
+    expect(result.current.stats.total).toBe(57);
+    expect(result.current.pagination.totalCount).toBe(57);
+  });
+
+  it('reuses stats when only the page changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ page }) => useNewsArticles({ view: 'web3-incidents', page }),
+      { initialProps: { page: 1 } },
+    );
+    await waitFor(() => expect(result.current.statsSource).toBe('server'));
+    const statsCalls = () => db.rpc.mock.calls.filter(([name]) => name === 'threat_intel_stats').length;
+    expect(statsCalls()).toBe(1);
+
+    rerender({ page: 2 });
+    await waitFor(() => expect(db.rpc.mock.calls.filter(([name]) => name === 'search_news_articles')).toHaveLength(2));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(statsCalls()).toBe(1);
+    expect(result.current.statsSource).toBe('server');
+    expect(result.current.stats.total).toBe(57);
+  });
+
+  it('clears the previous view stats while the new view stats load', async () => {
+    const { result, rerender } = renderHook(
+      ({ view }: { view: 'web3-incidents' | 'all' }) => useNewsArticles({ view }),
+      { initialProps: { view: 'web3-incidents' as 'web3-incidents' | 'all' } },
+    );
+    await waitFor(() => expect(result.current.statsSource).toBe('server'));
+
+    db.rpc.mockImplementation(async (name: string) => {
+      if (name === 'search_news_articles') return { data: [row('a', 'critical')], error: null };
+      return new Promise(() => {});
+    });
+    rerender({ view: 'all' });
+
+    await waitFor(() => expect(result.current.statsSource).toBe('page'));
+    expect(result.current.stats.total).not.toBe(57);
   });
 });
