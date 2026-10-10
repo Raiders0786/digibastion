@@ -2,7 +2,13 @@
 // dedupe-incidents backfill. Moved from the SlowMist importer so all
 // providers agree on what "the same incident" means.
 // Pure module: no Deno or URL imports, so vitest can import it.
-import { isCalendarDate } from './incident-fields.ts';
+import {
+  isCalendarDate,
+  mergeIncidentSources,
+  readIncidentFields,
+  safeHttpUrl,
+  type IncidentSource,
+} from './incident-fields.ts';
 
 export interface DuplicateCandidate {
   uid: string;
@@ -145,4 +151,152 @@ export function pickCanonical<T extends { uid: string; provider: string }>(curre
   if (priorityDifference < 0) return candidate;
   if (priorityDifference > 0) return current;
   return candidate.uid.localeCompare(current.uid) < 0 ? candidate : current;
+}
+
+// Labels for rows whose source_name is empty (web3-incidents stores null).
+const PROVIDER_LABELS: Record<string, string> = {
+  quillmonitor: 'QuillMonitor',
+  'web3-incidents': 'Web3 incident tracker',
+  web3: 'Web3 incident tracker',
+  slowmist: 'SlowMist Hacked',
+};
+
+// Legacy web3-incidents rows stored some amounts a million times too large;
+// never copy those into another record's sources.
+const MAX_PLAUSIBLE_USD = 100_000_000_000;
+
+// The sources a row contributes when it is merged into another record: its
+// own metadata.sources when present, otherwise one entry built from its fields.
+export function incidentSourcesFromRow(row: IncidentRow): IncidentSource[] {
+  const fields = readIncidentFields(row.metadata);
+  if (fields.sources.length > 0) {
+    return fields.sources.map((source) => ({
+      ...source,
+      amount_usd: source.amount_usd !== null && source.amount_usd <= MAX_PLAUSIBLE_USD ? source.amount_usd : null,
+    }));
+  }
+  const metadata = metadataRecord(row.metadata);
+  const provider = rowProvider(row) || 'unknown';
+  const amount = metadata.amount_lost_usd;
+  return [{
+    provider,
+    url: safeHttpUrl(metadata.reference_url) ?? safeHttpUrl(row.link),
+    label: row.source_name?.trim() || PROVIDER_LABELS[provider] || provider,
+    amount_usd: typeof amount === 'number' && Number.isFinite(amount) && amount >= 0 && amount <= MAX_PLAUSIBLE_USD
+      ? amount
+      : null,
+  }];
+}
+
+// Rows that some other rule already hid (classification_relevant=false with
+// no duplicate_of_uid) are not incidents we show, so they never take part.
+function isHiddenForOtherReasons(row: IncidentRow): boolean {
+  const metadata = metadataRecord(row.metadata);
+  return metadata.classification_relevant === false && typeof metadata.duplicate_of_uid !== 'string';
+}
+
+export interface DuplicateMark {
+  uid: string;
+  duplicateOfUid: string;
+  // Full metadata to write: the row's own metadata plus the duplicate fields.
+  metadata: Record<string, unknown>;
+  // False when the row is already marked exactly this way.
+  needsWrite: boolean;
+}
+
+export interface CanonicalMergePlan {
+  marks: DuplicateMark[];
+  sourcesByCanonical: Record<string, IncidentSource[]>;
+}
+
+export function duplicateMetadata(metadata: unknown, duplicateOfUid: string): Record<string, unknown> {
+  return { ...metadataRecord(metadata), classification_relevant: false, duplicate_of_uid: duplicateOfUid };
+}
+
+/**
+ * For a batch of canonical rows (QuillMonitor), finds lower-priority rows that
+ * describe the same incident. Returns the marks to write on those rows and the
+ * sources each canonical row should carry. Rows already marked as a duplicate
+ * of a record outside this batch are left alone.
+ */
+export function planCanonicalMerges(canonicalRows: IncidentRow[], candidateRows: IncidentRow[]): CanonicalMergePlan {
+  const canonicals = canonicalRows
+    .map(candidateFromRow)
+    .filter((candidate): candidate is DuplicateCandidate => candidate !== null);
+  const canonicalUids = new Set(canonicals.map((candidate) => candidate.uid));
+  const marks: DuplicateMark[] = [];
+  const sourcesByCanonical: Record<string, IncidentSource[]> = {};
+
+  for (const row of candidateRows) {
+    if (canonicalUids.has(row.uid) || isHiddenForOtherReasons(row)) continue;
+    const existingMark = readIncidentFields(row.metadata).duplicateOfUid;
+    if (existingMark && !canonicalUids.has(existingMark)) continue;
+    const candidate = candidateFromRow(row);
+    if (!candidate) continue;
+
+    let canonical: DuplicateCandidate | undefined;
+    for (const option of canonicals) {
+      if (providerPriority(option.provider) >= providerPriority(candidate.provider)) continue;
+      if (isHighConfidenceDuplicate(option, candidate)) canonical = pickCanonical(canonical, option);
+    }
+    if (!canonical) continue;
+
+    const metadata = metadataRecord(row.metadata);
+    marks.push({
+      uid: row.uid,
+      duplicateOfUid: canonical.uid,
+      metadata: duplicateMetadata(row.metadata, canonical.uid),
+      needsWrite: metadata.classification_relevant !== false || metadata.duplicate_of_uid !== canonical.uid,
+    });
+    sourcesByCanonical[canonical.uid] = mergeIncidentSources(
+      sourcesByCanonical[canonical.uid] ?? [],
+      incidentSourcesFromRow(row),
+    );
+  }
+
+  return { marks, sourcesByCanonical };
+}
+
+/**
+ * Returns the uid of an existing record that already describes this incident
+ * and comes from the same or a higher-priority provider, or null. Importers
+ * skip the insert when this returns a uid. Rows hidden for other reasons and
+ * the incident's own uid never count.
+ */
+export function matchExistingIncident(incident: IncidentRow, existingRows: IncidentRow[]): string | null {
+  const candidate = candidateFromRow(incident);
+  if (!candidate) return null;
+  const ownPriority = providerPriority(candidate.provider);
+  let best: DuplicateCandidate | undefined;
+  for (const row of existingRows) {
+    if (row.uid === incident.uid || isHiddenForOtherReasons(row)) continue;
+    const existing = candidateFromRow(row);
+    if (!existing || providerPriority(existing.provider) > ownPriority) continue;
+    if (isHighConfidenceDuplicate(existing, candidate)) best = pickCanonical(best, existing);
+  }
+  return best?.uid ?? null;
+}
+
+export function shiftDate(date: string, days: number): string {
+  const shifted = new Date(`${date}T00:00:00.000Z`);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString();
+}
+
+/**
+ * Turns incident dates into the published_at ranges ([from, to), ISO) that can
+ * hold a match: two days either side, overlapping ranges merged. Lets a batch
+ * spanning months query a few narrow windows instead of everything between.
+ */
+export function incidentDateWindows(dates: string[]): { from: string; to: string }[] {
+  const sorted = [...new Set(dates.filter(isCalendarDate))].sort();
+  const windows: { from: string; to: string }[] = [];
+  for (const date of sorted) {
+    const from = shiftDate(date, -2);
+    const to = shiftDate(date, 3);
+    const last = windows[windows.length - 1];
+    if (last && from <= last.to) last.to = to;
+    else windows.push({ from, to });
+  }
+  return windows;
 }

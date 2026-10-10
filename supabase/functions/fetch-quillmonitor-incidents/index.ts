@@ -1,16 +1,23 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import { z } from 'npm:zod@3.23.8';
 import {
   assessQuillMonitorRunHealth,
   buildQuillMonitorRequestUrl,
+  finalizeQuillMonitorArticle,
   hasCompleteQuillMonitorResult,
   isSafeQuillMonitorSyncWindow,
   normalizeQuillMonitorIncident,
   parseQuillMonitorPage,
   parseQuillMonitorIncident,
+  type ExistingQuillMonitorRow,
   type NormalizedQuillMonitorArticle,
 } from '../_shared/quillmonitor.ts';
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
+import {
+  incidentDateWindows,
+  planCanonicalMerges,
+  type IncidentRow,
+} from '../_shared/incident-dedup.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +31,13 @@ const RequestSchema = z.object({
 }).strict();
 const DATABASE_BATCH_SIZE = 50;
 const SYNC_CURSOR_KEY = 'QUILLMONITOR_SYNC_SINCE';
+// Providers that rank below QuillMonitor and can be merged into its records.
+const LOWER_PRIORITY_PROVIDERS = ['web3-incidents', 'web3', 'slowmist'];
+// Same safety cap as the SlowMist importer, applied per date window.
+const MAX_RELATED_ROWS = 500;
+// An incremental sync touches a few dates; a full sync spans years and is left
+// to the dedupe-incidents backfill rather than issuing hundreds of queries.
+const MAX_LOOKUP_WINDOWS = 20;
 
 async function timingSafeEqual(left: string, right: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -91,6 +105,35 @@ async function fetchPage(
     }
   }
   throw new Error(lastError);
+}
+
+type DuplicateLookup = { rows: IncidentRow[]; skippedReason: string | null };
+
+// Loads lower-priority incident rows within two days of any incident in the
+// batch. Never throws: a failed lookup only skips merging for this sync.
+async function loadDuplicateCandidates(
+  db: SupabaseClient,
+  articles: NormalizedQuillMonitorArticle[],
+): Promise<DuplicateLookup> {
+  const windows = incidentDateWindows(articles.map((article) => String(article.metadata.incident_date)));
+  if (windows.length === 0) return { rows: [], skippedReason: null };
+  if (windows.length > MAX_LOOKUP_WINDOWS) return { rows: [], skippedReason: 'too_many_date_windows' };
+
+  const rows: IncidentRow[] = [];
+  for (const window of windows) {
+    const { data, error, count } = await db
+      .from('news_articles')
+      .select('uid,title,published_at,source_name,metadata,link', { count: 'exact' })
+      .gte('published_at', window.from)
+      .lt('published_at', window.to)
+      .in('metadata->>provider', LOWER_PRIORITY_PROVIDERS)
+      .order('published_at', { ascending: true })
+      .limit(MAX_RELATED_ROWS);
+    if (error) return { rows: [], skippedReason: 'lookup_failed' };
+    if (count !== null && count > MAX_RELATED_ROWS) return { rows: [], skippedReason: 'window_over_limit' };
+    rows.push(...((data ?? []) as IncidentRow[]));
+  }
+  return { rows, skippedReason: null };
 }
 
 function normalizeSyncCursor(value: unknown): string | null {
@@ -217,26 +260,56 @@ Deno.serve(async (req) => {
     }
 
     const articles = [...articlesByUid.values()];
+    // Cross-provider merge, planned for every QuillMonitor row in this sync
+    // (not only new ones) because each upsert replaces metadata.sources.
+    const duplicateLookup = await loadDuplicateCandidates(db, articles);
+    const mergePlan = planCanonicalMerges(articles, duplicateLookup.rows);
     let inserted = 0;
     let updated = 0;
     const errors: string[] = [];
+    const writtenUids = new Set<string>();
     for (let offset = 0; offset < articles.length; offset += DATABASE_BATCH_SIZE) {
       const batch = articles.slice(offset, offset + DATABASE_BATCH_SIZE);
       const uids = batch.map((article) => article.uid);
-      const { data: existing, error: readError } = await db.from('news_articles').select('uid').in('uid', uids);
+      const { data: existing, error: readError } = await db
+        .from('news_articles')
+        .select('uid,summary,metadata')
+        .in('uid', uids);
       if (readError) {
         errors.push(`${batch.length} incident lookups failed`);
         continue;
       }
-      const existingUids = new Set((existing ?? []).map((article) => article.uid));
-      const { error: writeError } = await db.from('news_articles').upsert(batch, { onConflict: 'uid' });
+      const existingByUid = new Map(
+        ((existing ?? []) as (ExistingQuillMonitorRow & { uid: string })[]).map((row) => [row.uid, row]),
+      );
+      const writes = batch.map((article) => finalizeQuillMonitorArticle(
+        article,
+        existingByUid.get(article.uid),
+        duplicateLookup.skippedReason ? null : mergePlan.sourcesByCanonical[article.uid] ?? [],
+      ));
+      const { error: writeError } = await db.from('news_articles').upsert(writes, { onConflict: 'uid' });
       if (writeError) {
         errors.push(`${batch.length} incident writes failed`);
         continue;
       }
-      const updatedInBatch = batch.filter((article) => existingUids.has(article.uid)).length;
+      for (const uid of uids) writtenUids.add(uid);
+      const updatedInBatch = batch.filter((article) => existingByUid.has(article.uid)).length;
       updated += updatedInBatch;
       inserted += batch.length - updatedInBatch;
+    }
+
+    // Hide the lower-priority copies only once their QuillMonitor record is
+    // stored. A failed mark counts as a persistence error, so the cursor does
+    // not advance and the next sync retries it.
+    let duplicatesMarked = 0;
+    for (const mark of mergePlan.marks) {
+      if (!mark.needsWrite || !writtenUids.has(mark.duplicateOfUid)) continue;
+      const { error: markError } = await db
+        .from('news_articles')
+        .update({ metadata: mark.metadata })
+        .eq('uid', mark.uid);
+      if (markError) errors.push('1 duplicate mark failed');
+      else duplicatesMarked++;
     }
 
     let persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
@@ -257,7 +330,7 @@ Deno.serve(async (req) => {
       counts[article.category] = (counts[article.category] || 0) + 1;
       return counts;
     }, {});
-    console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} found=${recordsFound} normalized=${articles.length} inserted=${inserted} updated=${updated} invalid=${invalidRecords} persistence_errors=${persistenceErrors} healthy=${health.success}`);
+    console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} found=${recordsFound} normalized=${articles.length} inserted=${inserted} updated=${updated} duplicates_marked=${duplicatesMarked} merge_lookup=${duplicateLookup.skippedReason ?? 'ok'} invalid=${invalidRecords} persistence_errors=${persistenceErrors} healthy=${health.success}`);
     await recordIngestionRun(db, {
       pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
       success: health.success, records_found: recordsFound, records_inserted: inserted,
@@ -274,11 +347,16 @@ Deno.serve(async (req) => {
         preliminary_records: preliminaryRecords,
         validation_rejection_ratio: Number(health.invalidRatio.toFixed(4)),
         persistence_errors: persistenceErrors,
+        duplicates_marked: duplicatesMarked,
+        duplicate_candidates: duplicateLookup.rows.length,
+        merge_lookup: duplicateLookup.skippedReason ?? 'ok',
         taxonomy_version: articles[0]?.metadata.taxonomy_version || null,
         category_counts: categoryCounts,
       },
     });
-    if (health.success && inserted + updated > 0) {
+    // Newly hidden duplicates also need the poster, so it can edit any post
+    // about them to point at the primary incident.
+    if (health.success && inserted + updated + duplicatesMarked > 0) {
       // Post new or changed incidents to Telegram right away instead of waiting
       // for the poster's own half-hour schedule. The poster claims each post
       // before sending, so overlapping with its cron run cannot double-post.
@@ -297,6 +375,7 @@ Deno.serve(async (req) => {
       incidentsFound: articles.length,
       incidentsInserted: inserted,
       incidentsUpdated: updated,
+      duplicatesMarked,
       invalidRecords,
       pagesFetched,
       pollMode: isIncremental ? 'incremental' : 'full',

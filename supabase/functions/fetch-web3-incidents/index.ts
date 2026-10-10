@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import { classifyCollectedWeb3Incident } from './classifier.ts';
 import { severityFromLoss } from '../_shared/incident-severity.ts';
+import { matchExistingIncident, shiftDate, type IncidentRow } from '../_shared/incident-dedup.ts';
 import {
   extractSources,
   formatUsd,
@@ -20,6 +21,12 @@ const corsHeaders = {
 const _s1 = atob('d2ViM2lzZ29pbmdncmVhdC5jb20='); // Primary source
 // The secondary page scrape (feed-2) was retired: the QuillMonitor partner API
 // returns the same incidents with stable IDs and verification status.
+
+// Rows from every Web3 incident provider, matching the SlowMist importer.
+const WEB3_INCIDENT_FILTER = 'metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3,slowmist)';
+// A five-day window holds a handful of incidents; the cap only guards
+// against a runaway query.
+const MAX_RELATED_ROWS = 200;
 
 // Extract affected technologies
 function extractTechnologies(title: string, content: string, chain?: string): string[] {
@@ -367,96 +374,53 @@ serve(async (req) => {
     
     console.log(`[fetch-web3-incidents] ${recentIncidents.length} incidents within last 90 days`);
     
-    // Deduplicate across sources: extract project name and check for similar incidents
-    function extractProjectName(title: string): string {
-      // Extract first meaningful part of title
-      return title
-        .split(' - ')[0]
-        .split(' exploited')[0]
-        .split(' suffers')[0]
-        .split(' loses')[0]
-        .split(' hit by')[0]
-        .toLowerCase()
-        .trim();
-    }
-    
-    // Group by project name + approximate date to find duplicates
-    const seenProjects = new Map<string, any>();
+    // One incident, one record: drop entries in this scrape that repeat an
+    // earlier entry, using the shared cross-provider matcher.
     const deduplicatedIncidents: any[] = [];
-    
+    let skippedSimilar = 0;
     for (const incident of recentIncidents) {
-      const projectName = extractProjectName(incident.title);
-      const dateKey = new Date(incident.published_at).toISOString().slice(0, 10); // YYYY-MM-DD
-      const key = `${projectName}|${dateKey}`;
-      
-      // Check for existing within 7 days
-      let isDuplicate = false;
-      for (const [existingKey, existing] of seenProjects) {
-        const [existingProject, existingDate] = existingKey.split('|');
-        if (existingProject === projectName) {
-          const daysDiff = Math.abs(
-            (new Date(dateKey).getTime() - new Date(existingDate).getTime()) / (1000 * 60 * 60 * 24)
-          );
-          if (daysDiff <= 7) {
-            // Prefer feed-1 (primary) over feed-2, or longer content
-            const incidentSource = incident.metadata?.data_source || 'feed-1';
-            const existingSource = existing.metadata?.data_source || 'feed-1';
-            if (incidentSource === 'feed-2' && existingSource === 'feed-1') {
-              isDuplicate = true;
-              break;
-            }
-            if (incidentSource === 'feed-1' && existingSource === 'feed-2') {
-              // Replace with feed-1 version
-              seenProjects.delete(existingKey);
-              break;
-            }
-            // Same source - keep the one with more content
-            if ((incident.content?.length || 0) <= (existing.content?.length || 0)) {
-              isDuplicate = true;
-              break;
-            }
-            seenProjects.delete(existingKey);
-            break;
-          }
-        }
+      if (matchExistingIncident(incident as IncidentRow, deduplicatedIncidents as IncidentRow[])) {
+        skippedSimilar++;
+        continue;
       }
-      
-      if (!isDuplicate) {
-        seenProjects.set(key, incident);
-        deduplicatedIncidents.push(incident);
-      }
+      deduplicatedIncidents.push(incident);
     }
     
     console.log(`[fetch-web3-incidents] After dedup: ${deduplicatedIncidents.length} unique incidents`);
     
-    // Check for existing similar entries in database before inserting
     let insertedCount = 0;
     let duplicateCount = 0;
-    let skippedSimilar = 0;
     const errors: string[] = [];
     
     for (const incident of deduplicatedIncidents) {
-      const projectName = extractProjectName(incident.title);
-      const incidentDate = new Date(incident.published_at);
-      const dateMin = new Date(incidentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const dateMax = new Date(incidentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      // Check for similar existing entry
-      const { data: existing } = await supabase
-        .from('news_articles')
-        .select('id, title')
-        .gte('published_at', dateMin.toISOString())
-        .lte('published_at', dateMax.toISOString())
-        .limit(50);
-      
-      const hasSimilar = existing?.some(e => {
-        const existingProject = extractProjectName(e.title);
-        return existingProject === projectName;
-      });
-      
-      if (hasSimilar) {
-        skippedSimilar++;
-        continue;
+      const incidentDate: string | null = incident.metadata.incident_date;
+      // Without a date the matcher cannot place the incident, so it is
+      // inserted and left to the dedupe-incidents backfill review.
+      if (incidentDate) {
+        const { data: related, error: relatedError } = await supabase
+          .from('news_articles')
+          .select('uid,title,published_at,source_name,metadata')
+          .gte('published_at', shiftDate(incidentDate, -2))
+          .lt('published_at', shiftDate(incidentDate, 3))
+          .or(WEB3_INCIDENT_FILTER)
+          .order('published_at', { ascending: true })
+          .limit(MAX_RELATED_ROWS);
+        if (relatedError) {
+          // Fail closed: inserting without the check could add a duplicate.
+          errors.push(`${incident.title}: existing incident lookup failed`);
+          continue;
+        }
+        const relatedRows = (related ?? []) as IncidentRow[];
+        if (relatedRows.some((row) => row.uid === incident.uid)) {
+          duplicateCount++;
+          continue;
+        }
+        // A record from QuillMonitor (higher priority) or an earlier
+        // web3-incidents row already covers this incident.
+        if (matchExistingIncident(incident as IncidentRow, relatedRows)) {
+          skippedSimilar++;
+          continue;
+        }
       }
       
       const { error: insertError } = await supabase

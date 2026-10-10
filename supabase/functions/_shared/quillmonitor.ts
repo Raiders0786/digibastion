@@ -1,5 +1,6 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
 import { severityFromLoss } from './incident-severity.ts';
+import { mergeIncidentSources, readIncidentFields, type IncidentSource } from './incident-fields.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 
@@ -351,8 +352,40 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
       provider_updated_at: incident.updatedAt,
       summary_status: incident.description ? 'available' : 'pending',
       summary_origin: 'provider',
+      sources: [{
+        provider: 'quillmonitor',
+        url: referenceUrl,
+        label: 'QuillMonitor',
+        amount_usd: incident.amountInUsd,
+      }],
       attribution_url: quillMonitorUrl,
       synced_at: new Date().toISOString(),
     },
+  };
+}
+
+export interface ExistingQuillMonitorRow {
+  summary: string | null;
+  metadata: unknown;
+}
+
+/**
+ * Final write shape for one QuillMonitor row. The upsert replaces metadata, so
+ * sources merged from duplicate records are added back on every sync.
+ * duplicateSources is null when the duplicate lookup did not run this sync;
+ * then the row keeps the non-QuillMonitor sources it already had instead of
+ * losing them.
+ */
+export function finalizeQuillMonitorArticle(
+  article: NormalizedQuillMonitorArticle,
+  existing: ExistingQuillMonitorRow | undefined,
+  duplicateSources: IncidentSource[] | null,
+): NormalizedQuillMonitorArticle {
+  const ownSources = readIncidentFields(article.metadata).sources;
+  const carriedSources = duplicateSources ??
+    readIncidentFields(existing?.metadata).sources.filter((source) => source.provider !== 'quillmonitor');
+  return {
+    ...article,
+    metadata: { ...article.metadata, sources: mergeIncidentSources(ownSources, carriedSources) },
   };
 }

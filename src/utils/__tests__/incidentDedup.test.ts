@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   candidateFromRow,
+  incidentDateWindows,
+  incidentSourcesFromRow,
   incidentTargetFromTitle,
   isHighConfidenceDuplicate,
+  matchExistingIncident,
   normalizeIncidentTarget,
   pickCanonical,
+  planCanonicalMerges,
   providerPriority,
   rowProvider,
   type IncidentRow,
@@ -197,5 +201,106 @@ describe('provider priority', () => {
     expect(pickCanonical(web3, quill)).toBe(quill);
     expect(pickCanonical(quill, web3)).toBe(quill);
     expect(pickCanonical({ uid: 'quillmonitor:c', provider: 'quillmonitor' }, quill)).toBe(quill);
+  });
+});
+
+describe('incidentSourcesFromRow', () => {
+  it('uses stored sources when present', () => {
+    expect(incidentSourcesFromRow({
+      ...nearWeb3Feed1,
+      metadata: { provider: 'web3-incidents', sources: [{ provider: 'web3-incidents', url: 'https://x.com/a', label: '@a', amount_usd: 3_800_000 }] },
+    })).toEqual([{ provider: 'web3-incidents', url: 'https://x.com/a', label: '@a', amount_usd: 3_800_000 }]);
+  });
+
+  it('builds one source from reference_url or link and drops implausible legacy amounts', () => {
+    expect(incidentSourcesFromRow(nearWeb3Feed1)).toEqual([
+      { provider: 'web3-incidents', url: 'https://x.com/zachxbt/status/2', label: 'Web3 incident tracker', amount_usd: 3_800_000 },
+    ]);
+    expect(incidentSourcesFromRow(nearWeb3Feed2)).toEqual([
+      { provider: 'web3-incidents', url: null, label: 'Web3 incident tracker', amount_usd: null },
+    ]);
+  });
+});
+
+describe('planCanonicalMerges', () => {
+  it('marks lower-priority duplicates and collects their sources on the canonical row', () => {
+    const plan = planCanonicalMerges([nearQuillMonitor, limitBreak], [nearWeb3Feed1, nearWeb3Feed2, magicEden]);
+    expect(plan.marks.map((mark) => [mark.uid, mark.duplicateOfUid, mark.needsWrite])).toEqual([
+      ['a1b2c3-feed1-near', 'quillmonitor:near-intents-1', true],
+      ['d4e5f6-feed2-near', 'quillmonitor:near-intents-1', true],
+    ]);
+    expect(plan.marks[0].metadata).toMatchObject({
+      provider: 'web3-incidents',
+      data_source: 'feed-1',
+      classification_relevant: false,
+      duplicate_of_uid: 'quillmonitor:near-intents-1',
+    });
+    expect(plan.sourcesByCanonical['quillmonitor:near-intents-1']).toEqual([
+      { provider: 'web3-incidents', url: 'https://x.com/zachxbt/status/2', label: 'Web3 incident tracker', amount_usd: 3_800_000 },
+      { provider: 'web3-incidents', url: null, label: 'Web3 incident tracker', amount_usd: null },
+    ]);
+    expect(plan.sourcesByCanonical['quillmonitor:limit-break-1']).toBeUndefined();
+  });
+
+  it('skips rows already marked as a duplicate of a record outside the batch', () => {
+    const elsewhere = {
+      ...nearWeb3Feed1,
+      metadata: { ...(nearWeb3Feed1.metadata as object), classification_relevant: false, duplicate_of_uid: 'quillmonitor:other' },
+    };
+    expect(planCanonicalMerges([nearQuillMonitor], [elsewhere]).marks).toEqual([]);
+  });
+
+  it('reports no write for rows already marked against the same canonical', () => {
+    const marked = {
+      ...meterWeb3,
+      metadata: { ...(meterWeb3.metadata as object), classification_relevant: false, duplicate_of_uid: 'quillmonitor:meter-1' },
+    };
+    const plan = planCanonicalMerges([meterQuillMonitor], [marked]);
+    expect(plan.marks).toHaveLength(1);
+    expect(plan.marks[0].needsWrite).toBe(false);
+    expect(plan.sourcesByCanonical['quillmonitor:meter-1']).toHaveLength(1);
+  });
+
+  it('never marks a row of equal or higher priority', () => {
+    const otherQuill = { ...nearQuillMonitor, uid: 'quillmonitor:near-intents-2' };
+    expect(planCanonicalMerges([nearQuillMonitor], [otherQuill]).marks).toEqual([]);
+  });
+});
+
+describe('matchExistingIncident', () => {
+  it('finds a higher-priority record of the same incident', () => {
+    expect(matchExistingIncident(nearWeb3Feed1, [nearQuillMonitor, meterQuillMonitor])).toBe('quillmonitor:near-intents-1');
+  });
+
+  it('finds an equal-priority record with a different uid', () => {
+    // Same day, so a re-titled feed entry (new uid) is still caught.
+    expect(matchExistingIncident(nearWeb3Feed2, [{ ...nearWeb3Feed2, uid: 'older-near-row' }])).toBe('older-near-row');
+  });
+
+  it('does not match the legacy feed-2 NEAR row from the next day (inflated amount, different method)', () => {
+    expect(matchExistingIncident(nearWeb3Feed1, [nearWeb3Feed2])).toBeNull();
+  });
+
+  it('ignores lower-priority records, the incident itself and hidden rows', () => {
+    const slowMist = { ...nearWeb3Feed2, uid: 'slowmist:2026-10-02:abc', metadata: { ...(nearWeb3Feed2.metadata as object), provider: 'slowmist' } };
+    expect(matchExistingIncident(nearWeb3Feed1, [slowMist])).toBeNull();
+    expect(matchExistingIncident(nearWeb3Feed1, [nearWeb3Feed1])).toBeNull();
+    const hidden = { ...nearQuillMonitor, metadata: { ...(nearQuillMonitor.metadata as object), classification_relevant: false } };
+    expect(matchExistingIncident(nearWeb3Feed1, [hidden])).toBeNull();
+  });
+
+  it('returns null when the incident has no usable date', () => {
+    const undated = { ...nearWeb3Feed1, metadata: { provider: 'web3-incidents', incident_date: null, incident_date_unknown: true } };
+    expect(matchExistingIncident(undated, [nearQuillMonitor])).toBeNull();
+  });
+});
+
+describe('incidentDateWindows', () => {
+  it('pads each date by two days and merges overlapping windows', () => {
+    expect(incidentDateWindows(['2026-10-02', '2026-09-14', '2026-10-03', 'bad', '2026-10-02'])).toEqual([
+      { from: '2026-09-12T00:00:00.000Z', to: '2026-09-17T00:00:00.000Z' },
+      { from: '2026-09-30T00:00:00.000Z', to: '2026-10-06T00:00:00.000Z' },
+    ]);
+    expect(incidentDateWindows([])).toEqual([]);
   });
 });
