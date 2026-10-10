@@ -150,13 +150,19 @@ export function matchingSecurityKeywords<T extends { keyword: string }>(
   return keywords.filter(({ keyword }) => containsTermTokens(contentTokens, keyword));
 }
 
+// Security signals sit in an advisory's opening text. Capping what is classified
+// bounds per-item CPU so one oversized feed entry cannot exhaust the edge
+// function's CPU limit for the whole sync.
+const MAX_CLASSIFIED_SUMMARY_CHARS = 20_000;
+
 /** Determines whether an RSS item is security-relevant and assigns a category. */
 export function classifyRssRelevance(
   title: string,
-  summary: string,
+  fullSummary: string,
   keywords: KeywordEntry[],
   feedCategory: string,
 ): RelevanceResult {
+  const summary = fullSummary.slice(0, MAX_CLASSIFIED_SUMMARY_CHARS);
   const content = `${title} ${summary}`;
   const matchedKeywords: string[] = [];
   const contentTokens = tokenize(content);

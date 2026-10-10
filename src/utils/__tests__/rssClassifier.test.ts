@@ -68,6 +68,16 @@ describe('RSS classifier token matching', () => {
     expect(determineRssSeverity([], 'Adaptive safeguards for open source projects')).toBe('low');
   });
 
+  it('only classifies the first 20k characters of a summary', () => {
+    const keywords = [{ keyword: 'ransomware', category: 'malware', weight: 3 }];
+    const filler = 'routine maintenance notes '.repeat(1_000);
+
+    expect(classifyRssRelevance('Update', `ransomware ${filler}`, keywords, 'general').matchedKeywords)
+      .toEqual(['ransomware']);
+    expect(classifyRssRelevance('Update', `${filler} ransomware`, keywords, 'general').matchedKeywords)
+      .toEqual([]);
+  });
+
   it('classifies long advisories within the edge-function CPU budget', () => {
     // Edge functions are capped at 2s of CPU per request. A sync classifies
     // every recent item from every feed, so per-item cost must not scale with
