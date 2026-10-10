@@ -54,16 +54,20 @@ function withSelected(options: readonly ThreatIntelFacet[], selected: readonly s
 interface ChipGroupProps {
   id: string;
   title: string;
+  /** Short note under the heading, linked with aria-describedby. */
+  help?: string;
   options: ThreatIntelFacet[];
   selected: readonly string[];
   onToggle: (value: string) => void;
 }
 
-function ChipGroup({ id, title, options, selected, onToggle }: ChipGroupProps) {
+function ChipGroup({ id, title, help, options, selected, onToggle }: ChipGroupProps) {
   if (options.length === 0) return null;
+  const helpId = `${id}-help`;
   return (
-    <div role="group" aria-labelledby={id}>
-      <h4 id={id} className="mb-2 text-sm font-medium">{title}</h4>
+    <div role="group" aria-labelledby={id} aria-describedby={help ? helpId : undefined}>
+      <h4 id={id} className={`${help ? 'mb-1' : 'mb-2'} text-sm font-medium`}>{title}</h4>
+      {help && <p id={helpId} className="mb-2 text-xs text-muted-foreground">{help}</p>}
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isSelected = selected.includes(option.value);
@@ -143,6 +147,7 @@ export function IncidentFilters({
         <ChipGroup
           id={`${idPrefix}-chain`}
           title="Chain"
+          help="Chain comes from QuillMonitor and older QuillAudits records. Other trackers don't report it, so picking a chain hides their incidents."
           options={withSelected(facets.chains, filters.chains)}
           selected={filters.chains}
           onToggle={onChainToggle}

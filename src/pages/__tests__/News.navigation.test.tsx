@@ -425,4 +425,29 @@ describe('threat-intel article navigation', () => {
       expect(useNewsArticlesMock).toHaveBeenLastCalledWith(expect.objectContaining({ view: 'web3-incidents' }));
     });
   });
+
+  it('points a missing article back to the feed without claiming verification', async () => {
+    renderAt('/threat-intel/missing-article');
+
+    const button = await screen.findByRole('button', { name: 'Browse threat intelligence' });
+    expect(button).not.toBeNull();
+    expect(document.body.textContent ?? '').not.toMatch(/\bverified\b/i);
+  });
+
+  it('moves back to the last alert page when the alert total shrinks', async () => {
+    // Three pages until page 3 is requested; by then the total has dropped to two.
+    let shrunk = false;
+    useThreatIntelAlertsMock.mockImplementation(({ page }: { page: number }) => {
+      if (page >= 3) shrunk = true;
+      return { ...idleAlerts, totalPages: shrunk ? 2 : 3 };
+    });
+    renderAt('/threat-intel?tab=alerts');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+    await waitFor(() => expect(useThreatIntelAlertsMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => expect(screen.getByText('Page 2 of 2')).not.toBeNull());
+    expect(useThreatIntelAlertsMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+  });
 });

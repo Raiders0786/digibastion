@@ -30,6 +30,8 @@ export interface IncidentRow {
   // Optional: used only as a source URL fallback for rows without reference_url.
   link?: string | null;
   source_url?: string | null;
+  // Optional: the exact string read, used to guard writes against concurrent changes.
+  updated_at?: string | null;
 }
 
 function metadataRecord(value: unknown): Record<string, unknown> {
@@ -224,6 +226,172 @@ function isHiddenForOtherReasons(row: IncidentRow): boolean {
   return metadata.classification_relevant === false && typeof metadata.duplicate_of_uid !== 'string';
 }
 
+export function isQuillMonitorUid(uid: string | null | undefined): boolean {
+  return typeof uid === 'string' && uid.startsWith('quillmonitor:');
+}
+
+// Two QuillMonitor rows are one incident only on the exact facts: the same
+// project name, the same incident date and the same reported loss. Stricter
+// than the cross-provider rule (no nearby days, no shared-post shortcut),
+// because one source listing an incident twice is rare and a wrong merge
+// hides a real incident. Rows without a usable name, date or loss never match.
+function quillMonitorDuplicateKey(row: IncidentRow): string | null {
+  if (rowProvider(row) !== 'quillmonitor') return null;
+  const candidate = candidateFromRow(row);
+  const incidentDate = readIncidentFields(row.metadata).incidentDate;
+  if (!candidate || !incidentDate) return null;
+  const target = normalizeIncidentTarget(candidate.target);
+  const amount = candidate.amountInUsd;
+  if (!target || amount === null || !(amount > 0) || amount > MAX_PLAUSIBLE_USD) return null;
+  return JSON.stringify([target, incidentDate, amount]);
+}
+
+export function isQuillMonitorDuplicate(a: IncidentRow, b: IncidentRow): boolean {
+  const key = quillMonitorDuplicateKey(a);
+  return key !== null && a.uid !== b.uid && key === quillMonitorDuplicateKey(b);
+}
+
+/**
+ * Maps each losing QuillMonitor row to the canonical row of its incident.
+ * The verified record wins, then the smallest uid, so every run makes the
+ * same choice. Rows hidden for other reasons, or marked as a duplicate of a
+ * non-QuillMonitor record, take no part.
+ */
+export function quillMonitorCanonicalOf(rows: IncidentRow[]): Map<string, string> {
+  const incidents = new Map<string, IncidentRow[]>();
+  for (const row of rows) {
+    if (isHiddenForOtherReasons(row)) continue;
+    const mark = readIncidentFields(row.metadata).duplicateOfUid;
+    if (mark && !isQuillMonitorUid(mark)) continue;
+    const key = quillMonitorDuplicateKey(row);
+    if (key !== null) incidents.set(key, [...(incidents.get(key) ?? []), row]);
+  }
+  const rank = (row: IncidentRow) => readIncidentFields(row.metadata).verification === 'verified' ? 0 : 1;
+  const canonicalOf = new Map<string, string>();
+  for (const members of incidents.values()) {
+    if (members.length < 2) continue;
+    const [canonical, ...losers] = [...members].sort((a, b) =>
+      rank(a) - rank(b) || (a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0));
+    for (const loser of losers) canonicalOf.set(loser.uid, canonical.uid);
+  }
+  return canonicalOf;
+}
+
+export interface QuillMonitorDuplicatePlan {
+  // Every batch uid: the QuillMonitor record its upsert marks it a duplicate
+  // of, or null for no mark.
+  duplicateOfByUid: Record<string, string | null>;
+  // Sources each canonical row in the batch gains from its losing rows.
+  sourcesByCanonical: Record<string, IncidentSource[]>;
+  // Stored rows outside the batch whose metadata must change: a new or
+  // re-pointed mark, a mark that no longer holds, or sources for a canonical
+  // row. Write each only after the batch rows in dependsOn are stored.
+  // updatedAt is the row's updated_at as read, for a compare-and-swap write.
+  updates: { uid: string; metadata: Record<string, unknown>; dependsOn: string[]; updatedAt: string | null }[];
+}
+
+/**
+ * Same-provider duplicates for one QuillMonitor sync, recomputed on every
+ * run from the batch (fresh rows) and the stored QuillMonitor rows in the
+ * same date windows, so marks follow QuillMonitor's revisions instead of
+ * sticking. Marks on batch rows go into their upsert; stored rows outside the
+ * batch get a separate write only when they need one.
+ */
+export function planQuillMonitorDuplicates(batchRows: IncidentRow[], storedRows: IncidentRow[]): QuillMonitorDuplicatePlan {
+  const batchUids = new Set(batchRows.map((row) => row.uid));
+  const outside = storedRows.filter((row) => !batchUids.has(row.uid) && rowProvider(row) === 'quillmonitor');
+  const rows = [...batchRows, ...outside];
+  const loadedUids = new Set(rows.map((row) => row.uid));
+  const canonicalOf = quillMonitorCanonicalOf(rows);
+
+  const losersByCanonical = new Map<string, IncidentRow[]>();
+  for (const row of rows) {
+    const canonical = canonicalOf.get(row.uid);
+    if (canonical) losersByCanonical.set(canonical, [...(losersByCanonical.get(canonical) ?? []), row]);
+  }
+  const loserSources = (uid: string) => (losersByCanonical.get(uid) ?? [])
+    .reduce((sources: IncidentSource[], row) => mergeIncidentSources(sources, incidentSourcesFromRow(row)), []);
+
+  const duplicateOfByUid: Record<string, string | null> = {};
+  const sourcesByCanonical: Record<string, IncidentSource[]> = {};
+  for (const row of batchRows) {
+    duplicateOfByUid[row.uid] = canonicalOf.get(row.uid) ?? null;
+    if (losersByCanonical.has(row.uid)) sourcesByCanonical[row.uid] = loserSources(row.uid);
+  }
+
+  const updates: QuillMonitorDuplicatePlan['updates'] = [];
+  for (const row of outside) {
+    const metadata = metadataRecord(row.metadata);
+    const currentMark = readIncidentFields(metadata).duplicateOfUid;
+    // Marks pointing outside QuillMonitor belong to the cross-provider rule.
+    if (currentMark && !isQuillMonitorUid(currentMark)) continue;
+    const canonical = canonicalOf.get(row.uid);
+    const related: string[] = [];
+    let next = metadata;
+    if (canonical) {
+      if (metadata.classification_relevant !== false || metadata.duplicate_of_uid !== canonical) {
+        next = duplicateMetadata(metadata, canonical);
+        related.push(canonical);
+      }
+    } else if (currentMark && loadedUids.has(currentMark)) {
+      // The marked canonical was loaded and no longer matches. A mark whose
+      // canonical was not loaded waits for the sync of that row.
+      next = { ...metadata };
+      delete next.classification_relevant;
+      delete next.duplicate_of_uid;
+      related.push(currentMark);
+    }
+    if (losersByCanonical.has(row.uid)) {
+      const merged = mergeIncidentSources(incidentSourcesFromRow(row), loserSources(row.uid));
+      if (JSON.stringify(merged) !== JSON.stringify(readIncidentFields(metadata).sources)) {
+        next = { ...next, sources: merged };
+        related.push(...(losersByCanonical.get(row.uid) ?? []).map((loser) => loser.uid));
+      }
+    }
+    if (next === metadata) continue;
+    updates.push({
+      uid: row.uid,
+      metadata: next,
+      dependsOn: [...new Set(related)].filter((uid) => batchUids.has(uid)).sort(),
+      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : null,
+    });
+  }
+
+  return { duplicateOfByUid, sourcesByCanonical, updates };
+}
+
+/**
+ * Upsert order for a sync: rows that stay visible first, losing rows last,
+ * otherwise as given. With the upsert split into chunks, a canonical row is
+ * then written no later than the chunk of any of its losers.
+ */
+export function orderCanonicalsFirst<T extends { uid: string }>(
+  rows: T[],
+  duplicateOfByUid: Record<string, string | null>,
+): T[] {
+  return [
+    ...rows.filter((row) => !duplicateOfByUid[row.uid]),
+    ...rows.filter((row) => duplicateOfByUid[row.uid]),
+  ];
+}
+
+/**
+ * The QuillMonitor duplicate decision for one row as its chunk is written:
+ * the canonical uid once that record exists (availableUids: stored before
+ * this sync, written earlier in it, or in the same upsert statement), 'keep'
+ * to leave the row's stored mark as it is when the canonical does not exist
+ * yet, or null for no mark.
+ */
+export function quillMonitorMarkForWrite(
+  uid: string,
+  duplicateOfByUid: Record<string, string | null>,
+  availableUids: Set<string>,
+): string | null | 'keep' {
+  const canonical = duplicateOfByUid[uid];
+  if (!canonical) return null;
+  return availableUids.has(canonical) ? canonical : 'keep';
+}
+
 export interface DuplicateMark {
   uid: string;
   duplicateOfUid: string;
@@ -334,8 +502,10 @@ export function incidentDateWindows(dates: string[]): { from: string; to: string
  * Groups rows into incidents. Each duplicate matches its canonical row
  * directly; there is no chaining (A~B and B~C does not pull in C unless C~A),
  * so repeated incidents at one project a few days apart stay separate.
- * Two QuillMonitor rows are never merged: QuillMonitor rewrites its metadata
- * on every sync, so a mark on its own row would not stick.
+ * Two QuillMonitor rows merge only under the strict same-provider rule
+ * (quillMonitorCanonicalOf), the same one the QuillMonitor sync applies, so
+ * the sync keeps the mark instead of overwriting it. A losing QuillMonitor
+ * row never heads a group; it joins its canonical row's group.
  */
 export function groupDuplicates(rows: IncidentRow[]): { canonical: string; duplicates: string[] }[] {
   const candidates = rows
@@ -354,8 +524,12 @@ export function groupDuplicates(rows: IncidentRow[]): { canonical: string; dupli
     const duplicateOf = readIncidentFields(row.metadata).duplicateOfUid;
     if (duplicateOf) markedTo.set(row.uid, duplicateOf);
   }
-  const heads = candidates.filter((candidate) => !markedTo.has(candidate.uid));
-  const marked = candidates.filter((candidate) => markedTo.has(candidate.uid) && loadedUids.has(markedTo.get(candidate.uid) as string));
+  // QuillMonitor rows are marked only by the same-provider rule; a marked
+  // QuillMonitor row that is not a loser under it is left untouched.
+  const quillMonitorCanonical = quillMonitorCanonicalOf(rows);
+  const heads = candidates.filter((candidate) => !markedTo.has(candidate.uid) && !quillMonitorCanonical.has(candidate.uid));
+  const marked = candidates.filter((candidate) => candidate.provider !== 'quillmonitor' &&
+    markedTo.has(candidate.uid) && loadedUids.has(markedTo.get(candidate.uid) as string));
 
   const groups: { canonical: DuplicateCandidate; duplicates: string[] }[] = [];
   const matchingGroup = (candidate: DuplicateCandidate) => groups.find((existing) =>
@@ -367,6 +541,11 @@ export function groupDuplicates(rows: IncidentRow[]): { canonical: string; dupli
     const group = matchingGroup(candidate);
     if (group) group.duplicates.push(candidate.uid);
     else groups.push({ canonical: candidate, duplicates: [] });
+  }
+  // A loser whose canonical cannot head a group (it is marked itself) waits
+  // for the next QuillMonitor sync, which recomputes both rows.
+  for (const [loser, canonical] of quillMonitorCanonical) {
+    groups.find((group) => group.canonical.uid === canonical)?.duplicates.push(loser);
   }
   for (const candidate of marked) matchingGroup(candidate)?.duplicates.push(candidate.uid);
 

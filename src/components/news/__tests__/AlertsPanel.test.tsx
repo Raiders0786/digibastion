@@ -91,6 +91,36 @@ describe('AlertsPanel', () => {
     expect(props.onRefresh).toHaveBeenCalledTimes(1);
   });
 
+  it('names the source on rows that are not from QuillMonitor', () => {
+    const slowMist: NewsArticle = {
+      ...highNews,
+      id: 'slowmist:1',
+      title: 'Bridge drained',
+      sourceName: 'SlowMist Hacked',
+      metadata: { provider: 'slowmist', is_web3_incident: true },
+    };
+    render(<AlertsPanel {...makeProps({ alerts: [unconfirmedCritical, highNews, slowMist] })} />);
+
+    // QuillMonitor rows keep their attribution and no extra source line.
+    expect(screen.getAllByText('Powered by QuillMonitor')).toHaveLength(1);
+    expect(screen.getByText('Source: BleepingComputer')).not.toBeNull();
+    const slowMistSource = screen.getByRole('link', { name: 'Source: SlowMist Hacked' });
+    expect(slowMistSource.getAttribute('href')).toMatch(/^https:\/\//);
+    expect(screen.getAllByText(/^Source: /)).toHaveLength(2);
+  });
+
+  it('marks the list busy and dims it while a refresh is loading', () => {
+    const { rerender } = render(<AlertsPanel {...makeProps({ loading: true })} />);
+
+    const list = screen.getByTestId('alerts-list');
+    expect(list.getAttribute('aria-busy')).toBe('true');
+    expect(list.className).toContain('opacity-60');
+
+    rerender(<AlertsPanel {...makeProps({ loading: false })} />);
+    expect(screen.getByTestId('alerts-list').getAttribute('aria-busy')).toBe('false');
+    expect(screen.getByTestId('alerts-list').className).not.toContain('opacity-60');
+  });
+
   it('navigates through the breadcrumb', () => {
     const props = makeProps();
     render(<AlertsPanel {...props} />);

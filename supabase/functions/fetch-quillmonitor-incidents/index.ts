@@ -15,9 +15,14 @@ import {
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import {
   incidentDateWindows,
+  orderCanonicalsFirst,
   planCanonicalMerges,
+  planQuillMonitorDuplicates,
+  quillMonitorMarkForWrite,
+  rowProvider,
   type IncidentRow,
 } from '../_shared/incident-dedup.ts';
+import { mergeIncidentSources } from '../_shared/incident-fields.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,8 +36,9 @@ const RequestSchema = z.object({
 }).strict();
 const DATABASE_BATCH_SIZE = 50;
 const SYNC_CURSOR_KEY = 'QUILLMONITOR_SYNC_SINCE';
-// Providers that rank below QuillMonitor and can be merged into its records.
-const LOWER_PRIORITY_PROVIDERS = ['web3-incidents', 'web3', 'slowmist'];
+// QuillMonitor's own stored rows (same-provider duplicates) and the providers
+// that rank below it and can be merged into its records.
+const DUPLICATE_LOOKUP_PROVIDERS = ['quillmonitor', 'web3-incidents', 'web3', 'slowmist'];
 // Same safety cap as the SlowMist importer, applied per date window.
 const MAX_RELATED_ROWS = 500;
 // An incremental sync touches a few dates; a full sync spans years and is left
@@ -109,8 +115,9 @@ async function fetchPage(
 
 type DuplicateLookup = { rows: IncidentRow[]; skippedReason: string | null };
 
-// Loads lower-priority incident rows within two days of any incident in the
-// batch. Never throws: a failed lookup only skips merging for this sync.
+// Loads stored QuillMonitor and lower-priority incident rows within two days
+// of any incident in the batch. Never throws: a failed lookup only skips
+// merging for this sync, and every row keeps the marks it already has.
 async function loadDuplicateCandidates(
   db: SupabaseClient,
   articles: NormalizedQuillMonitorArticle[],
@@ -123,10 +130,10 @@ async function loadDuplicateCandidates(
   for (const window of windows) {
     const { data, error, count } = await db
       .from('news_articles')
-      .select('uid,title,published_at,source_name,metadata,link,source_url', { count: 'exact' })
+      .select('uid,title,published_at,source_name,metadata,link,source_url,updated_at', { count: 'exact' })
       .gte('published_at', window.from)
       .lt('published_at', window.to)
-      .in('metadata->>provider', LOWER_PRIORITY_PROVIDERS)
+      .in('metadata->>provider', DUPLICATE_LOOKUP_PROVIDERS)
       .order('published_at', { ascending: true })
       .limit(MAX_RELATED_ROWS);
     if (error) return { rows: [], skippedReason: 'lookup_failed' };
@@ -260,17 +267,32 @@ Deno.serve(async (req) => {
     }
 
     const articles = [...articlesByUid.values()];
-    // Cross-provider merge, planned for every QuillMonitor row in this sync
-    // (not only new ones) because each upsert replaces metadata.sources.
+    // Duplicates are planned for every QuillMonitor row in this sync (not only
+    // new ones) because each upsert replaces metadata. First QuillMonitor's own
+    // duplicates (same incident listed twice), then the cross-provider merge,
+    // where only rows that stay visible can be the canonical record.
     const duplicateLookup = await loadDuplicateCandidates(db, articles);
-    const mergePlan = planCanonicalMerges(articles, duplicateLookup.rows);
+    const lookupRan = duplicateLookup.skippedReason === null;
+    const storedQuillRows = duplicateLookup.rows.filter((row) => rowProvider(row) === 'quillmonitor');
+    const storedQuillUids = new Set(storedQuillRows.map((row) => row.uid));
+    const quillPlan = planQuillMonitorDuplicates(articles, storedQuillRows);
+    const mergePlan = planCanonicalMerges(
+      articles.filter((article) => !quillPlan.duplicateOfByUid[article.uid]),
+      duplicateLookup.rows.filter((row) => rowProvider(row) !== 'quillmonitor'),
+    );
+    // Canonical rows go first, so a losing row is marked only once its
+    // canonical record exists; until then it keeps the mark it has.
+    const writeOrder = lookupRan ? orderCanonicalsFirst(articles, quillPlan.duplicateOfByUid) : articles;
     let inserted = 0;
     let updated = 0;
     const errors: string[] = [];
     const writtenUids = new Set<string>();
-    for (let offset = 0; offset < articles.length; offset += DATABASE_BATCH_SIZE) {
-      const batch = articles.slice(offset, offset + DATABASE_BATCH_SIZE);
+    for (let offset = 0; offset < writeOrder.length; offset += DATABASE_BATCH_SIZE) {
+      const batch = writeOrder.slice(offset, offset + DATABASE_BATCH_SIZE);
       const uids = batch.map((article) => article.uid);
+      // One upsert statement writes the whole chunk, so a canonical row in
+      // the same chunk exists by the time its loser's mark does.
+      const availableUids = new Set([...storedQuillUids, ...writtenUids, ...uids]);
       const { data: existing, error: readError } = await db
         .from('news_articles')
         .select('uid,summary,metadata')
@@ -285,7 +307,13 @@ Deno.serve(async (req) => {
       const writes = batch.map((article) => finalizeQuillMonitorArticle(
         article,
         existingByUid.get(article.uid),
-        duplicateLookup.skippedReason ? null : mergePlan.sourcesByCanonical[article.uid] ?? [],
+        lookupRan
+          ? mergeIncidentSources(
+            mergePlan.sourcesByCanonical[article.uid] ?? [],
+            quillPlan.sourcesByCanonical[article.uid] ?? [],
+          )
+          : null,
+        lookupRan ? quillMonitorMarkForWrite(article.uid, quillPlan.duplicateOfByUid, availableUids) : null,
       ));
       const { error: writeError } = await db.from('news_articles').upsert(writes, { onConflict: 'uid' });
       if (writeError) {
@@ -311,6 +339,29 @@ Deno.serve(async (req) => {
       if (markError) errors.push('1 duplicate mark failed');
       else duplicatesMarked++;
     }
+    // Stored QuillMonitor rows outside this batch: a losing row's mark, a mark
+    // that no longer holds, or a canonical row's sources. Same rule as above:
+    // only once the batch rows they depend on are stored. Each write applies
+    // only if the row is unchanged since the lookup read it (updated_at is
+    // bumped by a trigger); a row changed in between is skipped, not an
+    // error, and the next sync recomputes it.
+    let quillMonitorDuplicateUpdates = 0;
+    let quillMonitorDuplicateSkipped = 0;
+    for (const update of lookupRan ? quillPlan.updates : []) {
+      if (!update.dependsOn.every((uid) => writtenUids.has(uid))) continue;
+      let guarded = db
+        .from('news_articles')
+        .update({ metadata: update.metadata })
+        .eq('uid', update.uid);
+      if (update.updatedAt) guarded = guarded.eq('updated_at', update.updatedAt);
+      const { data: changed, error: updateError } = await guarded.select('uid');
+      if (updateError) errors.push('1 duplicate mark failed');
+      else if (!changed || changed.length === 0) quillMonitorDuplicateSkipped++;
+      else quillMonitorDuplicateUpdates++;
+    }
+    const quillMonitorDuplicates = lookupRan
+      ? Object.values(quillPlan.duplicateOfByUid).filter(Boolean).length
+      : 0;
 
     let persistenceErrors = errors.reduce((total, error) => total + (Number.parseInt(error, 10) || 1), 0);
     let health = assessQuillMonitorRunHealth(recordsFound, invalidRecords, persistenceErrors, isIncremental);
@@ -330,7 +381,7 @@ Deno.serve(async (req) => {
       counts[article.category] = (counts[article.category] || 0) + 1;
       return counts;
     }, {});
-    console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} found=${recordsFound} normalized=${articles.length} inserted=${inserted} updated=${updated} duplicates_marked=${duplicatesMarked} merge_lookup=${duplicateLookup.skippedReason ?? 'ok'} invalid=${invalidRecords} persistence_errors=${persistenceErrors} healthy=${health.success}`);
+    console.log(`[fetch-quillmonitor-incidents] pages=${pagesFetched} found=${recordsFound} normalized=${articles.length} inserted=${inserted} updated=${updated} duplicates_marked=${duplicatesMarked} quillmonitor_duplicates=${quillMonitorDuplicates} quillmonitor_duplicate_updates=${quillMonitorDuplicateUpdates} quillmonitor_duplicate_skipped=${quillMonitorDuplicateSkipped} merge_lookup=${duplicateLookup.skippedReason ?? 'ok'} invalid=${invalidRecords} persistence_errors=${persistenceErrors} healthy=${health.success}`);
     await recordIngestionRun(db, {
       pipeline: 'quillmonitor', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
       success: health.success, records_found: recordsFound, records_inserted: inserted,
@@ -349,6 +400,9 @@ Deno.serve(async (req) => {
         persistence_errors: persistenceErrors,
         duplicates_marked: duplicatesMarked,
         duplicate_candidates: duplicateLookup.rows.length,
+        quillmonitor_duplicates: quillMonitorDuplicates,
+        quillmonitor_duplicate_updates: quillMonitorDuplicateUpdates,
+        quillmonitor_duplicate_skipped: quillMonitorDuplicateSkipped,
         merge_lookup: duplicateLookup.skippedReason ?? 'ok',
         taxonomy_version: articles[0]?.metadata.taxonomy_version || null,
         category_counts: categoryCounts,
@@ -356,7 +410,7 @@ Deno.serve(async (req) => {
     });
     // Newly hidden duplicates also need the poster, so it can edit any post
     // about them to point at the primary incident.
-    if (health.success && inserted + updated + duplicatesMarked > 0) {
+    if (health.success && inserted + updated + duplicatesMarked + quillMonitorDuplicateUpdates > 0) {
       // Post new or changed incidents to Telegram right away instead of waiting
       // for the poster's own half-hour schedule. The poster claims each post
       // before sending, so overlapping with its cron run cannot double-post.
@@ -376,6 +430,10 @@ Deno.serve(async (req) => {
       incidentsInserted: inserted,
       incidentsUpdated: updated,
       duplicatesMarked,
+      quillMonitorDuplicates,
+      quillMonitorDuplicateUpdates,
+      quillMonitorDuplicateSkipped,
+      mergeLookup: duplicateLookup.skippedReason ?? 'ok',
       invalidRecords,
       pagesFetched,
       pollMode: isIncremental ? 'incremental' : 'full',

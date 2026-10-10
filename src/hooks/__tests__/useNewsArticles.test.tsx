@@ -225,6 +225,42 @@ describe('useNewsArticles', () => {
     expect(result.current.stats.total).not.toBe(57);
   });
 
+  it('uses the server total over the planner estimate of the direct query', async () => {
+    db.from.mockImplementation(() => db.makeChain({ data: [row('a', 'critical')], error: null, count: 900 }));
+
+    const { result } = renderHook(() => useNewsArticles({ view: 'all', sortBy: 'date' }));
+
+    await waitFor(() => expect(result.current.statsSource).toBe('server'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.stats.total).toBe(57);
+    expect(result.current.pagination.totalCount).toBe(57);
+  });
+
+  it('shows the new view server total when its stats arrive before its rows', async () => {
+    db.from.mockImplementation(() => db.makeChain({ data: [row('a', 'critical')], error: null, count: 900 }));
+    const { result, rerender } = renderHook(
+      ({ view }: { view: 'web3-incidents' | 'all' }) => useNewsArticles({ view }),
+      { initialProps: { view: 'all' as 'web3-incidents' | 'all' } },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let resolveRows: (value: unknown) => void = () => {};
+    db.rpc.mockImplementation(async (name: string) => {
+      if (name === 'search_news_articles') return new Promise((resolve) => { resolveRows = resolve; });
+      if (name === 'threat_intel_stats') return { data: { ...serverStats, total: 12 }, error: null };
+      return { data: null, error: { message: `unexpected rpc ${name}` } };
+    });
+    rerender({ view: 'web3-incidents' });
+
+    await waitFor(() => expect(result.current.stats.total).toBe(12));
+    expect(result.current.pagination.totalCount).toBe(12);
+
+    resolveRows({ data: [row('a', 'critical')], error: null });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.stats.total).toBe(12);
+    expect(result.current.pagination.totalCount).toBe(12);
+  });
+
   it('does not reuse stats or cached rows across incident filters', async () => {
     const { result, rerender } = renderHook(
       ({ chains }: { chains: string[] }) => useNewsArticles({ view: 'web3-incidents', chains }),

@@ -49,6 +49,9 @@ interface AlertRowProps {
 
 function AlertRow({ alert, severityLabel, severityBadgeClass, rowClass, showCve, onSelect }: AlertRowProps) {
   const display = getIncidentDisplay(alert);
+  const quillMonitor = isQuillMonitorArticle(alert);
+  // QuillMonitor rows carry their own attribution; every other row names its source.
+  const source = quillMonitor ? null : display.sources[0] ?? null;
 
   return (
     <div
@@ -59,7 +62,7 @@ function AlertRow({ alert, severityLabel, severityBadgeClass, rowClass, showCve,
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <Badge className={severityBadgeClass}>{severityLabel}</Badge>
-            {isQuillMonitorArticle(alert) && (
+            {quillMonitor && (
               <a
                 href={safeExternalUrl(alert.metadata?.attribution_url) || QUILLMONITOR_DATABASE_URL}
                 target="_blank"
@@ -71,6 +74,20 @@ function AlertRow({ alert, severityLabel, severityBadgeClass, rowClass, showCve,
                 Powered by QuillMonitor
               </a>
             )}
+            {source && (source.url ? (
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                Source: {source.label}
+              </a>
+            ) : (
+              <span className="text-xs text-muted-foreground">Source: {source.label}</span>
+            ))}
             {display.verification && (
               // The row is clickable; keep badge clicks from opening the alert.
               <span
@@ -195,56 +212,65 @@ export function AlertsPanel({
         </div>
       )}
 
-      {criticalAlerts.length > 0 && (
-        <Card className="glass-card border-red-500/30 bg-red-500/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-400">
-              <AlertTriangle className="w-5 h-5" aria-hidden="true" />
-              Critical Alerts ({criticalCount ?? criticalAlerts.length})
-            </CardTitle>
-            <CardDescription>
-              Critical-severity threats and published incident reports requiring prompt review
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {criticalAlerts.map((alert) => (
-              <AlertRow
-                key={alert.id}
-                alert={alert}
-                severityLabel="CRITICAL"
-                severityBadgeClass={SEVERITY_STYLES.critical.solidBadgeClass}
-                rowClass="border border-red-500/20 bg-background/50"
-                showCve
-                onSelect={onSelectAlert}
-              />
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      {alerts.length > 0 && (
+        // A refresh keeps the current rows on screen, dimmed and marked busy.
+        <div
+          data-testid="alerts-list"
+          aria-busy={loading}
+          className={`space-y-6 transition-opacity ${loading ? 'opacity-60' : ''}`}
+        >
+          {criticalAlerts.length > 0 && (
+            <Card className="glass-card border-red-500/30 bg-red-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-400">
+                  <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+                  Critical Alerts ({criticalCount ?? criticalAlerts.length})
+                </CardTitle>
+                <CardDescription>
+                  Critical-severity threats and published incident reports requiring prompt review
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {criticalAlerts.map((alert) => (
+                  <AlertRow
+                    key={alert.id}
+                    alert={alert}
+                    severityLabel="CRITICAL"
+                    severityBadgeClass={SEVERITY_STYLES.critical.solidBadgeClass}
+                    rowClass="border border-red-500/20 bg-background/50"
+                    showCve
+                    onSelect={onSelectAlert}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
-      {highAlerts.length > 0 && (
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-orange-500" aria-hidden="true" />
-              High Priority Alerts ({highCount ?? highAlerts.length})
-            </CardTitle>
-            <CardDescription>Important security alerts requiring attention</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {highAlerts.map((alert) => (
-              <AlertRow
-                key={alert.id}
-                alert={alert}
-                severityLabel="HIGH"
-                severityBadgeClass={SEVERITY_STYLES.high.solidBadgeClass}
-                rowClass="border bg-card"
-                showCve={false}
-                onSelect={onSelectAlert}
-              />
-            ))}
-          </CardContent>
-        </Card>
+          {highAlerts.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-orange-500" aria-hidden="true" />
+                  High Priority Alerts ({highCount ?? highAlerts.length})
+                </CardTitle>
+                <CardDescription>Important security alerts requiring attention</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {highAlerts.map((alert) => (
+                  <AlertRow
+                    key={alert.id}
+                    alert={alert}
+                    severityLabel="HIGH"
+                    severityBadgeClass={SEVERITY_STYLES.high.solidBadgeClass}
+                    rowClass="border bg-card"
+                    showCve={false}
+                    onSelect={onSelectAlert}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {!loading && alerts.length === 0 && (

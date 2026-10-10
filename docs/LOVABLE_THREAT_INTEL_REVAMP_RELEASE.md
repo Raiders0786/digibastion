@@ -11,6 +11,10 @@ migrations.
 
 ## Stage 1: backend data fixes (Phase 0)
 
+Every `dedupe-incidents` call below is an authorized POST. Lovable sends it
+with `Authorization: Bearer <CRON_SECRET>`, reading the project's CRON_SECRET
+from the backend secrets without displaying it.
+
 ```text
 Use View Backend for the existing managed Lovable Cloud project and use GitHub
 main commit <EXACT_SHA>. Do not rewrite application source, create another
@@ -19,55 +23,194 @@ backend, or print any secret value. Do not apply any migration in this stage.
 1. Deploy the repository versions of these edge functions with their shared
    imports under supabase/functions/_shared/: fetch-web3-incidents,
    fetch-quillmonitor-incidents, fetch-slowmist-incidents, summarize-article,
-   fetch-rss-news, and the new dedupe-incidents. Confirm dedupe-incidents has
-   platform JWT verification disabled as declared in supabase/config.toml; the
-   function itself requires CRON_SECRET, the service-role key, or an admin.
-2. Invoke dedupe-incidents with an authorized POST body
-   {"dryRun":true,"days":90} and return the full JSON response.
-3. Return the deployed Git revision and the response. Do not run it with
+   fetch-rss-news, post-telegram-alerts, and the new dedupe-incidents. Confirm
+   dedupe-incidents has platform JWT verification disabled as declared in
+   supabase/config.toml; the function itself requires CRON_SECRET, the
+   service-role key, or an admin.
+2. Authenticate every dedupe-incidents call with the project's CRON_SECRET from
+   the backend secrets, sent as "Authorization: Bearer <secret>". Never display,
+   log or return the secret.
+3. Invoke dedupe-incidents with the POST body
+   {"dryRun":true,"repairLegacyAmounts":true,"days":3650} and return the full
+   JSON response.
+4. Return the deployed Git revision and the response. Do not run anything with
    dryRun false yet.
 ```
 
-Behaviour change in this stage: severity for QuillMonitor attack strings with
-punctuation (for example "Flash-loan") now rates High, where it previously
-could rate lower.
+Behaviour changes in this stage:
+
+- Severity for QuillMonitor attack strings with punctuation (for example
+  "Flash-loan") now rates High, where it previously could rate lower.
+- Telegram posts label AI-written summaries with "AI summary:". The
+  post-update sync edits posts from the last 14 days that carry an AI summary
+  so they show the label too. That is expected; those edits are not new
+  incidents.
+
+### Step 1a: repair legacy loss figures (required)
+
+The old web3-incidents importer read "$50,000" as $50,000M ("$50000M") and
+rated those rows Critical, which inflates the Critical tile, severity sort and
+alerts. The new page (Stage 4) shows no loss figure for unrepaired rows. The repair
+re-reads each figure from the row's title, summary and content, recomputes the
+severity from the amount and attack type, and stamps `amount_parser: "v2"`.
+
+Review the dry-run response from step 3 above:
+
+- `legacyAmountRows` is the number of old-importer rows; each one is stamped.
+- `legacyAmountChanges` counts the rows whose figure or severity changes, and
+  `samples` shows up to 20 of them as `before` and `after`.
+- Each `after.amountUsd` must be the figure in that row's title or text (for
+  example "$50,000" becomes 50000 and severity medium). A row with no figure
+  in its text loses its amount and is rated from its attack type.
+
+Do not paste the next block until you have reviewed the samples.
+
+```text
+Invoke dedupe-incidents with the POST body
+{"dryRun":false,"repairLegacyAmounts":true,"days":3650}, authenticated with the
+project's CRON_SECRET from the backend secrets without displaying it, and
+return the JSON response. Then invoke it again with
+{"dryRun":true,"repairLegacyAmounts":true,"days":3650} and return that
+response too. The second response must show legacyAmountRows 0.
+```
+
+If legacyAmountRows is not 0, run the write step again; a sync that ran at the
+same time may have restored old metadata.
+
+If the write run returns HTTP 207 with `writeErrors`, run it again; repaired
+rows are skipped. `legacyAmountSkipped` counts rows another job changed
+during the run (a duplicate mark, a summary or an importer refresh); they are
+left as they are and the next write run picks up any that are still legacy.
+
+### Step 1b: mark cross-provider duplicates
+
+Run this after the repair, so the duplicate pass compares corrected amounts.
+
+```text
+Invoke dedupe-incidents with the POST body {"dryRun":true,"days":90},
+authenticated with the project's CRON_SECRET from the backend secrets without
+displaying it, and return the full JSON response. Do not run it with dryRun
+false yet.
+```
 
 Review the dry-run samples yourself. They should pair the NEAR Intents
 reports and the Meter reports, must not pair Limit Break with Magic Eden,
-and must contain no pair that is two different incidents. Then:
+and must contain no pair that is two different incidents.
+
+Do not paste the next block until you have reviewed the samples.
 
 ```text
-Invoke dedupe-incidents with an authorized POST body {"dryRun":false,"days":90}
-and return the JSON response. Then invoke it again with {"dryRun":true,"days":90}
-and return that response too. The second response must show
-duplicatesToMark 0 and canonicalSourceUpdates 0. Then show the last 20 log
-lines of fetch-quillmonitor-incidents and summarize-article after their next
-scheduled run, and confirm neither logged a PostgREST filter parse error.
+Invoke dedupe-incidents with the POST body {"dryRun":false,"days":90},
+authenticated with the project's CRON_SECRET from the backend secrets without
+displaying it, and return the JSON response. Then invoke it again with
+{"dryRun":true,"days":90} and return that response too. The second response
+must show duplicatesToMark 0 and canonicalSourceUpdates 0. Then show the last
+20 log lines of fetch-quillmonitor-incidents and summarize-article after their
+next scheduled run, and confirm neither logged a PostgREST filter parse error.
 ```
 
 If the write run returns HTTP 207 with `writeErrors`, run it again; rows that
 are already correct are skipped.
 
-### Optional: clear impossible loss figures on old rows
+### Stage 1c: QuillMonitor same-provider duplicates
 
-The old web3-incidents importer stored "$3,800,000" as 3.8 trillion USD. The
-new page already hides any figure above $100B, so this is cleanup only.
+QuillMonitor sometimes lists one incident twice. In production, NEAR Intents
+appears as `quillmonitor:6abe7cb74bf2b9001882e340` (unverified) and
+`quillmonitor:6abf52e051c7780018c8e336` (verified), both dated 2026-10-01 with
+a $3.8M loss. Two QuillMonitor records now count as one incident only when the
+project name, incident date and loss are all the same. The verified record is
+kept; if both have the same status, the one with the smaller uid is kept. The
+QuillMonitor sync recomputes this on every run and writes the mark into its
+own upsert, so a sync no longer wipes it, and it clears the mark if
+QuillMonitor later revises the name, date or loss.
+
+If Stage 1 was deployed from an earlier commit, redeploy first. If Step 1b
+already ran on this commit, it marked the pair; run the checks below anyway.
+
+```text
+Deploy the repository versions of fetch-quillmonitor-incidents and
+dedupe-incidents from GitHub main commit <EXACT_SHA>, with their shared imports
+under supabase/functions/_shared/. Do not apply any migration. Then invoke
+dedupe-incidents with the POST body {"dryRun":true,"days":90}, authenticated
+with the project's CRON_SECRET from the backend secrets without displaying it,
+and return the full JSON response. Do not run it with dryRun false yet.
+```
+
+The dry run must include a sample whose canonical is
+`quillmonitor:6abf52e051c7780018c8e336` (the verified record) and whose
+duplicate is `quillmonitor:6abe7cb74bf2b9001882e340`. It may also re-point
+Web3 tracker or SlowMist rows that an earlier run marked against the
+unverified record so they point at the verified one. Review the samples; no
+pair may be two different incidents.
+
+Do not paste the next block until you have reviewed the samples.
+
+```text
+Invoke dedupe-incidents with the POST body {"dryRun":false,"days":90},
+authenticated with the project's CRON_SECRET from the backend secrets without
+displaying it, and return the JSON response. Then invoke it again with
+{"dryRun":true,"days":90} and return that response; it must show
+duplicatesToMark 0 and canonicalSourceUpdates 0. Then invoke
+fetch-quillmonitor-incidents once with the POST body {"mode":"full"} and the
+same authorization, and return its JSON response, including incidentsUpdated
+and mergeLookup. Then run this read-only SQL and return the rows:
+
+select uid, metadata->>'duplicate_of_uid' as duplicate_of_uid
+from news_articles
+where uid in ('quillmonitor:6abe7cb74bf2b9001882e340',
+              'quillmonitor:6abf52e051c7780018c8e336');
+```
+
+The full sync re-writes every QuillMonitor record, the NEAR pair included, so
+it really tests whether the mark survives an upsert (a sync with body `{}`
+only re-writes records QuillMonitor changed since the last run).
+`incidentsUpdated` should be roughly the total number of QuillMonitor
+incidents. A full sync spans more than 20 date windows, so it skips the
+duplicate lookup: `mergeLookup` is `too_many_date_windows`, and every row must
+keep the duplicate mark it already had. If `mergeLookup` is `ok`, the sync
+recomputed the pair instead, and the result must be the same. If the sync
+fails with the 20-page safety limit, run it again with
+{"mode":"full","max_pages":100}.
+
+After the sync, `quillmonitor:6abe7cb74bf2b9001882e340` must still show
+`duplicate_of_uid` = `quillmonitor:6abf52e051c7780018c8e336`, and the verified
+row must show null. The verified record's sources now also list the
+unverified record's reference link.
+
+After the next scheduled incremental QuillMonitor sync (it runs at :17 and :47
+past each hour), run the same SQL once more and confirm the result has not
+changed.
+
+If the unverified record was posted to Telegram in the last 14 days, the
+poster edits that post to RETRACTED ("The source withdrew this report or
+merged it into another one.") on its next run. That is expected; posts about
+the verified record are not affected.
+
+### Fallback only: clear impossible loss figures by SQL
+
+Use this only if the Step 1a repair cannot run. It removes figures above
+$100B from old-importer rows; it does not fix smaller wrong figures such as
+"$50000M" or their severities (the new page hides those figures anyway). The
+`CASE` keeps the cast away from non-numeric values, since `AND` does not
+guarantee evaluation order.
 
 ```sql
 -- Preview
 SELECT id, title, metadata->'amount_lost_usd' AS amount, metadata->>'amount_display' AS display
 FROM public.news_articles
 WHERE metadata->>'provider' IN ('web3-incidents', 'web3')
-  AND jsonb_typeof(metadata->'amount_lost_usd') = 'number'
-  AND (metadata->'amount_lost_usd')::numeric > 100000000000;
+  AND CASE WHEN jsonb_typeof(metadata->'amount_lost_usd') = 'number'
+        THEN (metadata->>'amount_lost_usd')::numeric > 100000000000
+        ELSE false END;
 
 -- Repair: remove the wrong figures, keep a marker
 UPDATE public.news_articles
 SET metadata = (metadata - 'amount_lost_usd' - 'amount_display')
   || jsonb_build_object('amount_cleared_at', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 WHERE metadata->>'provider' IN ('web3-incidents', 'web3')
-  AND jsonb_typeof(metadata->'amount_lost_usd') = 'number'
-  AND (metadata->'amount_lost_usd')::numeric > 100000000000;
+  AND CASE WHEN jsonb_typeof(metadata->'amount_lost_usd') = 'number'
+        THEN (metadata->>'amount_lost_usd')::numeric > 100000000000
+        ELSE false END;
 ```
 
 ## Stage 2: database functions
@@ -142,8 +285,8 @@ EXPLAIN (ANALYZE, BUFFERS) SELECT public.threat_intel_stats();
 Checks from the incident filters migration (20261012090000):
 
 ```sql
--- 1. One signature per function. Expected: 4 rows, the three 10/13-argument
---    filter functions and threat_intel_facets(text, timestamp with time zone).
+-- 1. One signature per function. Expected: 4 rows: search 13 args, count 10,
+--    stats 10, facets 2.
 SELECT p.oid::regprocedure
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace

@@ -36,6 +36,7 @@ const MAX_INGEST_AGE_MS = 24 * 60 * 60 * 1000;
 // incident's own date must be recent too.
 const MAX_INCIDENT_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_SUMMARY_CHARS = 400;
+const AI_SUMMARY_LABEL = 'AI summary:';
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -125,8 +126,16 @@ export function buildTelegramIncidentMessage(
     note ? `<i>Updated ${formatUtcTime(now)} UTC: ${escapeTelegramHtml(note)}.</i>` : '',
   ].filter(Boolean);
 
+  // AI-written summaries are labelled, as on the site. The label counts
+  // toward the summary cap.
+  const summaryLabel = metadata.summary_origin === 'ai' ? AI_SUMMARY_LABEL : '';
+  const summaryBody = showSummary
+    ? (summaryLabel ? `<i>${escapeTelegramHtml(summaryLabel)}</i> ` : '') +
+      escapeTelegramHtml(truncateAtWord(summary, MAX_SUMMARY_CHARS - Array.from(summaryLabel ? `${summaryLabel} ` : '').length))
+    : '';
+
   const withSummary = (body: string) => [header, loss, ...(body ? ['', body, ''] : ['']), ...details, '', ...footer].join('\n');
-  const message = withSummary(showSummary ? escapeTelegramHtml(truncateAtWord(summary, MAX_SUMMARY_CHARS)) : '');
+  const message = withSummary(summaryBody);
   return message.length <= TELEGRAM_MESSAGE_LIMIT ? message : withSummary('');
 }
 

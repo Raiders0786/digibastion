@@ -266,6 +266,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     enabled: selectedTab === 'alerts',
   });
 
+  // Alerts can expire or be merged while someone is paging, so the total can
+  // drop below the current page. Move back to the last page that exists.
+  useEffect(() => {
+    if (!alertsLoading && alertsPage > alertsTotalPages) setAlertsPage(Math.max(1, alertsTotalPages));
+  }, [alertsLoading, alertsPage, alertsTotalPages]);
+
   // Keep legacy ?article= links working while using a crawlable canonical route.
   const requestedArticleId = (routeArticleId || searchParams.get('article') || '').trim();
   const deepLinkLoaded = useRef('');
@@ -459,6 +465,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const hasClearableFilters = countActiveFilters({ selectedCategories, selectedSeverities, dateFilter, sortBy, incidentFilters }) > 0
     || Boolean(searchQuery)
     || feedView !== DEFAULT_SCOPE;
+  // Filters that can empty the feed. Sort order and scope only reorder or widen it.
+  const hasNarrowingFilters = countActiveFilters({ selectedCategories, selectedSeverities, dateFilter, sortBy: 'date', incidentFilters }) > 0
+    || Boolean(searchQuery);
 
   const isIncidentView = feedView === 'web3-incidents';
   const heroTitle = isIncidentView
@@ -524,7 +533,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           <div className="mx-auto max-w-xl rounded-xl border border-border/60 bg-card/50 p-8 text-center">
             <h1 className="text-2xl font-semibold">Threat-intelligence article not found</h1>
             <p className="mt-3 text-muted-foreground">The record may have been removed, or the link may be incomplete.</p>
-            <Button className="mt-6" onClick={() => navigate('/threat-intel')}>Browse verified threat intelligence</Button>
+            <Button className="mt-6" onClick={() => navigate('/threat-intel')}>Browse threat intelligence</Button>
           </div>
         </main>
         <Footer />
@@ -859,7 +868,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                             <p className="text-muted-foreground">
                               {feedStatus.source === 'cache'
                                 ? `Showing the last cached response${feedStatus.checkedAt ? ` from ${format(feedStatus.checkedAt, 'PPpp')}` : ''}. Verify time-sensitive details with the linked source.`
-                                : 'No verified feed response is available right now. Try again shortly.'}
+                                : 'No live feed response is available right now. Try again shortly.'}
                             </p>
                           </div>
                         </div>
@@ -882,19 +891,28 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       </Fragment>
                     ))
                   ) : (
-                    <Card className="glass-card">
+                    <Card className="glass-card" data-testid="feed-empty-state">
                       <CardContent className="p-8 text-center">
                         <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-medium mb-2">
-                          {stats.total === 0 ? 'No articles yet' : 'No articles match your filters'}
+                          {hasNarrowingFilters
+                            ? `No ${isIncidentView ? 'incidents' : 'articles'} match these filters`
+                            : `No ${isIncidentView ? 'incidents' : 'articles'} yet`}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          {stats.total === 0 
-                            ? (error ? 'The verified threat feed could not be loaded.' : 'No verified threat-intelligence articles are available for this view yet.')
-                            : 'Try adjusting your search, category, or severity filters'
-                          }
+                          {hasNarrowingFilters
+                            ? (isIncidentView
+                              ? 'Try removing a status, chain, attack type or source filter, or widening your search, category, severity or date.'
+                              : 'Try removing a source filter, or widening your search, category, severity or date.')
+                            : error
+                              ? 'The threat feed could not be loaded.'
+                              : `No ${isIncidentView ? 'incident reports' : 'threat-intelligence articles'} are available for this view yet.`}
                         </p>
-                        {stats.total === 0 && isAdmin ? (
+                        {hasNarrowingFilters ? (
+                          <Button variant="outline" onClick={handleClearFilters}>
+                            Clear filters
+                          </Button>
+                        ) : isAdmin ? (
                           <Button onClick={refreshFromRSS} disabled={isRefreshing}>
                             {isRefreshing ? (
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -902,10 +920,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                               <RefreshCw className="w-4 h-4 mr-2" />
                             )}
                             Fetch News
-                          </Button>
-                        ) : stats.total > 0 ? (
-                          <Button variant="outline" onClick={handleClearFilters}>
-                            Clear Filters
                           </Button>
                         ) : null}
                       </CardContent>

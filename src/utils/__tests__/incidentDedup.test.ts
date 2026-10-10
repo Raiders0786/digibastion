@@ -370,11 +370,27 @@ describe('groupDuplicates', () => {
     ]);
   });
 
-  it('ignores rows hidden for other reasons and never merges two QuillMonitor rows', () => {
+  it('ignores rows hidden for other reasons', () => {
     const hidden = { ...meterWeb3, metadata: { ...(meterWeb3.metadata as object), classification_relevant: false } };
     expect(groupDuplicates([meterQuillMonitor, hidden])).toEqual([]);
+  });
+
+  it('merges two QuillMonitor rows only under the strict same-provider rule', () => {
     const secondQuill = { ...meterQuillMonitor, uid: 'quillmonitor:meter-2' };
-    expect(groupDuplicates([meterQuillMonitor, secondQuill])).toEqual([]);
+    expect(groupDuplicates([secondQuill, meterQuillMonitor])).toEqual([
+      { canonical: 'quillmonitor:meter-1', duplicates: ['quillmonitor:meter-2'] },
+    ]);
+    const otherAmount = { ...secondQuill, metadata: { ...(meterQuillMonitor.metadata as object), amount_lost_usd: 4_500_000 } };
+    expect(groupDuplicates([meterQuillMonitor, otherAmount])).toEqual([]);
+    // Adjacent day with the same attack method would merge across providers,
+    // but not between two QuillMonitor rows.
+    const nextDay = { ...secondQuill, metadata: { ...(meterQuillMonitor.metadata as object), incident_date: '2026-09-15' } };
+    expect(groupDuplicates([meterQuillMonitor, nextDay])).toEqual([]);
+    // Nor does the shared X post path pair two QuillMonitor rows.
+    const post = 'https://x.com/blockaid_/status/2103121249706877178';
+    const a = { ...meterQuillMonitor, metadata: { ...(meterQuillMonitor.metadata as object), reference_url: post } };
+    const b = { ...secondQuill, metadata: { ...(meterQuillMonitor.metadata as object), project_name: 'Meter.IO', reference_url: post } };
+    expect(groupDuplicates([a, b])).toEqual([]);
   });
 
   it('does not chain matches: each duplicate must match the canonical row itself', () => {
@@ -459,5 +475,121 @@ describe('groupDuplicates with rows already marked as duplicates', () => {
     expect(second.groups).toEqual([{ canonical: 'quillmonitor:near-intents-1', duplicates: ['a1b2c3-feed1-near'] }]);
     expect(second.marks.every((mark) => !mark.needsWrite)).toBe(true);
     expect(second.canonicalUpdates).toEqual([]);
+  });
+});
+
+// The production pair from the 2026-10-10 release check (reference URLs are
+// illustrative): QuillMonitor reported NEAR Intents twice.
+const nearQuillUnverified: IncidentRow = {
+  uid: 'quillmonitor:6abe7cb74bf2b9001882e340',
+  title: 'NEAR Intents: Private Key Compromise ($3.8M loss)',
+  published_at: '2026-10-01T00:00:00.000Z',
+  source_name: 'QuillMonitor',
+  metadata: {
+    provider: 'quillmonitor',
+    project_name: 'NEAR Intents',
+    incident_date: '2026-10-01',
+    attack_type: 'Private Key Compromise',
+    amount_lost_usd: 3_800_000,
+    reference_url: 'https://x.com/Phalcon_xyz/status/1973000000000000001',
+    verification_status: 'unverified',
+    sources: [{ provider: 'quillmonitor', url: 'https://x.com/Phalcon_xyz/status/1973000000000000001', label: 'QuillMonitor', amount_usd: 3_800_000 }],
+  },
+};
+const nearQuillVerified: IncidentRow = {
+  uid: 'quillmonitor:6abf52e051c7780018c8e336',
+  title: 'NEAR Intents: Private Key Compromise ($3.8M loss)',
+  published_at: '2026-10-01T00:00:00.000Z',
+  source_name: 'QuillMonitor',
+  metadata: {
+    provider: 'quillmonitor',
+    project_name: 'NEAR Intents',
+    incident_date: '2026-10-01',
+    attack_type: 'Private Key Compromise',
+    amount_lost_usd: 3_800_000,
+    reference_url: 'https://x.com/NEARProtocol/status/1973000000000000002',
+    verification_status: 'verified',
+    sources: [{ provider: 'quillmonitor', url: 'https://x.com/NEARProtocol/status/1973000000000000002', label: 'QuillMonitor', amount_usd: 3_800_000 }],
+  },
+};
+const nearWeb3Oct1: IncidentRow = {
+  uid: 'near-web3-oct1',
+  title: 'NEAR Intents exploited for $3.8 million',
+  published_at: '2026-10-01T00:00:00.000Z',
+  source_name: null,
+  link: 'https://x.com/zachxbt/status/3',
+  metadata: { provider: 'web3-incidents', incident_date: '2026-10-01', amount_lost_usd: 3_800_000 },
+};
+
+function applyBackfill(rows: IncidentRow[]): IncidentRow[] {
+  const plan = planDuplicateBackfill(rows);
+  const metadataByUid = new Map<string, Record<string, unknown>>();
+  for (const mark of plan.marks) metadataByUid.set(mark.uid, mark.metadata);
+  for (const update of plan.canonicalUpdates) metadataByUid.set(update.uid, update.metadata);
+  return rows.map((row) => ({ ...row, metadata: metadataByUid.get(row.uid) ?? row.metadata }));
+}
+
+describe('planDuplicateBackfill with QuillMonitor same-provider duplicates', () => {
+  it('marks the unverified NEAR Intents record as a duplicate of the verified one', () => {
+    const plan = planDuplicateBackfill([nearQuillUnverified, nearQuillVerified]);
+    expect(plan.groups).toEqual([
+      { canonical: 'quillmonitor:6abf52e051c7780018c8e336', duplicates: ['quillmonitor:6abe7cb74bf2b9001882e340'] },
+    ]);
+    expect(plan.marks.map((mark) => [mark.uid, mark.duplicateOfUid, mark.needsWrite])).toEqual([
+      ['quillmonitor:6abe7cb74bf2b9001882e340', 'quillmonitor:6abf52e051c7780018c8e336', true],
+    ]);
+    expect(plan.marks[0].metadata).toMatchObject({
+      verification_status: 'unverified',
+      classification_relevant: false,
+      duplicate_of_uid: 'quillmonitor:6abf52e051c7780018c8e336',
+    });
+    expect(plan.canonicalUpdates.map((update) => [update.uid, update.metadata.sources])).toEqual([[
+      'quillmonitor:6abf52e051c7780018c8e336',
+      [
+        { provider: 'quillmonitor', url: 'https://x.com/NEARProtocol/status/1973000000000000002', label: 'QuillMonitor', amount_usd: 3_800_000 },
+        { provider: 'quillmonitor', url: 'https://x.com/Phalcon_xyz/status/1973000000000000001', label: 'QuillMonitor', amount_usd: 3_800_000 },
+      ],
+    ]]);
+  });
+
+  it('plans no writes on a second run', () => {
+    const second = planDuplicateBackfill(applyBackfill([nearQuillUnverified, nearQuillVerified, nearWeb3Oct1]));
+    expect(second.marks).toHaveLength(2);
+    expect(second.marks.every((mark) => !mark.needsWrite)).toBe(true);
+    expect(second.canonicalUpdates).toEqual([]);
+  });
+
+  it('puts lower-priority duplicates under the verified record, never the losing one', () => {
+    expect(groupDuplicates([nearQuillUnverified, nearQuillVerified, nearWeb3Oct1])).toEqual([{
+      canonical: 'quillmonitor:6abf52e051c7780018c8e336',
+      duplicates: ['near-web3-oct1', 'quillmonitor:6abe7cb74bf2b9001882e340'],
+    }]);
+  });
+
+  it('re-points rows that an earlier sync marked against the losing record', () => {
+    const markedToLoser = {
+      ...nearWeb3Oct1,
+      metadata: { ...(nearWeb3Oct1.metadata as object), classification_relevant: false, duplicate_of_uid: nearQuillUnverified.uid },
+    };
+    const plan = planDuplicateBackfill([nearQuillUnverified, nearQuillVerified, markedToLoser]);
+    expect(plan.marks.map((mark) => [mark.uid, mark.duplicateOfUid, mark.needsWrite])).toEqual([
+      ['near-web3-oct1', 'quillmonitor:6abf52e051c7780018c8e336', true],
+      ['quillmonitor:6abe7cb74bf2b9001882e340', 'quillmonitor:6abf52e051c7780018c8e336', true],
+    ]);
+  });
+
+  it('plans nothing for the pair while the canonical record carries a stale mark', () => {
+    const staleCanonicalMark = {
+      ...nearQuillVerified,
+      metadata: { ...(nearQuillVerified.metadata as object), classification_relevant: false, duplicate_of_uid: nearQuillUnverified.uid },
+    };
+    // A marked row never heads a group; the next QuillMonitor sync of either
+    // row recomputes both marks.
+    expect(planDuplicateBackfill([nearQuillUnverified, staleCanonicalMark]).marks).toEqual([]);
+  });
+
+  it('does not merge the pair when QuillMonitor reports different amounts', () => {
+    const revised = { ...nearQuillUnverified, metadata: { ...(nearQuillUnverified.metadata as object), amount_lost_usd: 3_000_000 } };
+    expect(planDuplicateBackfill([revised, nearQuillVerified]).marks).toEqual([]);
   });
 });
