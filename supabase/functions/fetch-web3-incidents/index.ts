@@ -400,7 +400,7 @@ serve(async (req) => {
       if (incidentDate) {
         const { data: related, error: relatedError } = await supabase
           .from('news_articles')
-          .select('uid,title,published_at,source_name,metadata')
+          .select('uid,title,published_at,source_name,metadata,link,source_url')
           .gte('published_at', shiftDate(incidentDate, -2))
           .lt('published_at', shiftDate(incidentDate, 3))
           .or(WEB3_INCIDENT_FILTER)

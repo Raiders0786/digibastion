@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     const maximumDate = incidentDates.reduce((maximum, date) => date > maximum ? date : maximum);
     const { data: relatedRows, error: relatedReadError, count: relatedCount } = await db
       .from('news_articles')
-      .select('uid,title,published_at,source_name,metadata', { count: 'exact' })
+      .select('uid,title,published_at,source_name,metadata,link,source_url', { count: 'exact' })
       .gte('published_at', shiftDate(minimumDate, -2))
       .lt('published_at', shiftDate(maximumDate, 3))
       .or('metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3,slowmist)')

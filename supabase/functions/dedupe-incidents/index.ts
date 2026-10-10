@@ -141,7 +141,7 @@ async function markDuplicates(db: Db, dryRun: boolean, days: number) {
   // Two extra days so an incident at the window edge still meets its match.
   const rows = await readRows<IncidentRow>(
     db,
-    'uid,title,published_at,source_name,metadata,link',
+    'uid,title,published_at,source_name,metadata,link,source_url',
     WEB3_INCIDENT_FILTER,
     days + 2,
   );
