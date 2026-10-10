@@ -7,7 +7,7 @@ import { isSeverityLevel } from '@/lib/threatIntel/taxonomy';
  * Public card and detail columns. Do not use select('*'): raw_content and
  * search_vector are large and never needed in the browser.
  */
-export const NEWS_ARTICLE_COLUMNS = 'id,title,summary,content,category,severity,tags,affected_technologies,link,source_url,source_name,author,cve_id,published_at,is_processed,metadata' as const;
+export const NEWS_ARTICLE_COLUMNS = 'id,title,summary,content,category,severity,tags,affected_technologies,link,source_url,source_name,author,cve_id,published_at,created_at,is_processed,metadata' as const;
 
 /** PostgREST filter for one `.or()` call that keeps only publishable rows (see isPublishable). */
 export const PUBLISHABLE_POSTGREST_FILTER = CLASSIFICATION_RELEVANCE_POSTGREST_FILTER;
@@ -66,6 +66,7 @@ export function mapNewsArticleRow(row: unknown): NewsArticle | null {
     sourceUrl: optionalText(row.source_url),
     link: optionalText(row.link),
     publishedAt,
+    createdAt: parseDate(row.created_at) ?? undefined,
     affectedTechnologies: stringList(row.affected_technologies),
     author: optionalText(row.author),
     cveId: optionalText(row.cve_id),

@@ -29,6 +29,8 @@ export interface NewsArticle {
   sourceUrl?: string;
   link?: string;
   publishedAt: Date;
+  /** When Digibastion stored the record (news_articles.created_at). */
+  createdAt?: Date;
   affectedTechnologies?: string[];
   author?: string;
   imageUrl?: string;
@@ -54,7 +56,7 @@ export interface NewsArticle {
     provider_created_at?: string;
     provider_updated_at?: string;
     summary_status?: 'available' | 'pending';
-    summary_origin?: 'provider' | 'provider-template' | 'ai';
+    summary_origin?: 'provider' | 'provider-template' | 'ai' | 'publisher';
     suppress_realtime_alert?: boolean;
     attribution_url?: string;
     [key: string]: unknown;
