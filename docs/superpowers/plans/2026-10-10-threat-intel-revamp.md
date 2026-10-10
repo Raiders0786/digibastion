@@ -14033,7 +14033,2768 @@ git commit -m "chore(threat-intel): remove unused mock news data and stats dashb
 - Leftover "preliminary" wording outside these files: the `RealtimeAlertListener` toast ("Preliminary incident"), `EmailPreview` ("· Preliminary"), and the `ContentScopeSelector` description ("Verified and preliminary").
 - `Index.tsx` changes in C6 have no automated test; they are checked by typecheck, lint and the manual step.
 
-<!-- C7 -->
+
+---
+
+### Task C7: Verification, chain, attack-type and source filters
+
+Spec 7.2 lists verification (confirmed / unconfirmed), chain, attack type and source among the Threat Intel filters. Sections B and C cover severity, category, date range and search. This task adds the other four. Each one lives in the URL, goes through the same RPCs as the rest of the feed (list, count, stats), drives the Active Alerts tab, and appears in the C4 toolbar and its mobile "Filters (n)" sheet.
+
+Run this task after C6. It changes frontend code under `src/` and adds one migration.
+
+**Rules this task applies**
+
+| Filter | URL | Shown in | Matches |
+|---|---|---|---|
+| Status | `status=confirmed` or `status=unconfirmed`; anything else means all | Web3 incidents view only | `metadata->>'verification_status'` = `verified` / `unverified`. Only QuillMonitor sets it, so the other sources drop out when a status is picked. The UI says so. |
+| Chain | `chain=<value>`, repeatable, at most 10 | Web3 incidents view only | `lower(btrim(metadata->>'chain'))`. Values are trimmed and lower-cased; values longer than 64 characters or containing anything other than letters, digits, spaces and `. & ( ) + ' / -` are dropped. |
+| Attack type | `attack=<value>`, repeatable, at most 10 | Web3 incidents view only | `lower(btrim(metadata->>'attack_type'))`, same value rule as chain |
+| Source | `source=<value>`, repeatable (`source=a,b` is also read) | Both views; `rss` only outside the Web3 view | `quillmonitor`, `slowmist` exact provider; `web3-incidents` matches provider `web3-incidents` or the legacy `web3`; `rss` matches provider `rss`, or no provider on a row that is not a Web3 incident |
+
+Unknown values are dropped when the URL is parsed. Status, chain and attack type are also dropped outside the Web3 view, and switching to "All Intelligence" removes them from the URL, so a link can never apply a filter the page does not show. Chain and attack type are free text, so they use repeated params instead of the comma lists `categories` and `severities` use; a comma inside a value would otherwise split it.
+
+Chain and attack-type options come from a new `threat_intel_facets` RPC rather than from the loaded page. The page holds 20 rows, so options derived from it would be incomplete, would change from page to page, and would shrink to the selected chain once a chain is picked. The RPC groups at most 365 days (default 90) of rows in the scope by two jsonb keys, which is one small aggregate per page view. Its counts ignore the other filters, so picking one chain never hides the rest.
+
+**Deploy order does not matter.** The frontend sends the new RPC arguments only when a filter is set. Without the migration, unfiltered requests still match the 20261011090000 signatures. A filtered request fails, and `useNewsArticles` falls back to the direct-table query, which applies the same four filters through PostgREST. Without `threat_intel_facets`, the chain and attack-type chips stay hidden. Apply the migration first anyway.
+
+**Files:**
+- Create: `supabase/migrations/20261012090000_threat_intel_incident_filters.sql`
+- Create: `src/hooks/useThreatIntelFacets.ts`
+- Create: `src/components/news/IncidentFilters.tsx`
+- Modify: `src/lib/threatIntel/query.ts` (section B)
+- Modify: `src/utils/newsCache.ts` (`CacheFilterInput`, `buildFilterKey`)
+- Modify: `src/hooks/useNewsArticles.ts` (options, filter memo, cache input, fallback query)
+- Modify: `src/integrations/supabase/types.ts` (`count_news_articles`, `search_news_articles`, `threat_intel_stats`; new `threat_intel_facets`)
+- Modify: `src/components/news/FeedToolbar.tsx` (C4)
+- Modify: `src/pages/News.tsx`
+- Test: modify `src/utils/__tests__/threatIntelQuery.test.ts`, `src/utils/__tests__/newsCache.test.ts`, `src/hooks/__tests__/useNewsArticles.test.tsx`, `src/hooks/__tests__/useThreatIntelAlerts.test.tsx`, `src/pages/__tests__/News.hero.test.tsx` (C4/C5), `src/pages/__tests__/News.navigation.test.tsx`
+- Test: create `src/hooks/__tests__/useThreatIntelFacets.test.tsx`, `src/components/news/__tests__/IncidentFilters.test.tsx`
+
+`src/hooks/useThreatIntelAlerts.ts` needs no change. It already passes the whole `ThreatIntelFilterInput` to `buildAlertQueryParams`, so once that type carries the new fields, alerts follow them. The new alerts test guards this. Telegram and email code are not touched.
+
+**Interfaces:**
+- Consumes:
+  - From B (`src/lib/threatIntel/query.ts`): `ThreatIntelFilters`, `ThreatIntelFilterInput`, `ThreatIntelFilterParams`, `parseThreatIntelFilters(params: URLSearchParams, pageSize?: number): ThreatIntelFilters`, `buildThreatIntelFilterParams(filters: ThreatIntelFilterInput, now?: Date): ThreatIntelFilterParams`, `buildThreatIntelQueryParams`, `buildAlertQueryParams`, `requiresThreatIntelRpc`, the private `toCount(value: unknown): number | null`.
+  - From B (`src/lib/threatIntel/taxonomy.ts`): `DEFAULT_SCOPE`, `parseScope`, `parseListParam`.
+  - From B: migration `20261011090000_threat_intel_stats.sql` (the current signatures of `search_news_articles` (9 args), `count_news_articles` (6) and `threat_intel_stats` (6), and their shared predicate); `useNewsArticles`, `useThreatIntelAlerts`, `CacheFilterInput` / `buildFilterKey` in `src/utils/newsCache.ts`.
+  - From C4: `FeedToolbar`, `FeedToolbarProps`, `countActiveFilters` in `src/components/news/FeedToolbar.tsx`; `News.hero.test.tsx` (`renderAt`, `useNewsArticlesMock`). From C5: the last test in `News.hero.test.tsx` ("links the sources chip and the page footer to the methodology page").
+- Produces (in `src/lib/threatIntel/query.ts`):
+  - `VERIFICATION_FILTERS = ['all', 'confirmed', 'unconfirmed'] as const`, `type VerificationFilter`
+  - `SOURCE_FILTERS = ['quillmonitor', 'web3-incidents', 'slowmist', 'rss'] as const`, `type SourceFilter`
+  - `MAX_FACET_VALUE_LENGTH = 64`, `MAX_FACET_SELECTIONS = 10`, `MAX_FACET_OPTIONS = 15`
+  - `ThreatIntelFilters` gains `verification: VerificationFilter; chains: string[]; attackTypes: string[]; sources: SourceFilter[]`, and `ThreatIntelFilterInput` picks all four.
+  - `ThreatIntelFilterParams` gains optional `verification_filter?: 'verified' | 'unverified'; chain_filter?: string[]; attack_type_filter?: string[]; provider_filter?: SourceFilter[]` (present only when set).
+  - `normalizeFacetValue(value: unknown): string | null`
+  - `sourceFiltersForScope(scope: ThreatIntelScope): readonly SourceFilter[]`
+  - `type IncidentListParam = 'chain' | 'attack' | 'source'`
+  - `withListParam(current: URLSearchParams, key: IncidentListParam, values: readonly string[]): URLSearchParams`
+  - `withScopeParam(current: URLSearchParams, scope: ThreatIntelScope): URLSearchParams`
+  - `buildIncidentPostgrestFilters(params: ThreatIntelFilterParams): string[]`
+  - `interface ThreatIntelFacet { value: string; label: string; count: number }`, `interface ThreatIntelFacets { chains: ThreatIntelFacet[]; attackTypes: ThreatIntelFacet[] }`, `EMPTY_THREAT_INTEL_FACETS`
+  - `parseThreatIntelFacets(value: unknown): ThreatIntelFacets`
+  - `requiresThreatIntelRpc` now takes `Pick<ThreatIntelFilters, 'scope' | 'categories' | 'searchQuery' | 'sortBy' | 'verification' | 'chains' | 'attackTypes' | 'sources'>`.
+- Produces (elsewhere):
+  - `useThreatIntelFacets(scope: ThreatIntelScope): ThreatIntelFacets` in `src/hooks/useThreatIntelFacets.ts`
+  - `interface IncidentFilterState { verification: VerificationFilter; chains: string[]; attackTypes: string[]; sources: SourceFilter[] }`, `interface IncidentFiltersProps { scope; filters: IncidentFilterState; facets: ThreatIntelFacets; onVerificationChange(value: VerificationFilter): void; onChainToggle(value: string): void; onAttackTypeToggle(value: string): void; onSourceToggle(value: SourceFilter): void; idPrefix: string }`, `IncidentFilters(props: IncidentFiltersProps)` in `src/components/news/IncidentFilters.tsx`
+  - `FeedToolbarProps` gains `incidentFilters: IncidentFilterState; facets: ThreatIntelFacets; onVerificationChange; onChainToggle; onAttackTypeToggle; onSourceToggle`. `countActiveFilters` takes an optional `incidentFilters` and adds one for a status plus one per chain, attack type and source.
+  - `UseNewsArticlesOptions` gains `verification?: VerificationFilter; chains?: string[]; attackTypes?: string[]; sources?: SourceFilter[]`.
+  - `CacheFilterInput` gains `verification?: string; chains?: readonly string[]; attackTypes?: readonly string[]; sources?: readonly string[]`.
+  - SQL: `search_news_articles(search_query, category_filter, severity_filter, date_from, result_limit, result_offset, source_filter, web3_incidents_only, sort_by, verification_filter text, chain_filter text[], attack_type_filter text[], provider_filter text[])` returning B's columns plus `created_at timestamptz`; `count_news_articles(<B's 6 args>, verification_filter, chain_filter, attack_type_filter, provider_filter)`; `threat_intel_stats(<B's 6 args>, <same 4>)`; `threat_intel_facets(p_scope text DEFAULT 'web3-incidents', p_since timestamptz DEFAULT NULL) RETURNS jsonb` shaped `{"chains": [{"value", "label", "count"}], "attack_types": [...]}`.
+
+The new SQL arguments use B's naming style (`*_filter`, no prefix) because PostgREST matches RPC arguments by name and the frontend builds one params object for all three functions. `threat_intel_facets` is a separate function, so it uses `p_` names; that also avoids clashes with column names in a SQL-language body.
+
+- [ ] **Step 1: Check the starting point**
+
+Run: `rtk proxy grep -n "export function countActiveFilters\|export interface FeedToolbarProps" src/components/news/FeedToolbar.tsx`
+
+Expected: both lines print (C4 is in).
+
+Run: `rtk proxy grep -n "export function requiresThreatIntelRpc\|source_filter: string | null;" src/lib/threatIntel/query.ts && ls supabase/migrations/20261011090000_threat_intel_stats.sql`
+
+Expected: both matches and the migration path print (B is in). If `search_news_articles` in that migration does not have exactly the nine arguments `(text, text[], text[], timestamptz, integer, integer, text, boolean, text)`, stop: the `DROP FUNCTION` lines in Step 10 must name the signature that is live.
+
+- [ ] **Step 2: Write the failing query and cache tests**
+
+In `src/utils/__tests__/threatIntelQuery.test.ts`, extend the import:
+
+Before:
+```ts
+import {
+  ALERTS_PAGE_SIZE,
+  buildAlertQueryParams,
+  buildThreatIntelFilterParams,
+```
+After:
+```ts
+import {
+  ALERTS_PAGE_SIZE,
+  buildAlertQueryParams,
+  buildIncidentPostgrestFilters,
+  buildThreatIntelFilterParams,
+```
+
+Before:
+```ts
+  computePageStats,
+  parseThreatIntelFilters,
+  parseThreatIntelStats,
+  requiresThreatIntelRpc,
+  resolveAlertSeverities,
+  type ThreatIntelFilters,
+} from '@/lib/threatIntel/query';
+```
+After:
+```ts
+  computePageStats,
+  normalizeFacetValue,
+  parseThreatIntelFacets,
+  parseThreatIntelFilters,
+  parseThreatIntelStats,
+  requiresThreatIntelRpc,
+  resolveAlertSeverities,
+  sourceFiltersForScope,
+  withListParam,
+  withScopeParam,
+  type ThreatIntelFilters,
+} from '@/lib/threatIntel/query';
+```
+
+Give the shared fixture the four new fields:
+
+Before:
+```ts
+  sortBy: 'date',
+  page: 1,
+  pageSize: 20,
+};
+```
+After:
+```ts
+  sortBy: 'date',
+  page: 1,
+  pageSize: 20,
+  verification: 'all',
+  chains: [],
+  attackTypes: [],
+  sources: [],
+};
+```
+
+The "reads every shareable filter" expectation (scope=all, so the incident filters are empty):
+
+Before:
+```ts
+      sortBy: 'severity',
+      page: 3,
+      pageSize: 20,
+    });
+  });
+```
+After:
+```ts
+      sortBy: 'severity',
+      page: 3,
+      pageSize: 20,
+      verification: 'all',
+      chains: [],
+      attackTypes: [],
+      sources: [],
+    });
+  });
+```
+
+The alert-query input in "builds paginated alert params that follow scope and filters":
+
+Before:
+```ts
+      searchQuery: 'npm',
+      dateFilter: '30d',
+    }, 2, NOW);
+```
+After:
+```ts
+      searchQuery: 'npm',
+      dateFilter: '30d',
+      verification: 'all',
+      chains: [],
+      attackTypes: [],
+      sources: [],
+    }, 2, NOW);
+```
+
+Append to the end of `src/utils/__tests__/threatIntelQuery.test.ts`:
+
+```ts
+
+describe('incident filters', () => {
+  it('reads status, chain, attack type and source in the Web3 view and drops unknown values', () => {
+    const params = new URLSearchParams();
+    params.set('status', 'confirmed');
+    ['Ethereum', ' BSC ', 'ethereum', 'eth%', 'a_b', ''].forEach((value) => params.append('chain', value));
+    params.append('attack', 'Flash Loan');
+    ['slowmist', 'bogus', 'rss', 'quillmonitor'].forEach((value) => params.append('source', value));
+
+    expect(parseThreatIntelFilters(params)).toEqual({
+      ...baseFilters,
+      verification: 'confirmed',
+      chains: ['ethereum', 'bsc'],
+      attackTypes: ['flash loan'],
+      sources: ['slowmist', 'quillmonitor'],
+    });
+  });
+
+  it('ignores status, chain and attack type outside the Web3 view but keeps source', () => {
+    const filters = parseThreatIntelFilters(new URLSearchParams('scope=all&status=unconfirmed&chain=ethereum&attack=phishing&source=rss,quillmonitor'));
+    expect(filters.verification).toBe('all');
+    expect(filters.chains).toEqual([]);
+    expect(filters.attackTypes).toEqual([]);
+    expect(filters.sources).toEqual(['rss', 'quillmonitor']);
+  });
+
+  it('treats an unknown status as all and caps free-text selections at 10', () => {
+    const params = new URLSearchParams('status=verified');
+    for (let index = 0; index < 12; index += 1) params.append('chain', `chain ${index}`);
+    const filters = parseThreatIntelFilters(params);
+    expect(filters.verification).toBe('all');
+    expect(filters.chains).toHaveLength(10);
+  });
+
+  it('normalizes chain and attack-type values', () => {
+    expect(normalizeFacetValue('  Arbitrum One ')).toBe('arbitrum one');
+    expect(normalizeFacetValue("Rug Pull / Exit Scam (Owner's key)")).toBe("rug pull / exit scam (owner's key)");
+    expect(normalizeFacetValue('Sui')).toBe('sui');
+    expect(normalizeFacetValue('a,b')).toBeNull();
+    expect(normalizeFacetValue('50%')).toBeNull();
+    expect(normalizeFacetValue('x'.repeat(65))).toBeNull();
+    expect(normalizeFacetValue('-leading')).toBeNull();
+    expect(normalizeFacetValue(42)).toBeNull();
+  });
+
+  it('offers publisher feeds only outside the Web3 view', () => {
+    expect(sourceFiltersForScope('web3-incidents')).toEqual(['quillmonitor', 'web3-incidents', 'slowmist']);
+    expect(sourceFiltersForScope('all')).toEqual(['quillmonitor', 'web3-incidents', 'slowmist', 'rss']);
+  });
+
+  it('maps the incident filters to RPC arguments', () => {
+    expect(buildThreatIntelFilterParams({
+      ...baseFilters,
+      verification: 'unconfirmed',
+      chains: ['ethereum'],
+      attackTypes: ['flash loan', 'phishing'],
+      sources: ['quillmonitor'],
+    }, NOW)).toEqual({
+      search_query: null,
+      category_filter: null,
+      severity_filter: null,
+      date_from: null,
+      source_filter: null,
+      web3_incidents_only: true,
+      verification_filter: 'unverified',
+      chain_filter: ['ethereum'],
+      attack_type_filter: ['flash loan', 'phishing'],
+      provider_filter: ['quillmonitor'],
+    });
+    expect(buildThreatIntelFilterParams({ ...baseFilters, verification: 'confirmed' }, NOW).verification_filter).toBe('verified');
+  });
+
+  it('leaves unset incident filters out of the RPC arguments', () => {
+    const params = buildThreatIntelFilterParams(baseFilters, NOW);
+    expect(Object.keys(params)).not.toContain('verification_filter');
+    expect(Object.keys(params)).not.toContain('chain_filter');
+    expect(Object.keys(params)).not.toContain('attack_type_filter');
+    expect(Object.keys(params)).not.toContain('provider_filter');
+  });
+
+  it.each([
+    ['a status', { verification: 'confirmed' as const }],
+    ['a chain', { chains: ['ethereum'] }],
+    ['an attack type', { attackTypes: ['phishing'] }],
+    ['a source', { sources: ['rss' as const] }],
+  ])('uses the RPC for %s in the all-news view', (_label, overrides) => {
+    expect(requiresThreatIntelRpc({ ...baseFilters, scope: 'all', ...overrides })).toBe(true);
+  });
+
+  it('carries the incident filters into alert queries', () => {
+    const query = buildAlertQueryParams({ ...baseFilters, chains: ['ethereum'], verification: 'confirmed' }, 1, NOW);
+    expect(query?.search.chain_filter).toEqual(['ethereum']);
+    expect(query?.filter.verification_filter).toBe('verified');
+  });
+
+  it('writes repeatable URL params and resets paging', () => {
+    const next = withListParam(new URLSearchParams('chain=bsc&page=3&scope=all'), 'chain', ['ethereum', 'arbitrum one']);
+    expect(next.getAll('chain')).toEqual(['ethereum', 'arbitrum one']);
+    expect(next.get('page')).toBeNull();
+    expect(next.get('scope')).toBe('all');
+    expect(withListParam(next, 'chain', []).has('chain')).toBe(false);
+  });
+
+  it('drops filters the new view does not show when the scope changes', () => {
+    const toAll = withScopeParam(new URLSearchParams('status=confirmed&chain=ethereum&attack=phishing&source=slowmist&page=2'), 'all');
+    expect(toAll.toString()).toBe('scope=all&source=slowmist');
+
+    const toWeb3 = withScopeParam(new URLSearchParams('scope=all&source=rss&source=quillmonitor&categories=supply-chain'), 'web3-incidents');
+    expect(toWeb3.get('scope')).toBeNull();
+    expect(toWeb3.getAll('source')).toEqual(['quillmonitor']);
+    expect(toWeb3.get('categories')).toBe('supply-chain');
+  });
+
+  it('builds PostgREST fallback filters that mirror the SQL predicate', () => {
+    expect(buildIncidentPostgrestFilters({
+      ...buildThreatIntelFilterParams(baseFilters, NOW),
+      verification_filter: 'verified',
+      chain_filter: ['ethereum', "owner's (chain)"],
+      attack_type_filter: ['flash loan'],
+      provider_filter: ['web3-incidents', 'rss'],
+    })).toEqual([
+      'metadata->>verification_status.eq.verified',
+      'metadata->>chain.ilike."ethereum",metadata->>chain.ilike."owner\'s (chain)"',
+      'metadata->>attack_type.ilike."flash loan"',
+      'metadata->>provider.in.(web3-incidents,web3),metadata->>provider.eq.rss,and(metadata->>provider.is.null,or(metadata->>is_web3_incident.is.null,metadata->>is_web3_incident.neq.true))',
+    ]);
+    expect(buildIncidentPostgrestFilters(buildThreatIntelFilterParams(baseFilters, NOW))).toEqual([]);
+  });
+});
+
+describe('facets', () => {
+  it('parses the threat_intel_facets payload', () => {
+    expect(parseThreatIntelFacets({
+      chains: [
+        { value: 'ethereum', label: 'Ethereum', count: 42 },
+        { value: 'ETHEREUM', label: 'Ethereum', count: 1 },
+        { value: 'bad,value', label: 'Bad', count: 3 },
+        { value: 'bsc', label: '', count: '7' },
+        { value: 'solana', label: 'Solana', count: -1 },
+      ],
+      attack_types: [{ value: 'phishing', label: 'Phishing', count: 5 }],
+    })).toEqual({
+      chains: [
+        { value: 'ethereum', label: 'Ethereum', count: 42 },
+        { value: 'bsc', label: 'bsc', count: 7 },
+      ],
+      attackTypes: [{ value: 'phishing', label: 'Phishing', count: 5 }],
+    });
+  });
+
+  it('returns empty facets for anything else', () => {
+    expect(parseThreatIntelFacets(null)).toEqual({ chains: [], attackTypes: [] });
+    expect(parseThreatIntelFacets([])).toEqual({ chains: [], attackTypes: [] });
+    expect(parseThreatIntelFacets({ chains: 'ethereum' })).toEqual({ chains: [], attackTypes: [] });
+  });
+});
+```
+
+In `src/utils/__tests__/newsCache.test.ts`:
+
+Before:
+```ts
+  it('produces different keys for the Web3 and all-news scopes', () => {
+    expect(buildFilterKey({ scope: 'web3-incidents' })).not.toBe(buildFilterKey({ scope: 'all' }));
+  });
+```
+After:
+```ts
+  it('produces different keys for the Web3 and all-news scopes', () => {
+    expect(buildFilterKey({ scope: 'web3-incidents' })).not.toBe(buildFilterKey({ scope: 'all' }));
+  });
+
+  it('keys on the incident filters, ignoring list order', () => {
+    const base = buildFilterKey({ scope: 'web3-incidents' });
+    expect(buildFilterKey({ scope: 'web3-incidents', verification: 'confirmed' })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', chains: ['ethereum'] })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', attackTypes: ['phishing'] })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', sources: ['slowmist'] })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', chains: ['bsc', 'ethereum'] }))
+      .toBe(buildFilterKey({ scope: 'web3-incidents', chains: ['ethereum', 'bsc'] }));
+  });
+```
+
+- [ ] **Step 3: Run the tests to see them fail**
+
+Run: `rtk proxy npx vitest run src/utils/__tests__/threatIntelQuery.test.ts src/utils/__tests__/newsCache.test.ts`
+
+Expected: FAIL, `Tests  19 failed | 33 passed (52)`. The new helpers fail with `TypeError: normalizeFacetValue is not a function` (and the same for `sourceFiltersForScope`, `withListParam`, `withScopeParam`, `buildIncidentPostgrestFilters`, `parseThreatIntelFacets`). The two `parseThreatIntelFilters` tests fail with `expected { scope: 'web3-incidents', …(7) } to deeply equal { scope: 'web3-incidents', …(11) }`, and the cache test with `not to be` on identical keys.
+
+- [ ] **Step 4: Implement the query helpers and the cache key**
+
+In `src/lib/threatIntel/query.ts`:
+
+Import `DEFAULT_SCOPE` (used by `withScopeParam`):
+
+Before:
+```ts
+import { NEWS_CATEGORIES, SEVERITY_LEVELS, parseListParam, parseScope } from '@/lib/threatIntel/taxonomy';
+```
+After:
+```ts
+import { DEFAULT_SCOPE, NEWS_CATEGORIES, SEVERITY_LEVELS, parseListParam, parseScope } from '@/lib/threatIntel/taxonomy';
+```
+
+Constants and the value rule:
+
+Before:
+```ts
+export const ALERT_SEVERITIES: readonly SeverityLevel[] = ['critical', 'high'];
+```
+After:
+```ts
+export const ALERT_SEVERITIES: readonly SeverityLevel[] = ['critical', 'high'];
+
+/** ?status= values. The words are the ones the methodology page and badges use. */
+export const VERIFICATION_FILTERS = ['all', 'confirmed', 'unconfirmed'] as const;
+export type VerificationFilter = (typeof VERIFICATION_FILTERS)[number];
+
+/** ?source= values: one per ingestion provider, plus 'rss' for publisher feeds. */
+export const SOURCE_FILTERS = ['quillmonitor', 'web3-incidents', 'slowmist', 'rss'] as const;
+export type SourceFilter = (typeof SOURCE_FILTERS)[number];
+
+/** Publisher RSS items are never Web3 incidents, so the Web3 view does not offer them. */
+const WEB3_SCOPE_SOURCES: readonly SourceFilter[] = ['quillmonitor', 'web3-incidents', 'slowmist'];
+
+/** metadata.verification_status written by the QuillMonitor importer. */
+const VERIFICATION_STATUS: Record<Exclude<VerificationFilter, 'all'>, 'verified' | 'unverified'> = {
+  confirmed: 'verified',
+  unconfirmed: 'unverified',
+};
+
+/** Longest chain or attack-type value accepted from the URL or the facets RPC. */
+export const MAX_FACET_VALUE_LENGTH = 64;
+/** Most values of one free-text filter (?chain=, ?attack=) that the URL may carry. */
+export const MAX_FACET_SELECTIONS = 10;
+/** threat_intel_facets returns at most this many values per facet. */
+export const MAX_FACET_OPTIONS = 15;
+
+// Letters, digits, spaces and . & ( ) + ' / -. Excluding , % _ * " and \ keeps
+// the PostgREST fallback filter (an exact ILIKE match) free of wildcards and
+// quoting problems. threat_intel_facets applies the same rule in SQL.
+const FACET_VALUE_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} .&()+'/-]*$/u;
+```
+
+The filter types:
+
+Before:
+```ts
+  sortBy: SortBy;
+  page: number;
+  pageSize: number;
+}
+
+/** The filters that decide which rows match (no paging or ordering). */
+export type ThreatIntelFilterInput = Pick<
+  ThreatIntelFilters,
+  'scope' | 'categories' | 'severities' | 'searchQuery' | 'dateFilter'
+>;
+```
+After:
+```ts
+  sortBy: SortBy;
+  page: number;
+  pageSize: number;
+  /** ?status=. Only the Web3 incidents view offers it; 'all' elsewhere. */
+  verification: VerificationFilter;
+  /** ?chain= (repeatable), lower-cased. Web3 incidents view only. */
+  chains: string[];
+  /** ?attack= (repeatable), lower-cased. Web3 incidents view only. */
+  attackTypes: string[];
+  /** ?source= (repeatable). */
+  sources: SourceFilter[];
+}
+
+/** The filters that decide which rows match (no paging or ordering). */
+export type ThreatIntelFilterInput = Pick<
+  ThreatIntelFilters,
+  | 'scope'
+  | 'categories'
+  | 'severities'
+  | 'searchQuery'
+  | 'dateFilter'
+  | 'verification'
+  | 'chains'
+  | 'attackTypes'
+  | 'sources'
+>;
+```
+
+The RPC argument type:
+
+Before:
+```ts
+  source_filter: string | null;
+  web3_incidents_only: boolean;
+}
+```
+After:
+```ts
+  source_filter: string | null;
+  web3_incidents_only: boolean;
+  // The four incident filters below are sent only when set. Leaving the keys
+  // out keeps every request valid against the previous RPC signatures, so the
+  // page keeps working if the frontend ships before migration 20261012090000.
+  /** 'verified' or 'unverified' (metadata.verification_status). */
+  verification_filter?: 'verified' | 'unverified';
+  /** Lower-cased metadata.chain values. */
+  chain_filter?: string[];
+  /** Lower-cased metadata.attack_type values. */
+  attack_type_filter?: string[];
+  provider_filter?: SourceFilter[];
+}
+```
+
+Parsing helpers, then the start of `parseThreatIntelFilters`:
+
+Before:
+```ts
+export function parseThreatIntelFilters(
+  params: URLSearchParams,
+  pageSize: number = DEFAULT_PAGE_SIZE,
+): ThreatIntelFilters {
+  const date = params.get('date') || '';
+  const page = Number.parseInt(params.get('page') || '1', 10);
+  return {
+    scope: parseScope(params.get('scope')),
+```
+After:
+```ts
+/** Trim and lower-case a chain or attack-type value; null when it is not acceptable. */
+export function normalizeFacetValue(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === '' || normalized.length > MAX_FACET_VALUE_LENGTH) return null;
+  return FACET_VALUE_PATTERN.test(normalized) ? normalized : null;
+}
+
+function parseFacetValues(values: readonly string[]): string[] {
+  const result: string[] = [];
+  for (const raw of values) {
+    const value = normalizeFacetValue(raw);
+    if (value && !result.includes(value)) result.push(value);
+    if (result.length === MAX_FACET_SELECTIONS) break;
+  }
+  return result;
+}
+
+/** The ?source= values the given view offers. */
+export function sourceFiltersForScope(scope: ThreatIntelScope): readonly SourceFilter[] {
+  return scope === 'web3-incidents' ? WEB3_SCOPE_SOURCES : SOURCE_FILTERS;
+}
+
+function parseSources(values: readonly string[], scope: ThreatIntelScope): SourceFilter[] {
+  const allowed: readonly string[] = sourceFiltersForScope(scope);
+  const result: SourceFilter[] = [];
+  // ?source=a&source=b is canonical; ?source=a,b is accepted for hand-written links.
+  for (const raw of values.flatMap((value) => value.split(','))) {
+    const value = raw.trim();
+    if (allowed.includes(value) && !result.includes(value as SourceFilter)) result.push(value as SourceFilter);
+  }
+  return result;
+}
+
+export function parseThreatIntelFilters(
+  params: URLSearchParams,
+  pageSize: number = DEFAULT_PAGE_SIZE,
+): ThreatIntelFilters {
+  const date = params.get('date') || '';
+  const page = Number.parseInt(params.get('page') || '1', 10);
+  const scope = parseScope(params.get('scope'));
+  // Status, chain and attack type are only shown in the Web3 incidents view.
+  // Dropping them elsewhere means a URL can never apply a filter the page hides.
+  const incidentView = scope === 'web3-incidents';
+  const status = params.get('status') || '';
+  return {
+    scope,
+```
+
+The end of `parseThreatIntelFilters`, plus the two URL writers:
+
+Before:
+```ts
+    page: positiveInteger(page, 1),
+    pageSize,
+  };
+}
+```
+After:
+```ts
+    page: positiveInteger(page, 1),
+    pageSize,
+    verification: incidentView && (VERIFICATION_FILTERS as readonly string[]).includes(status)
+      ? (status as VerificationFilter)
+      : 'all',
+    chains: incidentView ? parseFacetValues(params.getAll('chain')) : [],
+    attackTypes: incidentView ? parseFacetValues(params.getAll('attack')) : [],
+    sources: parseSources(params.getAll('source'), scope),
+  };
+}
+
+/** The URL keys of the repeatable incident filters. */
+export type IncidentListParam = 'chain' | 'attack' | 'source';
+
+/** A copy of `current` with `key` set to `values` (one entry each) and paging reset. */
+export function withListParam(
+  current: URLSearchParams,
+  key: IncidentListParam,
+  values: readonly string[],
+): URLSearchParams {
+  const next = new URLSearchParams(current);
+  next.delete(key);
+  next.delete('page');
+  for (const value of values) next.append(key, value);
+  return next;
+}
+
+/**
+ * A copy of `current` showing `scope`. Leaving the Web3 incidents view drops
+ * the filters only that view shows; entering it drops ?source=rss.
+ */
+export function withScopeParam(current: URLSearchParams, scope: ThreatIntelScope): URLSearchParams {
+  const next = new URLSearchParams(current);
+  next.delete('page');
+  if (scope === DEFAULT_SCOPE) next.delete('scope');
+  else next.set('scope', scope);
+  if (scope !== 'web3-incidents') {
+    ['status', 'chain', 'attack'].forEach((key) => next.delete(key));
+  }
+  const sources = parseSources(current.getAll('source'), scope);
+  next.delete('source');
+  for (const source of sources) next.append('source', source);
+  return next;
+}
+```
+
+RPC arguments (only set filters are sent):
+
+Before:
+```ts
+    source_filter: null,
+    web3_incidents_only: filters.scope === 'web3-incidents',
+  };
+}
+```
+After:
+```ts
+    source_filter: null,
+    web3_incidents_only: filters.scope === 'web3-incidents',
+    ...(filters.verification !== 'all'
+      ? { verification_filter: VERIFICATION_STATUS[filters.verification] }
+      : {}),
+    ...(filters.chains.length > 0 ? { chain_filter: [...filters.chains] } : {}),
+    ...(filters.attackTypes.length > 0 ? { attack_type_filter: [...filters.attackTypes] } : {}),
+    ...(filters.sources.length > 0 ? { provider_filter: [...filters.sources] } : {}),
+  };
+}
+```
+
+RPC routing and the PostgREST fallback filters:
+
+Before:
+```ts
+/**
+ * Plain newest-first browsing of all news stays on the indexed direct table
+ * query. Search, the Web3 scope, the Web3 umbrella category and severity sort
+ * need the RPC (ranking, metadata predicates, server-side ORDER BY).
+ */
+export function requiresThreatIntelRpc(
+  filters: Pick<ThreatIntelFilters, 'scope' | 'categories' | 'searchQuery' | 'sortBy'>,
+): boolean {
+  return filters.scope === 'web3-incidents'
+    || filters.categories.includes('web3-security')
+    || filters.searchQuery.trim() !== ''
+    || filters.sortBy === 'severity';
+}
+```
+After:
+```ts
+/**
+ * Plain newest-first browsing of all news stays on the indexed direct table
+ * query. Search, the Web3 scope, the Web3 umbrella category, severity sort and
+ * the incident filters (status, chain, attack type, source) need the RPC
+ * (ranking, metadata predicates, server-side ORDER BY).
+ */
+export function requiresThreatIntelRpc(
+  filters: Pick<
+    ThreatIntelFilters,
+    'scope' | 'categories' | 'searchQuery' | 'sortBy' | 'verification' | 'chains' | 'attackTypes' | 'sources'
+  >,
+): boolean {
+  return filters.scope === 'web3-incidents'
+    || filters.categories.includes('web3-security')
+    || filters.searchQuery.trim() !== ''
+    || filters.sortBy === 'severity'
+    || filters.verification !== 'all'
+    || filters.chains.length > 0
+    || filters.attackTypes.length > 0
+    || filters.sources.length > 0;
+}
+
+// PostgREST quoted value: backslash-escape backslashes and double quotes.
+function quotePostgrestValue(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+const PROVIDER_POSTGREST_CONDITIONS: Record<SourceFilter, string> = {
+  quillmonitor: 'metadata->>provider.eq.quillmonitor',
+  'web3-incidents': 'metadata->>provider.in.(web3-incidents,web3)',
+  slowmist: 'metadata->>provider.eq.slowmist',
+  rss: 'metadata->>provider.eq.rss,and(metadata->>provider.is.null,or(metadata->>is_web3_incident.is.null,metadata->>is_web3_incident.neq.true))',
+};
+
+/**
+ * The incident filters as PostgREST `.or()` arguments, one per filter, for the
+ * direct-table fallback when search_news_articles fails. Each mirrors the SQL
+ * predicate in migration 20261012090000. Chain and attack type use ILIKE
+ * without wildcards (normalizeFacetValue rejects % _ and *), which is an exact,
+ * case-insensitive match.
+ */
+export function buildIncidentPostgrestFilters(params: ThreatIntelFilterParams): string[] {
+  const filters: string[] = [];
+  if (params.verification_filter) {
+    filters.push(`metadata->>verification_status.eq.${params.verification_filter}`);
+  }
+  if (params.chain_filter?.length) {
+    filters.push(params.chain_filter.map((value) => `metadata->>chain.ilike.${quotePostgrestValue(value)}`).join(','));
+  }
+  if (params.attack_type_filter?.length) {
+    filters.push(params.attack_type_filter.map((value) => `metadata->>attack_type.ilike.${quotePostgrestValue(value)}`).join(','));
+  }
+  if (params.provider_filter?.length) {
+    filters.push(params.provider_filter.map((source) => PROVIDER_POSTGREST_CONDITIONS[source]).join(','));
+  }
+  return filters;
+}
+```
+
+Facet types and parser, directly above `parseThreatIntelStats` (they use the existing `toCount`):
+
+Before:
+```ts
+/** Validate the jsonb returned by threat_intel_stats. */
+```
+After:
+```ts
+export interface ThreatIntelFacet {
+  /** Lower-cased value, as used in the URL and the RPC filters. */
+  value: string;
+  /** Display text as stored by the source. */
+  label: string;
+  /** Matching incidents in the last 90 days. */
+  count: number;
+}
+
+export interface ThreatIntelFacets {
+  chains: ThreatIntelFacet[];
+  attackTypes: ThreatIntelFacet[];
+}
+
+export const EMPTY_THREAT_INTEL_FACETS: ThreatIntelFacets = Object.freeze({ chains: [], attackTypes: [] });
+
+function parseFacetList(value: unknown): ThreatIntelFacet[] {
+  if (!Array.isArray(value)) return [];
+  const result: ThreatIntelFacet[] = [];
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const record = entry as Record<string, unknown>;
+    const facetValue = normalizeFacetValue(record.value);
+    const count = toCount(record.count);
+    if (!facetValue || count === null || result.some((facet) => facet.value === facetValue)) continue;
+    const label = typeof record.label === 'string' && record.label.trim() !== ''
+      ? record.label.trim().slice(0, MAX_FACET_VALUE_LENGTH)
+      : facetValue;
+    result.push({ value: facetValue, label, count });
+    if (result.length === MAX_FACET_OPTIONS) break;
+  }
+  return result;
+}
+
+/** Validate the jsonb returned by threat_intel_facets. */
+export function parseThreatIntelFacets(value: unknown): ThreatIntelFacets {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return EMPTY_THREAT_INTEL_FACETS;
+  const record = value as Record<string, unknown>;
+  return {
+    chains: parseFacetList(record.chains),
+    attackTypes: parseFacetList(record.attack_types),
+  };
+}
+
+/** Validate the jsonb returned by threat_intel_stats. */
+```
+
+In `src/utils/newsCache.ts`:
+
+Before:
+```ts
+  source?: string;
+  page?: number;
+}
+```
+After:
+```ts
+  source?: string;
+  page?: number;
+  verification?: string;
+  chains?: readonly string[];
+  attackTypes?: readonly string[];
+  sources?: readonly string[];
+}
+```
+
+Before:
+```ts
+    src: opts.source ?? 'all',
+    p: opts.page ?? 1,
+  });
+```
+After:
+```ts
+    src: opts.source ?? 'all',
+    p: opts.page ?? 1,
+    v: opts.verification ?? 'all',
+    ch: opts.chains ? [...opts.chains].sort() : [],
+    at: opts.attackTypes ? [...opts.attackTypes].sort() : [],
+    pr: opts.sources ? [...opts.sources].sort() : [],
+  });
+```
+
+Old cache entries stop matching (their keys lack the new fields), which is a cache miss, not an error.
+
+- [ ] **Step 5: Run the tests to see them pass**
+
+Run: `rtk proxy npx vitest run src/utils/__tests__/threatIntelQuery.test.ts src/utils/__tests__/newsCache.test.ts`
+
+Expected: PASS, 36 + 16 tests.
+
+Do not run the full suite yet. Until Step 8, `useNewsArticles` does not pass the new fields, so `buildThreatIntelFilterParams` throws on `filters.chains.length` and the B hook tests hang on `isLoading`. Typecheck also reports `useNewsArticles.ts`, `News.tsx` and two test fixtures until Steps 8 and 13.
+
+- [ ] **Step 6: Write the failing hook tests**
+
+In `src/hooks/__tests__/useNewsArticles.test.tsx`, add three tests before the last one:
+
+Before:
+```tsx
+  it('keeps plain newest-first browsing of all news on the direct table query', async () => {
+```
+After:
+```tsx
+  it('sends the incident filters to the search, stats and count RPCs', async () => {
+    const { result } = renderHook(() => useNewsArticles({
+      view: 'web3-incidents',
+      verification: 'unconfirmed',
+      chains: ['ethereum'],
+      attackTypes: ['flash loan'],
+      sources: ['quillmonitor'],
+    }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const incidentArgs = {
+      verification_filter: 'unverified',
+      chain_filter: ['ethereum'],
+      attack_type_filter: ['flash loan'],
+      provider_filter: ['quillmonitor'],
+    };
+    expect(db.rpc).toHaveBeenCalledWith('search_news_articles', expect.objectContaining(incidentArgs));
+    expect(db.rpc).toHaveBeenCalledWith('threat_intel_stats', expect.objectContaining(incidentArgs));
+  });
+
+  it('routes a source filter in the all-news view through the RPC', async () => {
+    const { result } = renderHook(() => useNewsArticles({ view: 'all', sources: ['rss'] }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(db.rpc).toHaveBeenCalledWith('search_news_articles', expect.objectContaining({ provider_filter: ['rss'] }));
+  });
+
+  it('applies the incident filters on the direct-table fallback when the search RPC fails', async () => {
+    const chains: Array<Record<string, ReturnType<typeof vi.fn>>> = [];
+    db.from.mockImplementation(() => {
+      const chain = db.makeChain({ data: [row('a', 'critical', { verification_status: 'verified', chain: 'Ethereum' })], error: null });
+      chains.push(chain as Record<string, ReturnType<typeof vi.fn>>);
+      return chain;
+    });
+    db.rpc.mockImplementation(async (name: string) => {
+      if (name === 'threat_intel_stats') return { data: serverStats, error: null };
+      return { data: null, error: { message: 'Could not find the function public.search_news_articles' } };
+    });
+
+    const { result } = renderHook(() => useNewsArticles({
+      view: 'web3-incidents',
+      verification: 'confirmed',
+      chains: ['ethereum'],
+    }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const orCalls = chains.flatMap((chain) => chain.or.mock.calls.map((call) => call[0]));
+    expect(orCalls).toContain('metadata->>verification_status.eq.verified');
+    expect(orCalls).toContain('metadata->>chain.ilike."ethereum"');
+    expect(result.current.articles.map((article) => article.id)).toEqual(['a']);
+  });
+
+  it('keeps plain newest-first browsing of all news on the direct table query', async () => {
+```
+
+In `src/hooks/__tests__/useThreatIntelAlerts.test.tsx`, complete the fixture:
+
+Before:
+```tsx
+  searchQuery: '',
+  dateFilter: 'all',
+};
+```
+After:
+```tsx
+  searchQuery: '',
+  dateFilter: 'all',
+  verification: 'all',
+  chains: [],
+  attackTypes: [],
+  sources: [],
+};
+```
+
+and add an alerts test:
+
+Before:
+```tsx
+  it('reports an error when the alert query fails', async () => {
+```
+After:
+```tsx
+  it('applies the status, chain, attack-type and source filters to alerts', async () => {
+    const { result } = renderHook(() => useThreatIntelAlerts({
+      filters: { ...filters, verification: 'confirmed', chains: ['ethereum'], attackTypes: ['phishing'], sources: ['quillmonitor'] },
+      page: 1,
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const incidentArgs = {
+      verification_filter: 'verified',
+      chain_filter: ['ethereum'],
+      attack_type_filter: ['phishing'],
+      provider_filter: ['quillmonitor'],
+    };
+    expect(db.rpc).toHaveBeenCalledWith('search_news_articles', expect.objectContaining(incidentArgs));
+    expect(db.rpc).toHaveBeenCalledWith('threat_intel_stats', expect.objectContaining(incidentArgs));
+  });
+
+  it('reports an error when the alert query fails', async () => {
+```
+
+Create `src/hooks/__tests__/useThreatIntelFacets.test.tsx`:
+
+```tsx
+// @vitest-environment jsdom
+
+import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useThreatIntelFacets } from '@/hooks/useThreatIntelFacets';
+
+const db = vi.hoisted(() => ({ rpc: vi.fn() }));
+
+vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc: db.rpc } }));
+
+describe('useThreatIntelFacets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.rpc.mockResolvedValue({
+      data: {
+        chains: [{ value: 'ethereum', label: 'Ethereum', count: 42 }],
+        attack_types: [{ value: 'phishing', label: 'Phishing', count: 9 }],
+      },
+      error: null,
+    });
+  });
+
+  afterEach(cleanup);
+
+  it('loads chain and attack-type options for the Web3 incidents view', async () => {
+    const { result } = renderHook(() => useThreatIntelFacets('web3-incidents'));
+
+    await waitFor(() => expect(result.current.chains).toHaveLength(1));
+    expect(db.rpc).toHaveBeenCalledWith('threat_intel_facets', { p_scope: 'web3-incidents' });
+    expect(result.current).toEqual({
+      chains: [{ value: 'ethereum', label: 'Ethereum', count: 42 }],
+      attackTypes: [{ value: 'phishing', label: 'Phishing', count: 9 }],
+    });
+  });
+
+  it('does not query in the all-news view', () => {
+    const { result } = renderHook(() => useThreatIntelFacets('all'));
+
+    expect(db.rpc).not.toHaveBeenCalled();
+    expect(result.current).toEqual({ chains: [], attackTypes: [] });
+  });
+
+  it('returns no options when the RPC fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    db.rpc.mockResolvedValue({ data: null, error: { message: 'function threat_intel_facets does not exist' } });
+
+    const { result } = renderHook(() => useThreatIntelFacets('web3-incidents'));
+
+    await waitFor(() => expect(warn).toHaveBeenCalled());
+    expect(result.current).toEqual({ chains: [], attackTypes: [] });
+    warn.mockRestore();
+  });
+});
+```
+
+- [ ] **Step 7: Run the tests to see them fail**
+
+Run: `rtk proxy npx vitest run src/hooks/__tests__/useNewsArticles.test.tsx src/hooks/__tests__/useThreatIntelAlerts.test.tsx src/hooks/__tests__/useThreatIntelFacets.test.tsx`
+
+Expected: FAIL. `useThreatIntelFacets.test.tsx` reports `Failed to resolve import "@/hooks/useThreatIntelFacets"`. All six `useNewsArticles` tests fail on `expected true to be false` (`isLoading` never clears, as explained in Step 5). The five `useThreatIntelAlerts` tests pass: the hook needs no change, and the new test is a guard.
+
+- [ ] **Step 8: Wire the hook, add the facets hook and the RPC types**
+
+In `src/hooks/useNewsArticles.ts`:
+
+Before:
+```ts
+import {
+  buildThreatIntelFilterParams,
+  buildThreatIntelQueryParams,
+```
+After:
+```ts
+import {
+  buildIncidentPostgrestFilters,
+  buildThreatIntelFilterParams,
+  buildThreatIntelQueryParams,
+```
+
+Before:
+```ts
+  requiresThreatIntelRpc,
+  type DateFilter,
+  type SortBy,
+```
+After:
+```ts
+  requiresThreatIntelRpc,
+  type DateFilter,
+  type SortBy,
+  type SourceFilter,
+```
+
+Before:
+```ts
+  type ThreatIntelStats,
+} from '@/lib/threatIntel/query';
+```
+After:
+```ts
+  type ThreatIntelStats,
+  type VerificationFilter,
+} from '@/lib/threatIntel/query';
+```
+
+Options:
+
+Before:
+```ts
+  view?: ThreatIntelScope;
+  page?: number;
+  pageSize?: number;
+}
+```
+After:
+```ts
+  view?: ThreatIntelScope;
+  page?: number;
+  pageSize?: number;
+  verification?: VerificationFilter;
+  chains?: string[];
+  attackTypes?: string[];
+  sources?: SourceFilter[];
+}
+```
+
+Cache input (`toCacheInput`):
+
+Before:
+```ts
+    sortBy: filters.sortBy,
+    page: filters.page,
+  };
+}
+```
+After:
+```ts
+    sortBy: filters.sortBy,
+    page: filters.page,
+    verification: filters.verification,
+    chains: filters.chains,
+    attackTypes: filters.attackTypes,
+    sources: filters.sources,
+  };
+}
+```
+
+Defaults:
+
+Before:
+```ts
+    pageSize = DEFAULT_PAGE_SIZE,
+    view = DEFAULT_SCOPE,
+  } = options;
+```
+After:
+```ts
+    pageSize = DEFAULT_PAGE_SIZE,
+    view = DEFAULT_SCOPE,
+    verification = 'all',
+    chains,
+    attackTypes,
+    sources,
+  } = options;
+```
+
+Filter memo, keyed on contents like the category and severity keys:
+
+Before:
+```ts
+  const severitiesKey = (severities ?? []).join(',');
+  const filters = useMemo<ThreatIntelFilters>(() => ({
+    scope: view,
+    categories: categoriesKey ? (categoriesKey.split(',') as NewsCategory[]) : [],
+    severities: severitiesKey ? (severitiesKey.split(',') as SeverityLevel[]) : [],
+    searchQuery,
+    dateFilter,
+    sortBy,
+    page,
+    pageSize,
+  }), [view, categoriesKey, severitiesKey, searchQuery, dateFilter, sortBy, page, pageSize]);
+```
+After:
+```ts
+  const severitiesKey = (severities ?? []).join(',');
+  // Chain and attack-type values may contain spaces, so key them as JSON.
+  const incidentKey = JSON.stringify([chains ?? [], attackTypes ?? [], sources ?? []]);
+  const filters = useMemo<ThreatIntelFilters>(() => {
+    const [chainList, attackList, sourceList] = JSON.parse(incidentKey) as [string[], string[], SourceFilter[]];
+    return {
+      scope: view,
+      categories: categoriesKey ? (categoriesKey.split(',') as NewsCategory[]) : [],
+      severities: severitiesKey ? (severitiesKey.split(',') as SeverityLevel[]) : [],
+      searchQuery,
+      dateFilter,
+      sortBy,
+      page,
+      pageSize,
+      verification,
+      chains: chainList,
+      attackTypes: attackList,
+      sources: sourceList,
+    };
+  }, [view, categoriesKey, severitiesKey, searchQuery, dateFilter, sortBy, page, pageSize, verification, incidentKey]);
+```
+
+Direct-table fallback (inside `if (fetchError) {`). This is the only place the filters are applied without the RPC; the primary direct query never sees them because `requiresThreatIntelRpc` sends every filtered request to the RPC:
+
+Before:
+```ts
+        if (filterParams.web3_incidents_only) query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
+```
+After:
+```ts
+        if (filterParams.web3_incidents_only) query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
+        for (const incidentFilter of buildIncidentPostgrestFilters(filterParams)) {
+          query = query.or(incidentFilter);
+        }
+```
+
+Create `src/hooks/useThreatIntelFacets.ts`:
+
+```ts
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { ThreatIntelScope } from '@/types/news';
+import {
+  EMPTY_THREAT_INTEL_FACETS,
+  parseThreatIntelFacets,
+  type ThreatIntelFacets,
+} from '@/lib/threatIntel/query';
+
+/**
+ * Chain and attack-type options for the Web3 incidents view: the most common
+ * values in the last 90 days (threat_intel_facets). The list does not follow
+ * the other filters, so picking a chain never hides the other chains. Other
+ * views get no options because they do not show these filters.
+ */
+export function useThreatIntelFacets(scope: ThreatIntelScope): ThreatIntelFacets {
+  const [facets, setFacets] = useState<ThreatIntelFacets>(EMPTY_THREAT_INTEL_FACETS);
+
+  useEffect(() => {
+    if (scope !== 'web3-incidents') {
+      setFacets(EMPTY_THREAT_INTEL_FACETS);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('threat_intel_facets', { p_scope: scope });
+        if (cancelled) return;
+        if (error) {
+          console.warn('Unable to load threat-intel filter options:', error);
+          setFacets(EMPTY_THREAT_INTEL_FACETS);
+          return;
+        }
+        setFacets(parseThreatIntelFacets(data));
+      } catch (facetsError) {
+        if (cancelled) return;
+        console.warn('Unable to load threat-intel filter options:', facetsError);
+        setFacets(EMPTY_THREAT_INTEL_FACETS);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [scope]);
+
+  return facets;
+}
+```
+
+In `src/integrations/supabase/types.ts` (hand edit, as B did; the generator would emit the same shapes):
+
+Before:
+```ts
+      count_news_articles: {
+        Args: {
+          category_filter?: string[]
+          date_from?: string
+          search_query?: string
+          severity_filter?: string[]
+          source_filter?: string
+          web3_incidents_only?: boolean
+        }
+        Returns: number
+      }
+```
+After:
+```ts
+      count_news_articles: {
+        Args: {
+          attack_type_filter?: string[]
+          category_filter?: string[]
+          chain_filter?: string[]
+          date_from?: string
+          provider_filter?: string[]
+          search_query?: string
+          severity_filter?: string[]
+          source_filter?: string
+          verification_filter?: string
+          web3_incidents_only?: boolean
+        }
+        Returns: number
+      }
+```
+
+Before:
+```ts
+      search_news_articles: {
+        Args: {
+          category_filter?: string[]
+          date_from?: string
+          result_limit?: number
+          result_offset?: number
+          search_query?: string
+          severity_filter?: string[]
+          sort_by?: string
+          source_filter?: string
+          web3_incidents_only?: boolean
+        }
+        Returns: {
+          affected_technologies: string[]
+          author: string
+          category: string
+          content: string
+          cve_id: string
+```
+After:
+```ts
+      search_news_articles: {
+        Args: {
+          attack_type_filter?: string[]
+          category_filter?: string[]
+          chain_filter?: string[]
+          date_from?: string
+          provider_filter?: string[]
+          result_limit?: number
+          result_offset?: number
+          search_query?: string
+          severity_filter?: string[]
+          sort_by?: string
+          source_filter?: string
+          verification_filter?: string
+          web3_incidents_only?: boolean
+        }
+        Returns: {
+          affected_technologies: string[]
+          author: string
+          category: string
+          content: string
+          created_at: string
+          cve_id: string
+```
+
+Before:
+```ts
+      threat_intel_stats: {
+        Args: {
+          category_filter?: string[]
+          date_from?: string
+          search_query?: string
+          severity_filter?: string[]
+          source_filter?: string
+          web3_incidents_only?: boolean
+        }
+        Returns: Json
+      }
+```
+After:
+```ts
+      threat_intel_facets: {
+        Args: { p_scope?: string; p_since?: string }
+        Returns: Json
+      }
+      threat_intel_stats: {
+        Args: {
+          attack_type_filter?: string[]
+          category_filter?: string[]
+          chain_filter?: string[]
+          date_from?: string
+          provider_filter?: string[]
+          search_query?: string
+          severity_filter?: string[]
+          source_filter?: string
+          verification_filter?: string
+          web3_incidents_only?: boolean
+        }
+        Returns: Json
+      }
+```
+
+- [ ] **Step 9: Run the tests to see them pass**
+
+Run: `rtk proxy npx vitest run src/hooks/__tests__/useNewsArticles.test.tsx src/hooks/__tests__/useThreatIntelAlerts.test.tsx src/hooks/__tests__/useThreatIntelFacets.test.tsx`
+
+Expected: PASS, 6 + 5 + 3 tests.
+
+- [ ] **Step 10: Add the migration**
+
+Create `supabase/migrations/20261012090000_threat_intel_incident_filters.sql`:
+
+```sql
+-- Threat Intel page: status, chain, attack-type and source filters (spec 7.2).
+--
+-- 1. search_news_articles, count_news_articles and threat_intel_stats gain four
+--    optional arguments, all DEFAULT NULL:
+--      verification_filter text      metadata.verification_status ('verified' | 'unverified')
+--      chain_filter        text[]    lower(btrim(metadata.chain)) values
+--      attack_type_filter  text[]    lower(btrim(metadata.attack_type)) values
+--      provider_filter     text[]    'quillmonitor' | 'web3-incidents' | 'slowmist' | 'rss'
+--    'web3-incidents' also matches the legacy provider value 'web3'. 'rss'
+--    matches provider 'rss' and rows with no provider that are not Web3
+--    incidents (rows written before fetch-rss-news set a provider).
+--    NULL or an empty array means "no filter".
+-- 2. search_news_articles also returns created_at, so cards and incident pages
+--    loaded through the RPC show the date Digibastion added the record.
+-- 3. New threat_intel_facets(p_scope, p_since): the 15 most common chains and
+--    attack types in the scope over the last 90 days, for the filter chips.
+--
+-- The WHERE clause is identical in search/count/stats (marked
+-- THREAT_INTEL_FILTER_PREDICATE). It is migration 20261011090000's predicate
+-- plus the four incident filters. Change all three together.
+--
+-- The frontend only sends the new arguments when a filter is set, so it works
+-- against both the 20261011090000 signatures and these.
+
+-- Adding arguments creates a new overload, and PostgREST cannot choose between
+-- two overloads whose arguments all have defaults (PGRST203). Drop the
+-- previous signatures (and, defensively, every older one) before creating the
+-- new ones.
+DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timestamptz, integer, integer);
+DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text);
+DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text, boolean);
+DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text, boolean, text);
+DROP FUNCTION IF EXISTS public.count_news_articles(text, text[], text[], timestamptz);
+DROP FUNCTION IF EXISTS public.count_news_articles(text, text[], text[], timestamptz, text);
+DROP FUNCTION IF EXISTS public.count_news_articles(text, text[], text[], timestamptz, text, boolean);
+DROP FUNCTION IF EXISTS public.threat_intel_stats(text, text[], text[], timestamptz, text, boolean);
+
+CREATE FUNCTION public.search_news_articles(
+  search_query text DEFAULT NULL,
+  category_filter text[] DEFAULT NULL,
+  severity_filter text[] DEFAULT NULL,
+  date_from timestamptz DEFAULT NULL,
+  result_limit integer DEFAULT 100,
+  result_offset integer DEFAULT 0,
+  source_filter text DEFAULT NULL,
+  web3_incidents_only boolean DEFAULT false,
+  sort_by text DEFAULT 'date',
+  verification_filter text DEFAULT NULL,
+  chain_filter text[] DEFAULT NULL,
+  attack_type_filter text[] DEFAULT NULL,
+  provider_filter text[] DEFAULT NULL
+)
+RETURNS TABLE(
+  id uuid, title text, summary text, content text, category text, severity text,
+  tags text[], affected_technologies text[], link text, source_url text,
+  source_name text, author text, cve_id text, published_at timestamptz,
+  created_at timestamptz, is_processed boolean, metadata jsonb, rank real
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  tsquery_val tsquery;
+BEGIN
+  IF search_query IS NOT NULL AND search_query != '' THEN
+    tsquery_val := plainto_tsquery('english', search_query);
+  END IF;
+
+  RETURN QUERY
+  SELECT na.id, na.title, na.summary, na.content, na.category, na.severity,
+    na.tags, na.affected_technologies, na.link, na.source_url, na.source_name,
+    na.author, na.cve_id, na.published_at, na.created_at, na.is_processed, na.metadata,
+    CASE WHEN tsquery_val IS NOT NULL THEN ts_rank(na.search_vector, tsquery_val) ELSE 0.0 END
+  FROM public.news_articles na
+  -- THREAT_INTEL_FILTER_PREDICATE (keep identical in search/count/stats)
+  WHERE (tsquery_val IS NULL OR na.search_vector @@ tsquery_val)
+    AND coalesce(na.metadata->>'classification_relevant', 'true') != 'false'
+    AND na.metadata->>'duplicate_of_uid' IS NULL
+    AND (
+      category_filter IS NULL
+      OR na.category = ANY(array_remove(category_filter, 'web3-security'))
+      OR (
+        'web3-security' = ANY(category_filter)
+        AND (
+          na.metadata->>'security_domain' = 'web3'
+          OR (
+            na.metadata->>'security_domain' IS NULL
+            AND (
+              na.category IN ('web3-security', 'defi-exploits')
+              OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+              OR na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+            )
+          )
+        )
+      )
+    )
+    AND (severity_filter IS NULL OR na.severity = ANY(severity_filter))
+    AND (date_from IS NULL OR na.published_at >= date_from)
+    AND (source_filter IS NULL OR na.source_name = source_filter)
+    AND (
+      NOT web3_incidents_only
+      OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+      OR (
+        na.metadata->>'is_web3_incident' IS NULL
+        AND na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+      )
+    )
+    AND (verification_filter IS NULL OR na.metadata->>'verification_status' = verification_filter)
+    AND (
+      chain_filter IS NULL
+      OR cardinality(chain_filter) = 0
+      OR lower(btrim(na.metadata->>'chain')) = ANY(chain_filter)
+    )
+    AND (
+      attack_type_filter IS NULL
+      OR cardinality(attack_type_filter) = 0
+      OR lower(btrim(na.metadata->>'attack_type')) = ANY(attack_type_filter)
+    )
+    AND (
+      provider_filter IS NULL
+      OR cardinality(provider_filter) = 0
+      OR ('quillmonitor' = ANY(provider_filter) AND na.metadata->>'provider' = 'quillmonitor')
+      OR ('web3-incidents' = ANY(provider_filter) AND na.metadata->>'provider' IN ('web3-incidents', 'web3'))
+      OR ('slowmist' = ANY(provider_filter) AND na.metadata->>'provider' = 'slowmist')
+      OR (
+        'rss' = ANY(provider_filter)
+        AND (
+          na.metadata->>'provider' = 'rss'
+          OR (
+            na.metadata->>'provider' IS NULL
+            AND coalesce(na.metadata->>'is_web3_incident', 'false') != 'true'
+          )
+        )
+      )
+    )
+  ORDER BY
+    -- Rank order mirrors SEVERITY_STYLES[*].rank in src/lib/threatIntel/taxonomy.ts.
+    CASE WHEN sort_by = 'severity' THEN
+      CASE na.severity
+        WHEN 'critical' THEN 0
+        WHEN 'high' THEN 1
+        WHEN 'medium' THEN 2
+        WHEN 'low' THEN 3
+        ELSE 4
+      END
+    ELSE 0 END,
+    CASE WHEN tsquery_val IS NOT NULL THEN ts_rank(na.search_vector, tsquery_val) ELSE 0 END DESC,
+    na.published_at DESC,
+    na.id DESC
+  LIMIT greatest(1, least(result_limit, 100))
+  OFFSET greatest(result_offset, 0);
+END;
+$function$;
+
+CREATE FUNCTION public.count_news_articles(
+  search_query text DEFAULT NULL,
+  category_filter text[] DEFAULT NULL,
+  severity_filter text[] DEFAULT NULL,
+  date_from timestamptz DEFAULT NULL,
+  source_filter text DEFAULT NULL,
+  web3_incidents_only boolean DEFAULT false,
+  verification_filter text DEFAULT NULL,
+  chain_filter text[] DEFAULT NULL,
+  attack_type_filter text[] DEFAULT NULL,
+  provider_filter text[] DEFAULT NULL
+)
+RETURNS bigint
+LANGUAGE plpgsql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  tsquery_val tsquery;
+  total_count bigint;
+BEGIN
+  IF search_query IS NOT NULL AND search_query != '' THEN
+    tsquery_val := plainto_tsquery('english', search_query);
+  END IF;
+
+  SELECT count(*) INTO total_count
+  FROM public.news_articles na
+  -- THREAT_INTEL_FILTER_PREDICATE (keep identical in search/count/stats)
+  WHERE (tsquery_val IS NULL OR na.search_vector @@ tsquery_val)
+    AND coalesce(na.metadata->>'classification_relevant', 'true') != 'false'
+    AND na.metadata->>'duplicate_of_uid' IS NULL
+    AND (
+      category_filter IS NULL
+      OR na.category = ANY(array_remove(category_filter, 'web3-security'))
+      OR (
+        'web3-security' = ANY(category_filter)
+        AND (
+          na.metadata->>'security_domain' = 'web3'
+          OR (
+            na.metadata->>'security_domain' IS NULL
+            AND (
+              na.category IN ('web3-security', 'defi-exploits')
+              OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+              OR na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+            )
+          )
+        )
+      )
+    )
+    AND (severity_filter IS NULL OR na.severity = ANY(severity_filter))
+    AND (date_from IS NULL OR na.published_at >= date_from)
+    AND (source_filter IS NULL OR na.source_name = source_filter)
+    AND (
+      NOT web3_incidents_only
+      OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+      OR (
+        na.metadata->>'is_web3_incident' IS NULL
+        AND na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+      )
+    )
+    AND (verification_filter IS NULL OR na.metadata->>'verification_status' = verification_filter)
+    AND (
+      chain_filter IS NULL
+      OR cardinality(chain_filter) = 0
+      OR lower(btrim(na.metadata->>'chain')) = ANY(chain_filter)
+    )
+    AND (
+      attack_type_filter IS NULL
+      OR cardinality(attack_type_filter) = 0
+      OR lower(btrim(na.metadata->>'attack_type')) = ANY(attack_type_filter)
+    )
+    AND (
+      provider_filter IS NULL
+      OR cardinality(provider_filter) = 0
+      OR ('quillmonitor' = ANY(provider_filter) AND na.metadata->>'provider' = 'quillmonitor')
+      OR ('web3-incidents' = ANY(provider_filter) AND na.metadata->>'provider' IN ('web3-incidents', 'web3'))
+      OR ('slowmist' = ANY(provider_filter) AND na.metadata->>'provider' = 'slowmist')
+      OR (
+        'rss' = ANY(provider_filter)
+        AND (
+          na.metadata->>'provider' = 'rss'
+          OR (
+            na.metadata->>'provider' IS NULL
+            AND coalesce(na.metadata->>'is_web3_incident', 'false') != 'true'
+          )
+        )
+      )
+    );
+
+  RETURN total_count;
+END;
+$function$;
+
+CREATE FUNCTION public.threat_intel_stats(
+  search_query text DEFAULT NULL,
+  category_filter text[] DEFAULT NULL,
+  severity_filter text[] DEFAULT NULL,
+  date_from timestamptz DEFAULT NULL,
+  source_filter text DEFAULT NULL,
+  web3_incidents_only boolean DEFAULT false,
+  verification_filter text DEFAULT NULL,
+  chain_filter text[] DEFAULT NULL,
+  attack_type_filter text[] DEFAULT NULL,
+  provider_filter text[] DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  tsquery_val tsquery;
+  result jsonb;
+BEGIN
+  IF search_query IS NOT NULL AND search_query != '' THEN
+    tsquery_val := plainto_tsquery('english', search_query);
+  END IF;
+
+  SELECT jsonb_build_object(
+    'total', count(*),
+    'critical', count(*) FILTER (WHERE na.severity = 'critical'),
+    'high', count(*) FILTER (WHERE na.severity = 'high'),
+    'medium', count(*) FILTER (WHERE na.severity = 'medium'),
+    'low', count(*) FILTER (WHERE na.severity = 'low'),
+    -- The frontend maps unknown severities to 'info' (mapNewsArticleRow), so count them here too.
+    'info', count(*) FILTER (WHERE na.severity IS NULL OR na.severity NOT IN ('critical', 'high', 'medium', 'low')),
+    'supply_chain', count(*) FILTER (WHERE na.category = 'supply-chain'),
+    'unconfirmed', count(*) FILTER (WHERE na.metadata->>'verification_status' = 'unverified')
+  )
+  INTO result
+  FROM public.news_articles na
+  -- THREAT_INTEL_FILTER_PREDICATE (keep identical in search/count/stats)
+  WHERE (tsquery_val IS NULL OR na.search_vector @@ tsquery_val)
+    AND coalesce(na.metadata->>'classification_relevant', 'true') != 'false'
+    AND na.metadata->>'duplicate_of_uid' IS NULL
+    AND (
+      category_filter IS NULL
+      OR na.category = ANY(array_remove(category_filter, 'web3-security'))
+      OR (
+        'web3-security' = ANY(category_filter)
+        AND (
+          na.metadata->>'security_domain' = 'web3'
+          OR (
+            na.metadata->>'security_domain' IS NULL
+            AND (
+              na.category IN ('web3-security', 'defi-exploits')
+              OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+              OR na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+            )
+          )
+        )
+      )
+    )
+    AND (severity_filter IS NULL OR na.severity = ANY(severity_filter))
+    AND (date_from IS NULL OR na.published_at >= date_from)
+    AND (source_filter IS NULL OR na.source_name = source_filter)
+    AND (
+      NOT web3_incidents_only
+      OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+      OR (
+        na.metadata->>'is_web3_incident' IS NULL
+        AND na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+      )
+    )
+    AND (verification_filter IS NULL OR na.metadata->>'verification_status' = verification_filter)
+    AND (
+      chain_filter IS NULL
+      OR cardinality(chain_filter) = 0
+      OR lower(btrim(na.metadata->>'chain')) = ANY(chain_filter)
+    )
+    AND (
+      attack_type_filter IS NULL
+      OR cardinality(attack_type_filter) = 0
+      OR lower(btrim(na.metadata->>'attack_type')) = ANY(attack_type_filter)
+    )
+    AND (
+      provider_filter IS NULL
+      OR cardinality(provider_filter) = 0
+      OR ('quillmonitor' = ANY(provider_filter) AND na.metadata->>'provider' = 'quillmonitor')
+      OR ('web3-incidents' = ANY(provider_filter) AND na.metadata->>'provider' IN ('web3-incidents', 'web3'))
+      OR ('slowmist' = ANY(provider_filter) AND na.metadata->>'provider' = 'slowmist')
+      OR (
+        'rss' = ANY(provider_filter)
+        AND (
+          na.metadata->>'provider' = 'rss'
+          OR (
+            na.metadata->>'provider' IS NULL
+            AND coalesce(na.metadata->>'is_web3_incident', 'false') != 'true'
+          )
+        )
+      )
+    );
+
+  RETURN result;
+END;
+$function$;
+
+-- Filter chips. Counts cover the scope over the window (default 90 days, at
+-- most 365) and ignore the other filters, so selecting a chain never hides
+-- the remaining chains. Values use the same rule as normalizeFacetValue() in
+-- src/lib/threatIntel/query.ts: trimmed, lower-cased, at most 64 characters,
+-- letters, digits, spaces and . & ( ) + ' / - only. Values outside that rule
+-- are not offered as filters.
+CREATE OR REPLACE FUNCTION public.threat_intel_facets(
+  p_scope text DEFAULT 'web3-incidents',
+  p_since timestamptz DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public'
+AS $function$
+  WITH scoped AS (
+    SELECT na.metadata
+    FROM public.news_articles na
+    WHERE na.published_at >= greatest(
+        coalesce(p_since, now() - interval '90 days'),
+        now() - interval '365 days'
+      )
+      AND coalesce(na.metadata->>'classification_relevant', 'true') != 'false'
+      AND na.metadata->>'duplicate_of_uid' IS NULL
+      AND (
+        p_scope IS DISTINCT FROM 'web3-incidents'
+        OR coalesce(na.metadata->>'is_web3_incident', 'false') = 'true'
+        OR (
+          na.metadata->>'is_web3_incident' IS NULL
+          AND na.metadata->>'provider' IN ('quillmonitor', 'web3-incidents', 'web3')
+        )
+      )
+  ),
+  facet_values AS (
+    SELECT 'chain' AS facet, btrim(metadata->>'chain') AS raw_value FROM scoped
+    UNION ALL
+    SELECT 'attack_type' AS facet, btrim(metadata->>'attack_type') AS raw_value FROM scoped
+  ),
+  counted AS (
+    SELECT facet, lower(raw_value) AS value, min(raw_value) AS label, count(*) AS n
+    FROM facet_values
+    WHERE raw_value IS NOT NULL
+      AND char_length(raw_value) BETWEEN 1 AND 64
+      AND raw_value ~ '^[[:alnum:]][[:alnum:] .&()+''/-]*$'
+    GROUP BY facet, lower(raw_value)
+  ),
+  ranked AS (
+    SELECT counted.*, row_number() OVER (PARTITION BY facet ORDER BY n DESC, value) AS position
+    FROM counted
+  )
+  SELECT jsonb_build_object(
+    'chains', coalesce(
+      (SELECT jsonb_agg(jsonb_build_object('value', value, 'label', label, 'count', n) ORDER BY position)
+       FROM ranked WHERE facet = 'chain' AND position <= 15),
+      '[]'::jsonb
+    ),
+    'attack_types', coalesce(
+      (SELECT jsonb_agg(jsonb_build_object('value', value, 'label', label, 'count', n) ORDER BY position)
+       FROM ranked WHERE facet = 'attack_type' AND position <= 15),
+      '[]'::jsonb
+    )
+  );
+$function$;
+
+COMMENT ON FUNCTION public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text, boolean, text, text, text[], text[], text[]) IS
+  'Public Threat Intel feed page. sort_by: date (default) or severity. Optional status, chain, attack-type and provider filters. Excludes classifier rejections and merged duplicates.';
+COMMENT ON FUNCTION public.threat_intel_stats(text, text[], text[], timestamptz, text, boolean, text, text[], text[], text[]) IS
+  'Whole-result counts for the Threat Intel stat tiles. Same filters and predicate as search_news_articles.';
+COMMENT ON FUNCTION public.threat_intel_facets(text, timestamptz) IS
+  'Top 15 chains and attack types (value, label, count) for the Threat Intel filter chips. Scope web3-incidents or all; default window 90 days.';
+
+-- The three filter functions were dropped and recreated, so grant explicitly,
+-- as migration 20261011090000 did.
+GRANT EXECUTE ON FUNCTION public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text, boolean, text, text, text[], text[], text[]) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.count_news_articles(text, text[], text[], timestamptz, text, boolean, text, text[], text[], text[]) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.threat_intel_stats(text, text[], text[], timestamptz, text, boolean, text, text[], text[], text[]) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.threat_intel_facets(text, timestamptz) TO anon, authenticated, service_role;
+
+-- Make PostgREST forget the dropped signatures immediately.
+NOTIFY pgrst, 'reload schema';
+```
+
+This SQL cannot be run locally. What to check by reading, and why it holds:
+
+- **Overloads.** `CREATE OR REPLACE` cannot add arguments; it would create a second overload next to B's, and PostgREST returns PGRST203 when two candidates accept the same named arguments. The file drops B's exact signatures (and every older one, `IF EXISTS`) first, creates the new ones with plain `CREATE FUNCTION` so a leftover overload fails loudly, and ends with `NOTIFY pgrst, 'reload schema'`.
+- **NULL handling.** `metadata->>'x'` returns NULL when the key is absent or JSON `null`. `lower(btrim(NULL)) = ANY(arr)` is NULL, so rows without a chain or attack type never match a chain or attack filter. In the provider predicate a NULL `metadata->>'provider'` makes the first three branches NULL and the `rss` branch true only when `is_web3_incident` is not `'true'`; `NULL OR true` is true, `NULL OR false` is NULL (row excluded). A NULL argument short-circuits each block to true (`x IS NULL OR …`); an empty array is treated the same through `cardinality(x) = 0`.
+- **Status.** The frontend sends `verified` / `unverified`, the stored values. Rows without `verification_status` (every non-QuillMonitor row) do not match either.
+- **Same rows everywhere.** The four new blocks are identical in search, count and stats, appended to B's predicate unchanged (duplicate and classifier exclusions included).
+- **`created_at`.** `search_news_articles` now returns `created_at`. B's version did not, so C1's "Added" date fell back to `published_at` for every row loaded through the RPC, which is every row in the Web3 view.
+- **Facets.** `LANGUAGE sql`, `STABLE`, `SECURITY INVOKER` like B's functions, so RLS on `news_articles` applies. `p_scope` other than `'web3-incidents'` (including NULL) means no scope restriction. The window is clamped to at most 365 days. The regex mirrors `normalizeFacetValue`; `''` inside the SQL literal is one `'`.
+- **Grants** match B: `anon, authenticated, service_role` on every recreated or new function.
+
+- [ ] **Step 11: Write the failing UI tests**
+
+Create `src/components/news/__tests__/IncidentFilters.test.tsx`:
+
+```tsx
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { IncidentFilters, type IncidentFilterState } from '@/components/news/IncidentFilters';
+import type { ThreatIntelFacets } from '@/lib/threatIntel/query';
+
+const facets: ThreatIntelFacets = {
+  chains: [
+    { value: 'ethereum', label: 'Ethereum', count: 42 },
+    { value: 'bsc', label: 'BSC', count: 7 },
+  ],
+  attackTypes: [{ value: 'phishing', label: 'Phishing', count: 9 }],
+};
+
+const noFilters: IncidentFilterState = { verification: 'all', chains: [], attackTypes: [], sources: [] };
+
+const renderFilters = (overrides: Partial<Parameters<typeof IncidentFilters>[0]> = {}) => {
+  const handlers = {
+    onVerificationChange: vi.fn(),
+    onChainToggle: vi.fn(),
+    onAttackTypeToggle: vi.fn(),
+    onSourceToggle: vi.fn(),
+  };
+  render(
+    <IncidentFilters
+      scope="web3-incidents"
+      filters={noFilters}
+      facets={facets}
+      idPrefix="test"
+      {...handlers}
+      {...overrides}
+    />,
+  );
+  return handlers;
+};
+
+describe('IncidentFilters', () => {
+  afterEach(cleanup);
+
+  it('shows status, chain, attack type and source in the Web3 incidents view', () => {
+    renderFilters({ filters: { ...noFilters, verification: 'confirmed', chains: ['ethereum'] } });
+
+    const status = screen.getByRole('group', { name: 'Status' });
+    expect(within(status).getByRole('button', { name: 'Confirmed' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(status).getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('false');
+    expect(status.getAttribute('aria-describedby')).toBe('test-status-help');
+    expect(screen.getByText('As reported by QuillMonitor. Other sources do not report a status.')).not.toBeNull();
+
+    const chain = screen.getByRole('group', { name: 'Chain' });
+    expect(within(chain).getByRole('button', { name: 'Ethereum' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(chain).getByRole('button', { name: 'BSC' }).getAttribute('title')).toBe('7 in the last 90 days');
+    expect(within(screen.getByRole('group', { name: 'Attack type' })).getByRole('button', { name: 'Phishing' })).not.toBeNull();
+
+    const source = screen.getByRole('group', { name: 'Source' });
+    expect(within(source).getAllByRole('button').map((button) => button.textContent))
+      .toEqual(['QuillMonitor', 'Web3 Is Going Just Great', 'SlowMist Hacked']);
+  });
+
+  it('reports the value the user picked', () => {
+    const handlers = renderFilters();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unconfirmed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BSC' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Phishing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'SlowMist Hacked' }));
+
+    expect(handlers.onVerificationChange).toHaveBeenCalledWith('unconfirmed');
+    expect(handlers.onChainToggle).toHaveBeenCalledWith('bsc');
+    expect(handlers.onAttackTypeToggle).toHaveBeenCalledWith('phishing');
+    expect(handlers.onSourceToggle).toHaveBeenCalledWith('slowmist');
+  });
+
+  it('keeps a selected chain that is not in the top list, so it can be removed', () => {
+    renderFilters({ filters: { ...noFilters, chains: ['sui'] } });
+
+    const chip = within(screen.getByRole('group', { name: 'Chain' })).getByRole('button', { name: 'sui' });
+    expect(chip.getAttribute('aria-pressed')).toBe('true');
+    expect(chip.getAttribute('title')).toBeNull();
+  });
+
+  it('hides chain and attack type when there are no options and nothing is selected', () => {
+    renderFilters({ facets: { chains: [], attackTypes: [] } });
+
+    expect(screen.queryByRole('group', { name: 'Chain' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Attack type' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Status' })).not.toBeNull();
+  });
+
+  it('shows only the source filter in the all-news view, including publisher feeds', () => {
+    renderFilters({ scope: 'all' });
+
+    expect(screen.queryByRole('group', { name: 'Status' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Chain' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Attack type' })).toBeNull();
+    expect(within(screen.getByRole('group', { name: 'Source' })).getByRole('button', { name: 'News publishers' })).not.toBeNull();
+  });
+});
+```
+
+In `src/pages/__tests__/News.hero.test.tsx`, import `waitFor`:
+
+Before:
+```tsx
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+```
+After:
+```tsx
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+```
+
+Mock the facets hook (the test's Supabase mock has no `rpc`):
+
+Before:
+```tsx
+vi.mock('@/components/mobile/SwipeableTabs', () => ({ SwipeableTabs: ({ children }: { children: React.ReactNode }) => children }));
+```
+After:
+```tsx
+vi.mock('@/components/mobile/SwipeableTabs', () => ({ SwipeableTabs: ({ children }: { children: React.ReactNode }) => children }));
+vi.mock('@/hooks/useThreatIntelFacets', () => ({
+  useThreatIntelFacets: () => ({
+    chains: [
+      { value: 'ethereum', label: 'Ethereum', count: 42 },
+      { value: 'bsc', label: 'BSC', count: 7 },
+    ],
+    attackTypes: [{ value: 'phishing', label: 'Phishing', count: 9 }],
+  }),
+}));
+```
+
+Add five tests at the end of the `describe` block, after the C5 test:
+
+Before:
+```tsx
+    expect(screen.getByRole('link', { name: 'sources and methodology' }).getAttribute('href'))
+      .toBe('/threat-intel/methodology');
+  });
+});
+```
+After:
+```tsx
+    expect(screen.getByRole('link', { name: 'sources and methodology' }).getAttribute('href'))
+      .toBe('/threat-intel/methodology');
+  });
+
+  it('counts the incident filters on the mobile trigger and shows them in the sheet', async () => {
+    renderAt('/threat-intel?status=confirmed&chain=ethereum&source=slowmist');
+
+    expect(useNewsArticlesMock).toHaveBeenLastCalledWith(expect.objectContaining({
+      verification: 'confirmed',
+      chains: ['ethereum'],
+      sources: ['slowmist'],
+    }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters (3)' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filter feed' });
+    expect(within(sheet).getByRole('button', { name: 'Confirmed' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(sheet).getByRole('button', { name: 'Ethereum' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(sheet).getByRole('button', { name: 'SlowMist Hacked' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('writes a chain chip to the URL and resets the page', async () => {
+    const router = renderAt('/threat-intel?chain=ethereum&page=2');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'BSC' }));
+    await waitFor(() => {
+      const params = new URLSearchParams(router.state.location.search);
+      expect(params.getAll('chain')).toEqual(['ethereum', 'bsc']);
+      expect(params.get('page')).toBeNull();
+    });
+  });
+
+  it('drops status, chain and attack type when switching to all news', async () => {
+    const router = renderAt('/threat-intel?status=unconfirmed&chain=ethereum&attack=phishing&source=quillmonitor');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'All Intelligence' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('?scope=all&source=quillmonitor');
+    });
+  });
+
+  it('clears the incident filters with the other filters', async () => {
+    const router = renderAt('/threat-intel?status=confirmed&chain=ethereum&source=slowmist');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+  });
+
+  it('counts each incident filter once', () => {
+    expect(countActiveFilters({
+      selectedCategories: [],
+      selectedSeverities: [],
+      dateFilter: 'all',
+      sortBy: 'date',
+      incidentFilters: { verification: 'unconfirmed', chains: ['ethereum', 'bsc'], attackTypes: ['phishing'], sources: ['rss'] },
+    })).toBe(5);
+  });
+});
+```
+
+In `src/pages/__tests__/News.navigation.test.tsx`, the alerts hook now receives the four new fields:
+
+Before:
+```tsx
+        searchQuery: '',
+        dateFilter: 'all',
+      },
+      page: 1,
+      enabled: true,
+```
+After:
+```tsx
+        searchQuery: '',
+        dateFilter: 'all',
+        verification: 'all',
+        chains: [],
+        attackTypes: [],
+        sources: [],
+      },
+      page: 1,
+      enabled: true,
+```
+
+and mock the facets hook here too, so the Web3 default view does not call a missing `supabase.rpc`:
+
+Before:
+```tsx
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: deepLink.from,
+```
+After:
+```tsx
+vi.mock('@/hooks/useThreatIntelFacets', () => ({
+  useThreatIntelFacets: () => ({ chains: [], attackTypes: [] }),
+}));
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: deepLink.from,
+```
+
+- [ ] **Step 12: Run the tests to see them fail**
+
+Run: `rtk proxy npx vitest run src/components/news/__tests__/IncidentFilters.test.tsx src/pages/__tests__/News.hero.test.tsx src/pages/__tests__/News.navigation.test.tsx`
+
+Expected: FAIL, `Test Files  3 failed`. `IncidentFilters.test.tsx` reports `Failed to resolve import "@/components/news/IncidentFilters"`. In `News.hero.test.tsx`: `Unable to find role="button" and name "BSC"`, `Unable to find role="button" and name "Clear filters"`, `expected +0 to be 5`, a `toHaveBeenLastCalledWith` mismatch, and `expected '?status=unconfirmed&chain=ethereum&at…' to be '?scope=all&source=quillmonitor'`. In `News.navigation.test.tsx`: "loads alerts for the selected scope and filters…" fails on `toHaveBeenLastCalledWith`.
+
+- [ ] **Step 13: Build the filters UI**
+
+Create `src/components/news/IncidentFilters.tsx`:
+
+```tsx
+import type { ThreatIntelScope } from '@/types/news';
+import {
+  sourceFiltersForScope,
+  type SourceFilter,
+  type ThreatIntelFacet,
+  type ThreatIntelFacets,
+  type VerificationFilter,
+} from '@/lib/threatIntel/query';
+
+export interface IncidentFilterState {
+  verification: VerificationFilter;
+  chains: string[];
+  attackTypes: string[];
+  sources: SourceFilter[];
+}
+
+export interface IncidentFiltersProps {
+  scope: ThreatIntelScope;
+  filters: IncidentFilterState;
+  facets: ThreatIntelFacets;
+  onVerificationChange: (value: VerificationFilter) => void;
+  onChainToggle: (value: string) => void;
+  onAttackTypeToggle: (value: string) => void;
+  onSourceToggle: (value: SourceFilter) => void;
+  /** Keeps heading ids unique when the toolbar and the mobile sheet both render this. */
+  idPrefix: string;
+}
+
+const VERIFICATION_OPTIONS: { value: VerificationFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'unconfirmed', label: 'Unconfirmed' },
+];
+
+const SOURCE_FILTER_LABELS: Record<SourceFilter, string> = {
+  quillmonitor: 'QuillMonitor',
+  'web3-incidents': 'Web3 Is Going Just Great',
+  slowmist: 'SlowMist Hacked',
+  rss: 'News publishers',
+};
+
+const chipClass = (selected: boolean) => `inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+  selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent'
+}`;
+
+/** Facet options plus any selected value the top-15 list does not include (for example from a shared link). */
+function withSelected(options: readonly ThreatIntelFacet[], selected: readonly string[]): ThreatIntelFacet[] {
+  const missing = selected
+    .filter((value) => !options.some((option) => option.value === value))
+    .map((value) => ({ value, label: value, count: 0 }));
+  return [...options, ...missing];
+}
+
+interface ChipGroupProps {
+  id: string;
+  title: string;
+  options: ThreatIntelFacet[];
+  selected: readonly string[];
+  onToggle: (value: string) => void;
+}
+
+function ChipGroup({ id, title, options, selected, onToggle }: ChipGroupProps) {
+  if (options.length === 0) return null;
+  return (
+    <div role="group" aria-labelledby={id}>
+      <h4 id={id} className="mb-2 text-sm font-medium">{title}</h4>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const isSelected = selected.includes(option.value);
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={isSelected}
+              title={option.count > 0 ? `${option.count} in the last 90 days` : undefined}
+              className={chipClass(isSelected)}
+              onClick={() => onToggle(option.value)}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Status, chain, attack-type and source filters. Status, chain and attack type show in the Web3 incidents view only. */
+export function IncidentFilters({
+  scope,
+  filters,
+  facets,
+  onVerificationChange,
+  onChainToggle,
+  onAttackTypeToggle,
+  onSourceToggle,
+  idPrefix,
+}: IncidentFiltersProps) {
+  const incidentView = scope === 'web3-incidents';
+  const sourceOptions: ThreatIntelFacet[] = sourceFiltersForScope(scope).map((source) => ({
+    value: source,
+    label: SOURCE_FILTER_LABELS[source],
+    count: 0,
+  }));
+
+  return (
+    <div className="space-y-4">
+      {incidentView && (
+        <div>
+          <h4 id={`${idPrefix}-status`} className="mb-1 text-sm font-medium">Status</h4>
+          <p id={`${idPrefix}-status-help`} className="mb-2 text-xs text-muted-foreground">
+            As reported by QuillMonitor. Other sources do not report a status.
+          </p>
+          <div
+            role="group"
+            aria-labelledby={`${idPrefix}-status`}
+            aria-describedby={`${idPrefix}-status-help`}
+            className="inline-flex rounded-lg border border-border bg-muted/30 p-1"
+          >
+            {VERIFICATION_OPTIONS.map((option) => {
+              const selected = filters.verification === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onVerificationChange(option.value)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                    selected
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {incidentView && (
+        <ChipGroup
+          id={`${idPrefix}-chain`}
+          title="Chain"
+          options={withSelected(facets.chains, filters.chains)}
+          selected={filters.chains}
+          onToggle={onChainToggle}
+        />
+      )}
+
+      {incidentView && (
+        <ChipGroup
+          id={`${idPrefix}-attack`}
+          title="Attack type"
+          options={withSelected(facets.attackTypes, filters.attackTypes)}
+          selected={filters.attackTypes}
+          onToggle={onAttackTypeToggle}
+        />
+      )}
+
+      <ChipGroup
+        id={`${idPrefix}-source`}
+        title="Source"
+        options={sourceOptions}
+        selected={filters.sources}
+        onToggle={(value) => onSourceToggle(value as SourceFilter)}
+      />
+    </div>
+  );
+}
+```
+
+Copy notes: "Confirmed" and "Unconfirmed" are the words the C2 badge and the C5 methodology page use for QuillMonitor's `verified` / `unverified`. The status help line names QuillMonitor because it is the only source that reports a status. The source labels match `getProviderLabel` (C1), except `rss`, which covers many publishers and is labelled "News publishers".
+
+In `src/components/news/FeedToolbar.tsx`:
+
+Before:
+```tsx
+import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
+```
+After:
+```tsx
+import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
+import { IncidentFilters, type IncidentFilterState } from '@/components/news/IncidentFilters';
+```
+
+Before:
+```tsx
+import type { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
+```
+After:
+```tsx
+import type { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
+import type { SourceFilter, ThreatIntelFacets, VerificationFilter } from '@/lib/threatIntel/query';
+```
+
+Props and the count:
+
+Before:
+```tsx
+  onSeverityToggle: (severity: SeverityLevel) => void;
+  onClearFilters: () => void;
+}
+
+/** Filters that live behind the mobile "Filters (n)" button. Search and scope stay visible. */
+export function countActiveFilters({
+  selectedCategories,
+  selectedSeverities,
+  dateFilter,
+  sortBy,
+}: Pick<FeedToolbarProps, 'selectedCategories' | 'selectedSeverities' | 'dateFilter' | 'sortBy'>): number {
+  return selectedCategories.length
+    + selectedSeverities.length
+    + (dateFilter === 'all' ? 0 : 1)
+    + (sortBy === 'date' ? 0 : 1);
+}
+```
+After:
+```tsx
+  onSeverityToggle: (severity: SeverityLevel) => void;
+  onClearFilters: () => void;
+  /** Status, chain, attack type and source (task C7). */
+  incidentFilters: IncidentFilterState;
+  /** Chain and attack-type options (useThreatIntelFacets). */
+  facets: ThreatIntelFacets;
+  onVerificationChange: (value: VerificationFilter) => void;
+  onChainToggle: (value: string) => void;
+  onAttackTypeToggle: (value: string) => void;
+  onSourceToggle: (value: SourceFilter) => void;
+}
+
+/** Filters that live behind the mobile "Filters (n)" button. Search and scope stay visible. */
+export function countActiveFilters({
+  selectedCategories,
+  selectedSeverities,
+  dateFilter,
+  sortBy,
+  incidentFilters,
+}: Pick<FeedToolbarProps, 'selectedCategories' | 'selectedSeverities' | 'dateFilter' | 'sortBy'>
+  & Partial<Pick<FeedToolbarProps, 'incidentFilters'>>): number {
+  return selectedCategories.length
+    + selectedSeverities.length
+    + (dateFilter === 'all' ? 0 : 1)
+    + (sortBy === 'date' ? 0 : 1)
+    + (incidentFilters && incidentFilters.verification !== 'all' ? 1 : 0)
+    + (incidentFilters?.chains.length ?? 0)
+    + (incidentFilters?.attackTypes.length ?? 0)
+    + (incidentFilters?.sources.length ?? 0);
+}
+```
+
+Before:
+```tsx
+    onSeverityToggle,
+    onClearFilters,
+  } = props;
+  const activeCount = countActiveFilters(props);
+```
+After:
+```tsx
+    onSeverityToggle,
+    onClearFilters,
+    incidentFilters,
+    facets,
+    onVerificationChange,
+    onChainToggle,
+    onAttackTypeToggle,
+    onSourceToggle,
+  } = props;
+  const activeCount = countActiveFilters(props);
+  const incidentFilterProps = {
+    scope,
+    filters: incidentFilters,
+    facets,
+    onVerificationChange,
+    onChainToggle,
+    onAttackTypeToggle,
+    onSourceToggle,
+  };
+```
+
+The sheet gets the incident filters above the C4 category and severity panel:
+
+Before:
+```tsx
+                  <SheetDescription>Narrow the feed by date, sort order, category and severity.</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateSelect value={dateFilter} onChange={onDateFilterChange} />
+                    <SortSelect value={sortBy} onChange={onSortChange} />
+                  </div>
+```
+After:
+```tsx
+                  <SheetDescription>Choose which reports the feed shows and in what order.</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateSelect value={dateFilter} onChange={onDateFilterChange} />
+                    <SortSelect value={sortBy} onChange={onSortChange} />
+                  </div>
+                  <IncidentFilters {...incidentFilterProps} idPrefix="sheet-filter" />
+```
+
+and a "Clear filters" button under it, because `NewsFilters` only shows its own Clear button for categories and severities:
+
+Before:
+```tsx
+                    onClearFilters={onClearFilters}
+                  />
+                </div>
+              </SheetContent>
+```
+After:
+```tsx
+                    onClearFilters={onClearFilters}
+                  />
+                  {activeCount > 0 && (
+                    <Button type="button" variant="outline" className="w-full" onClick={onClearFilters}>
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              </SheetContent>
+```
+
+From `md` up, the same filters sit in a second row of the toolbar card:
+
+Before:
+```tsx
+              <SortSelect value={sortBy} onChange={onSortChange} />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+```
+After:
+```tsx
+              <SortSelect value={sortBy} onChange={onSortChange} />
+            </div>
+          </div>
+        </div>
+
+        {/* From md up, the incident filters sit under the search row. Below md they are in the sheet. */}
+        <div className="mt-3 hidden border-t border-border pt-3 md:block">
+          <IncidentFilters {...incidentFilterProps} idPrefix="toolbar-filter" />
+        </div>
+      </CardContent>
+```
+
+In `src/pages/News.tsx`:
+
+Before:
+```tsx
+import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
+```
+After:
+```tsx
+import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
+import { useThreatIntelFacets } from '@/hooks/useThreatIntelFacets';
+```
+
+Before:
+```tsx
+import { parseThreatIntelFilters } from '@/lib/threatIntel/query';
+```
+After:
+```tsx
+import {
+  parseThreatIntelFilters,
+  withListParam,
+  withScopeParam,
+  type IncidentListParam,
+  type SourceFilter,
+  type VerificationFilter,
+} from '@/lib/threatIntel/query';
+```
+
+Read the new filters from the URL (the destructure B added):
+
+Before:
+```tsx
+    scope: feedView,
+    page: currentPage,
+    pageSize,
+  } = urlFilters;
+```
+After:
+```tsx
+    scope: feedView,
+    page: currentPage,
+    pageSize,
+    verification,
+    chains,
+    attackTypes,
+    sources,
+  } = urlFilters;
+  const incidentFilters = useMemo(
+    () => ({ verification, chains, attackTypes, sources }),
+    [verification, chains, attackTypes, sources],
+  );
+  const hasIncidentFilters = verification !== 'all'
+    || chains.length > 0
+    || attackTypes.length > 0
+    || sources.length > 0;
+```
+
+Keep them out of the C4 "Get email alerts" link:
+
+Before:
+```tsx
+    ['page', 'q', 'article', 'sort', 'date'].forEach((key) => next.delete(key));
+```
+After:
+```tsx
+    // Email alerts do not filter by status, chain, attack type or source, so
+    // the subscribe link leaves them out rather than implying that they do.
+    ['page', 'q', 'article', 'sort', 'date', 'status', 'chain', 'attack', 'source'].forEach((key) => next.delete(key));
+```
+
+Pass them to the feed hook and load the facets:
+
+Before:
+```tsx
+    view: feedView,
+    page: currentPage,
+    pageSize,
+  });
+```
+After:
+```tsx
+    view: feedView,
+    page: currentPage,
+    pageSize,
+    verification,
+    chains,
+    attackTypes,
+    sources,
+  });
+  const facets = useThreatIntelFacets(feedView);
+```
+
+Alerts follow them (`alertFilters`, from B):
+
+Before:
+```tsx
+    searchQuery,
+    dateFilter,
+  }), [feedView, selectedCategories, selectedSeverities, searchQuery, dateFilter]);
+```
+After:
+```tsx
+    searchQuery,
+    dateFilter,
+    ...incidentFilters,
+  }), [feedView, selectedCategories, selectedSeverities, searchQuery, dateFilter, incidentFilters]);
+```
+
+Handlers. Scope changes go through `withScopeParam` so Web3-only filters leave the URL with the view:
+
+Before:
+```tsx
+  const handleClearFilters = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      ['categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page'].forEach((key) => next.delete(key));
+      return next;
+    });
+  };
+```
+After:
+```tsx
+  const toggleListParam = (key: IncidentListParam, selected: readonly string[], value: string) => {
+    const next = selected.includes(value)
+      ? selected.filter((current) => current !== value)
+      : [...selected, value];
+    setSearchParams((current) => withListParam(current, key, next));
+  };
+
+  const handleVerificationChange = (value: VerificationFilter) => {
+    updateFeedParam('status', value === 'all' ? null : value);
+  };
+
+  const handleScopeChange = (value: typeof feedView) => {
+    setSearchParams((current) => withScopeParam(current, value));
+  };
+
+  const handleClearFilters = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      [
+        'categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page',
+        'status', 'chain', 'attack', 'source',
+      ].forEach((key) => next.delete(key));
+      return next;
+    });
+  };
+```
+
+Before:
+```tsx
+                onScopeChange={(value) => updateFeedParam('scope', value === DEFAULT_SCOPE ? null : value)}
+```
+After:
+```tsx
+                onScopeChange={handleScopeChange}
+```
+
+Before:
+```tsx
+                onSeverityToggle={handleSeverityToggle}
+                onClearFilters={handleClearFilters}
+              />
+```
+After:
+```tsx
+                onSeverityToggle={handleSeverityToggle}
+                onClearFilters={handleClearFilters}
+                incidentFilters={incidentFilters}
+                facets={facets}
+                onVerificationChange={handleVerificationChange}
+                onChainToggle={(value) => toggleListParam('chain', chains, value)}
+                onAttackTypeToggle={(value) => toggleListParam('attack', attackTypes, value)}
+                onSourceToggle={(value: SourceFilter) => toggleListParam('source', sources, value)}
+              />
+```
+
+The results-row "Clear filters" button also shows for the new filters:
+
+Before:
+```tsx
+{(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== DEFAULT_SCOPE) && (
+```
+After:
+```tsx
+{(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== DEFAULT_SCOPE || hasIncidentFilters) && (
+```
+
+`DEFAULT_SCOPE` is still used in `News.tsx` by that condition, so keep its import.
+
+- [ ] **Step 14: Run the tests to see them pass**
+
+Run: `rtk proxy npx vitest run src/components/news/__tests__/IncidentFilters.test.tsx src/pages/__tests__/News.hero.test.tsx src/pages/__tests__/News.navigation.test.tsx`
+
+Expected: PASS, 5 + 11 + 7 tests.
+
+- [ ] **Step 15: Full suite, typecheck, lint, build**
+
+Run: `rtk proxy npx vitest run`
+
+Expected: PASS. On the verification copy (sections A, B and C1 to C6 applied, then this task) the totals were `Test Files  44 passed (44)` and `Tests  355 passed (355)`; this task adds 2 files and 35 tests.
+
+Run: `npx tsc --noEmit -p tsconfig.app.json`
+
+Expected: no errors.
+
+Run: `npx eslint src/lib/threatIntel/query.ts src/utils/newsCache.ts src/hooks/useNewsArticles.ts src/hooks/useThreatIntelFacets.ts src/integrations/supabase/types.ts src/components/news/IncidentFilters.tsx src/components/news/FeedToolbar.tsx src/pages/News.tsx src/utils/__tests__/threatIntelQuery.test.ts src/hooks/__tests__/useNewsArticles.test.tsx src/hooks/__tests__/useThreatIntelAlerts.test.tsx src/hooks/__tests__/useThreatIntelFacets.test.tsx src/components/news/__tests__/IncidentFilters.test.tsx src/pages/__tests__/News.hero.test.tsx src/pages/__tests__/News.navigation.test.tsx`
+
+Expected: no errors. (`src/utils/__tests__/newsCache.test.ts` carries two existing `no-explicit-any` warnings from B; leave them.)
+
+Run: `rtk proxy npx vite build`
+
+Expected: exit 0, `✓ built in …`.
+
+- [ ] **Step 16: Check it by hand**
+
+Run `npm run dev` and open `http://127.0.0.1:8080/threat-intel`.
+
+- At 1280px: the toolbar shows a second row with Status (All / Confirmed / Unconfirmed), Chain and Attack type chips (if the migration is live) and Source chips. Pick Confirmed, then a chain: the URL gains `status=confirmed&chain=…`, the list, the stat tiles and the Alerts tab all narrow, and "Clear filters" appears in the results row.
+- Switch to "All Intelligence": Status, Chain and Attack type disappear from the toolbar and the URL; Source now offers "News publishers".
+- At 390x844: the toolbar has no second row; "Filters (n)" counts the status and every chip, the sheet lists the same controls, and its "Clear filters" button empties the URL filters.
+- Before the migration is applied, pick a status: the list still narrows (fallback query), the tiles say "on this page", and no chain or attack chips show.
+
+- [ ] **Step 17: Commit**
+
+```bash
+git add supabase/migrations/20261012090000_threat_intel_incident_filters.sql src/integrations/supabase/types.ts src/lib/threatIntel/query.ts src/utils/newsCache.ts src/hooks/useNewsArticles.ts src/hooks/useThreatIntelFacets.ts src/components/news/IncidentFilters.tsx src/components/news/FeedToolbar.tsx src/pages/News.tsx src/utils/__tests__/threatIntelQuery.test.ts src/utils/__tests__/newsCache.test.ts src/hooks/__tests__/useNewsArticles.test.tsx src/hooks/__tests__/useThreatIntelAlerts.test.tsx src/hooks/__tests__/useThreatIntelFacets.test.tsx src/components/news/__tests__/IncidentFilters.test.tsx src/pages/__tests__/News.hero.test.tsx src/pages/__tests__/News.navigation.test.tsx
+git commit -m "feat(threat-intel): filter by status, chain, attack type and source" -m "Add status (confirmed/unconfirmed), chain, attack-type and source filters to the Threat Intel URL, RPCs, stat tiles and alerts. search_news_articles, count_news_articles and threat_intel_stats take four optional arguments and the search also returns created_at. New threat_intel_facets RPC lists the top chains and attack types for the Web3 view. Filters show in the toolbar from md up and in the mobile Filters sheet."
+```
+
+- [ ] **Step 18: Deploy and check the database**
+
+Apply the migration the same way as `20261011090000_threat_intel_stats.sql`. Then run in the SQL editor:
+
+```sql
+-- 1. One signature per function. Expected: 4 rows, the three 10/13-argument
+--    filter functions and threat_intel_facets(text, timestamp with time zone).
+SELECT p.oid::regprocedure
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN ('search_news_articles', 'count_news_articles', 'threat_intel_stats', 'threat_intel_facets')
+ORDER BY 1;
+
+-- 2. Calls without the new arguments still resolve, and count and stats agree.
+SELECT public.count_news_articles(web3_incidents_only => true) AS count_total,
+       (public.threat_intel_stats(web3_incidents_only => true))->>'total' AS stats_total;
+
+-- 3. Status. Expected: unconfirmed = the stats 'unconfirmed' bucket, and
+--    confirmed + unconfirmed = quillmonitor unless some QuillMonitor rows have no status.
+SELECT
+  (public.threat_intel_stats(web3_incidents_only => true, verification_filter => 'verified'))->>'total' AS confirmed,
+  (public.threat_intel_stats(web3_incidents_only => true, verification_filter => 'unverified'))->>'total' AS unconfirmed,
+  (public.threat_intel_stats(web3_incidents_only => true))->>'unconfirmed' AS unconfirmed_bucket,
+  (public.threat_intel_stats(web3_incidents_only => true, provider_filter => ARRAY['quillmonitor']))->>'total' AS quillmonitor;
+
+-- 4. The four sources cover every publishable row. Expected: equal totals.
+--    A gap means a provider value this task does not know; the second query lists them.
+SELECT
+  (public.threat_intel_stats(provider_filter => ARRAY['quillmonitor', 'web3-incidents', 'slowmist', 'rss']))->>'total' AS by_source,
+  (public.threat_intel_stats())->>'total' AS everything;
+SELECT metadata->>'provider' AS provider,
+       coalesce(metadata->>'is_web3_incident', '(none)') AS is_web3_incident,
+       count(*)
+FROM public.news_articles
+WHERE coalesce(metadata->>'classification_relevant', 'true') != 'false'
+  AND metadata->>'duplicate_of_uid' IS NULL
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+-- 5. Facets, and one facet count checked against the filter. Replace 'ethereum'
+--    with the first chain value the first query returns. Expected: the second
+--    query equals that chain's "count".
+SELECT jsonb_pretty(public.threat_intel_facets('web3-incidents', NULL));
+SELECT public.count_news_articles(
+  web3_incidents_only => true,
+  chain_filter => ARRAY['ethereum'],
+  date_from => now() - interval '90 days'
+);
+
+-- 6. Anonymous visitors can call the new function. Expected: true.
+SELECT has_function_privilege('anon', 'public.threat_intel_facets(text, timestamptz)', 'EXECUTE');
+
+-- 7. created_at comes back from the search RPC. Expected: no NULLs.
+SELECT count(*) FILTER (WHERE created_at IS NULL) AS missing_created_at
+FROM public.search_news_articles(web3_incidents_only => true, result_limit => 100);
+```
+
+Then, with the anon key, check PostgREST sees one candidate per name (no PGRST203):
+
+```bash
+curl -s "$SUPABASE_URL/rest/v1/rpc/threat_intel_stats" -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{"web3_incidents_only": true}'
+curl -s "$SUPABASE_URL/rest/v1/rpc/threat_intel_stats" -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{"web3_incidents_only": true, "verification_filter": "verified", "chain_filter": ["ethereum"]}'
+curl -s "$SUPABASE_URL/rest/v1/rpc/threat_intel_facets" -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{"p_scope": "web3-incidents"}'
+```
+
+Expected: three JSON objects, no `"code":"PGRST20…"` errors.
+
+**Rollback.** Revert the commit first (the old frontend never sends the new arguments, so it works against either schema). Then run:
+
+```sql
+DROP FUNCTION IF EXISTS public.threat_intel_facets(text, timestamptz);
+DROP FUNCTION IF EXISTS public.search_news_articles(text, text[], text[], timestamptz, integer, integer, text, boolean, text, text, text[], text[], text[]);
+DROP FUNCTION IF EXISTS public.count_news_articles(text, text[], text[], timestamptz, text, boolean, text, text[], text[], text[]);
+DROP FUNCTION IF EXISTS public.threat_intel_stats(text, text[], text[], timestamptz, text, boolean, text, text[], text[], text[]);
+```
+
+and then run the whole of `supabase/migrations/20261011090000_threat_intel_stats.sql` again. It recreates B's three functions with their grants and comments; its own `DROP ... IF EXISTS` lines are no-ops at that point, and it ends with `NOTIFY pgrst, 'reload schema'`.
+
+---
+
+#### Notes for the plan author
+
+**Risks**
+
+- **SQL was not executed.** No local Postgres or Supabase. The migration, rollback and sanity queries were checked by reading only (see Step 10). PostgREST's handling of `metadata->>chain.ilike."…"` inside `or=()` in the fallback path was also not exercised against a server; the unit test checks the strings, not PostgREST.
+- **Case folding.** The client lower-cases with JavaScript (`toLowerCase`), the database with `lower()` under the database collation. They agree for ASCII. A non-ASCII chain name could differ under a `C` collation; chain and attack names seen in the importers are ASCII.
+- **Facet regex drift.** `[[:alnum:]]` in Postgres and `\p{L}\p{N}` in JavaScript can disagree on rare characters. The effect is that a value is not offered as a chip; `parseThreatIntelFacets` drops anything the client would reject, so a chip never produces a filter that does nothing.
+- **Status narrows to QuillMonitor.** Picking Confirmed or Unconfirmed hides every web3isgoinggreat and SlowMist record, because they carry no status. The help text says this. If the product wants "unconfirmed" to include sources without a status, change the SQL to `coalesce(verification_status, 'unverified')`, and the C1 badge rule with it.
+- **`attack_type` values are mixed.** QuillMonitor and SlowMist store free text ("Access Control"); web3-incidents stores `tags[0]` (slug-like). The chips show them as stored. A shared attack taxonomy would need an A-side change.
+- **Cost.** The new predicates are on unindexed jsonb keys. In the Web3 view they filter an already small set. In the all-news view a source filter scans the filtered range like B's existing metadata predicates do.
+- **No explicit transaction.** Like B's migration, the file relies on the migration runner's transaction. If Lovable's runner does not wrap files, a failure between the `DROP`s and the `CREATE`s leaves the RPCs missing until the file is re-run; the frontend then serves the fallback query.
+
+**Deploy order.** Migration first, then frontend, though either order works (see the task intro). The frontend sends the new RPC arguments only when a filter is set.
+
+**Scope additions to flag.** `search_news_articles` now returns `created_at` (C1's "Added" date was wrong for every RPC-loaded row; see below), and `threat_intel_facets` is new. The subscribe link built in C4 now drops `status`, `chain`, `attack` and `source`, because email alerts do not filter on them.
+
+**What was verified.** A scratch copy built from the repo at `be5d978` with section A (`replay/`) and section B (`planverify/`) applied, then C1 to C6 applied with a mechanical applier plus the hand merges listed below, then this task applied from this document's own text. On that copy: `rtk proxy npx vitest run` 44 files and 355 tests passed; `npx tsc --noEmit -p tsconfig.app.json` clean; eslint on every file this task touches clean (two existing warnings in `newsCache.test.ts`); `npx vite build` exit 0. Each "Expected: FAIL" message above was captured by reverting the implementation files on that copy and re-running.
+
+**C-section anchors that did not match after B** (applied by hand on the scratch copy; the C sections need these reconciled):
+
+- C1 Step 1: B's `articleRow.ts` has no `created_at` in `NEWS_ARTICLE_COLUMNS` and `mapNewsArticleRow` does not set `createdAt`, so Step 1's "stop and ask B" branch triggers. The scratch copy added `created_at` to the column list and `createdAt: parseDate(row.created_at) ?? undefined` to the mapper. B's `search_news_articles` also did not return `created_at`; C7's migration fixes that, but B should add it to `articleRow.ts`.
+- C1 Steps 1-2: the conditional `useNewsArticles.ts` and `News.tsx` inline-mapping anchors do not exist after B (expected, they are skip-if-B steps).
+- C1: `incidentDisplay.test.ts` uses `summary_origin: 'publisher'`, which fails `tsc` against B's `NewsArticle.metadata.summary_origin` type (`'provider' | 'provider-template' | 'ai'`). Add `'publisher'` to that union (A's RSS and web3-incidents importers write it).
+- C1: `incidentDisplay.ts` (the AM/PM clean-up near line 247) has a literal narrow no-break space (U+202F) inside a regex literal; eslint reports `no-irregular-whitespace`. Write it as `/\u202f/g`.
+- C3 7a: the `NewsDetail.tsx` lucide import and the `newsCategoryConfig` import changed in B (B dropped `Info` and `Zap` and already imports `getCategoryConfig`); add `LifeBuoy, History, BellRing, Send, Undo2` by hand.
+- C3 7c: the derived-values block changed in B (`getCategoryConfig`, plus `severityStyle` / `SeverityIcon` lines); apply the swap of `isPreliminary`/`providerIncidentDate` for `display`, `statusHistory`, `isUnconfirmed`, `providerLabel`, `showWeb3Actions`, `showVulnerabilityActions`, `subscribeHref` by hand. 7j's `newsCategoryConfig[related.category]` is already `getCategoryConfig` in B.
+- C3: `SubscriptionForm.test.tsx` fails in jsdom with `ReferenceError: ResizeObserver is not defined` (both tests) against B's `SubscriptionForm`. The scratch copy stubbed `globalThis.ResizeObserver` at the top of the test.
+- C4 5a: B rewrote the `News.tsx` import block (`KeyboardEvent`, `useThreatIntelAlerts`, `useDebouncedValue`, `ThreatIntelFilterInput`, `SEVERITY_STYLES`, `parseThreatIntelFilters`, `articleRow` imports). Use the "apply the same changes" fallback; keep `SEVERITY_STYLES`, which the alerts block still uses until C6.
+- C4 5b and 5c: B derives `feedView`, `currentPage` and `pageSize` from `parseThreatIntelFilters`, so the `feedView` line and the `currentPage = Number.isInteger(...)` anchor are gone. Put `subscribeHref` after the `} = urlFilters;` destructure.
+- C4 5d: B's `tabs` array has a different alerts count (`stats.critical + stats.high`) and comments; B also already computes `statsCaption`.
+- C4 5f: B wraps the stat grid in `isLoading && stats.total === 0 ? <StatsSkeleton /> : …` and uses `SEVERITY_STYLES` colours and `statsCaption`. Replace from `{/* Hero Section - Compact */}` to the tab comment.
+- C4 5g: B already added `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, roving `tabIndex` and arrow-key handling. Merge only C4's layout classes, `shortLabel` and `aria-label`; keep B's keyboard support.
+- C4 5h: B's search input has a label, `type="search"` and a 300 ms debounce through `searchInput` / `setSearchInput`. The `FeedToolbar` call must pass `searchQuery={searchInput}` and `onSearchChange={setSearchInput}`, not C4's `updateFeedParam('q', …)`, or the debounce is lost.
+- C4 Step 7: the first `News.navigation.test.tsx` anchor (`not.toContain('scope=')`) is gone; B's test already expects `scope=all`.
+- C6 5a: the third import anchor (`CLASSIFICATION_RELEVANCE_POSTGREST_FILTER, isClassificationRelevant, …`) does not exist after B; remove B's `isPreliminaryQuillMonitorArticle, isQuillMonitorArticle` import and the `safeExternalUrl` import by hand.
+- C6 5c: B has only `criticalAlerts` and `highAlerts` memos (no `actionRequiredAlerts`).
+- C6 5d: B's alerts tab count line differs; nothing to change.
+- C6 5e: B's alerts block uses `useThreatIntelAlerts` and has alert pagination (`alertsPage`, `alertsTotalPages`). C6's replacement calls `fetchActiveAlerts()`, which no longer exists, and drops pagination. The scratch copy kept B's tabpanel wrapper and pagination `<nav>` around `<AlertsPanel … onRefresh={() => void refetchAlerts()} />`. C6's Step intro ("fetching stays in News.tsx … fetchActiveAlerts") is out of date after B.
+- C6 5f: the subscribe breadcrumb already uses `handleTabChange('feed')` in B.
+- C6 6c/6d: the "After: delete the line" edits matched; they are just not in Before/After form.
+- C5: every anchor matched.
+
 
 ---
 
