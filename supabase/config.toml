@@ -87,3 +87,6 @@ verify_jwt = false
 
 [functions.resend-webhook]
 verify_jwt = false
+
+[functions.build-daily-newsletter]
+verify_jwt = false
