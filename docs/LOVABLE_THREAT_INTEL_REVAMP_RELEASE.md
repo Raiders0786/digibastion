@@ -112,6 +112,65 @@ next scheduled run, and confirm neither logged a PostgREST filter parse error.
 If the write run returns HTTP 207 with `writeErrors`, run it again; rows that
 are already correct are skipped.
 
+### Stage 1c: QuillMonitor same-provider duplicates
+
+QuillMonitor sometimes lists one incident twice. In production, NEAR Intents
+appears as `quillmonitor:6abe7cb74bf2b9001882e340` (unverified) and
+`quillmonitor:6abf52e051c7780018c8e336` (verified), both dated 2026-10-01 with
+a $3.8M loss. Two QuillMonitor records now count as one incident only when the
+project name, incident date and loss are all the same. The verified record is
+kept; if both have the same status, the one with the smaller uid is kept. The
+QuillMonitor sync recomputes this on every run and writes the mark into its
+own upsert, so a sync no longer wipes it, and it clears the mark if
+QuillMonitor later revises the name, date or loss.
+
+If Stage 1 was deployed from an earlier commit, redeploy first. If Step 1b
+already ran on this commit, it marked the pair; run the checks below anyway.
+
+```text
+Deploy the repository versions of fetch-quillmonitor-incidents and
+dedupe-incidents from GitHub main commit <EXACT_SHA>, with their shared imports
+under supabase/functions/_shared/. Do not apply any migration. Then invoke
+dedupe-incidents with the POST body {"dryRun":true,"days":90}, authenticated
+with the project's CRON_SECRET from the backend secrets without displaying it,
+and return the full JSON response. Do not run it with dryRun false yet.
+```
+
+The dry run must include a sample whose canonical is
+`quillmonitor:6abf52e051c7780018c8e336` (the verified record) and whose
+duplicate is `quillmonitor:6abe7cb74bf2b9001882e340`. It may also re-point
+Web3 tracker or SlowMist rows that an earlier run marked against the
+unverified record so they point at the verified one. Review the samples; no
+pair may be two different incidents.
+
+Do not paste the next block until you have reviewed the samples.
+
+```text
+Invoke dedupe-incidents with the POST body {"dryRun":false,"days":90},
+authenticated with the project's CRON_SECRET from the backend secrets without
+displaying it, and return the JSON response. Then invoke it again with
+{"dryRun":true,"days":90} and return that response; it must show
+duplicatesToMark 0 and canonicalSourceUpdates 0. Then invoke
+fetch-quillmonitor-incidents once with the POST body {} and the same
+authorization, return its JSON response, and run this read-only SQL and return
+the rows:
+
+select uid, metadata->>'duplicate_of_uid' as duplicate_of_uid
+from news_articles
+where uid in ('quillmonitor:6abe7cb74bf2b9001882e340',
+              'quillmonitor:6abf52e051c7780018c8e336');
+```
+
+After the sync, `quillmonitor:6abe7cb74bf2b9001882e340` must still show
+`duplicate_of_uid` = `quillmonitor:6abf52e051c7780018c8e336`, and the verified
+row must show null. The verified record's sources now also list the
+unverified record's reference link.
+
+If the unverified record was posted to Telegram in the last 14 days, the
+poster edits that post to RETRACTED ("The source withdrew this report or merged it into another
+one.") on its next run. That is expected; posts about the verified record are
+not affected.
+
 ### Fallback only: clear impossible loss figures by SQL
 
 Use this only if the Step 1a repair cannot run. It removes figures above
