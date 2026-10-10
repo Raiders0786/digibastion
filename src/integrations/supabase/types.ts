@@ -617,6 +617,68 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_posts: {
+        Row: {
+          article_id: string | null
+          article_uid: string
+          attempts: number
+          chat_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          last_error: string | null
+          message_id: number | null
+          posted_severity: string | null
+          posted_text: string | null
+          posted_verification: string | null
+          project_name: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          article_id?: string | null
+          article_uid: string
+          attempts?: number
+          chat_id: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          last_error?: string | null
+          message_id?: number | null
+          posted_severity?: string | null
+          posted_text?: string | null
+          posted_verification?: string | null
+          project_name?: string | null
+          sent_at?: string | null
+          status: string
+        }
+        Update: {
+          article_id?: string | null
+          article_uid?: string
+          attempts?: number
+          chat_id?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          last_error?: string | null
+          message_id?: number | null
+          posted_severity?: string | null
+          posted_text?: string | null
+          posted_verification?: string | null
+          project_name?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_posts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       threat_intel_ingestion_runs: {
         Row: {
           attempted_at: string
