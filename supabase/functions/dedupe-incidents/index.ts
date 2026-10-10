@@ -88,7 +88,7 @@ async function readRows<T>(db: Db, columns: string, filter: string, days: number
 async function repairLegacyAmountRows(db: Db, dryRun: boolean, days: number) {
   const rows = await readRows<LegacyAmountRow>(
     db,
-    'uid,title,summary,content,tags,severity,metadata',
+    'uid,title,summary,content,tags,severity,metadata,updated_at',
     LEGACY_PROVIDER_FILTER,
     days,
   );
@@ -99,15 +99,18 @@ async function repairLegacyAmountRows(db: Db, dryRun: boolean, days: number) {
 
   if (!dryRun) {
     for (const repair of plan.repairs) {
-      // One row at a time, guarded: only a row still on the old parser is
-      // rewritten, so a row the importer refreshed since the read is left alone.
-      const { data, error } = await db
+      // One row at a time, guarded: the write applies only if the row is
+      // unchanged since the read (updated_at is bumped by a trigger) and still
+      // on the old parser. A duplicate mark, summary or importer refresh that
+      // landed in between is kept; the row is counted as skipped.
+      let guarded = db
         .from('news_articles')
         .update({ metadata: repair.metadata, severity: repair.severity })
         .eq('uid', repair.uid)
         .is('metadata->incident_date_unknown', null)
-        .is('metadata->>amount_parser', null)
-        .select('uid');
+        .or('metadata->>amount_parser.is.null,metadata->>amount_parser.neq.v2');
+      if (repair.updatedAt) guarded = guarded.eq('updated_at', repair.updatedAt);
+      const { data, error } = await guarded.select('id');
       if (error) writeErrors++;
       else if (!data || data.length === 0) legacyAmountSkipped++;
       else legacyAmountRepairs++;
@@ -127,7 +130,7 @@ async function repairLegacyAmountRows(db: Db, dryRun: boolean, days: number) {
     legacyAmountChanges: plan.changed,
     // Rows written (always 0 in a dry run).
     legacyAmountRepairs,
-    // Rows another writer changed after the read; a rerun picks them up.
+    // Rows changed concurrently after the read (not errors); a rerun picks them up.
     legacyAmountSkipped,
     writeErrors,
     samples: plan.samples,

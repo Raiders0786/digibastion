@@ -40,10 +40,14 @@ export interface LegacyAmountRow {
   tags?: string[] | null;
   severity?: string | null;
   metadata: unknown;
+  /** Row version, bumped by a trigger on every update. */
+  updated_at?: string | null;
 }
 
 export interface LegacyAmountRepair {
   uid: string;
+  /** The row's updated_at when read; the write only applies if it is unchanged. */
+  updatedAt: string | null;
   /** The row's full metadata with the re-parsed amount and the v2 stamp. */
   metadata: Record<string, unknown>;
   severity: IncidentSeverity;
@@ -102,7 +106,12 @@ export function planLegacyAmountRepairs(rows: readonly LegacyAmountRow[]): Legac
       metadata.amount_display = formatUsd(amount);
     }
     metadata.amount_parser = AMOUNT_PARSER_VERSION;
-    plan.repairs.push({ uid: row.uid, metadata, severity });
+    plan.repairs.push({
+      uid: row.uid,
+      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : null,
+      metadata,
+      severity,
+    });
 
     const before: AmountSnapshot = {
       amountUsd: finiteOrNull(original.amount_lost_usd),

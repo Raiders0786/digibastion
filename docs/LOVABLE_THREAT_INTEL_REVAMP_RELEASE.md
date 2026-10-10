@@ -74,9 +74,13 @@ return the JSON response. Then invoke it again with
 response too. The second response must show legacyAmountRows 0.
 ```
 
+If legacyAmountRows is not 0, run the write step again; a sync that ran at the
+same time may have restored old metadata.
+
 If the write run returns HTTP 207 with `writeErrors`, run it again; repaired
-rows are skipped. `legacyAmountSkipped` counts rows the importer rewrote
-during the run; they already carry correct figures.
+rows are skipped. `legacyAmountSkipped` counts rows another job changed
+during the run (a duplicate mark, a summary or an importer refresh); they are
+left as they are and the next write run picks up any that are still legacy.
 
 ### Step 1b: mark cross-provider duplicates
 

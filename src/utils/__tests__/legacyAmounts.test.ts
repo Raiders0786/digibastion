@@ -151,6 +151,14 @@ describe('planLegacyAmountRepairs', () => {
     expect(plan.samples).toHaveLength(MAX_LEGACY_AMOUNT_SAMPLES);
   });
 
+  it('carries the row version so the write can skip rows changed since the read', () => {
+    const plan = planLegacyAmountRepairs([
+      legacyRow({ uid: 'p-a', updated_at: '2026-10-10T08:00:00.123456+00:00' }),
+      legacyRow({ uid: 'p-b' }),
+    ]);
+    expect(plan.repairs.map((repair) => repair.updatedAt)).toEqual(['2026-10-10T08:00:00.123456+00:00', null]);
+  });
+
   it('does not mutate the input rows', () => {
     const row = legacyRow();
     const before = JSON.stringify(row);
