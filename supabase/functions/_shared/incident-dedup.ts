@@ -97,7 +97,7 @@ export function candidateFromRow(row: IncidentRow): DuplicateCandidate | null {
     ? ''
     : row.published_at.slice(0, 10);
   const date = isCalendarDate(metadata.incident_date) ? metadata.incident_date : fallbackDate;
-  if (!target || !isCalendarDate(date)) return null;
+  if (!normalizeIncidentTarget(target) || !isCalendarDate(date)) return null;
   return {
     uid: row.uid,
     provider: rowProvider(row),
@@ -119,7 +119,8 @@ export function isHighConfidenceDuplicate(
   a: Omit<DuplicateCandidate, 'uid' | 'provider'>,
   b: Omit<DuplicateCandidate, 'uid' | 'provider'>,
 ): boolean {
-  if (normalizeIncidentTarget(a.target) !== normalizeIncidentTarget(b.target)) return false;
+  const normalizedTarget = normalizeIncidentTarget(a.target);
+  if (!normalizedTarget || normalizedTarget !== normalizeIncidentTarget(b.target)) return false;
   const aTime = new Date(`${a.date}T00:00:00.000Z`).getTime();
   const bTime = new Date(`${b.date}T00:00:00.000Z`).getTime();
   if (!Number.isFinite(aTime) || !Number.isFinite(bTime)) return false;

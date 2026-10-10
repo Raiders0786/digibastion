@@ -131,6 +131,10 @@ describe('rowProvider and candidateFromRow', () => {
       .toMatchObject({ target: 'Meter', date: '2026-09-14', attackMethod: null, amountInUsd: null });
   });
 
+  it('rejects punctuation-only project names', () => {
+    expect(candidateFromRow({ ...meterWeb3, metadata: { project_name: '???', incident_date: '2026-09-14' } })).toBeNull();
+  });
+
   it('does not use the ingestion time as the incident date', () => {
     expect(candidateFromRow({
       ...meterWeb3,
@@ -154,6 +158,11 @@ describe('isHighConfidenceDuplicate', () => {
 
   it('matches the same target on the same day without other evidence', () => {
     expect(isHighConfidenceDuplicate(incident, { ...other, target: '  example   bridge ', date: '2026-09-20' })).toBe(true);
+  });
+
+  it('never matches targets that normalize to an empty string', () => {
+    const blank = { ...other, date: '2026-09-20' };
+    expect(isHighConfidenceDuplicate({ ...blank, target: '???' }, { ...blank, target: '—' })).toBe(false);
   });
 
   it('needs a matching amount, attack method or reference within two days', () => {
