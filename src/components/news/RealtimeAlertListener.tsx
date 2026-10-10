@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Bell, ShieldAlert } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
+import { isPublishable } from '@/lib/threatIntel/articleRow';
 
 interface RealtimeArticle {
   id: string;
@@ -18,6 +19,8 @@ interface RealtimeArticle {
     verification_status?: string;
     provider_created_at?: string;
     suppress_realtime_alert?: boolean;
+    classification_relevant?: boolean | string;
+    duplicate_of_uid?: string | null;
   };
 }
 
@@ -75,6 +78,7 @@ export const RealtimeAlertListener = ({
           // Only show notifications for critical and high severity
           if (
             article.metadata?.suppress_realtime_alert !== true &&
+            isPublishable(article.metadata) &&
             isRecent &&
             (article.severity === 'critical' || article.severity === 'high')
           ) {

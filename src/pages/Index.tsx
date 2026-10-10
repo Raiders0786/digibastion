@@ -18,6 +18,7 @@ import { ThreatLevelSelector } from '@/components/ThreatLevelSelector';
 import { useSecurityState } from '@/hooks/useSecurityState';
 import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { supabase } from '@/integrations/supabase/client';
+import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER } from '@/utils/newsIncident';
 import espLogo from '@/assets/esp-logo-white.svg';
 
 interface RecentAlert {
@@ -78,6 +79,7 @@ const Index = () => {
       const { data } = await supabase
         .from('news_articles')
         .select('id, title, severity, published_at')
+        .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
         .in('severity', ['critical', 'high', 'medium'])
         .order('published_at', { ascending: false })
         .limit(3);

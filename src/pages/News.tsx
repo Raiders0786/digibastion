@@ -26,10 +26,16 @@ import { NEWS_CATEGORIES, SEVERITY_LEVELS, SEVERITY_STYLES, parseListParam } fro
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
   CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
-  isClassificationRelevant,
   isPreliminaryQuillMonitorArticle,
   isQuillMonitorArticle,
 } from '@/utils/newsIncident';
+import {
+  getDuplicateOfUid,
+  isPublishable,
+  mapNewsArticleRow,
+  mapPublishableNewsArticleRows,
+  NEWS_ARTICLE_COLUMNS,
+} from '@/lib/threatIntel/articleRow';
 import { safeExternalUrl } from '@/utils/safeUrl';
 import {
   buildNewsArticleSchema,
@@ -185,7 +191,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     setAlertsError(null);
     const { data, error: alertsFetchError } = await supabase
       .from('news_articles')
-      .select('*')
+      .select(NEWS_ARTICLE_COLUMNS)
       .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
       .in('severity', ['critical', 'high'])
       .order('published_at', { ascending: false })
@@ -198,31 +204,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       return;
     }
 
-    const sanitize = (value: string | null | undefined) => (value || '')
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const alertRows = data || [];
-    setActiveAlerts(alertRows.map((row) => ({
-      id: row.id,
-      title: sanitize(row.title),
-      summary: sanitize(row.summary),
-      content: sanitize(row.content || row.summary),
-      category: row.category as NewsCategory,
-      severity: row.severity as SeverityLevel,
-      tags: row.tags || [],
-      affectedTechnologies: row.affected_technologies || [],
-      link: row.link,
-      sourceUrl: row.source_url || '',
-      sourceName: row.source_name || '',
-      author: row.author || '',
-      cveId: row.cve_id || undefined,
-      publishedAt: new Date(row.published_at),
-      isProcessed: row.is_processed ?? false,
-      metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-        ? row.metadata as NewsArticle['metadata']
-        : undefined,
-    })));
+    const alertRows = mapPublishableNewsArticleRows(data);
+    setActiveAlerts(alertRows);
     setActiveAlertCount(alertRows.length);
     setAlertsLoading(false);
   }, []);
@@ -236,6 +219,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   // Keep legacy ?article= links working while using a crawlable canonical route.
   const requestedArticleId = (routeArticleId || searchParams.get('article') || '').trim();
   const deepLinkLoaded = useRef('');
+  // Read the loaded list through a ref: a feed refresh must not cancel an
+  // in-flight deep-link fetch (the effect below only restarts on route change).
+  const dbArticlesRef = useRef(dbArticles);
+  useEffect(() => {
+    dbArticlesRef.current = dbArticles;
+  }, [dbArticles]);
   useEffect(() => {
     if (!requestedArticleId) {
       // Article content is route-owned. Browser Back/Forward can change the
@@ -254,7 +243,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     deepLinkLoaded.current = requestedArticleId;
 
     // Check if article is already in loaded list
-    const found = dbArticles.find(a => a.id === requestedArticleId);
+    const found = dbArticlesRef.current.find(a => a.id === requestedArticleId);
     if (found) {
       setSelectedArticle(found);
       setDeepLinkState('idle');
@@ -267,7 +256,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       setDeepLinkState('loading');
       const { data, error: articleError } = await supabase
         .from('news_articles')
-        .select('*')
+        .select(NEWS_ARTICLE_COLUMNS)
         .eq('id', requestedArticleId)
         .maybeSingle();
       if (cancelled) return;
@@ -275,51 +264,39 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         setDeepLinkState('error');
         return;
       }
-      if (data) {
-        const sanitize = (t: string | null | undefined) => {
-          if (!t) return '';
-          let s = t, prev = '';
-          while (s !== prev) {
-            prev = s;
-            s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
-              .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-              .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
-                const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
-                return m[n.toLowerCase()] ?? '';
-              });
-            s = s.replace(/<[^>]*>/g, '');
-          }
-          return s.replace(/\s+/g, ' ').trim();
-        };
-        const article: NewsArticle = {
-          id: data.id,
-          title: sanitize(data.title),
-          summary: sanitize(data.summary),
-          content: sanitize(data.content),
-          category: data.category as any,
-          severity: data.severity as any,
-          tags: data.tags || [],
-          affectedTechnologies: data.affected_technologies || [],
-          link: data.link,
-          sourceUrl: data.source_url || '',
-          sourceName: data.source_name || '',
-          author: data.author || '',
-          cveId: data.cve_id || undefined,
-          publishedAt: new Date(data.published_at),
-          isProcessed: data.is_processed ?? false,
-          metadata: data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
-            ? data.metadata as NewsArticle['metadata']
-            : undefined,
-        };
-        if (!isClassificationRelevant(article)) {
-          setDeepLinkState('not-found');
+      const article = mapNewsArticleRow(data);
+      if (!article) {
+        setDeepLinkState('not-found');
+        return;
+      }
+
+      // A record merged into another provider's incident keeps its old URL
+      // working (shared links, emails) by forwarding to the primary record.
+      const primaryUid = getDuplicateOfUid(article.metadata);
+      if (primaryUid) {
+        const { data: primary } = await supabase
+          .from('news_articles')
+          .select('id, metadata')
+          .eq('uid', primaryUid)
+          .maybeSingle();
+        if (cancelled) return;
+        // Only forward to a record that is not itself merged, so a bad merge
+        // (A -> B -> A) can never send the browser round in a loop.
+        if (primary?.id && primary.id !== article.id && !getDuplicateOfUid(primary.metadata)) {
+          deepLinkLoaded.current = '';
+          navigate(`/threat-intel/${encodeURIComponent(primary.id)}`, { replace: true });
           return;
         }
-        setSelectedArticle(article);
-        setDeepLinkState('idle');
-      } else {
         setDeepLinkState('not-found');
+        return;
       }
+
+      if (!isPublishable(article.metadata)) {
+        setDeepLinkState('not-found');
+        return;
+      }
+      setSelectedArticle(article);
+      setDeepLinkState('idle');
     })();
 
     return () => {
@@ -327,7 +304,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       // from restoring detail content for a route the user already left.
       cancelled = true;
     };
-  }, [requestedArticleId, dbArticles]);
+  }, [requestedArticleId, navigate]);
 
   useEffect(() => {
     if (!requestedArticleId) return;

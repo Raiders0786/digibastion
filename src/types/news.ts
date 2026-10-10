@@ -40,6 +40,7 @@ export interface NewsArticle {
     is_web3_incident?: boolean;
     security_domain?: string;
     classification_relevant?: boolean;
+    duplicate_of_uid?: string | null;
     provider_incident_id?: string;
     project_name?: string;
     chain?: string;

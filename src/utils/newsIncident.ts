@@ -17,10 +17,12 @@ export const WEB3_DOMAIN_POSTGREST_FILTER = [
   'and(metadata->>security_domain.is.null,category.in.(web3-security,defi-exploits))',
 ].join(',');
 
-export const CLASSIFICATION_RELEVANCE_POSTGREST_FILTER = [
-  'metadata->>classification_relevant.is.null',
-  'metadata->>classification_relevant.neq.false',
-].join(',');
+// Publishable = not rejected by the classifier AND not merged into another
+// provider's record. Pass it to a single `.or()` call: the outer and() keeps
+// both conditions inside one PostgREST logic group. Mirrors isPublishable() in
+// src/lib/threatIntel/articleRow.ts and the SQL predicate in the feed RPCs.
+export const CLASSIFICATION_RELEVANCE_POSTGREST_FILTER =
+  'and(or(metadata->>classification_relevant.is.null,metadata->>classification_relevant.neq.false),metadata->>duplicate_of_uid.is.null)';
 
 export function isClassificationRelevant(article: Pick<NewsArticle, 'metadata'>): boolean {
   return article.metadata?.classification_relevant !== false;

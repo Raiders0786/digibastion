@@ -85,4 +85,28 @@ describe('RealtimeAlertListener provider refresh behavior', () => {
     expect(realtime.toast).not.toHaveBeenCalled();
     expect(onNewArticle).toHaveBeenCalledTimes(1);
   });
+
+  it('does not toast a merged duplicate insert', () => {
+    const onNewArticle = vi.fn();
+    render(<RealtimeAlertListener onNewArticle={onNewArticle} />);
+
+    act(() => {
+      realtime.handlers.INSERT({
+        new: {
+          id: 'slowmist:2',
+          title: 'Duplicate of a QuillMonitor incident',
+          severity: 'critical',
+          category: 'web3-security',
+          summary: 'Summary',
+          published_at: new Date().toISOString(),
+          source_name: 'SlowMist Hacked',
+          metadata: { provider: 'slowmist', classification_relevant: false, duplicate_of_uid: 'quillmonitor:1' },
+        },
+      });
+      vi.advanceTimersByTime(1_500);
+    });
+
+    expect(realtime.toast).not.toHaveBeenCalled();
+    expect(onNewArticle).toHaveBeenCalledTimes(1);
+  });
 });

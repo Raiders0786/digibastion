@@ -50,8 +50,28 @@ vi.mock('@/hooks/useNewsArticles', () => ({
   },
 }));
 
+const deepLink = vi.hoisted(() => {
+  const rows: Record<string, unknown> = {};
+  const from = vi.fn(() => {
+    const filters: Record<string, unknown> = {};
+    const chain: Record<string, unknown> = {};
+    chain.select = vi.fn(() => chain);
+    chain.eq = vi.fn((column: string, value: unknown) => {
+      filters[column] = value;
+      return chain;
+    });
+    chain.maybeSingle = vi.fn(async () => {
+      const key = filters.id !== undefined ? `id:${String(filters.id)}` : `uid:${String(filters.uid)}`;
+      return { data: rows[key] ?? null, error: null };
+    });
+    return chain;
+  });
+  return { rows, from };
+});
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
+    from: deepLink.from,
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
@@ -70,11 +90,24 @@ vi.mock('@/components/news/NewsDetail', () => ({
   NewsDetail: ({ article: selected }: { article: NewsArticle }) => <div data-testid="article-detail">{selected.title}</div>,
 }));
 
+function renderAt(url: string) {
+  const router = createMemoryRouter(
+    [
+      { path: '/threat-intel', element: <News /> },
+      { path: '/threat-intel/:articleId', element: <News /> },
+    ],
+    { initialEntries: [url] },
+  );
+  render(<RouterProvider router={router} />);
+  return router;
+}
+
 describe('threat-intel article navigation', () => {
   afterEach(cleanup);
 
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const key of Object.keys(deepLink.rows)) delete deepLink.rows[key];
   });
 
   it('hydrates shareable feed filters and keeps them in the URL when scope changes', async () => {
@@ -141,5 +174,65 @@ describe('threat-intel article navigation', () => {
 
     await waitFor(() => expect(screen.queryByTestId('article-detail')).toBeNull());
     expect(screen.getByRole('heading', { name: 'Threat Intelligence Feed' })).not.toBeNull();
+  });
+
+  it('redirects a deep link for a merged duplicate to the primary incident', async () => {
+    deepLink.rows['id:dup-1'] = {
+      id: 'dup-1',
+      title: 'Duplicate report',
+      summary: 'Summary',
+      content: 'Body',
+      category: 'web3-security',
+      severity: 'critical',
+      tags: [],
+      affected_technologies: [],
+      link: null,
+      source_url: null,
+      source_name: 'SlowMist Hacked',
+      author: null,
+      cve_id: null,
+      published_at: '2026-09-27T08:00:00Z',
+      is_processed: false,
+      metadata: { classification_relevant: false, duplicate_of_uid: 'quillmonitor:42' },
+    };
+    deepLink.rows['uid:quillmonitor:42'] = { id: 'article-1' };
+
+    const router = renderAt('/threat-intel/dup-1');
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/threat-intel/article-1'));
+    expect((await screen.findByTestId('article-detail')).textContent).toContain('Test threat report');
+    expect(deepLink.from).toHaveBeenCalledWith('news_articles');
+  });
+
+  it('does not follow a merged duplicate whose primary is itself a duplicate', async () => {
+    deepLink.rows['id:dup-2'] = {
+      id: 'dup-2',
+      title: 'Duplicate report',
+      summary: 'Summary',
+      content: 'Body',
+      category: 'web3-security',
+      severity: 'critical',
+      tags: [],
+      affected_technologies: [],
+      link: null,
+      source_url: null,
+      source_name: 'SlowMist Hacked',
+      author: null,
+      cve_id: null,
+      published_at: '2026-09-27T08:00:00Z',
+      is_processed: false,
+      metadata: { duplicate_of_uid: 'slowmist:7' },
+    };
+    deepLink.rows['uid:slowmist:7'] = { id: 'dup-3', metadata: { duplicate_of_uid: 'web3-incidents:9' } };
+
+    const router = renderAt('/threat-intel/dup-2');
+
+    const uidLookups = () => deepLink.from.mock.results
+      .filter((result) => (result.value as { eq: { mock: { calls: unknown[][] } } }).eq.mock.calls.some(([column]) => column === 'uid'))
+      .length;
+    await waitFor(() => expect(uidLookups()).toBe(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(router.state.location.pathname).toBe('/threat-intel/dup-2');
+    expect(screen.queryByTestId('article-detail')).toBeNull();
   });
 });

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isPublishable } from '@/lib/threatIntel/articleRow';
+import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER } from '@/utils/newsIncident';
 
 interface NotificationState {
   alertCount: number;
@@ -18,15 +20,16 @@ export const useMobileNotifications = () => {
     // Load last checked timestamp from localStorage
     const lastChecked = localStorage.getItem('lastCheckedAlerts');
     const lastQuizVisit = localStorage.getItem('lastQuizVisit');
-    
+
     // Check for new critical/high severity alerts since last check
     const fetchNewAlerts = async () => {
       try {
         const checkTime = lastChecked || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        
+
         const { count, error } = await supabase
           .from('news_articles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
+          .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
           .in('severity', ['critical', 'high'])
           .gte('published_at', checkTime);
 
@@ -48,7 +51,7 @@ export const useMobileNotifications = () => {
       const weekStart = new Date(now);
       weekStart.setDate(now.getDate() - now.getDay());
       weekStart.setHours(0, 0, 0, 0);
-      
+
       const hasNewChallenge = !lastQuizVisit || new Date(lastQuizVisit) < weekStart;
       setNotifications(prev => ({ ...prev, hasNewQuiz: hasNewChallenge }));
     };
@@ -67,8 +70,11 @@ export const useMobileNotifications = () => {
           table: 'news_articles',
         },
         (payload) => {
-          const severity = (payload.new as { severity?: string })?.severity;
-          if (severity === 'critical' || severity === 'high') {
+          const row = payload.new as { severity?: string; metadata?: unknown } | null;
+          const isAlertSeverity = row?.severity === 'critical' || row?.severity === 'high';
+          // Merged duplicates and classifier rejections never reach the feed,
+          // so they must not raise the badge either.
+          if (isAlertSeverity && isPublishable(row?.metadata)) {
             setNotifications(prev => ({
               ...prev,
               alertCount: Math.min(prev.alertCount + 1, 99),

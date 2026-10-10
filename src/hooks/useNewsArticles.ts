@@ -9,16 +9,18 @@ import {
   saveStatsToCache,
   loadStatsFromCache,
 } from '@/utils/newsCache';
-import { sanitizeText } from '@/utils/sanitize';
 import { summarizeFeedFreshness } from '@/utils/feedFreshness';
 import {
   buildCategoryPostgrestFilter,
   CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
-  isClassificationRelevant,
   isWeb3Incident,
   WEB3_INCIDENT_POSTGREST_FILTER,
 } from '@/utils/newsIncident';
-import type { Database } from '@/integrations/supabase/types';
+import {
+  isPublishable,
+  mapPublishableNewsArticleRows,
+  NEWS_ARTICLE_COLUMNS,
+} from '@/lib/threatIntel/articleRow';
 
 interface UseNewsArticlesOptions {
   categories?: NewsCategory[];
@@ -73,49 +75,6 @@ const sanitizePostgrestSearchTerm = (value: string): string => value
   .replace(/[,%_*()"'\\]/g, ' ')
   .replace(/\s+/g, ' ')
   .trim();
-
-const NEWS_ARTICLE_COLUMNS = 'id,title,summary,content,category,severity,tags,affected_technologies,link,source_url,source_name,author,cve_id,published_at,is_processed,metadata' as const;
-
-type NewsArticleTableRow = Database['public']['Tables']['news_articles']['Row'];
-type NewsArticleQueryRow = Pick<NewsArticleTableRow,
-  | 'id'
-  | 'title'
-  | 'summary'
-  | 'content'
-  | 'category'
-  | 'severity'
-  | 'tags'
-  | 'affected_technologies'
-  | 'link'
-  | 'source_url'
-  | 'source_name'
-  | 'author'
-  | 'cve_id'
-  | 'published_at'
-  | 'is_processed'
-  | 'metadata'
->;
-
-const toNewsArticle = (row: NewsArticleQueryRow): NewsArticle => ({
-  id: row.id,
-  title: sanitizeText(row.title),
-  content: sanitizeText(row.content || row.summary),
-  summary: sanitizeText(row.summary),
-  category: row.category as NewsCategory,
-  tags: row.tags || [],
-  severity: row.severity as SeverityLevel,
-  sourceUrl: row.source_url || undefined,
-  link: row.link || undefined,
-  publishedAt: new Date(row.published_at),
-  affectedTechnologies: row.affected_technologies || [],
-  author: row.author || undefined,
-  cveId: row.cve_id || undefined,
-  isProcessed: row.is_processed || false,
-  sourceName: row.source_name || undefined,
-  metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-    ? row.metadata as NewsArticle['metadata']
-    : undefined,
-});
 
 const emptyFeedFreshness = {
   activeFeedCount: 0,
@@ -202,7 +161,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
 
     const cached = loadFromCache(currentFilterKey);
     if (cached) {
-      setArticles(cached.articles.filter(isClassificationRelevant));
+      setArticles(cached.articles.filter((article) => isPublishable(article.metadata)));
       setTotalCount(cached.totalCount);
       setIsCachedData(true);
       setFeedStatus({
@@ -257,7 +216,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       // full-text RPC forces PostgreSQL through the generic ranking plan even
       // when there is no search term, which has caused statement timeouts as
       // the article corpus has grown. Keep the RPC for ranked searches only.
-      let data: NewsArticleQueryRow[] | null = null;
+      let data: unknown[] | null = null;
       let fetchError: { message?: string } | null = null;
       let queryCount: number | null = null;
 
@@ -341,7 +300,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         const fallbackTotal = Math.max(resultCountFloor, cachedStats?.total || 0);
         setTotalCount(fallbackTotal);
 
-        const transformedArticles = (fallbackData || []).map(toNewsArticle).filter(isClassificationRelevant);
+        const transformedArticles = mapPublishableNewsArticleRows(fallbackData);
 
         setArticles(transformedArticles);
         setIsCachedData(false);
@@ -377,7 +336,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       setTotalCount(resolvedCount);
 
       // Transform RPC results to NewsArticle format
-      const transformedArticles = (data || []).map(toNewsArticle).filter(isClassificationRelevant);
+      const transformedArticles = mapPublishableNewsArticleRows(data);
 
       // Apply sorting (RPC already sorts by rank + date, but apply severity if needed)
       if (sortBy === 'severity') {
@@ -412,7 +371,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       });
       const cached = loadFromCache(filterKey);
       if (cached && cached.articles.length > 0) {
-        setArticles(cached.articles.filter(isClassificationRelevant));
+        setArticles(cached.articles.filter((article) => isPublishable(article.metadata)));
         setTotalCount(cached.totalCount);
         setIsCachedData(true);
         setFeedStatus({
