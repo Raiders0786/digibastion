@@ -147,7 +147,7 @@ export function IncidentFilters({
         <ChipGroup
           id={`${idPrefix}-chain`}
           title="Chain"
-          help="Chain is reported by QuillMonitor only, so picking a chain shows QuillMonitor records."
+          help="Chain comes from QuillMonitor and older QuillAudits records. Other trackers don't report it, so picking a chain hides their incidents."
           options={withSelected(facets.chains, filters.chains)}
           selected={filters.chains}
           onToggle={onChainToggle}

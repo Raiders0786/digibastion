@@ -50,7 +50,7 @@ describe('IncidentFilters', () => {
     const chain = screen.getByRole('group', { name: 'Chain' });
     expect(chain.getAttribute('aria-describedby')).toBe('test-chain-help');
     expect(document.getElementById('test-chain-help')?.textContent)
-      .toBe('Chain is reported by QuillMonitor only, so picking a chain shows QuillMonitor records.');
+      .toBe("Chain comes from QuillMonitor and older QuillAudits records. Other trackers don't report it, so picking a chain hides their incidents.");
     expect(within(chain).getByRole('button', { name: 'Ethereum' }).getAttribute('aria-pressed')).toBe('true');
     expect(within(chain).getByRole('button', { name: 'BSC' }).getAttribute('title')).toBe('7 in the last 90 days');
     expect(within(screen.getByRole('group', { name: 'Attack type' })).getByRole('button', { name: 'Phishing' })).not.toBeNull();
