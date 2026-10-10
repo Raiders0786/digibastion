@@ -70,6 +70,10 @@ const deepLink = vi.hoisted(() => {
   return { rows, from };
 });
 
+vi.mock('@/hooks/useThreatIntelFacets', () => ({
+  useThreatIntelFacets: () => ({ chains: [], attackTypes: [] }),
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: deepLink.from,
@@ -278,6 +282,10 @@ describe('threat-intel article navigation', () => {
         severities: ['critical'],
         searchQuery: '',
         dateFilter: 'all',
+        verification: 'all',
+        chains: [],
+        attackTypes: [],
+        sources: [],
       },
       page: 1,
       enabled: true,
@@ -287,6 +295,26 @@ describe('threat-intel article navigation', () => {
       .map((element) => element.closest('button'))
       .find((button) => button !== null);
     expect(alertsTab?.textContent).toContain('1');
+  });
+
+  it('passes the status, chain, attack-type and source filters to the alerts hook', async () => {
+    renderAt('/threat-intel?tab=alerts&status=confirmed&chain=ethereum&attack=phishing&source=slowmist');
+
+    await waitFor(() => expect(useThreatIntelAlertsMock).toHaveBeenLastCalledWith({
+      filters: {
+        scope: 'web3-incidents',
+        categories: [],
+        severities: [],
+        searchQuery: '',
+        dateFilter: 'all',
+        verification: 'confirmed',
+        chains: ['ethereum'],
+        attackTypes: ['phishing'],
+        sources: ['slowmist'],
+      },
+      page: 1,
+      enabled: true,
+    }));
   });
 
   it('debounces search typing before writing ?q= to the URL', async () => {

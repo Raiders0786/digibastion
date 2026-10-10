@@ -62,6 +62,16 @@ describe('buildFilterKey', () => {
     expect(buildFilterKey({ scope: 'web3-incidents' })).not.toBe(buildFilterKey({ scope: 'all' }));
   });
 
+  it('keys on the incident filters, ignoring list order', () => {
+    const base = buildFilterKey({ scope: 'web3-incidents' });
+    expect(buildFilterKey({ scope: 'web3-incidents', verification: 'confirmed' })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', chains: ['ethereum'] })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', attackTypes: ['phishing'] })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', sources: ['slowmist'] })).not.toBe(base);
+    expect(buildFilterKey({ scope: 'web3-incidents', chains: ['bsc', 'ethereum'] }))
+      .toBe(buildFilterKey({ scope: 'web3-incidents', chains: ['ethereum', 'bsc'] }));
+  });
+
   it('defaults missing fields', () => {
     const key = buildFilterKey({ scope: 'all' });
     expect(key).toContain('"q":""');

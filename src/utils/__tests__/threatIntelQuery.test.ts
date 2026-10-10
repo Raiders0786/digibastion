@@ -3,13 +3,19 @@ import type { NewsArticle } from '@/types/news';
 import {
   ALERTS_PAGE_SIZE,
   buildAlertQueryParams,
+  buildIncidentPostgrestFilters,
   buildThreatIntelFilterParams,
   buildThreatIntelQueryParams,
   computePageStats,
+  normalizeFacetValue,
+  parseThreatIntelFacets,
   parseThreatIntelFilters,
   parseThreatIntelStats,
   requiresThreatIntelRpc,
   resolveAlertSeverities,
+  sourceFiltersForScope,
+  withListParam,
+  withScopeParam,
   type ThreatIntelFilters,
 } from '@/lib/threatIntel/query';
 
@@ -24,6 +30,10 @@ const baseFilters: ThreatIntelFilters = {
   sortBy: 'date',
   page: 1,
   pageSize: 20,
+  verification: 'all',
+  chains: [],
+  attackTypes: [],
+  sources: [],
 };
 
 describe('parseThreatIntelFilters', () => {
@@ -38,6 +48,10 @@ describe('parseThreatIntelFilters', () => {
       sortBy: 'severity',
       page: 3,
       pageSize: 20,
+      verification: 'all',
+      chains: [],
+      attackTypes: [],
+      sources: [],
     });
   });
 
@@ -136,6 +150,10 @@ describe('alert queries', () => {
       severities: [],
       searchQuery: 'npm',
       dateFilter: '30d',
+      verification: 'all',
+      chains: [],
+      attackTypes: [],
+      sources: [],
     }, 2, NOW);
     const filter = {
       search_query: 'npm',
@@ -197,5 +215,162 @@ describe('stats', () => {
     ], 42)).toEqual({
       total: 42, critical: 1, high: 1, medium: 0, low: 0, info: 1, supplyChain: 1, unconfirmed: 1,
     });
+  });
+});
+
+
+describe('incident filters', () => {
+  it('reads status, chain, attack type and source in the Web3 view and drops unknown values', () => {
+    const params = new URLSearchParams();
+    params.set('status', 'confirmed');
+    ['Ethereum', ' BSC ', 'ethereum', 'eth%', 'a_b', ''].forEach((value) => params.append('chain', value));
+    params.append('attack', 'Flash Loan');
+    ['slowmist', 'bogus', 'rss', 'quillmonitor'].forEach((value) => params.append('source', value));
+
+    expect(parseThreatIntelFilters(params)).toEqual({
+      ...baseFilters,
+      verification: 'confirmed',
+      chains: ['ethereum', 'bsc'],
+      attackTypes: ['flash loan'],
+      sources: ['slowmist', 'quillmonitor'],
+    });
+  });
+
+  it('ignores status, chain and attack type outside the Web3 view but keeps source', () => {
+    const filters = parseThreatIntelFilters(new URLSearchParams('scope=all&status=unconfirmed&chain=ethereum&attack=phishing&source=rss,quillmonitor'));
+    expect(filters.verification).toBe('all');
+    expect(filters.chains).toEqual([]);
+    expect(filters.attackTypes).toEqual([]);
+    expect(filters.sources).toEqual(['rss', 'quillmonitor']);
+  });
+
+  it('treats an unknown status as all and caps free-text selections at 10', () => {
+    const params = new URLSearchParams('status=verified');
+    for (let index = 0; index < 12; index += 1) params.append('chain', `chain ${index}`);
+    const filters = parseThreatIntelFilters(params);
+    expect(filters.verification).toBe('all');
+    expect(filters.chains).toHaveLength(10);
+  });
+
+  it('normalizes chain and attack-type values', () => {
+    expect(normalizeFacetValue('  Arbitrum One ')).toBe('arbitrum one');
+    expect(normalizeFacetValue("Rug Pull / Exit Scam (Owner's key)")).toBe("rug pull / exit scam (owner's key)");
+    expect(normalizeFacetValue('Sui')).toBe('sui');
+    expect(normalizeFacetValue('a,b')).toBeNull();
+    expect(normalizeFacetValue('50%')).toBeNull();
+    expect(normalizeFacetValue('x'.repeat(65))).toBeNull();
+    expect(normalizeFacetValue('-leading')).toBeNull();
+    expect(normalizeFacetValue(42)).toBeNull();
+  });
+
+  it('offers publisher feeds only outside the Web3 view', () => {
+    expect(sourceFiltersForScope('web3-incidents')).toEqual(['quillmonitor', 'web3-incidents', 'slowmist']);
+    expect(sourceFiltersForScope('all')).toEqual(['quillmonitor', 'web3-incidents', 'slowmist', 'rss']);
+  });
+
+  it('maps the incident filters to RPC arguments', () => {
+    expect(buildThreatIntelFilterParams({
+      ...baseFilters,
+      verification: 'unconfirmed',
+      chains: ['ethereum'],
+      attackTypes: ['flash loan', 'phishing'],
+      sources: ['quillmonitor'],
+    }, NOW)).toEqual({
+      search_query: null,
+      category_filter: null,
+      severity_filter: null,
+      date_from: null,
+      source_filter: null,
+      web3_incidents_only: true,
+      verification_filter: 'unverified',
+      chain_filter: ['ethereum'],
+      attack_type_filter: ['flash loan', 'phishing'],
+      provider_filter: ['quillmonitor'],
+    });
+    expect(buildThreatIntelFilterParams({ ...baseFilters, verification: 'confirmed' }, NOW).verification_filter).toBe('verified');
+  });
+
+  it('leaves unset incident filters out of the RPC arguments', () => {
+    const params = buildThreatIntelFilterParams(baseFilters, NOW);
+    expect(Object.keys(params)).not.toContain('verification_filter');
+    expect(Object.keys(params)).not.toContain('chain_filter');
+    expect(Object.keys(params)).not.toContain('attack_type_filter');
+    expect(Object.keys(params)).not.toContain('provider_filter');
+  });
+
+  it.each([
+    ['a status', { verification: 'confirmed' as const }],
+    ['a chain', { chains: ['ethereum'] }],
+    ['an attack type', { attackTypes: ['phishing'] }],
+    ['a source', { sources: ['rss' as const] }],
+  ])('uses the RPC for %s in the all-news view', (_label, overrides) => {
+    expect(requiresThreatIntelRpc({ ...baseFilters, scope: 'all', ...overrides })).toBe(true);
+  });
+
+  it('carries the incident filters into alert queries', () => {
+    const query = buildAlertQueryParams({ ...baseFilters, chains: ['ethereum'], verification: 'confirmed' }, 1, NOW);
+    expect(query?.search.chain_filter).toEqual(['ethereum']);
+    expect(query?.filter.verification_filter).toBe('verified');
+  });
+
+  it('writes repeatable URL params and resets paging', () => {
+    const next = withListParam(new URLSearchParams('chain=bsc&page=3&scope=all'), 'chain', ['ethereum', 'arbitrum one']);
+    expect(next.getAll('chain')).toEqual(['ethereum', 'arbitrum one']);
+    expect(next.get('page')).toBeNull();
+    expect(next.get('scope')).toBe('all');
+    expect(withListParam(next, 'chain', []).has('chain')).toBe(false);
+  });
+
+  it('drops filters the new view does not show when the scope changes', () => {
+    const toAll = withScopeParam(new URLSearchParams('status=confirmed&chain=ethereum&attack=phishing&source=slowmist&page=2'), 'all');
+    expect(toAll.toString()).toBe('scope=all&source=slowmist');
+
+    const toWeb3 = withScopeParam(new URLSearchParams('scope=all&source=rss&source=quillmonitor&categories=supply-chain'), 'web3-incidents');
+    expect(toWeb3.get('scope')).toBeNull();
+    expect(toWeb3.getAll('source')).toEqual(['quillmonitor']);
+    expect(toWeb3.get('categories')).toBe('supply-chain');
+  });
+
+  it('builds PostgREST fallback filters that mirror the SQL predicate', () => {
+    expect(buildIncidentPostgrestFilters({
+      ...buildThreatIntelFilterParams(baseFilters, NOW),
+      verification_filter: 'verified',
+      chain_filter: ['ethereum', "owner's (chain)"],
+      attack_type_filter: ['flash loan'],
+      provider_filter: ['web3-incidents', 'rss'],
+    })).toEqual([
+      'metadata->>verification_status.eq.verified',
+      'metadata->>chain.ilike."ethereum",metadata->>chain.ilike."owner\'s (chain)"',
+      'metadata->>attack_type.ilike."flash loan"',
+      'metadata->>provider.in.(web3-incidents,web3),metadata->>provider.eq.rss,and(metadata->>provider.is.null,or(metadata->>is_web3_incident.is.null,metadata->>is_web3_incident.neq.true))',
+    ]);
+    expect(buildIncidentPostgrestFilters(buildThreatIntelFilterParams(baseFilters, NOW))).toEqual([]);
+  });
+});
+
+describe('facets', () => {
+  it('parses the threat_intel_facets payload', () => {
+    expect(parseThreatIntelFacets({
+      chains: [
+        { value: 'ethereum', label: 'Ethereum', count: 42 },
+        { value: 'ETHEREUM', label: 'Ethereum', count: 1 },
+        { value: 'bad,value', label: 'Bad', count: 3 },
+        { value: 'bsc', label: '', count: '7' },
+        { value: 'solana', label: 'Solana', count: -1 },
+      ],
+      attack_types: [{ value: 'phishing', label: 'Phishing', count: 5 }],
+    })).toEqual({
+      chains: [
+        { value: 'ethereum', label: 'Ethereum', count: 42 },
+        { value: 'bsc', label: 'bsc', count: 7 },
+      ],
+      attackTypes: [{ value: 'phishing', label: 'Phishing', count: 5 }],
+    });
+  });
+
+  it('returns empty facets for anything else', () => {
+    expect(parseThreatIntelFacets(null)).toEqual({ chains: [], attackTypes: [] });
+    expect(parseThreatIntelFacets([])).toEqual({ chains: [], attackTypes: [] });
+    expect(parseThreatIntelFacets({ chains: 'ethereum' })).toEqual({ chains: [], attackTypes: [] });
   });
 });

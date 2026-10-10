@@ -70,6 +70,15 @@ vi.mock('@/components/news/RealtimeAlertListener', () => ({ RealtimeAlertListene
 vi.mock('@/components/news/RealtimeStatusIndicator', () => ({ RealtimeStatusIndicator: () => null }));
 vi.mock('@/components/mobile/PullToRefresh', () => ({ PullToRefresh: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock('@/components/mobile/SwipeableTabs', () => ({ SwipeableTabs: ({ children }: { children: React.ReactNode }) => children }));
+vi.mock('@/hooks/useThreatIntelFacets', () => ({
+  useThreatIntelFacets: () => ({
+    chains: [
+      { value: 'ethereum', label: 'Ethereum', count: 42 },
+      { value: 'bsc', label: 'BSC', count: 7 },
+    ],
+    attackTypes: [{ value: 'phishing', label: 'Phishing', count: 9 }],
+  }),
+}));
 
 const renderAt = (url: string) => {
   const router = createMemoryRouter(
@@ -169,5 +178,68 @@ describe('threat-intel hero and mobile filters', () => {
     expect(await screen.findByRole('tab', { name: 'News Feed (2)' })).not.toBeNull();
     expect(screen.getByRole('tab', { name: 'Active Alerts (2)' })).not.toBeNull();
     expect(screen.getByRole('tab', { name: 'Subscribe' })).not.toBeNull();
+  });
+
+  it('counts the incident filters on the mobile trigger and shows them in the sheet', async () => {
+    renderAt('/threat-intel?status=confirmed&chain=ethereum&source=slowmist');
+
+    expect(useNewsArticlesMock).toHaveBeenLastCalledWith(expect.objectContaining({
+      verification: 'confirmed',
+      chains: ['ethereum'],
+      sources: ['slowmist'],
+    }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters (3)' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filter feed' });
+    expect(within(sheet).getByRole('button', { name: 'Confirmed' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(sheet).getByRole('button', { name: 'Ethereum' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(sheet).getByRole('button', { name: 'SlowMist Hacked' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('writes a chain chip to the URL and resets the page', async () => {
+    const router = renderAt('/threat-intel?chain=ethereum&page=2');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'BSC' }));
+    await waitFor(() => {
+      const params = new URLSearchParams(router.state.location.search);
+      expect(params.getAll('chain')).toEqual(['ethereum', 'bsc']);
+      expect(params.get('page')).toBeNull();
+    });
+  });
+
+  it('drops status, chain and attack type when switching to all news', async () => {
+    const router = renderAt('/threat-intel?status=unconfirmed&chain=ethereum&attack=phishing&source=quillmonitor');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'All Intelligence' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('?scope=all&source=quillmonitor');
+    });
+  });
+
+  it('clears the incident filters with the other filters', async () => {
+    const router = renderAt('/threat-intel?status=confirmed&chain=ethereum&source=slowmist');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+  });
+
+  it('leaves the incident filters out of the email alerts link', async () => {
+    renderAt('/threat-intel?status=confirmed&chain=ethereum&attack=phishing&source=slowmist&categories=defi-exploits');
+
+    const emailHref = (await screen.findByRole('link', { name: 'Get email alerts' })).getAttribute('href') ?? '';
+    const params = new URLSearchParams(emailHref.split('?')[1]);
+    expect(params.get('categories')).toBe('defi-exploits');
+    ['status', 'chain', 'attack', 'source'].forEach((key) => expect(params.has(key)).toBe(false));
+  });
+
+  it('counts each incident filter once', () => {
+    expect(countActiveFilters({
+      selectedCategories: [],
+      selectedSeverities: [],
+      dateFilter: 'all',
+      sortBy: 'date',
+      incidentFilters: { verification: 'unconfirmed', chains: ['ethereum', 'bsc'], attackTypes: ['phishing'], sources: ['rss'] },
+    })).toBe(5);
   });
 });

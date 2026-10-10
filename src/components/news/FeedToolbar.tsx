@@ -1,5 +1,6 @@
 import { Calendar, Search, SlidersHorizontal } from 'lucide-react';
 import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
+import { IncidentFilters, type IncidentFilterState } from '@/components/news/IncidentFilters';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
+import type { SourceFilter, ThreatIntelFacets, VerificationFilter } from '@/lib/threatIntel/query';
 
 export type FeedDateFilter = 'all' | '7d' | '30d' | '90d';
 export type FeedSort = 'date' | 'severity';
@@ -25,6 +27,14 @@ export interface FeedToolbarProps {
   onCategoryToggle: (category: NewsCategory) => void;
   onSeverityToggle: (severity: SeverityLevel) => void;
   onClearFilters: () => void;
+  /** Status, chain, attack type and source (task C7). */
+  incidentFilters: IncidentFilterState;
+  /** Chain and attack-type options (useThreatIntelFacets). */
+  facets: ThreatIntelFacets;
+  onVerificationChange: (value: VerificationFilter) => void;
+  onChainToggle: (value: string) => void;
+  onAttackTypeToggle: (value: string) => void;
+  onSourceToggle: (value: SourceFilter) => void;
 }
 
 /** Filters that live behind the mobile "Filters (n)" button. Search and scope stay visible. */
@@ -33,11 +43,17 @@ export function countActiveFilters({
   selectedSeverities,
   dateFilter,
   sortBy,
-}: Pick<FeedToolbarProps, 'selectedCategories' | 'selectedSeverities' | 'dateFilter' | 'sortBy'>): number {
+  incidentFilters,
+}: Pick<FeedToolbarProps, 'selectedCategories' | 'selectedSeverities' | 'dateFilter' | 'sortBy'>
+  & Partial<Pick<FeedToolbarProps, 'incidentFilters'>>): number {
   return selectedCategories.length
     + selectedSeverities.length
     + (dateFilter === 'all' ? 0 : 1)
-    + (sortBy === 'date' ? 0 : 1);
+    + (sortBy === 'date' ? 0 : 1)
+    + (incidentFilters && incidentFilters.verification !== 'all' ? 1 : 0)
+    + (incidentFilters?.chains.length ?? 0)
+    + (incidentFilters?.attackTypes.length ?? 0)
+    + (incidentFilters?.sources.length ?? 0);
 }
 
 function DateSelect({ value, onChange }: { value: FeedDateFilter; onChange: (value: FeedDateFilter) => void }) {
@@ -86,8 +102,23 @@ export function FeedToolbar(props: FeedToolbarProps) {
     onCategoryToggle,
     onSeverityToggle,
     onClearFilters,
+    incidentFilters,
+    facets,
+    onVerificationChange,
+    onChainToggle,
+    onAttackTypeToggle,
+    onSourceToggle,
   } = props;
   const activeCount = countActiveFilters(props);
+  const incidentFilterProps = {
+    scope,
+    filters: incidentFilters,
+    facets,
+    onVerificationChange,
+    onChainToggle,
+    onAttackTypeToggle,
+    onSourceToggle,
+  };
 
   return (
     <Card className="glass-card">
@@ -107,7 +138,7 @@ export function FeedToolbar(props: FeedToolbarProps) {
               />
             </div>
 
-            {/* Below md, date, sort, category and severity live in a bottom sheet. */}
+            {/* Below md, date, sort, the incident filters, category and severity live in a bottom sheet. */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button type="button" variant="outline" className="shrink-0 gap-2 md:hidden">
@@ -118,13 +149,14 @@ export function FeedToolbar(props: FeedToolbarProps) {
               <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
                 <SheetHeader>
                   <SheetTitle>Filter feed</SheetTitle>
-                  <SheetDescription>Narrow the feed by date, sort order, category and severity.</SheetDescription>
+                  <SheetDescription>Choose which reports the feed shows and in what order.</SheetDescription>
                 </SheetHeader>
                 <div className="mt-4 space-y-4">
                   <div className="grid grid-cols-2 gap-2">
                     <DateSelect value={dateFilter} onChange={onDateFilterChange} />
                     <SortSelect value={sortBy} onChange={onSortChange} />
                   </div>
+                  <IncidentFilters {...incidentFilterProps} idPrefix="sheet-filter" />
                   <NewsFilters
                     selectedCategories={selectedCategories}
                     selectedSeverities={selectedSeverities}
@@ -150,6 +182,11 @@ export function FeedToolbar(props: FeedToolbarProps) {
               <SortSelect value={sortBy} onChange={onSortChange} />
             </div>
           </div>
+        </div>
+
+        {/* From md up, the incident filters sit under the search row. Below md they are in the sheet. */}
+        <div className="mt-3 hidden border-t border-border pt-3 md:block">
+          <IncidentFilters {...incidentFilterProps} idPrefix="toolbar-filter" />
         </div>
       </CardContent>
     </Card>

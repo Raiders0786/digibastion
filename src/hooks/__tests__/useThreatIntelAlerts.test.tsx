@@ -15,6 +15,10 @@ const filters: ThreatIntelFilterInput = {
   severities: [],
   searchQuery: '',
   dateFilter: 'all',
+  verification: 'all',
+  chains: [],
+  attackTypes: [],
+  sources: [],
 };
 
 const alertRow = (id: string, severity: string, metadata: Record<string, unknown> = {}) => ({
@@ -100,6 +104,24 @@ describe('useThreatIntelAlerts', () => {
     expect(db.rpc).not.toHaveBeenCalled();
     expect(result.current.alerts).toEqual([]);
     expect(result.current.totalCount).toBe(0);
+  });
+
+  it('applies the status, chain, attack-type and source filters to alerts', async () => {
+    const { result } = renderHook(() => useThreatIntelAlerts({
+      filters: { ...filters, verification: 'confirmed', chains: ['ethereum'], attackTypes: ['phishing'], sources: ['quillmonitor'] },
+      page: 1,
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const incidentArgs = {
+      verification_filter: 'verified',
+      chain_filter: ['ethereum'],
+      attack_type_filter: ['phishing'],
+      provider_filter: ['quillmonitor'],
+    };
+    expect(db.rpc).toHaveBeenCalledWith('search_news_articles', expect.objectContaining(incidentArgs));
+    expect(db.rpc).toHaveBeenCalledWith('threat_intel_stats', expect.objectContaining(incidentArgs));
   });
 
   it('reports an error when the alert query fails', async () => {

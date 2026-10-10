@@ -32,6 +32,10 @@ export interface CacheFilterInput {
   sortBy?: string;
   source?: string;
   page?: number;
+  verification?: string;
+  chains?: readonly string[];
+  attackTypes?: readonly string[];
+  sources?: readonly string[];
 }
 
 /** Build a stable key from filter options so cache only matches the same query. */
@@ -45,6 +49,10 @@ export function buildFilterKey(opts: CacheFilterInput): string {
     sb: opts.sortBy ?? 'date',
     src: opts.source ?? 'all',
     p: opts.page ?? 1,
+    v: opts.verification ?? 'all',
+    ch: opts.chains ? [...opts.chains].sort() : [],
+    at: opts.attackTypes ? [...opts.attackTypes].sort() : [],
+    pr: opts.sources ? [...opts.sources].sort() : [],
   });
 }
 

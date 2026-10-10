@@ -107,6 +107,60 @@ describe('useNewsArticles', () => {
     expect(result.current.pagination.totalCount).toBe(2);
   });
 
+  it('sends the incident filters to the search, stats and count RPCs', async () => {
+    const { result } = renderHook(() => useNewsArticles({
+      view: 'web3-incidents',
+      verification: 'unconfirmed',
+      chains: ['ethereum'],
+      attackTypes: ['flash loan'],
+      sources: ['quillmonitor'],
+    }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const incidentArgs = {
+      verification_filter: 'unverified',
+      chain_filter: ['ethereum'],
+      attack_type_filter: ['flash loan'],
+      provider_filter: ['quillmonitor'],
+    };
+    expect(db.rpc).toHaveBeenCalledWith('search_news_articles', expect.objectContaining(incidentArgs));
+    expect(db.rpc).toHaveBeenCalledWith('threat_intel_stats', expect.objectContaining(incidentArgs));
+  });
+
+  it('routes a source filter in the all-news view through the RPC', async () => {
+    const { result } = renderHook(() => useNewsArticles({ view: 'all', sources: ['rss'] }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(db.rpc).toHaveBeenCalledWith('search_news_articles', expect.objectContaining({ provider_filter: ['rss'] }));
+  });
+
+  it('applies the incident filters on the direct-table fallback when the search RPC fails', async () => {
+    const chains: Array<Record<string, ReturnType<typeof vi.fn>>> = [];
+    db.from.mockImplementation(() => {
+      const chain = db.makeChain({ data: [row('a', 'critical', { verification_status: 'verified', chain: 'Ethereum' })], error: null });
+      chains.push(chain as Record<string, ReturnType<typeof vi.fn>>);
+      return chain;
+    });
+    db.rpc.mockImplementation(async (name: string) => {
+      if (name === 'threat_intel_stats') return { data: serverStats, error: null };
+      return { data: null, error: { message: 'Could not find the function public.search_news_articles' } };
+    });
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useNewsArticles({
+      view: 'web3-incidents',
+      verification: 'confirmed',
+      chains: ['ethereum'],
+    }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const orCalls = chains.flatMap((chain) => chain.or.mock.calls.map((call) => call[0]));
+    expect(orCalls).toContain('metadata->>verification_status.eq.verified');
+    expect(orCalls).toContain('metadata->>chain.ilike."ethereum"');
+    expect(result.current.articles.map((article) => article.id)).toEqual(['a']);
+    expect(consoleError).toHaveBeenCalledWith('Primary threat-feed query failed, retrying without a count:', expect.anything());
+  });
+
   it('keeps plain newest-first browsing of all news on the direct table query', async () => {
     const { result } = renderHook(() => useNewsArticles({ view: 'all', sortBy: 'date' }));
 
@@ -169,5 +223,26 @@ describe('useNewsArticles', () => {
 
     await waitFor(() => expect(result.current.statsSource).toBe('page'));
     expect(result.current.stats.total).not.toBe(57);
+  });
+
+  it('does not reuse stats or cached rows across incident filters', async () => {
+    const { result, rerender } = renderHook(
+      ({ chains }: { chains: string[] }) => useNewsArticles({ view: 'web3-incidents', chains }),
+      { initialProps: { chains: [] as string[] } },
+    );
+    await waitFor(() => expect(result.current.statsSource).toBe('server'));
+    const statsCalls = () => db.rpc.mock.calls.filter(([name]) => name === 'threat_intel_stats');
+    expect(statsCalls()).toHaveLength(1);
+
+    db.rpc.mockImplementation(async (name: string) => {
+      if (name === 'search_news_articles') return { data: [row('a', 'critical')], error: null };
+      return new Promise(() => {});
+    });
+    rerender({ chains: ['ethereum'] });
+
+    await waitFor(() => expect(result.current.statsSource).toBe('page'));
+    expect(result.current.stats.total).not.toBe(57);
+    expect(statsCalls()).toHaveLength(2);
+    expect(statsCalls()[1][1]).toEqual(expect.objectContaining({ chain_filter: ['ethereum'] }));
   });
 });

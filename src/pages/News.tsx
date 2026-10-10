@@ -23,11 +23,19 @@ import { Badge } from '@/components/ui/badge';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
+import { useThreatIntelFacets } from '@/hooks/useThreatIntelFacets';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
 import { DEFAULT_SCOPE, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
 import { METHODOLOGY_PATH, TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
-import { parseThreatIntelFilters } from '@/lib/threatIntel/query';
+import {
+  parseThreatIntelFilters,
+  withListParam,
+  withScopeParam,
+  type IncidentListParam,
+  type SourceFilter,
+  type VerificationFilter,
+} from '@/lib/threatIntel/query';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
   getDuplicateOfUid,
@@ -130,11 +138,21 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     scope: feedView,
     page: currentPage,
     pageSize,
+    verification,
+    chains,
+    attackTypes,
+    sources,
   } = urlFilters;
+  const incidentFilters = useMemo(
+    () => ({ verification, chains, attackTypes, sources }),
+    [verification, chains, attackTypes, sources],
+  );
   // "Get email alerts" carries the current view so the form opens pre-filled.
   const subscribeHref = useMemo(() => {
     const next = new URLSearchParams(searchParams);
-    ['page', 'q', 'article', 'sort', 'date'].forEach((key) => next.delete(key));
+    // Email alerts do not filter by status, chain, attack type or source, so
+    // the subscribe link leaves them out rather than implying that they do.
+    ['page', 'q', 'article', 'sort', 'date', 'status', 'chain', 'attack', 'source'].forEach((key) => next.delete(key));
     next.set('scope', feedView);
     next.set('tab', 'subscribe');
     return `/threat-intel?${next.toString()}`;
@@ -209,7 +227,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     view: feedView,
     page: currentPage,
     pageSize,
+    verification,
+    chains,
+    attackTypes,
+    sources,
   });
+  const facets = useThreatIntelFacets(feedView);
 
   // Alerts follow the same view and filters as the feed (severity is narrowed
   // to critical/high inside the hook) and page 20 at a time.
@@ -220,7 +243,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     severities: selectedSeverities,
     searchQuery,
     dateFilter,
-  }), [feedView, selectedCategories, selectedSeverities, searchQuery, dateFilter]);
+    ...incidentFilters,
+  }), [feedView, selectedCategories, selectedSeverities, searchQuery, dateFilter, incidentFilters]);
   const alertFiltersKey = JSON.stringify(alertFilters);
 
   // A different view or filter set starts the alert list from page 1.
@@ -365,10 +389,30 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     updateFeedParam('severities', next.length > 0 ? next.join(',') : null);
   };
 
+  const toggleListParam = (key: IncidentListParam, selected: readonly string[], value: string) => {
+    const next = selected.includes(value)
+      ? selected.filter((current) => current !== value)
+      : [...selected, value];
+    setSearchParams((current) => withListParam(current, key, next));
+  };
+
+  const handleVerificationChange = (value: VerificationFilter) => {
+    updateFeedParam('status', value === 'all' ? null : value);
+  };
+
+  // Scope changes go through withScopeParam so Web3-only filters leave the
+  // URL with the view.
+  const handleScopeChange = (value: typeof feedView) => {
+    setSearchParams((current) => withScopeParam(current, value));
+  };
+
   const handleClearFilters = () => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
-      ['categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page'].forEach((key) => next.delete(key));
+      [
+        'categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page',
+        'status', 'chain', 'attack', 'source',
+      ].forEach((key) => next.delete(key));
       return next;
     });
   };
@@ -412,7 +456,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Every filter the mobile "Filters (n)" count includes, plus search and a
   // non-default scope, gets the header's "Clear filters" control.
-  const hasClearableFilters = countActiveFilters({ selectedCategories, selectedSeverities, dateFilter, sortBy }) > 0
+  const hasClearableFilters = countActiveFilters({ selectedCategories, selectedSeverities, dateFilter, sortBy, incidentFilters }) > 0
     || Boolean(searchQuery)
     || feedView !== DEFAULT_SCOPE;
 
@@ -672,7 +716,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 searchQuery={searchInput}
                 onSearchChange={setSearchInput}
                 scope={feedView}
-                onScopeChange={(value) => updateFeedParam('scope', value === DEFAULT_SCOPE ? null : value)}
+                onScopeChange={handleScopeChange}
                 dateFilter={dateFilter}
                 onDateFilterChange={(value) => updateFeedParam('date', value === 'all' ? null : value)}
                 sortBy={sortBy}
@@ -682,6 +726,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 onCategoryToggle={handleCategoryToggle}
                 onSeverityToggle={handleSeverityToggle}
                 onClearFilters={handleClearFilters}
+                incidentFilters={incidentFilters}
+                facets={facets}
+                onVerificationChange={handleVerificationChange}
+                onChainToggle={(value) => toggleListParam('chain', chains, value)}
+                onAttackTypeToggle={(value) => toggleListParam('attack', attackTypes, value)}
+                onSourceToggle={(value: SourceFilter) => toggleListParam('source', sources, value)}
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

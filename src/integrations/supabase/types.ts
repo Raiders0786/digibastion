@@ -716,11 +716,15 @@ export type Database = {
       }
       count_news_articles: {
         Args: {
+          attack_type_filter?: string[]
           category_filter?: string[]
+          chain_filter?: string[]
           date_from?: string
+          provider_filter?: string[]
           search_query?: string
           severity_filter?: string[]
           source_filter?: string
+          verification_filter?: string
           web3_incidents_only?: boolean
         }
         Returns: number
@@ -760,14 +764,18 @@ export type Database = {
       }
       search_news_articles: {
         Args: {
+          attack_type_filter?: string[]
           category_filter?: string[]
+          chain_filter?: string[]
           date_from?: string
+          provider_filter?: string[]
           result_limit?: number
           result_offset?: number
           search_query?: string
           severity_filter?: string[]
           sort_by?: string
           source_filter?: string
+          verification_filter?: string
           web3_incidents_only?: boolean
         }
         Returns: {
@@ -775,6 +783,7 @@ export type Database = {
           author: string
           category: string
           content: string
+          created_at: string
           cve_id: string
           id: string
           is_processed: boolean
@@ -790,13 +799,21 @@ export type Database = {
           title: string
         }[]
       }
+      threat_intel_facets: {
+        Args: { p_scope?: string; p_since?: string }
+        Returns: Json
+      }
       threat_intel_stats: {
         Args: {
+          attack_type_filter?: string[]
           category_filter?: string[]
+          chain_filter?: string[]
           date_from?: string
+          provider_filter?: string[]
           search_query?: string
           severity_filter?: string[]
           source_filter?: string
+          verification_filter?: string
           web3_incidents_only?: boolean
         }
         Returns: Json

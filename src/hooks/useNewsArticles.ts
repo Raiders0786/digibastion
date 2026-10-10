@@ -24,6 +24,7 @@ import {
 } from '@/lib/threatIntel/articleRow';
 import { DEFAULT_SCOPE } from '@/lib/threatIntel/taxonomy';
 import {
+  buildIncidentPostgrestFilters,
   buildThreatIntelFilterParams,
   buildThreatIntelQueryParams,
   computePageStats,
@@ -33,9 +34,11 @@ import {
   requiresThreatIntelRpc,
   type DateFilter,
   type SortBy,
+  type SourceFilter,
   type ThreatIntelFilterParams,
   type ThreatIntelFilters,
   type ThreatIntelStats,
+  type VerificationFilter,
 } from '@/lib/threatIntel/query';
 
 interface UseNewsArticlesOptions {
@@ -47,6 +50,10 @@ interface UseNewsArticlesOptions {
   view?: ThreatIntelScope;
   page?: number;
   pageSize?: number;
+  verification?: VerificationFilter;
+  chains?: string[];
+  attackTypes?: string[];
+  sources?: SourceFilter[];
 }
 
 /**
@@ -156,6 +163,13 @@ function toCacheInput(filters: ThreatIntelFilters): CacheFilterInput {
     dateFilter: filters.dateFilter,
     sortBy: filters.sortBy,
     page: filters.page,
+    // The incident filters are part of both the feed key and the stats key
+    // (buildStatsFilterKey derives from buildFilterKey), so a filtered view
+    // never reuses another view's rows or counts.
+    verification: filters.verification,
+    chains: filters.chains,
+    attackTypes: filters.attackTypes,
+    sources: filters.sources,
   };
 }
 
@@ -174,6 +188,10 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     page = 1,
     pageSize = DEFAULT_PAGE_SIZE,
     view = DEFAULT_SCOPE,
+    verification = 'all',
+    chains,
+    attackTypes,
+    sources,
   } = options;
 
   const [articles, setArticles] = useState<NewsArticle[]>([]);
@@ -205,16 +223,25 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   // refetch, and so `refetch` keeps a stable identity.
   const categoriesKey = (categories ?? []).join(',');
   const severitiesKey = (severities ?? []).join(',');
-  const filters = useMemo<ThreatIntelFilters>(() => ({
-    scope: view,
-    categories: categoriesKey ? (categoriesKey.split(',') as NewsCategory[]) : [],
-    severities: severitiesKey ? (severitiesKey.split(',') as SeverityLevel[]) : [],
-    searchQuery,
-    dateFilter,
-    sortBy,
-    page,
-    pageSize,
-  }), [view, categoriesKey, severitiesKey, searchQuery, dateFilter, sortBy, page, pageSize]);
+  // Chain and attack-type values may contain spaces, so key them as JSON.
+  const incidentKey = JSON.stringify([chains ?? [], attackTypes ?? [], sources ?? []]);
+  const filters = useMemo<ThreatIntelFilters>(() => {
+    const [chainList, attackList, sourceList] = JSON.parse(incidentKey) as [string[], string[], SourceFilter[]];
+    return {
+      scope: view,
+      categories: categoriesKey ? (categoriesKey.split(',') as NewsCategory[]) : [],
+      severities: severitiesKey ? (severitiesKey.split(',') as SeverityLevel[]) : [],
+      searchQuery,
+      dateFilter,
+      sortBy,
+      page,
+      pageSize,
+      verification,
+      chains: chainList,
+      attackTypes: attackList,
+      sources: sourceList,
+    };
+  }, [view, categoriesKey, severitiesKey, searchQuery, dateFilter, sortBy, page, pageSize, verification, incidentKey]);
 
   // Hydrate from cache on first mount so the page is never blank.
   useEffect(() => {
@@ -376,6 +403,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
         if (filterParams.severity_filter) query = query.in('severity', filterParams.severity_filter);
         if (filterParams.date_from) query = query.gte('published_at', filterParams.date_from);
         if (filterParams.web3_incidents_only) query = query.or(WEB3_INCIDENT_POSTGREST_FILTER);
+        // The primary direct query never sees the incident filters:
+        // requiresThreatIntelRpc sends every filtered request to the RPC.
+        for (const incidentFilter of buildIncidentPostgrestFilters(filterParams)) {
+          query = query.or(incidentFilter);
+        }
         if (filterParams.search_query) {
           const safeSearchTerm = sanitizePostgrestSearchTerm(filterParams.search_query);
           if (safeSearchTerm) {
