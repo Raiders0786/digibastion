@@ -2,6 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import { classifyCollectedWeb3Incident } from './classifier.ts';
+import { severityFromLoss } from '../_shared/incident-severity.ts';
+import { matchExistingIncident, shiftDate, type IncidentRow } from '../_shared/incident-dedup.ts';
+import { truncateAtWord } from '../_shared/summary-text.ts';
+import {
+  extractSources,
+  formatUsd,
+  parseIncidentDate,
+  parseUsdAmount,
+  web3IncidentSources,
+} from './parsing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,146 +20,14 @@ const corsHeaders = {
 
 // Obfuscated internal source identifiers (base64 encoded for privacy in open source)
 const _s1 = atob('d2ViM2lzZ29pbmdncmVhdC5jb20='); // Primary source
-const _s2 = atob('cXVpbGxhdWRpdHMuY29tL3dlYjMtaGFja3MtZGF0YWJhc2U='); // Secondary source
+// The secondary page scrape (feed-2) was retired: the QuillMonitor partner API
+// returns the same incidents with stable IDs and verification status.
 
-// Parse date from various formats found on web3isgoinggreat.com
-function parseDate(dateStr: string): Date {
-  const months: Record<string, number> = {
-    'January': 0, 'February': 1, 'March': 2, 'April': 3,
-    'May': 4, 'June': 5, 'July': 6, 'August': 7,
-    'September': 8, 'October': 9, 'November': 10, 'December': 11
-  };
-  
-  // Try "Month Day, Year" format (e.g., "January 8, 2026")
-  const match = dateStr.match(/(\w+)\s+(\d+),?\s+(\d{4})/);
-  if (match) {
-    const month = months[match[1]];
-    if (month !== undefined) {
-      return new Date(parseInt(match[3]), month, parseInt(match[2]));
-    }
-  }
-  
-  // Try DD/MM/YY format (e.g., "07/01/26")
-  const shortMatch = dateStr.match(/(\d{2})\/(\d{2})\/(\d{2})/);
-  if (shortMatch) {
-    const day = parseInt(shortMatch[1]);
-    const month = parseInt(shortMatch[2]) - 1;
-    let year = parseInt(shortMatch[3]);
-    year = year < 50 ? 2000 + year : 1900 + year;
-    return new Date(year, month, day);
-  }
-  
-  // Fallback to Date.parse
-  const parsed = new Date(dateStr);
-  return isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-// Extract dollar amount from text
-function extractAmount(text: string): number | null {
-  const patterns = [
-    /\$\s*(\d+(?:\.\d+)?)\s*Million/i,
-    /\$\s*(\d+(?:\.\d+)?)\s*Billion/i,
-    /\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*Million/i,
-    /\$\s*(\d+(?:\.\d+)?)\s*million/i,
-    /\$\s*(\d+(?:\.\d+)?)\s*billion/i,
-    /\$(\d+(?:,\d{3})*(?:\.\d+)?)/,
-    /(\d+(?:\.\d+)?)\s*million\s*(?:dollars?|\$)/i,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let amount = parseFloat(match[1].replace(/,/g, ''));
-      if (text.toLowerCase().includes('billion')) {
-        amount *= 1000;
-      } else if (text.toLowerCase().includes('million')) {
-        // Already in millions
-      } else if (amount < 1000) {
-        // Likely already in full dollar amount, convert to millions
-        amount /= 1000000;
-      }
-      return amount;
-    }
-  }
-  return null;
-}
-
-// Determine severity based on amount and content
-function determineSeverity(amount: number | null, title: string, content: string): string {
-  const textLower = (title + ' ' + content).toLowerCase();
-  
-  // Critical indicators
-  if (amount && amount >= 50) return 'critical';
-  if (textLower.includes('supply chain') || textLower.includes('backdoor')) return 'critical';
-  if (textLower.includes('major') || textLower.includes('massive')) return 'critical';
-  
-  // High indicators
-  if (amount && amount >= 10) return 'high';
-  if (textLower.includes('exploit') || textLower.includes('hack')) return 'high';
-  if (textLower.includes('drain') || textLower.includes('stolen')) return 'high';
-  
-  // Medium indicators
-  if (amount && amount >= 1) return 'medium';
-  if (textLower.includes('vulnerability') || textLower.includes('bug')) return 'medium';
-  
-  return 'low';
-}
-
-// Extract source links from content with proper sanitization
-function extractSources(content: string): { url: string; label: string }[] {
-  const sources: { url: string; label: string }[] = [];
-  
-  // Match markdown links [text](url)
-  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-  let match;
-  
-  while ((match = linkPattern.exec(content)) !== null) {
-    const linkText = match[1].trim();
-    let url = match[2].trim();
-    
-    // Skip internal links, archive links, and attribution links
-    if (url.includes('web3isgoinggreat.com') || 
-        url.includes('archive.org') ||
-        url.includes('web.archive.org') ||
-        linkText.toLowerCase().includes('archive') ||
-        linkText.toLowerCase().includes('attribution') ||
-        !url.startsWith('http')) {
-      continue;
-    }
-    
-    // Remove any tracking parameters/referers from URLs
-    try {
-      const urlObj = new URL(url);
-      ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref_src', 'ref_url'].forEach(param => {
-        urlObj.searchParams.delete(param);
-      });
-      url = urlObj.toString();
-    } catch {
-      // If URL parsing fails, use as-is
-    }
-    
-    // Generate clean label
-    let label = linkText;
-    if (linkText.toLowerCase().includes('tweet')) {
-      if (url.includes('x.com') || url.includes('twitter.com')) {
-        const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/([^/]+)/);
-        label = usernameMatch ? `@${usernameMatch[1]}` : 'Twitter/X';
-      }
-    } else if (url.includes('etherscan.io')) {
-      label = 'Etherscan';
-    } else if (url.includes('bscscan.com')) {
-      label = 'BscScan';
-    } else if (url.includes('polygonscan.com')) {
-      label = 'PolygonScan';
-    }
-    
-    if (!sources.some(s => s.url === url)) {
-      sources.push({ url, label });
-    }
-  }
-  
-  return sources.slice(0, 5);
-}
+// Rows from every Web3 incident provider, matching the SlowMist importer.
+const WEB3_INCIDENT_FILTER = 'metadata->>is_web3_incident.eq.true,metadata->>provider.in.(quillmonitor,web3-incidents,web3,slowmist)';
+// A five-day window holds a handful of incidents; the cap only guards
+// against a runaway query.
+const MAX_RELATED_ROWS = 200;
 
 // Extract affected technologies
 function extractTechnologies(title: string, content: string, chain?: string): string[] {
@@ -285,14 +163,19 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         continue;
       }
       
-      const pubDate = parseDate(section.date);
-      const amount = extractAmount(title + ' ' + content);
-      const severity = determineSeverity(amount, title, content);
+      // A missing date stays unknown instead of silently becoming "today".
+      const incidentDate = parseIncidentDate(section.date);
+      const ingestedAt = new Date().toISOString();
+      const amountUsd = parseUsdAmount(`${title} ${content}`);
       const sources = extractSources(content);
       const classification = classifyCollectedWeb3Incident(title, content);
       const category = classification.category;
       const technologies = extractTechnologies(title, content);
       const tags = extractTags(content);
+      // Loss-based rubric shared with QuillMonitor and SlowMist. All attack
+      // tags are passed (not only tags[0], which is usually "exploit"), so a
+      // "private-key-compromise" tag still raises an unknown-loss incident.
+      const severity = severityFromLoss(amountUsd, tags.join(' '));
       
       const primarySource = sources[0]?.url || '';
       const uid = await generateUID(title, section.date, 'p');
@@ -330,7 +213,7 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         summary = parts.find(p => p.length > 50 && !p.startsWith('!') && !p.startsWith('[') && !p.startsWith('-')) || parts[0];
         summary = summary.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
       }
-      if (summary.length > 500) summary = summary.substring(0, 497) + '...';
+      summary = truncateAtWord(summary, 500);
       
       const sourceLinks = sources.length > 0 ? JSON.stringify(sources) : null;
       
@@ -341,11 +224,16 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         is_web3_incident: true,
         taxonomy_version: classification.taxonomyVersion,
         classification_reasons: classification.reasons,
-        amount_lost_usd: amount ? amount * 1000000 : null, // Store in USD
-        amount_display: amount ? `$${amount}M` : null,
+        amount_lost_usd: amountUsd, // Full USD, never millions
+        amount_display: formatUsd(amountUsd),
         attack_type: tags[0] || null,
+        incident_date: incidentDate,
+        incident_date_unknown: incidentDate === null,
+        reference_url: primarySource || null,
+        summary_origin: 'publisher',
+        sources: web3IncidentSources(sources, amountUsd),
         data_source: 'feed-1',
-        scraped_at: new Date().toISOString(),
+        scraped_at: ingestedAt,
       };
       
       incidents.push({
@@ -362,103 +250,11 @@ async function parsePrimaryIncidents(markdown: string): Promise<any[]> {
         tags,
         affected_technologies: technologies,
         cve_id: null,
-        published_at: pubDate.toISOString(),
+        published_at: incidentDate ? `${incidentDate}T00:00:00.000Z` : ingestedAt,
         raw_content: content,
         is_processed: false,
         metadata
       });
-    }
-  }
-  
-  return incidents;
-}
-
-// Parse incidents from secondary source (table format)
-async function parseSecondaryIncidents(markdown: string): Promise<any[]> {
-  const incidents: any[] = [];
-  
-  // Find the markdown table (starts with | NAME | DATE |)
-  const tablePattern = /\|\s*NAME\s*\|\s*DATE\s*\|\s*TYPE OF ISSUE\s*\|\s*AMOUNT LOST\s*\|\s*CHAINS\s*\|\s*CATEGORY\s*\|\s*POST MORTEM\s*\|\s*\n\|[-\s|]+\|\s*\n([\s\S]*?)(?=\n\n|\n[^|]|$)/i;
-  const tableMatch = markdown.match(tablePattern);
-  
-  if (tableMatch) {
-    const tableRows = tableMatch[1].trim().split('\n');
-    
-    for (const row of tableRows) {
-      // Parse table row: | Name | Date | Issue | Amount | Chain | Category | Link |
-      const cells = row.split('|').map(c => c.trim()).filter(c => c);
-      
-      if (cells.length >= 6) {
-        const name = cells[0];
-        const dateStr = cells[1];
-        const issueType = cells[2];
-        const amountStr = cells[3];
-        const chainImg = cells[4];
-        const categoryStr = cells[5];
-        const linkCell = cells[6] || '';
-        
-        // Extract chain from image alt text
-        const chainMatch = chainImg.match(/!\[([^\]]+)\]/);
-        const chain = chainMatch ? chainMatch[1] : '';
-        
-        // Extract post-mortem link
-        const linkMatch = linkCell.match(/\]\(([^)]+)\)/);
-        const postMortemLink = linkMatch ? linkMatch[1] : '';
-        
-        // Parse data
-        const pubDate = parseDate(dateStr);
-        const amount = extractAmount(amountStr);
-        const title = `${name} exploited for ${amountStr.replace('$', '').trim()}`;
-        const content = `${name} was affected by a ${issueType.toLowerCase()} issue. Category: ${categoryStr}. Chain: ${chain}.`;
-        const severity = determineSeverity(amount, title, content);
-        const classification = classifyCollectedWeb3Incident(title, content, issueType, categoryStr);
-        const category = classification.category;
-        const technologies = extractTechnologies(title, content, chain);
-        const tags = extractTags(content, issueType, categoryStr);
-        
-        const uid = await generateUID(name, dateStr, 's');
-        
-        // Create summary
-        const summary = `${name} suffered a ${issueType.toLowerCase()} attack, losing approximately ${amountStr}. The incident occurred on the ${chain} chain and affected the ${categoryStr} sector.`;
-        
-        // Build rich metadata for future analysis
-        const metadata = {
-          provider: 'web3-incidents',
-          security_domain: classification.securityDomain,
-          is_web3_incident: true,
-          taxonomy_version: classification.taxonomyVersion,
-          classification_reasons: classification.reasons,
-          project_name: name,
-          amount_lost_usd: amount ? amount * 1000000 : null,
-          amount_display: amountStr,
-          chain: chain,
-          attack_type: issueType,
-          project_category: categoryStr,
-          post_mortem_url: postMortemLink || null,
-          data_source: 'feed-2',
-          scraped_at: new Date().toISOString(),
-        };
-        
-        incidents.push({
-          uid,
-          title: `${name} - ${issueType} (${amountStr})`,
-          summary,
-          content: `**Project:** ${name}\n**Issue Type:** ${issueType}\n**Amount Lost:** ${amountStr}\n**Chain:** ${chain}\n**Category:** ${categoryStr}\n\n${summary}`,
-          link: postMortemLink || '',
-          source_url: postMortemLink ? JSON.stringify([{ url: postMortemLink, label: 'Post-Mortem' }]) : null,
-          source_name: null,
-          author: null,
-          category,
-          severity,
-          tags,
-          affected_technologies: technologies,
-          cve_id: null,
-          published_at: pubDate.toISOString(),
-          raw_content: row,
-          is_processed: false,
-          metadata
-        });
-      }
     }
   }
   
@@ -566,42 +362,6 @@ serve(async (req) => {
       sourceResults.push({ source: 'primary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
     }
     
-    // Fetch from secondary source (internal only)
-    try {
-      console.log('[fetch-web3-incidents] Fetching from secondary source...');
-      const response2 = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${firecrawlApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: `https://www.${_s2}`,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
-      
-      if (response2.ok) {
-        const data2 = await response2.json();
-        const md2 = data2.data?.markdown || data2.markdown || '';
-        if (md2) {
-          const incidents2 = await parseSecondaryIncidents(md2);
-          allIncidents.push(...incidents2);
-          sourceResults.push({ source: 'secondary', found: incidents2.length, errors: [] });
-          console.log(`[fetch-web3-incidents] Secondary source: ${incidents2.length} incidents`);
-        } else {
-          sourceResults.push({ source: 'secondary', found: 0, errors: ['Empty provider response'] });
-        }
-      } else {
-        sourceResults.push({ source: 'secondary', found: 0, errors: ['Failed to fetch'] });
-      }
-    } catch (e) {
-      console.error('[fetch-web3-incidents] Secondary source error:', e);
-      sourceResults.push({ source: 'secondary', found: 0, errors: [e instanceof Error ? e.message : 'Unknown source error'] });
-    }
-    
     console.log(`[fetch-web3-incidents] Total incidents from all sources: ${allIncidents.length}`);
     
     // Calculate cutoff date (90 days for historical coverage)
@@ -615,96 +375,53 @@ serve(async (req) => {
     
     console.log(`[fetch-web3-incidents] ${recentIncidents.length} incidents within last 90 days`);
     
-    // Deduplicate across sources: extract project name and check for similar incidents
-    function extractProjectName(title: string): string {
-      // Extract first meaningful part of title
-      return title
-        .split(' - ')[0]
-        .split(' exploited')[0]
-        .split(' suffers')[0]
-        .split(' loses')[0]
-        .split(' hit by')[0]
-        .toLowerCase()
-        .trim();
-    }
-    
-    // Group by project name + approximate date to find duplicates
-    const seenProjects = new Map<string, any>();
+    // One incident, one record: drop entries in this scrape that repeat an
+    // earlier entry, using the shared cross-provider matcher.
     const deduplicatedIncidents: any[] = [];
-    
+    let skippedSimilar = 0;
     for (const incident of recentIncidents) {
-      const projectName = extractProjectName(incident.title);
-      const dateKey = new Date(incident.published_at).toISOString().slice(0, 10); // YYYY-MM-DD
-      const key = `${projectName}|${dateKey}`;
-      
-      // Check for existing within 7 days
-      let isDuplicate = false;
-      for (const [existingKey, existing] of seenProjects) {
-        const [existingProject, existingDate] = existingKey.split('|');
-        if (existingProject === projectName) {
-          const daysDiff = Math.abs(
-            (new Date(dateKey).getTime() - new Date(existingDate).getTime()) / (1000 * 60 * 60 * 24)
-          );
-          if (daysDiff <= 7) {
-            // Prefer feed-1 (primary) over feed-2, or longer content
-            const incidentSource = incident.metadata?.data_source || 'feed-1';
-            const existingSource = existing.metadata?.data_source || 'feed-1';
-            if (incidentSource === 'feed-2' && existingSource === 'feed-1') {
-              isDuplicate = true;
-              break;
-            }
-            if (incidentSource === 'feed-1' && existingSource === 'feed-2') {
-              // Replace with feed-1 version
-              seenProjects.delete(existingKey);
-              break;
-            }
-            // Same source - keep the one with more content
-            if ((incident.content?.length || 0) <= (existing.content?.length || 0)) {
-              isDuplicate = true;
-              break;
-            }
-            seenProjects.delete(existingKey);
-            break;
-          }
-        }
+      if (matchExistingIncident(incident as IncidentRow, deduplicatedIncidents as IncidentRow[])) {
+        skippedSimilar++;
+        continue;
       }
-      
-      if (!isDuplicate) {
-        seenProjects.set(key, incident);
-        deduplicatedIncidents.push(incident);
-      }
+      deduplicatedIncidents.push(incident);
     }
     
     console.log(`[fetch-web3-incidents] After dedup: ${deduplicatedIncidents.length} unique incidents`);
     
-    // Check for existing similar entries in database before inserting
     let insertedCount = 0;
     let duplicateCount = 0;
-    let skippedSimilar = 0;
     const errors: string[] = [];
     
     for (const incident of deduplicatedIncidents) {
-      const projectName = extractProjectName(incident.title);
-      const incidentDate = new Date(incident.published_at);
-      const dateMin = new Date(incidentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const dateMax = new Date(incidentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      // Check for similar existing entry
-      const { data: existing } = await supabase
-        .from('news_articles')
-        .select('id, title')
-        .gte('published_at', dateMin.toISOString())
-        .lte('published_at', dateMax.toISOString())
-        .limit(50);
-      
-      const hasSimilar = existing?.some(e => {
-        const existingProject = extractProjectName(e.title);
-        return existingProject === projectName;
-      });
-      
-      if (hasSimilar) {
-        skippedSimilar++;
-        continue;
+      const incidentDate: string | null = incident.metadata.incident_date;
+      // Without a date the matcher cannot place the incident, so it is
+      // inserted and left to the dedupe-incidents backfill review.
+      if (incidentDate) {
+        const { data: related, error: relatedError } = await supabase
+          .from('news_articles')
+          .select('uid,title,published_at,source_name,metadata')
+          .gte('published_at', shiftDate(incidentDate, -2))
+          .lt('published_at', shiftDate(incidentDate, 3))
+          .or(WEB3_INCIDENT_FILTER)
+          .order('published_at', { ascending: true })
+          .limit(MAX_RELATED_ROWS);
+        if (relatedError) {
+          // Fail closed: inserting without the check could add a duplicate.
+          errors.push(`${incident.title}: existing incident lookup failed`);
+          continue;
+        }
+        const relatedRows = (related ?? []) as IncidentRow[];
+        if (relatedRows.some((row) => row.uid === incident.uid)) {
+          duplicateCount++;
+          continue;
+        }
+        // A record from QuillMonitor (higher priority) or an earlier
+        // web3-incidents row already covers this incident.
+        if (matchExistingIncident(incident as IncidentRow, relatedRows)) {
+          skippedSimilar++;
+          continue;
+        }
       }
       
       const { error: insertError } = await supabase
@@ -770,11 +487,11 @@ serve(async (req) => {
       JSON.stringify({
         success: sourcesSucceeded > 0 && errors.length === 0,
         partial: sourceFailures > 0 || errors.length > 0,
-        message: 'Web3 incidents fetched from multiple sources',
+        message: 'Web3 incidents fetched',
         incidentsFound: allIncidents.length,
         incidentsInserted: insertedCount,
         duplicatesSkipped: duplicateCount,
-        sources: sourceResults.map(s => ({ ...s, source: s.source === 'primary' ? 'feed-1' : 'feed-2' })),
+        sources: sourceResults.map(s => ({ ...s, source: 'feed-1' })),
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

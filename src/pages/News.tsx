@@ -1,11 +1,13 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Fragment, useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
-import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
+import { countActiveFilters, FeedToolbar } from '@/components/news/FeedToolbar';
+import { InlineSubscribeCard } from '@/components/news/InlineSubscribeCard';
+import { AlertsPanel } from '@/components/news/AlertsPanel';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -14,78 +16,65 @@ import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { PullToRefresh } from '@/components/mobile/PullToRefresh';
 import { SwipeableTabs } from '@/components/mobile/SwipeableTabs';
-import { NewsListSkeleton, AlertListSkeleton, StatsSkeleton } from '@/components/news/NewsCardSkeleton';
+import { NewsListSkeleton, StatsSkeleton } from '@/components/news/NewsCardSkeleton';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
+import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
+import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
+import { useThreatIntelFacets } from '@/hooks/useThreatIntelFacets';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
+import { DEFAULT_SCOPE, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
+import { METHODOLOGY_PATH, TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
+import {
+  parseThreatIntelFilters,
+  withListParam,
+  withScopeParam,
+  type IncidentListParam,
+  type SourceFilter,
+  type VerificationFilter,
+} from '@/lib/threatIntel/query';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
-  CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
-  isClassificationRelevant,
-  isPreliminaryQuillMonitorArticle,
-  isQuillMonitorArticle,
-} from '@/utils/newsIncident';
-import { safeExternalUrl } from '@/utils/safeUrl';
+  getDuplicateOfUid,
+  isPublishable,
+  mapNewsArticleRow,
+  NEWS_ARTICLE_COLUMNS,
+} from '@/lib/threatIntel/articleRow';
 import {
   buildNewsArticleSchema,
   buildNewsBreadcrumbSchema,
   buildThreatIntelCollectionSchema,
 } from '@/utils/seo';
 import { 
-  Newspaper, Shield, AlertTriangle, Bell,
-  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
+  Newspaper, Shield, AlertTriangle, Bell, BellRing, Send,
+  Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
-const AUTO_REFRESH_OPTIONS = [
-  { value: '0', label: 'Off' },
-  { value: '30', label: '30s' },
-  { value: '60', label: '1m' },
-  { value: '300', label: '5m' },
-];
+const SEARCH_DEBOUNCE_MS = 300;
 
-const NEWS_CATEGORIES = new Set<NewsCategory>([
-  'operational-security',
-  'supply-chain',
-  'personal-protection',
-  'web3-security',
-  'defi-exploits',
-  'vulnerability-disclosure',
-  'tools-reviews',
-]);
-const SEVERITY_LEVELS = new Set<SeverityLevel>(['critical', 'high', 'medium', 'low', 'info']);
-
-function parseListParam<T extends string>(value: string | null, allowed: Set<T>): T[] {
-  if (!value) return [];
-  return [...new Set(value.split(',').filter((item): item is T => allowed.has(item as T)))];
-}
+/** The inline subscribe card follows this many results. */
+const INLINE_SUBSCRIBE_AFTER = 5;
 
 const News = () => {
   const navigate = useNavigate();
   const { articleId: routeArticleId } = useParams<{ articleId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedCategories = useMemo(
-    () => parseListParam(searchParams.get('categories') || searchParams.get('category'), NEWS_CATEGORIES),
-    [searchParams],
-  );
-  const selectedSeverities = useMemo(
-    () => parseListParam(searchParams.get('severities') || searchParams.get('severity'), SEVERITY_LEVELS),
-    [searchParams],
-  );
+  // Every shareable filter comes from the URL through one parser. No ?scope
+  // (or an unknown value) means the default Web3 incidents view.
+  const urlFilters = useMemo(() => parseThreatIntelFilters(searchParams), [searchParams]);
+  const selectedCategories = urlFilters.categories;
+  const selectedSeverities = urlFilters.severities;
   const [selectedTab, setSelectedTab] = useState(() => {
     const requestedTab = searchParams.get('tab');
     return requestedTab && ['feed', 'alerts', 'subscribe'].includes(requestedTab) ? requestedTab : 'feed';
   });
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeAlerts, setActiveAlerts] = useState<NewsArticle[]>([]);
-  const [activeAlertCount, setActiveAlertCount] = useState(0);
-  const [alertsLoading, setAlertsLoading] = useState(false);
-  const [alertsError, setAlertsError] = useState<string | null>(null);
+  const [alertsPage, setAlertsPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -142,15 +131,32 @@ const News = () => {
   };
 const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [deepLinkState, setDeepLinkState] = useState<'idle' | 'loading' | 'not-found' | 'error'>('idle');
-  const searchQuery = searchParams.get('q') || '';
-  const sortBy = searchParams.get('sort') === 'severity' ? 'severity' : 'date';
-  const dateFilter = ['7d', '30d', '90d'].includes(searchParams.get('date') || '')
-    ? searchParams.get('date') as '7d' | '30d' | '90d'
-    : 'all';
-  const feedView: ThreatIntelScope = searchParams.get('scope') === 'web3-incidents' ? 'web3-incidents' : 'all';
-  const parsedPage = Number.parseInt(searchParams.get('page') || '1', 10);
-  const currentPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  const pageSize = 20;
+  const {
+    searchQuery,
+    sortBy,
+    dateFilter,
+    scope: feedView,
+    page: currentPage,
+    pageSize,
+    verification,
+    chains,
+    attackTypes,
+    sources,
+  } = urlFilters;
+  const incidentFilters = useMemo(
+    () => ({ verification, chains, attackTypes, sources }),
+    [verification, chains, attackTypes, sources],
+  );
+  // "Get email alerts" carries the current view so the form opens pre-filled.
+  const subscribeHref = useMemo(() => {
+    const next = new URLSearchParams(searchParams);
+    // Email alerts do not filter by status, chain, attack type or source, so
+    // the subscribe link leaves them out rather than implying that they do.
+    ['page', 'q', 'article', 'sort', 'date', 'status', 'chain', 'attack', 'source'].forEach((key) => next.delete(key));
+    next.set('scope', feedView);
+    next.set('tab', 'subscribe');
+    return `/threat-intel?${next.toString()}`;
+  }, [searchParams, feedView]);
 
   const updateFeedParam = useCallback((key: string, value: string | null, replace = false) => {
     setSearchParams((current) => {
@@ -169,6 +175,33 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     updateFeedParam('page', nextPage > 1 ? String(nextPage) : null);
   }, [currentPage, updateFeedParam]);
 
+  // Typing stays local; ?q= (and therefore the feed query) only changes after
+  // the user pauses for SEARCH_DEBOUNCE_MS.
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
+  const lastSyncedSearch = useRef(searchQuery);
+
+  // URL -> input: Clear filters, Back/Forward and shared links.
+  useEffect(() => {
+    if (searchQuery === lastSyncedSearch.current) return;
+    lastSyncedSearch.current = searchQuery;
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  // Input -> URL, once typing pauses. Invariant: the URL wins after an
+  // external change (Clear filters, Back). updateFeedParam is read through a
+  // ref because setSearchParams changes identity on every navigation, and
+  // re-running this effect then would write a stale debounced value back.
+  const updateFeedParamRef = useRef(updateFeedParam);
+  updateFeedParamRef.current = updateFeedParam;
+  useEffect(() => {
+    if (debouncedSearch !== searchInput) return;
+    if (debouncedSearch === lastSyncedSearch.current) return;
+    lastSyncedSearch.current = debouncedSearch;
+    updateFeedParamRef.current('q', debouncedSearch || null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
   // Fetch articles from database
   const { 
     articles: dbArticles, 
@@ -183,6 +216,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     isSummarizing,
     feedStatus,
     stats,
+    statsSource,
     pagination
   } = useNewsArticles({
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -193,64 +227,54 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     view: feedView,
     page: currentPage,
     pageSize,
+    verification,
+    chains,
+    attackTypes,
+    sources,
   });
+  const facets = useThreatIntelFacets(feedView);
 
-  const fetchActiveAlerts = useCallback(async () => {
-    setAlertsLoading(true);
-    setAlertsError(null);
-    const { data, error: alertsFetchError } = await supabase
-      .from('news_articles')
-      .select('*')
-      .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
-      .in('severity', ['critical', 'high'])
-      .order('published_at', { ascending: false })
-      .limit(100);
+  // Alerts follow the same view and filters as the feed (severity is narrowed
+  // to critical/high inside the hook) and page 20 at a time.
+  // Explicit type: without it `dateFilter` widens to string in the object literal.
+  const alertFilters = useMemo<ThreatIntelFilterInput>(() => ({
+    scope: feedView,
+    categories: selectedCategories,
+    severities: selectedSeverities,
+    searchQuery,
+    dateFilter,
+    ...incidentFilters,
+  }), [feedView, selectedCategories, selectedSeverities, searchQuery, dateFilter, incidentFilters]);
+  const alertFiltersKey = JSON.stringify(alertFilters);
 
-    if (alertsFetchError) {
-      console.error('Failed to fetch active alerts:', alertsFetchError);
-      setAlertsError('Active alerts could not be loaded.');
-      setAlertsLoading(false);
-      return;
-    }
-
-    const sanitize = (value: string | null | undefined) => (value || '')
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const alertRows = data || [];
-    setActiveAlerts(alertRows.map((row) => ({
-      id: row.id,
-      title: sanitize(row.title),
-      summary: sanitize(row.summary),
-      content: sanitize(row.content || row.summary),
-      category: row.category as NewsCategory,
-      severity: row.severity as SeverityLevel,
-      tags: row.tags || [],
-      affectedTechnologies: row.affected_technologies || [],
-      link: row.link,
-      sourceUrl: row.source_url || '',
-      sourceName: row.source_name || '',
-      author: row.author || '',
-      cveId: row.cve_id || undefined,
-      publishedAt: new Date(row.published_at),
-      isProcessed: row.is_processed ?? false,
-      metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-        ? row.metadata as NewsArticle['metadata']
-        : undefined,
-    })));
-    setActiveAlertCount(alertRows.length);
-    setAlertsLoading(false);
-  }, []);
-
+  // A different view or filter set starts the alert list from page 1.
   useEffect(() => {
-    if (selectedTab === 'alerts' && activeAlerts.length === 0) {
-      void fetchActiveAlerts();
-    }
-  }, [selectedTab, activeAlerts.length, fetchActiveAlerts]);
+    setAlertsPage(1);
+  }, [alertFiltersKey]);
+
+  const {
+    alerts: activeAlerts,
+    isLoading: alertsLoading,
+    error: alertsError,
+    refetch: refetchAlerts,
+    criticalCount: alertsCriticalCount,
+    highCount: alertsHighCount,
+    totalPages: alertsTotalPages,
+  } = useThreatIntelAlerts({
+    filters: alertFilters,
+    page: alertsPage,
+    enabled: selectedTab === 'alerts',
+  });
 
   // Keep legacy ?article= links working while using a crawlable canonical route.
   const requestedArticleId = (routeArticleId || searchParams.get('article') || '').trim();
   const deepLinkLoaded = useRef('');
+  // Read the loaded list through a ref: a feed refresh must not cancel an
+  // in-flight deep-link fetch (the effect below only restarts on route change).
+  const dbArticlesRef = useRef(dbArticles);
+  useEffect(() => {
+    dbArticlesRef.current = dbArticles;
+  }, [dbArticles]);
   useEffect(() => {
     if (!requestedArticleId) {
       // Article content is route-owned. Browser Back/Forward can change the
@@ -269,7 +293,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     deepLinkLoaded.current = requestedArticleId;
 
     // Check if article is already in loaded list
-    const found = dbArticles.find(a => a.id === requestedArticleId);
+    const found = dbArticlesRef.current.find(a => a.id === requestedArticleId);
     if (found) {
       setSelectedArticle(found);
       setDeepLinkState('idle');
@@ -282,7 +306,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       setDeepLinkState('loading');
       const { data, error: articleError } = await supabase
         .from('news_articles')
-        .select('*')
+        .select(NEWS_ARTICLE_COLUMNS)
         .eq('id', requestedArticleId)
         .maybeSingle();
       if (cancelled) return;
@@ -290,51 +314,39 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         setDeepLinkState('error');
         return;
       }
-      if (data) {
-        const sanitize = (t: string | null | undefined) => {
-          if (!t) return '';
-          let s = t, prev = '';
-          while (s !== prev) {
-            prev = s;
-            s = s.replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(parseInt(c, 10)))
-              .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-              .replace(/&(amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|rsquo|lsquo|rdquo|ldquo);/gi, (_, n) => {
-                const m: Record<string, string> = { amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',mdash:'—',ndash:'–',hellip:'…',rsquo:'\u2019',lsquo:'\u2018',rdquo:'\u201D',ldquo:'\u201C' };
-                return m[n.toLowerCase()] ?? '';
-              });
-            s = s.replace(/<[^>]*>/g, '');
-          }
-          return s.replace(/\s+/g, ' ').trim();
-        };
-        const article: NewsArticle = {
-          id: data.id,
-          title: sanitize(data.title),
-          summary: sanitize(data.summary),
-          content: sanitize(data.content),
-          category: data.category as any,
-          severity: data.severity as any,
-          tags: data.tags || [],
-          affectedTechnologies: data.affected_technologies || [],
-          link: data.link,
-          sourceUrl: data.source_url || '',
-          sourceName: data.source_name || '',
-          author: data.author || '',
-          cveId: data.cve_id || undefined,
-          publishedAt: new Date(data.published_at),
-          isProcessed: data.is_processed ?? false,
-          metadata: data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
-            ? data.metadata as NewsArticle['metadata']
-            : undefined,
-        };
-        if (!isClassificationRelevant(article)) {
-          setDeepLinkState('not-found');
+      const article = mapNewsArticleRow(data);
+      if (!article) {
+        setDeepLinkState('not-found');
+        return;
+      }
+
+      // A record merged into another provider's incident keeps its old URL
+      // working (shared links, emails) by forwarding to the primary record.
+      const primaryUid = getDuplicateOfUid(article.metadata);
+      if (primaryUid) {
+        const { data: primary } = await supabase
+          .from('news_articles')
+          .select('id, metadata')
+          .eq('uid', primaryUid)
+          .maybeSingle();
+        if (cancelled) return;
+        // Only forward to a record that is not itself merged, so a bad merge
+        // (A -> B -> A) can never send the browser round in a loop.
+        if (primary?.id && primary.id !== article.id && !getDuplicateOfUid(primary.metadata)) {
+          deepLinkLoaded.current = '';
+          navigate(`/threat-intel/${encodeURIComponent(primary.id)}`, { replace: true });
           return;
         }
-        setSelectedArticle(article);
-        setDeepLinkState('idle');
-      } else {
         setDeepLinkState('not-found');
+        return;
       }
+
+      if (!isPublishable(article.metadata)) {
+        setDeepLinkState('not-found');
+        return;
+      }
+      setSelectedArticle(article);
+      setDeepLinkState('idle');
     })();
 
     return () => {
@@ -342,7 +354,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       // from restoring detail content for a route the user already left.
       cancelled = true;
     };
-  }, [requestedArticleId, dbArticles]);
+  }, [requestedArticleId, navigate]);
 
   useEffect(() => {
     if (!requestedArticleId) return;
@@ -357,11 +369,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     if (selectedTab !== 'alerts' || autoRefreshInterval === 0) return;
     
     const intervalId = setInterval(() => {
-      void fetchActiveAlerts();
+      void refetchAlerts();
     }, autoRefreshInterval * 1000);
 
     return () => clearInterval(intervalId);
-  }, [selectedTab, autoRefreshInterval, fetchActiveAlerts]);
+  }, [selectedTab, autoRefreshInterval, refetchAlerts]);
 
   const handleCategoryToggle = (category: NewsCategory) => {
     const next = selectedCategories.includes(category)
@@ -377,28 +389,36 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     updateFeedParam('severities', next.length > 0 ? next.join(',') : null);
   };
 
+  const toggleListParam = (key: IncidentListParam, selected: readonly string[], value: string) => {
+    const next = selected.includes(value)
+      ? selected.filter((current) => current !== value)
+      : [...selected, value];
+    setSearchParams((current) => withListParam(current, key, next));
+  };
+
+  const handleVerificationChange = (value: VerificationFilter) => {
+    updateFeedParam('status', value === 'all' ? null : value);
+  };
+
+  // Scope changes go through withScopeParam so Web3-only filters leave the
+  // URL with the view.
+  const handleScopeChange = (value: typeof feedView) => {
+    setSearchParams((current) => withScopeParam(current, value));
+  };
+
   const handleClearFilters = () => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
-      ['categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page'].forEach((key) => next.delete(key));
+      [
+        'categories', 'category', 'severities', 'severity', 'q', 'date', 'sort', 'scope', 'page',
+        'status', 'chain', 'attack', 'source',
+      ].forEach((key) => next.delete(key));
       return next;
     });
   };
 
   // Use database articles directly (filtering handled by hook)
   const filteredArticles = dbArticles;
-
-  const criticalAlerts = useMemo(() => {
-    return activeAlerts.filter(article => article.severity === 'critical');
-  }, [activeAlerts]);
-
-  const highAlerts = useMemo(() => {
-    return activeAlerts.filter(article => article.severity === 'high');
-  }, [activeAlerts]);
-
-  const actionRequiredAlerts = useMemo(() => {
-    return activeAlerts;
-  }, [activeAlerts]);
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -419,14 +439,46 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Handle new articles from realtime
   const handleNewRealtimeArticle = useCallback(() => {
-    void Promise.all([refetch(), fetchActiveAlerts()]);
-  }, [refetch, fetchActiveAlerts]);
+    void Promise.all([refetch(), refetchAlerts()]);
+  }, [refetch, refetchAlerts]);
+
+  // Tiles say "in this view" only when the server counted the whole result.
+  const statsCaption = statsSource === 'server' ? 'in this view' : 'on this page';
 
   // Tab configuration with better visibility
   const tabs = [
-    { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
-    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: activeAlertCount || actionRequiredAlerts.length },
-    { id: 'subscribe', label: 'Subscribe', icon: Bell },
+    { id: 'feed', label: 'News Feed', shortLabel: 'Feed', icon: Newspaper, count: stats.total },
+    // Feed stats share the alerts' scope and filters, so this matches the
+    // Alerts tab total and is available before the tab is opened.
+    { id: 'alerts', label: 'Active Alerts', shortLabel: 'Alerts', icon: AlertTriangle, count: stats.critical + stats.high },
+    { id: 'subscribe', label: 'Subscribe', shortLabel: 'Subscribe', icon: Bell },
+  ];
+
+  // Every filter the mobile "Filters (n)" count includes, plus search and a
+  // non-default scope, gets the header's "Clear filters" control.
+  const hasClearableFilters = countActiveFilters({ selectedCategories, selectedSeverities, dateFilter, sortBy, incidentFilters }) > 0
+    || Boolean(searchQuery)
+    || feedView !== DEFAULT_SCOPE;
+
+  const isIncidentView = feedView === 'web3-incidents';
+  const heroTitle = isIncidentView
+    ? 'Crypto and Web3 security incidents, as they happen'
+    : 'Security news and incident alerts';
+  const heroIntro = isIncidentView
+    ? 'Hacks, exploits, phishing and supply-chain attacks, collected from QuillMonitor and other incident trackers, merged into one record per incident, and labelled confirmed or unconfirmed.'
+    : 'Security news, vulnerability advisories and Web3 incidents from QuillMonitor, other incident trackers and security publishers, each linked to its source.';
+  // The CTA buttons below say the same thing, so phones skip this sentence to
+  // keep the first card above the fold.
+  const heroAlertsSentence = 'Free alerts on Telegram and by email.';
+
+  // statsCaption comes from task B3: "in this view" when threat_intel_stats
+  // counted the whole filtered result, "on this page" when it fell back to
+  // counting the loaded page.
+  const statTiles = [
+    { label: 'Critical', value: stats.critical, color: SEVERITY_STYLES.critical.textClass, border: 'border-red-500/20', scope: statsCaption },
+    { label: 'High', value: stats.high, color: SEVERITY_STYLES.high.textClass, border: 'border-orange-500/20', scope: statsCaption },
+    { label: 'Supply chain', value: stats.supplyChain, color: 'text-purple-400', border: 'border-purple-500/20', scope: statsCaption },
+    { label: 'Total', value: stats.total, color: 'text-blue-400', border: 'border-blue-500/20', scope: statsCaption },
   ];
 
   // Get current tab index for swipe navigation
@@ -438,6 +490,20 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       ? Math.min(currentTabIndex + 1, tabs.length - 1)
       : Math.max(currentTabIndex - 1, 0);
     handleTabChange(tabs[newIndex].id);
+  };
+
+  // WAI-ARIA tabs: arrow keys, Home and End move between tabs.
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') nextIndex = (currentTabIndex + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (currentTabIndex - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    handleTabChange(nextTab.id);
+    document.getElementById(`threat-intel-tab-${nextTab.id}`)?.focus();
   };
 
   // Pull to refresh handler
@@ -521,89 +587,113 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         enabled={true} 
       />
 
-      <MetaTags 
-        title="Crypto Threat Intelligence Feed — Real-Time Web3 Security Alerts | Digibastion"
-        description="Stay ahead of crypto threats with real-time security alerts. Track DeFi exploits, wallet drainers, phishing attacks, and supply chain vulnerabilities. Free email alerts for critical threats."
-        keywords="crypto security alerts, web3 threat intelligence, defi exploits, phishing detection, wallet drainer alerts, supply chain attacks, blockchain security news"
+      <MetaTags
+        title="Crypto and Web3 Security Incidents, As They Happen | Digibastion"
+        description="Crypto and Web3 hacks, exploits, phishing and supply-chain attacks from QuillMonitor and other trackers, one record per incident, labelled confirmed or unconfirmed. Free alerts on Telegram and email."
+        keywords="crypto hacks, web3 security incidents, defi exploits, crypto phishing, supply chain attacks, crypto security alerts, telegram security alerts"
         image="https://www.digibastion.com/og-threat-intel.png"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildThreatIntelCollectionSchema()) }} />
       
       <Navbar />
       
-      <main className="pt-20 pb-12">
+      <main className="pt-[4.5rem] pb-12 sm:pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Hero Section - Compact */}
-          <div className="text-center mb-6">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-3">
-              <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
+          {/* Hero */}
+          <section className="mb-3 text-center sm:mb-6" aria-labelledby="threat-intel-heading">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              <Shield className="h-5 w-5 text-primary sm:h-6 sm:w-6" aria-hidden="true" />
               <RealtimeStatusIndicator />
             </div>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-              Real-time security intelligence covering Web3, DeFi, and supply chain threats.
+            <h1
+              id="threat-intel-heading"
+              className="mx-auto max-w-3xl text-balance text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl"
+            >
+              {heroTitle}
+            </h1>
+            <p className="mx-auto mt-2 max-w-2xl px-2 text-sm text-muted-foreground sm:text-base">
+              {heroIntro}
+              <span className="hidden sm:inline"> {heroAlertsSentence}</span>
             </p>
-          </div>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:mt-4">
+              <Button asChild size="sm" className="gap-2">
+                <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  Join on Telegram
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="gap-2">
+                <Link to={subscribeHref}>
+                  <BellRing className="h-4 w-4" aria-hidden="true" />
+                  Get email alerts
+                </Link>
+              </Button>
+            </div>
+          </section>
 
-          {/* Quick Stats Banner - Compact */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-            <Card className="glass-card border-red-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-red-400">{stats.critical}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Critical <span className="hidden sm:inline">Severity</span></div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-orange-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-orange-400">{stats.high}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">High <span className="hidden sm:inline">Severity</span></div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-purple-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-purple-400">{stats.supplyChain}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Supply Chain</div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">current view</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-blue-500/20">
-              <CardContent className="p-2 sm:p-3 text-center">
-                <div className="text-lg sm:text-xl font-bold text-blue-400">{stats.total}</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Total Articles</div>
-                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">all time</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Enhanced Tab Navigation - More Visible */}
-          <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
-            <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg min-w-max sm:min-w-0">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
-                    selectedTab === tab.id
-                      ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                  {tab.count !== undefined && tab.count > 0 && (
-                    <Badge 
-                      variant={selectedTab === tab.id ? "secondary" : "outline"} 
-                      className={`ml-0.5 sm:ml-1 h-5 min-w-5 px-1 sm:px-1.5 text-[10px] sm:text-xs ${
-                        tab.id === 'alerts' && tab.count > 0 ? 'bg-red-500 text-white border-0' : ''
-                      }`}
-                    >
-                      {tab.count}
-                    </Badge>
-                  )}
-                </button>
+          {/* Stat tiles: one row on every screen size. Counts cover the whole
+              filtered result (threat_intel_stats) unless statsCaption says otherwise. */}
+          {isLoading && stats.total === 0 ? (
+            <div className="mb-3 sm:mb-6">
+              <StatsSkeleton />
+            </div>
+          ) : (
+            <div className="mb-3 grid grid-cols-4 gap-1.5 sm:mb-6 sm:gap-2">
+              {statTiles.map((tile) => (
+                <Card key={tile.label} className={`glass-card ${tile.border}`}>
+                  <CardContent className="p-1.5 text-center sm:p-3">
+                    <div className={`text-base font-bold sm:text-xl ${tile.color}`}>{tile.value}</div>
+                    <div className="text-[10px] leading-tight text-muted-foreground sm:text-xs">{tile.label}</div>
+                    <div className="mt-0.5 text-[9px] leading-tight text-muted-foreground/60 sm:text-[10px]">{tile.scope}</div>
+                  </CardContent>
+                </Card>
               ))}
+            </div>
+          )}
+
+          {/* Section tabs: three equal columns with short labels on phones */}
+          <div className="mb-3 sm:mb-6">
+            <div
+              role="tablist"
+              aria-label="Threat intelligence sections"
+              className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card/80 p-1 shadow-lg sm:flex sm:gap-2 sm:p-1.5"
+            >
+              {tabs.map((tab) => {
+                const selected = selectedTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`threat-intel-tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-label={tab.count ? `${tab.label} (${tab.count})` : tab.label}
+                    aria-controls={`threat-intel-panel-${tab.id}`}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => handleTabChange(tab.id)}
+                    onKeyDown={handleTabKeyDown}
+                    className={`flex min-w-0 items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-all sm:gap-2 sm:px-4 sm:py-3 sm:text-sm ${
+                      selected
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    <tab.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate sm:hidden">{tab.shortLabel}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    {tab.count !== undefined && tab.count > 0 && (
+                      <Badge
+                        variant={selected ? 'secondary' : 'outline'}
+                        className={`h-5 min-w-5 px-1 text-[10px] sm:ml-1 sm:px-1.5 sm:text-xs ${
+                          tab.id === 'alerts' ? 'bg-red-500 text-white border-0' : ''
+                        }`}
+                      >
+                        {tab.count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -614,56 +704,39 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             onSwipe={handleSwipe}
           >
           {selectedTab === 'feed' && (
-            <div className="space-y-6">
-              {/* Search and Sort Bar */}
-              <Card className="glass-card">
-                <CardContent className="p-4">
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search articles, technologies, tags..."
-                        value={searchQuery}
-                        onChange={(event) => updateFeedParam('q', event.target.value || null, true)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <ContentScopeSelector
-                        value={feedView}
-                        onChange={(value) => updateFeedParam('scope', value === 'all' ? null : value)}
-                        label="Choose intelligence scope"
-                        idPrefix="feed-scope"
-                      />
-                      <Select value={dateFilter} onValueChange={(value: 'all' | '7d' | '30d' | '90d') => updateFeedParam('date', value === 'all' ? null : value)}>
-                        <SelectTrigger className="w-32">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          <SelectValue placeholder="Date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="7d">Last 7 Days</SelectItem>
-                          <SelectItem value="30d">Last 30 Days</SelectItem>
-                          <SelectItem value="90d">Last 90 Days</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={sortBy} onValueChange={(value: 'date' | 'severity') => updateFeedParam('sort', value === 'date' ? null : value)}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Sort" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="date">Latest First</SelectItem>
-                          <SelectItem value="severity">By Severity</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div
+              className="space-y-4 sm:space-y-6"
+              role="tabpanel"
+              id="threat-intel-panel-feed"
+              aria-labelledby="threat-intel-tab-feed"
+            >
+              {/* Search stays debounced: the toolbar edits searchInput, and the
+                  effect above writes ?q= once typing pauses. */}
+              <FeedToolbar
+                searchQuery={searchInput}
+                onSearchChange={setSearchInput}
+                scope={feedView}
+                onScopeChange={handleScopeChange}
+                dateFilter={dateFilter}
+                onDateFilterChange={(value) => updateFeedParam('date', value === 'all' ? null : value)}
+                sortBy={sortBy}
+                onSortChange={(value) => updateFeedParam('sort', value === 'date' ? null : value)}
+                selectedCategories={selectedCategories}
+                selectedSeverities={selectedSeverities}
+                onCategoryToggle={handleCategoryToggle}
+                onSeverityToggle={handleSeverityToggle}
+                onClearFilters={handleClearFilters}
+                incidentFilters={incidentFilters}
+                facets={facets}
+                onVerificationChange={handleVerificationChange}
+                onChainToggle={(value) => toggleListParam('chain', chains, value)}
+                onAttackTypeToggle={(value) => toggleListParam('attack', attackTypes, value)}
+                onSourceToggle={(value: SourceFilter) => toggleListParam('source', sources, value)}
+              />
 
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Filters Sidebar */}
-                <div className="lg:col-span-1">
+                {/* Filters Sidebar (the toolbar's sheet replaces it below md) */}
+                <div className="hidden md:block lg:col-span-1">
                   <NewsFilters
                     selectedCategories={selectedCategories}
                     selectedSeverities={selectedSeverities}
@@ -677,7 +750,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 <div className="lg:col-span-3 space-y-4">
 {/* Results count and refresh button */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
                       <span className="text-sm text-muted-foreground">
                         {isLoading ? 'Loading...' : (
                           pagination.totalCount > 0 
@@ -686,28 +759,34 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         )}
                       </span>
                       {pagination.totalCount > 0 && (
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${
-                            feedStatus.source === 'cache' || feedStatus.pipelineIsStale
-                              ? 'border-yellow-500/40 text-yellow-500'
-                              : 'border-emerald-500/40 text-emerald-400'
-                          }`}
-                          title={feedStatus.pipelineCheckedAt
-                            ? `All active RSS sources checked by ${format(feedStatus.pipelineCheckedAt, 'PPpp')}`
-                            : (feedStatus.checkedAt ? `Database checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined)}
+                        <Link
+                          to={`${METHODOLOGY_PATH}#sources`}
+                          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
-                          <Database className="w-3 h-3 mr-1" />
-                          {feedStatus.source === 'cache'
-                            ? (feedStatus.isStale ? 'Cached · stale' : 'Cached')
-                            : feedStatus.pipelineCheckedAt
-                              ? `${feedStatus.checkedFeedCount}/${feedStatus.activeFeedCount} sources checked ${formatDistanceToNow(feedStatus.pipelineCheckedAt, { addSuffix: true })}`
-                              : 'Live database'}
-                        </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs hover:border-primary/60 ${
+                              feedStatus.source === 'cache' || feedStatus.pipelineIsStale
+                                ? 'border-yellow-500/40 text-yellow-500'
+                                : 'border-emerald-500/40 text-emerald-400'
+                            }`}
+                            title={feedStatus.pipelineCheckedAt
+                              ? `All active RSS sources checked by ${format(feedStatus.pipelineCheckedAt, 'PPpp')}`
+                              : (feedStatus.checkedAt ? `Database checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined)}
+                          >
+                            <Database className="w-3 h-3 mr-1" aria-hidden="true" />
+                            {feedStatus.source === 'cache'
+                              ? (feedStatus.isStale ? 'Cached · stale' : 'Cached')
+                              : feedStatus.pipelineCheckedAt
+                                ? `${feedStatus.checkedFeedCount}/${feedStatus.activeFeedCount} sources checked ${formatDistanceToNow(feedStatus.pipelineCheckedAt, { addSuffix: true })}`
+                                : 'Live database'}
+                          </Badge>
+                        </Link>
                       )}
+                      {/* Phones skip this line to keep the first card above the fold; the sources chip already shows freshness. */}
                       {feedStatus.newestPublishedAt && (
                         <span
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                          className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"
                           title={`Newest publisher timestamp: ${format(feedStatus.newestPublishedAt, 'PPpp')}`}
                         >
                           <Clock className="h-3 w-3" />
@@ -735,7 +814,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={async () => { await refreshWeb3Incidents(); await fetchActiveAlerts(); }}
+                        onClick={async () => { await refreshWeb3Incidents(); await refetchAlerts(); }}
                         disabled={isRefreshingWeb3}
                         className="bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20"
                         title="Fetch latest Web3 security incidents"
@@ -762,7 +841,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       </Button>
                         </>
                       )}
-                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== 'all') && (
+                      {hasClearableFilters && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                           Clear filters
                         </Button>
@@ -791,12 +870,16 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   {isLoading ? (
                     <NewsListSkeleton count={5} />
                   ) : filteredArticles.length > 0 ? (
-                    filteredArticles.map((article) => (
-                      <NewsCard 
-                        key={article.id} 
-                        article={article}
-                        onClick={() => handleArticleClick(article)}
-                      />
+                    filteredArticles.map((article, index) => (
+                      <Fragment key={article.id}>
+                        <NewsCard
+                          article={article}
+                          onClick={() => handleArticleClick(article)}
+                        />
+                        {index === INLINE_SUBSCRIBE_AFTER - 1 && (
+                          <InlineSubscribeCard subscribeHref={subscribeHref} />
+                        )}
+                      </Fragment>
                     ))
                   ) : (
                     <Card className="glass-card">
@@ -914,227 +997,53 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
           {selectedTab === 'alerts' && (
             <ErrorBoundary>
-              <div className="space-y-6">
-                {/* Breadcrumb Navigation */}
-                {/* Header with breadcrumb and refresh */}
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => navigate('/')}
-                      className="h-auto p-1 hover:text-foreground"
-                    >
-                      <Home className="w-4 h-4" />
-                    </Button>
-                    <span>/</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleTabChange('feed')}
-                      className="h-auto p-1 hover:text-foreground"
-                    >
-                      Threat Intel
-                    </Button>
-                    <span>/</span>
-                    <span className="text-foreground">Active Alerts</span>
-                  </nav>
+              <div
+                className="space-y-6"
+                role="tabpanel"
+                id="threat-intel-panel-alerts"
+                aria-labelledby="threat-intel-tab-alerts"
+              >
+                <AlertsPanel
+                  alerts={activeAlerts}
+                  criticalCount={alertsCriticalCount}
+                  highCount={alertsHighCount}
+                  loading={alertsLoading}
+                  error={alertsError}
+                  autoRefreshInterval={autoRefreshInterval}
+                  onAutoRefreshIntervalChange={setAutoRefreshInterval}
+                  onRefresh={() => void refetchAlerts()}
+                  onSelectAlert={handleArticleClick}
+                  onNavigateHome={() => navigate('/')}
+                  onNavigateFeed={() => handleTabChange('feed')}
+                />
+
+              {/* Alert pagination */}
+              {!alertsLoading && alertsTotalPages > 1 && (
+                <nav className="flex items-center justify-between gap-2" aria-label="Alert pages">
+                  <span className="text-sm text-muted-foreground">
+                    Page {alertsPage} of {alertsTotalPages}
+                  </span>
                   <div className="flex items-center gap-2">
-                    {/* Auto-refresh selector */}
-                    <Select 
-                      value={autoRefreshInterval.toString()} 
-                      onValueChange={(v) => setAutoRefreshInterval(parseInt(v))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAlertsPage((current) => Math.max(1, current - 1))}
+                      disabled={alertsPage <= 1}
                     >
-                      <SelectTrigger className="w-24 h-8 text-xs">
-                        <Clock className="w-3 h-3 mr-1" />
-                        <SelectValue placeholder="Auto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AUTO_REFRESH_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {autoRefreshInterval > 0 && (
-                      <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30 text-green-400">
-                        Auto-refresh: {AUTO_REFRESH_OPTIONS.find(o => o.value === autoRefreshInterval.toString())?.label}
-                      </Badge>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => void fetchActiveAlerts()}
-                      disabled={alertsLoading}
+                      <ChevronRight className="w-4 h-4 rotate-180" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAlertsPage((current) => Math.min(alertsTotalPages, current + 1))}
+                      disabled={alertsPage >= alertsTotalPages}
                     >
-                      {alertsLoading ? (
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                      )}
-                      Refresh
+                      Next
+                      <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
-                </div>
-
-                {/* Critical Alerts */}
-                {criticalAlerts.length > 0 && (
-                <Card className="glass-card border-red-500/30 bg-red-500/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-400">
-                      <AlertTriangle className="w-5 h-5" />
-                      Critical Alerts ({criticalAlerts.length})
-                    </CardTitle>
-                    <CardDescription>
-                      Critical-severity threats and published incident reports requiring prompt review
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {criticalAlerts.map((alert) => (
-                      <div 
-                        key={alert.id}
-                        className="p-4 border border-red-500/20 rounded-lg bg-background/50 hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => handleArticleClick(alert)}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-red-500 text-white">CRITICAL</Badge>
-                              {isQuillMonitorArticle(alert) && (
-                                <a
-                                  href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary underline underline-offset-2"
-                                  onClick={(event) => event.stopPropagation()}
-                                  onKeyDown={(event) => event.stopPropagation()}
-                                >
-                                  Powered by QuillMonitor
-                                </a>
-                              )}
-                              {isPreliminaryQuillMonitorArticle(alert) ? (
-                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">Preliminary</Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-red-500 text-red-400">Action Required</Badge>
-                              )}
-                              {alert.cveId && (
-                                <Badge variant="secondary">{alert.cveId}</Badge>
-                              )}
-                            </div>
-                            <h3 className="font-medium mb-1">
-                              <button
-                                type="button"
-                                className="text-left"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleArticleClick(alert);
-                                }}
-                              >
-                                {alert.title}
-                              </button>
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {alert.affectedTechnologies?.map((tech) => (
-                                <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {alert.metadata?.incident_date || format(new Date(alert.publishedAt), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* High Priority Alerts */}
-              {highAlerts.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-orange-500" />
-                      High Priority Alerts ({highAlerts.length})
-                    </CardTitle>
-                    <CardDescription>Important security alerts requiring attention</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {highAlerts.map((alert) => (
-                      <div 
-                        key={alert.id}
-                        className="p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => handleArticleClick(alert)}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-orange-500 text-white">HIGH</Badge>
-                              {isQuillMonitorArticle(alert) && (
-                                <a
-                                  href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary underline underline-offset-2"
-                                  onClick={(event) => event.stopPropagation()}
-                                  onKeyDown={(event) => event.stopPropagation()}
-                                >
-                                  Powered by QuillMonitor
-                                </a>
-                              )}
-                              {isPreliminaryQuillMonitorArticle(alert) ? (
-                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">Preliminary</Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-orange-500 text-orange-400">Action Required</Badge>
-                              )}
-                            </div>
-                            <h3 className="font-medium mb-1">
-                              <button
-                                type="button"
-                                className="text-left"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleArticleClick(alert);
-                                }}
-                              >
-                                {alert.title}
-                              </button>
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {alert.affectedTechnologies?.map((tech) => (
-                                <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {alert.metadata?.incident_date || format(new Date(alert.publishedAt), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Empty state */}
-              {!alertsLoading && activeAlerts.length === 0 && (
-                <Card className="glass-card">
-                  <CardContent className="p-8 text-center">
-                    <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No alerts available</h3>
-                    <p className="text-muted-foreground mb-4">{alertsError || 'No critical or high priority alerts are active.'}</p>
-                    <Button onClick={() => void fetchActiveAlerts()}>Try Again</Button>
-                  </CardContent>
-                </Card>
+                </nav>
               )}
               </div>
             </ErrorBoundary>
@@ -1142,7 +1051,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
           {selectedTab === 'subscribe' && (
             <ErrorBoundary>
-              <div className="space-y-4">
+              <div
+                className="space-y-4"
+                role="tabpanel"
+                id="threat-intel-panel-subscribe"
+                aria-labelledby="threat-intel-tab-subscribe"
+              >
                 {/* Breadcrumb Navigation */}
                 <nav className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Button 
@@ -1157,7 +1071,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => setSelectedTab('feed')}
+                    onClick={() => handleTabChange('feed')}
                     className="h-auto p-1 hover:text-foreground"
                   >
                     Threat Intel
@@ -1165,11 +1079,22 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   <span>/</span>
                   <span className="text-foreground">Subscribe</span>
                 </nav>
-                <SubscriptionForm />
+                <SubscriptionForm
+                  initialCategories={selectedCategories}
+                  initialScope={searchParams.has('scope') ? feedView : undefined}
+                />
               </div>
             </ErrorBoundary>
           )}
           </SwipeableTabs>
+
+          <p className="mt-10 border-t border-border/60 pt-6 text-center text-sm text-muted-foreground">
+            Where these records come from, how severity is set and how to report a mistake:{' '}
+            <Link to={METHODOLOGY_PATH} className="font-medium text-primary underline-offset-2 hover:underline">
+              sources and methodology
+            </Link>
+            .
+          </p>
         </div>
       </main>
 

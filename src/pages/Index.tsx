@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowRight, Bell, BookOpen, Check, CheckCircle2, ExternalLink,
   Github, Globe2, GraduationCap, Loader2, Lock, MessageCircle, Newspaper,
@@ -16,8 +16,8 @@ import { SecurityPresets } from '@/components/SecurityPresets';
 import { SecurityScore } from '@/components/SecurityScore';
 import { ThreatLevelSelector } from '@/components/ThreatLevelSelector';
 import { useSecurityState } from '@/hooks/useSecurityState';
-import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { supabase } from '@/integrations/supabase/client';
+import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER } from '@/utils/newsIncident';
 import espLogo from '@/assets/esp-logo-white.svg';
 
 interface RecentAlert {
@@ -71,13 +71,13 @@ const Index = () => {
   const navigate = useNavigate();
   const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
   const [alertsLoaded, setAlertsLoaded] = useState(false);
-  const { data: subscriberCount } = useSubscriberCount();
 
   useEffect(() => {
     const fetchAlerts = async () => {
       const { data } = await supabase
         .from('news_articles')
         .select('id, title, severity, published_at')
+        .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
         .in('severity', ['critical', 'high', 'medium'])
         .order('published_at', { ascending: false })
         .limit(3);
@@ -276,10 +276,9 @@ const Index = () => {
               <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Know what is happening before you sign, click, or ship.</h2>
               <p className="leading-relaxed text-muted-foreground">We curate high-signal incidents across phishing, wallet drainers, smart-contract exploits, and software supply chains. Read the feed or subscribe for the alerts that need attention.</p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate('/threat-intel?tab=alerts')} className="w-full gap-2 sm:w-auto"><Newspaper className="h-4 w-4" /> View threat feed</Button>
+                <Button onClick={() => navigate('/threat-intel')} className="w-full gap-2 sm:w-auto"><Newspaper className="h-4 w-4" /> View threat feed</Button>
                 <Button onClick={() => navigate('/threat-intel?tab=subscribe')} variant="outline" className="w-full gap-2 sm:w-auto">
                   <Bell className="h-4 w-4" /> Subscribe
-                  {subscriberCount && subscriberCount.count > 0 && <span className="text-xs">({subscriberCount.label})</span>}
                 </Button>
               </div>
             </div>
@@ -290,13 +289,13 @@ const Index = () => {
               </div>
               <div className="space-y-2">
                 {recentAlerts.length > 0 ? recentAlerts.map((alert) => (
-                  <button key={alert.id} type="button" onClick={() => navigate('/threat-intel?tab=alerts')} className="flex w-full items-start gap-3 rounded-xl border border-transparent bg-background/70 p-3 text-left transition-colors hover:border-border">
+                  <Link key={alert.id} to={`/threat-intel/${encodeURIComponent(alert.id)}`} className="flex w-full items-start gap-3 rounded-xl border border-transparent bg-background/70 p-3 text-left transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${alert.severity === 'critical' ? 'bg-destructive' : alert.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'}`} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-foreground">{alert.title}</span>
                       <span className="mt-1 block text-xs capitalize text-muted-foreground">{alert.severity} · {formatDistanceToNow(new Date(alert.published_at), { addSuffix: true })}</span>
                     </span>
-                  </button>
+                  </Link>
                 )) : <div className="py-8 text-center text-sm text-muted-foreground">{alertsLoaded ? 'No high-priority alerts are available right now.' : 'Loading current alerts…'}</div>}
               </div>
             </div>

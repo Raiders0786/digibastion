@@ -28,6 +28,10 @@ describe('ContentScopeSelector', () => {
     const incidents = screen.getByRole('button', { name: 'Web3 Incidents' });
 
     expect(group).not.toBeNull();
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Web3 Incidents',
+      'All Intelligence',
+    ]);
     expect(all.getAttribute('aria-pressed')).toBe('true');
     expect(incidents.getAttribute('aria-pressed')).toBe('false');
     expect(screen.getByText('News, advisories, disclosures, and published incidents.')).not.toBeNull();

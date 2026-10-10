@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Button, type ButtonProps } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Eye, Clock } from 'lucide-react';
 import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { newsCategoryConfig } from '@/data/newsData';
@@ -14,6 +15,10 @@ interface EmailPreviewProps {
   preferredHour?: number;
   timezoneOffset?: number;
   preferredDay?: number;
+  /** Text on the button that opens the preview. */
+  triggerLabel?: string;
+  triggerVariant?: ButtonProps['variant'];
+  triggerClassName?: string;
 }
 
 interface PreviewArticle {
@@ -127,7 +132,10 @@ export const EmailPreview = ({
   name,
   preferredHour = 9,
   timezoneOffset = 0,
-  preferredDay = 0
+  preferredDay = 0,
+  triggerLabel = 'Preview Email',
+  triggerVariant = 'outline',
+  triggerClassName,
 }: EmailPreviewProps) => {
   // Filter mock articles based on preferences
   const thresholdRank = severityRank[severity] ?? 2;
@@ -212,9 +220,9 @@ export const EmailPreview = ({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Eye className="w-4 h-4" />
-          Preview Email
+        <Button type="button" variant={triggerVariant} size="sm" className={cn('gap-2', triggerClassName)}>
+          <Eye className="w-4 h-4" aria-hidden="true" />
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">

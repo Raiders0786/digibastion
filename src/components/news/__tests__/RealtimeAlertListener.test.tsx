@@ -13,12 +13,12 @@ const realtime = vi.hoisted(() => {
     }),
     subscribe: vi.fn(() => channel),
   };
-  return { handlers, channel, toast: vi.fn(), removeChannel: vi.fn() };
+  return { handlers, channel, channelFactory: vi.fn(() => channel), toast: vi.fn(), removeChannel: vi.fn() };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    channel: vi.fn(() => realtime.channel),
+    channel: realtime.channelFactory,
     removeChannel: realtime.removeChannel,
   },
 }));
@@ -84,5 +84,58 @@ describe('RealtimeAlertListener provider refresh behavior', () => {
 
     expect(realtime.toast).not.toHaveBeenCalled();
     expect(onNewArticle).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not toast a merged duplicate insert', () => {
+    const onNewArticle = vi.fn();
+    render(<RealtimeAlertListener onNewArticle={onNewArticle} />);
+
+    act(() => {
+      realtime.handlers.INSERT({
+        new: {
+          id: 'slowmist:2',
+          title: 'Duplicate of a QuillMonitor incident',
+          severity: 'critical',
+          category: 'web3-security',
+          summary: 'Summary',
+          published_at: new Date().toISOString(),
+          source_name: 'SlowMist Hacked',
+          metadata: { provider: 'slowmist', classification_relevant: false, duplicate_of_uid: 'quillmonitor:1' },
+        },
+      });
+      vi.advanceTimersByTime(1_500);
+    });
+
+    expect(realtime.toast).not.toHaveBeenCalled();
+    expect(onNewArticle).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps one realtime channel when the refresh callback changes', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const { rerender } = render(<RealtimeAlertListener onNewArticle={first} />);
+
+    rerender(<RealtimeAlertListener onNewArticle={second} />);
+
+    expect(realtime.channelFactory).toHaveBeenCalledTimes(1);
+    expect(realtime.removeChannel).not.toHaveBeenCalled();
+
+    act(() => {
+      realtime.handlers.UPDATE({
+        new: {
+          id: 'quill-1',
+          title: 'Verified incident',
+          severity: 'high',
+          category: 'web3-security',
+          summary: 'Updated summary',
+          source_name: 'QuillMonitor',
+          metadata: { provider: 'quillmonitor' },
+        },
+      });
+      vi.advanceTimersByTime(1_500);
+    });
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });

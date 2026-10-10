@@ -3,8 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Info, Zap, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower } from 'lucide-react';
-import { newsCategoryConfig } from '@/data/newsData';
+import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower, LifeBuoy, History, BellRing, Send, Undo2 } from 'lucide-react';
+import { getCategoryConfig, getSeverityStyle } from '@/lib/threatIntel/taxonomy';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
@@ -16,9 +16,21 @@ import {
   isQuillMonitorArticle,
   isSlowMistArticle,
   isWeb3Incident,
+  isWeb3SecurityDomain,
   SLOWMIST_ATTRIBUTION_URL,
 } from '@/utils/newsIncident';
 import { getNewsSourceLinks } from '@/utils/newsSources';
+import { getIncidentDisplay, getProviderLabel, getStatusHistory } from '@/lib/threatIntel/incidentDisplay';
+import {
+  buildSubscribeHref,
+  CHAINABUSE_URL,
+  CISA_KEV_URL,
+  nvdCveUrl,
+  REVOKE_CASH_URL,
+  SEAL_911_URL,
+  TELEGRAM_CHANNEL_URL,
+} from '@/lib/threatIntel/officialLinks';
+import { VerificationBadge } from '@/components/news/VerificationBadge';
 
 interface StoredBookmark {
   id: string;
@@ -33,20 +45,27 @@ interface NewsDetailProps {
 }
 
 export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps) => {
-  const categoryInfo = newsCategoryConfig[article.category];
+  const categoryInfo = getCategoryConfig(article.category);
+  const severityStyle = getSeverityStyle(article.severity);
+  const SeverityIcon = severityStyle.icon;
   const isQuillMonitor = isQuillMonitorArticle(article);
   const isSlowMist = isSlowMistArticle(article);
-  const isPreliminary = isPreliminaryQuillMonitorArticle(article);
   const web3Incident = isWeb3Incident(article);
+  const display = getIncidentDisplay(article);
+  const statusHistory = getStatusHistory(article);
+  const isUnconfirmed = display.verification === 'unconfirmed';
+  const providerLabel = getProviderLabel(article) ?? 'The source';
   const slowMistAttributionUrl = isSlowMist
     ? safeExternalUrl(article.metadata?.attribution_url) || SLOWMIST_ATTRIBUTION_URL
     : null;
   const originalSources = getNewsSourceLinks(article, slowMistAttributionUrl);
   const duplicateProviderAuthor = isSlowMist && article.author?.toLowerCase().includes('slowmist');
-  const providerIncidentDate = isQuillMonitor && /^\d{4}-\d{2}-\d{2}$/.test(article.metadata?.incident_date || '')
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeZone: 'UTC' })
-        .format(new Date(`${article.metadata?.incident_date}T00:00:00.000Z`))
-    : null;
+  const showWeb3Actions = web3Incident || isWeb3SecurityDomain(article);
+  const showVulnerabilityActions = Boolean(article.cveId) || article.category === 'vulnerability-disclosure';
+  const subscribeHref = buildSubscribeHref({
+    categories: [article.category],
+    scope: web3Incident ? 'web3-incidents' : 'all',
+  });
   const { toast } = useToast();
   
   const { relatedArticles, isLoading: isLoadingRelated } = useRelatedArticles({
@@ -56,34 +75,6 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
     limit: 4
   });
   
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case 'high':
-        return <Zap className="w-5 h-5 text-orange-500" />;
-      case 'medium':
-        return <Info className="w-5 h-5 text-yellow-500" />;
-      default:
-        return <Info className="w-5 h-5 text-blue-500" />;
-    }
-  };
-
-  const getSeverityClass = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return 'severity-critical';
-      case 'high':
-        return 'severity-high';
-      case 'medium':
-        return 'severity-medium';
-      case 'low':
-        return 'severity-low';
-      default:
-        return 'glass-card';
-    }
-  };
-
   const handleShare = async () => {
     const shareUrl = `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`;
     if (navigator.share) {
@@ -173,7 +164,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
       </div>
 
       {/* Main Article Card */}
-      <Card className={`${getSeverityClass(article.severity)} glow`}>
+      <Card className={`${severityStyle.cardClass} glow`}>
         <CardHeader className="pb-4">
           {/* Category and Severity Badges */}
           <div className="flex items-center gap-2 flex-wrap mb-4">
@@ -181,8 +172,8 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               {categoryInfo.name}
             </Badge>
             <Badge variant="outline" className="flex items-center gap-1">
-              {getSeverityIcon(article.severity)}
-              <span className="capitalize">{article.severity}</span>
+              <SeverityIcon className={`w-5 h-5 ${severityStyle.iconClass}`} aria-hidden="true" />
+              <span>{severityStyle.label}</span>
             </Badge>
             {web3Incident && (
               <Badge variant="secondary" className="gap-1">
@@ -190,9 +181,13 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                 Web3 Incident
               </Badge>
             )}
-            {isPreliminary && (
-              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">
-                Preliminary
+            {display.verification && (
+              <VerificationBadge verification={display.verification} help={display.verificationHelp} />
+            )}
+            {display.fundsReturned && (
+              <Badge variant="outline" className="gap-1 border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                <Undo2 className="h-3 w-3" aria-hidden="true" />
+                Funds returned
               </Badge>
             )}
             {article.cveId && (
@@ -209,11 +204,17 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
 
           {/* Meta Information */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            {providerIncidentDate ? (
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>Incident date {providerIncidentDate}</span>
-              </div>
+            {web3Incident ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" aria-hidden="true" />
+                  <span>{display.incidentDateLabel ?? 'Incident date unknown'}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span aria-hidden="true">•</span>
+                  <span>{display.addedDateLabel}</span>
+                </div>
+              </>
             ) : (
               <>
                 <div className="flex items-center gap-1">
@@ -238,20 +239,20 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
         <CardContent className="space-y-6">
           {/* Summary */}
           <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
-            <h3 className="font-semibold mb-2">Summary</h3>
+            <h3 className="font-semibold mb-2">{display.summaryLabel ?? 'Summary'}</h3>
             <p className="text-foreground/80 leading-relaxed">
               {article.summary}
             </p>
           </div>
 
           {/* Affected Technologies */}
-          {web3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || article.metadata?.amount_display) && (
+          {web3Incident && (article.metadata?.project_name || article.metadata?.chain || article.metadata?.attack_type || display.lossLabel) && (
             <div className="border-y py-5">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {article.metadata?.project_name && <div><div className="text-xs text-muted-foreground">Affected project</div><div className="font-medium">{article.metadata.project_name}</div></div>}
                 {article.metadata?.chain && <div><div className="text-xs text-muted-foreground">Chain</div><div className="font-medium">{article.metadata.chain}</div></div>}
                 {article.metadata?.attack_type && <div><div className="text-xs text-muted-foreground">Attack method</div><div className="font-medium">{article.metadata.attack_type}</div></div>}
-                {article.metadata?.amount_display && <div><div className="text-xs text-muted-foreground">Reported loss</div><div className="font-medium">{article.metadata.amount_display}</div></div>}
+                {display.lossLabel && <div><div className="text-xs text-muted-foreground">Loss</div><div className="font-medium">{display.lossLabel}</div></div>}
               </div>
             </div>
           )}
@@ -312,31 +313,70 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
             </div>
           </div>
 
-          {/* Action Items */}
-          {isPreliminary ? (
+          {/* Verification notice */}
+          {isUnconfirmed && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
               <h3 className="mb-2 flex items-center gap-2 font-semibold text-amber-300">
-                <AlertTriangle className="h-4 w-4" />
-                Preliminary report
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                Unconfirmed report
               </h3>
               <p className="text-sm text-foreground/80">
-                QuillMonitor verification is pending. Details, incident date, and reported loss may change; verify against the linked source before acting.
+                {providerLabel} has not verified this incident yet. The details, incident date and loss figure may change, and some reports are withdrawn. Check the linked source before acting.
               </p>
             </div>
-          ) : article.severity === 'critical' && !isQuillMonitor ? (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <h3 className="font-semibold mb-2 text-red-400 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                Immediate Action Required
+          )}
+
+          {/* Next steps */}
+          {(showWeb3Actions || showVulnerabilityActions) && (
+            <section aria-labelledby="what-should-i-do" className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <h3 id="what-should-i-do" className="mb-3 flex items-center gap-2 font-semibold">
+                <LifeBuoy className="h-4 w-4 text-primary" aria-hidden="true" />
+                What should I do?
               </h3>
-              <ul className="text-sm text-foreground/80 space-y-1 ml-4">
-                <li>• Update affected software immediately</li>
-                <li>• Review your systems for potential compromise</li>
-                <li>• Monitor for unusual activity</li>
-                <li>• Consider temporary isolation of affected systems</li>
-              </ul>
-            </div>
-          ) : null}
+              {showWeb3Actions && (
+                <ul className="list-disc space-y-1.5 pl-5 text-sm text-foreground/80">
+                  <li>
+                    Review your token approvals and revoke the ones you no longer use on{' '}
+                    <a href={REVOKE_CASH_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Revoke.cash</a>.
+                  </li>
+                  <li>
+                    Check an address before you send funds to it, or report a scam address, on{' '}
+                    <a href={CHAINABUSE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Chainabuse</a>.
+                  </li>
+                  <li>
+                    If your team is under active attack, contact{' '}
+                    <a href={SEAL_911_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">SEAL 911</a>.
+                  </li>
+                </ul>
+              )}
+              {showVulnerabilityActions && (
+                <p className={`text-sm text-foreground/80 ${showWeb3Actions ? 'mt-3' : ''}`}>
+                  For a software vulnerability, read the vendor&apos;s advisory first, then check the record on{' '}
+                  <a href={nvdCveUrl(article.cveId)} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">NVD</a>{' '}
+                  and whether it is listed in the{' '}
+                  <a href={CISA_KEV_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">CISA Known Exploited Vulnerabilities catalog</a>.
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* Status history */}
+          {statusHistory.length > 0 && (
+            <section aria-labelledby="status-history">
+              <h3 id="status-history" className="mb-3 flex items-center gap-2 font-semibold">
+                <History className="h-4 w-4 text-primary" aria-hidden="true" />
+                Status history
+              </h3>
+              <ol className="space-y-2 border-l border-border pl-4 text-sm">
+                {statusHistory.map((entry) => (
+                  <li key={entry.label}>
+                    <span className="font-medium text-foreground">{entry.label}</span>
+                    <span className="text-muted-foreground"> · {entry.detail}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
 
           {/* Tags */}
           {article.tags.length > 0 && (
@@ -378,6 +418,33 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
         </CardContent>
       </Card>
 
+      {/* Alerts like this */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <BellRing className="w-5 h-5 text-primary" aria-hidden="true" />
+            Get alerts like this
+          </CardTitle>
+          <CardDescription>
+            Email alerts for {categoryInfo.name} {web3Incident ? 'incidents' : 'items'}, as often as you choose. The Telegram channel posts new high and critical Web3 incidents.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row">
+          <Button asChild>
+            <Link to={subscribeHref}>
+              <BellRing className="w-4 h-4 mr-2" aria-hidden="true" />
+              Get email alerts
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
+              <Send className="w-4 h-4 mr-2" aria-hidden="true" />
+              Join @digibastion on Telegram
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Related Articles Section */}
       <Card className="glass-card">
         <CardHeader>
@@ -405,7 +472,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           ) : relatedArticles.length > 0 ? (
             <div className="space-y-3">
               {relatedArticles.map((related) => {
-                const relatedCategoryInfo = newsCategoryConfig[related.category];
+                const relatedCategoryInfo = getCategoryConfig(related.category);
                 const openRelated = () => {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   onArticleClick?.(related);
@@ -421,20 +488,16 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <Badge 
                             variant="outline"
-                            className={`text-xs ${
-                              related.severity === 'critical' ? 'border-red-500/50 text-red-400' :
-                              related.severity === 'high' ? 'border-orange-500/50 text-orange-400' :
-                              'border-muted'
-                            }`}
+                            className={`text-xs ${getSeverityStyle(related.severity).outlineClass}`}
                           >
                             {related.severity.toUpperCase()}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {relatedCategoryInfo?.name || related.category}
+                            {relatedCategoryInfo.name}
                           </Badge>
                           {isPreliminaryQuillMonitorArticle(related) && (
                             <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">
-                              Preliminary
+                              Unconfirmed
                             </Badge>
                           )}
                           {isQuillMonitorArticle(related) && (

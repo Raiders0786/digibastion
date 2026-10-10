@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NewsCard } from '@/components/news/NewsCard';
 import type { NewsArticle } from '@/types/news';
+
+const QM_DATABASE = 'https://www.quillaudits.com/web3-hacks-database';
 
 const preliminaryArticle: NewsArticle = {
   id: 'quill-1',
@@ -21,44 +25,166 @@ const preliminaryArticle: NewsArticle = {
     is_web3_incident: true,
     verification_status: 'unverified',
     summary_origin: 'provider',
-    attribution_url: 'https://www.quillaudits.com/web3-hacks-database',
+    attribution_url: QM_DATABASE,
   },
 };
 
+const renderCard = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
+
 afterEach(cleanup);
 
-describe('NewsCard QuillMonitor presentation', () => {
-  it('labels preliminary records, preserves pending summaries, and links attribution', () => {
+describe('NewsCard navigation', () => {
+  it('renders the title as a crawlable link and opens it in place on a plain click', () => {
     const onClick = vi.fn();
-    render(<NewsCard article={preliminaryArticle} onClick={onClick} />);
+    renderCard(<NewsCard article={preliminaryArticle} onClick={onClick} />);
 
-    expect(screen.getByText('Preliminary')).not.toBeNull();
-    expect(screen.getByText('Summary pending')).not.toBeNull();
-    expect(screen.queryByText('AI Summary')).toBeNull();
-    const attribution = screen.getByRole('link', { name: 'Powered by QuillMonitor' });
-    expect(attribution.getAttribute('href')).toBe('https://www.quillaudits.com/web3-hacks-database');
+    const title = screen.getByRole('link', { name: preliminaryArticle.title });
+    expect(title.getAttribute('href')).toBe('/threat-intel/quill-1');
 
-    fireEvent.click(attribution);
-    expect(onClick).not.toHaveBeenCalled();
+    fireEvent.click(title);
+    expect(onClick).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: preliminaryArticle.title }));
+    fireEvent.click(title, { ctrlKey: true });
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('does not label verified records as preliminary', () => {
-    render(<NewsCard
-      article={{
-        ...preliminaryArticle,
-        metadata: { ...preliminaryArticle.metadata, verification_status: 'verified' },
-      }}
-    />);
+  it('keeps source links outside the card link', () => {
+    const onClick = vi.fn();
+    renderCard(<NewsCard article={preliminaryArticle} onClick={onClick} />);
+
+    const source = screen.getByRole('link', { name: 'QuillMonitor' });
+    expect(source.getAttribute('href')).toBe(QM_DATABASE);
+    expect(source.getAttribute('target')).toBe('_blank');
+    expect(source.closest('a[href="/threat-intel/quill-1"]')).toBeNull();
+
+    fireEvent.click(source);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});
+
+describe('NewsCard incident presentation', () => {
+  it('labels unconfirmed records and keeps pending summaries unlabelled', () => {
+    renderCard(<NewsCard article={preliminaryArticle} />);
+
+    expect(screen.getByRole('button', { name: /^Unconfirmed/ })).not.toBeNull();
+    expect(screen.getByText('Summary pending')).not.toBeNull();
+    expect(screen.queryByText('AI summary')).toBeNull();
     expect(screen.queryByText('Preliminary')).toBeNull();
+  });
+
+  it('links the QuillMonitor reference instead of the database page when one exists', () => {
+    renderCard(<NewsCard article={{
+      ...preliminaryArticle,
+      metadata: { ...preliminaryArticle.metadata, reference_url: 'https://x.com/peckshield/status/1975000000000000001' },
+    }} />);
+
+    expect(screen.getByRole('link', { name: 'QuillMonitor' }).getAttribute('href'))
+      .toBe('https://x.com/peckshield/status/1975000000000000001');
+  });
+
+  it('shows confirmed status, both dates, the loss and funds returned', () => {
+    renderCard(<NewsCard article={{
+      ...preliminaryArticle,
+      title: 'NEAR Intents: Bridge exploit ($3.8M loss)',
+      createdAt: new Date('2026-10-09T12:00:00.000Z'),
+      metadata: {
+        ...preliminaryArticle.metadata,
+        verification_status: 'verified',
+        incident_date: '2026-09-30',
+        project_name: 'NEAR Intents',
+        amount_lost_usd: 3_800_000,
+        amount_display: '$3.8M',
+        funds_returned: true,
+      },
+    }} />);
+
+    expect(screen.getByRole('button', { name: /^Confirmed/ })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: /^Unconfirmed/ })).toBeNull();
+    expect(screen.getByText('Exploited Sep 30, 2026')).not.toBeNull();
+    expect(screen.getByText(/^Added Oct 9/)).not.toBeNull();
+    expect(screen.getByText('$3.8M')).not.toBeNull();
+    expect(screen.getByText('Funds returned')).not.toBeNull();
+  });
+
+  it('shows the AI summary label only when the summary source is AI', () => {
+    const rss: NewsArticle = {
+      id: 'rss-1',
+      title: 'Vendor patches actively exploited VPN flaw',
+      summary: 'The vendor released fixes for a remote code execution flaw that attackers are already using.',
+      content: 'Details',
+      category: 'vulnerability-disclosure',
+      tags: [],
+      severity: 'critical',
+      publishedAt: new Date('2026-10-08T10:00:00.000Z'),
+      sourceName: 'BleepingComputer',
+      link: 'https://www.bleepingcomputer.com/news/security/vendor-patches-vpn-flaw/',
+      isProcessed: true,
+    };
+
+    renderCard(<NewsCard article={rss} />);
+    expect(screen.queryByText('AI summary')).toBeNull();
+    expect(screen.getByRole('link', { name: 'BleepingComputer' })).not.toBeNull();
+    cleanup();
+
+    renderCard(<NewsCard article={{ ...rss, metadata: { summary_origin: 'ai' } }} />);
+    expect(screen.getByText('AI summary')).not.toBeNull();
+  });
+
+  it('renders a record whose category is no longer configured', () => {
+    renderCard(<NewsCard article={{ ...preliminaryArticle, category: 'retired-category' as unknown as NewsArticle['category'] }} />);
+    expect(screen.getByRole('link', { name: preliminaryArticle.title })).not.toBeNull();
+    expect(screen.getByText('Retired Category')).not.toBeNull();
+  });
+});
+
+describe('NewsCard source attribution', () => {
+  it('shows "Powered by" with the QuillMonitor link when it is the only source', () => {
+    renderCard(<NewsCard article={preliminaryArticle} />);
+
+    expect(screen.getByText('Powered by')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'QuillMonitor' }).getAttribute('href')).toBe(QM_DATABASE);
+    expect(screen.queryByText('Source:')).toBeNull();
+  });
+
+  it('keeps "Powered by QuillMonitor" and lists other sources as also reported by', () => {
+    renderCard(<NewsCard article={{
+      ...preliminaryArticle,
+      metadata: {
+        ...preliminaryArticle.metadata,
+        sources: [{ provider: 'peckshield', label: 'PeckShield', url: 'https://x.com/peckshield/status/1' }],
+      },
+    }} />);
+
+    expect(screen.getByText('Powered by')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'QuillMonitor' }).getAttribute('href')).toBe(QM_DATABASE);
+    expect(screen.getByText('Also reported by:')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'PeckShield' }).getAttribute('href'))
+      .toBe('https://x.com/peckshield/status/1');
+  });
+
+  it('uses "Source:" for a single non-QuillMonitor source', () => {
+    renderCard(<NewsCard article={{
+      id: 'rss-2',
+      title: 'Vendor patches flaw',
+      summary: 'A vendor patched a flaw that attackers were using in the wild.',
+      content: 'Details',
+      category: 'vulnerability-disclosure',
+      tags: [],
+      severity: 'high',
+      publishedAt: new Date('2026-10-08T10:00:00.000Z'),
+      sourceName: 'BleepingComputer',
+      link: 'https://www.bleepingcomputer.com/news/security/x/',
+      isProcessed: true,
+    }} />);
+
+    expect(screen.getByText('Source:')).not.toBeNull();
+    expect(screen.queryByText('Powered by')).toBeNull();
   });
 });
 
 describe('NewsCard SlowMist presentation', () => {
-  it('shows a compact provider badge without duplicating the provider as author', () => {
-    render(<NewsCard article={{
+  it('names SlowMist as the source without repeating it as the author', () => {
+    renderCard(<NewsCard article={{
       ...preliminaryArticle,
       id: 'slowmist:1',
       sourceName: 'SlowMist Hacked',
@@ -72,10 +198,10 @@ describe('NewsCard SlowMist presentation', () => {
       },
     }} />);
 
-    const source = screen.getByRole('link', { name: 'Source: SlowMist Hacked' });
+    const source = screen.getByRole('link', { name: 'SlowMist Hacked' });
     expect(source.getAttribute('href')).toBe('https://hacked.slowmist.io/en/');
     expect(screen.queryByText('by SlowMist')).toBeNull();
-    expect(screen.queryByText('Powered by QuillMonitor')).toBeNull();
-    expect(screen.queryByText('AI Summary')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'QuillMonitor' })).toBeNull();
+    expect(screen.queryByText('AI summary')).toBeNull();
   });
 });

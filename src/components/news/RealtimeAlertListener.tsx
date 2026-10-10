@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Bell, ShieldAlert } from 'lucide-react';
 import { NewsCategory, SeverityLevel } from '@/types/news';
+import { isPublishable } from '@/lib/threatIntel/articleRow';
 
 interface RealtimeArticle {
   id: string;
@@ -18,6 +19,8 @@ interface RealtimeArticle {
     verification_status?: string;
     provider_created_at?: string;
     suppress_realtime_alert?: boolean;
+    classification_relevant?: boolean | string;
+    duplicate_of_uid?: string | null;
   };
 }
 
@@ -33,6 +36,13 @@ export const RealtimeAlertListener = ({
   const { toast } = useToast();
   const hasShownWelcomeToast = useRef(false);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Parents pass a new callback whenever their filters change. Reading it
+  // through a ref keeps one channel for the lifetime of the listener.
+  const onNewArticleRef = useRef(onNewArticle);
+
+  useEffect(() => {
+    onNewArticleRef.current = onNewArticle;
+  }, [onNewArticle]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -41,7 +51,7 @@ export const RealtimeAlertListener = ({
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
       refreshTimer.current = setTimeout(() => {
         refreshTimer.current = null;
-        onNewArticle?.();
+        onNewArticleRef.current?.();
       }, 1_500);
     };
 
@@ -75,6 +85,7 @@ export const RealtimeAlertListener = ({
           // Only show notifications for critical and high severity
           if (
             article.metadata?.suppress_realtime_alert !== true &&
+            isPublishable(article.metadata) &&
             isRecent &&
             (article.severity === 'critical' || article.severity === 'high')
           ) {
@@ -179,7 +190,7 @@ export const RealtimeAlertListener = ({
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
       supabase.removeChannel(channel);
     };
-  }, [enabled, onNewArticle, toast]);
+  }, [enabled, toast]);
 
   // This component doesn't render anything visible
   return null;

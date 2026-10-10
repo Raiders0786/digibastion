@@ -9,16 +9,17 @@ interface ContentScopeSelectorProps {
   idPrefix?: string;
 }
 
+// Web3 Incidents is the default Threat Intel view, so it is listed first.
 const options: Array<{ value: ThreatIntelScope; label: string; description: string }> = [
-  {
-    value: 'all',
-    label: 'All Intelligence',
-    description: 'News, advisories, disclosures, and published incidents.',
-  },
   {
     value: 'web3-incidents',
     label: 'Web3 Incidents',
     description: 'Verified and preliminary Web3 exploits, hacks, and security incidents.',
+  },
+  {
+    value: 'all',
+    label: 'All Intelligence',
+    description: 'News, advisories, disclosures, and published incidents.',
   },
 ];
 

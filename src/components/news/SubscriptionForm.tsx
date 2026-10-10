@@ -5,13 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Clock, Users } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Clock } from 'lucide-react';
 import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
-import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
+import { technologyCategories } from '@/data/newsData';
+import { NEWS_CATEGORIES, NEWS_CATEGORY_CONFIG, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
-import { useSubscriberCount } from '@/hooks/useSubscriberCount';
 import { EmailPreview } from './EmailPreview';
 import { z } from 'zod';
 import { dayOptions, formatDeliveryTime, getDefaultTimezoneOffset, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
@@ -31,11 +30,18 @@ const subscriptionSchema = z.object({
   preferred_day: z.number().min(0).max(6).optional(),
 });
 
-export const SubscriptionForm = () => {
+interface SubscriptionFormProps {
+  /** Pre-selected categories, e.g. from `?categories=` when opened from an incident page. */
+  initialCategories?: NewsCategory[];
+  /** Pre-selected content scope, e.g. from `?scope=`. */
+  initialScope?: ThreatIntelScope;
+}
+
+export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: SubscriptionFormProps) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
-  const [contentScope, setContentScope] = useState<ThreatIntelScope>('all');
+  const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>(() => [...(initialCategories ?? [])]);
+  const [contentScope, setContentScope] = useState<ThreatIntelScope>(initialScope);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
@@ -46,7 +52,6 @@ export const SubscriptionForm = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [submissionOutcome, setSubmissionOutcome] = useState<'new' | 'pending' | 'existing' | 'inactive'>('new');
   const { toast } = useToast();
-  const { data: subscriberCount } = useSubscriberCount();
 
   const handleCategoryToggle = (category: NewsCategory) => {
     setSelectedCategories(prev => 
@@ -148,15 +153,7 @@ export const SubscriptionForm = () => {
     }
   };
 
-  const getSeverityColor = (severity: SeverityLevel) => {
-    switch (severity) {
-      case 'critical': return 'text-red-400';
-      case 'high': return 'text-orange-400';
-      case 'medium': return 'text-yellow-400';
-      case 'low': return 'text-blue-400';
-      default: return 'text-muted-foreground';
-    }
-  };
+  const getSeverityColor = (severity: SeverityLevel) => SEVERITY_STYLES[severity].textClass;
 
   const getFrequencyLabel = () => {
     switch (alertFrequency) {
@@ -233,12 +230,6 @@ export const SubscriptionForm = () => {
             <Bell className="w-6 h-6 text-primary" />
             Security Alert Subscription
           </CardTitle>
-          {subscriberCount && subscriberCount.count > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1">
-              <Users className="w-3.5 h-3.5" />
-              <span className="text-xs">{subscriberCount.label}</span>
-            </Badge>
-          )}
         </div>
         <CardDescription>
           Get personalized security alerts based on your technology stack. No login required - 
@@ -300,8 +291,8 @@ export const SubscriptionForm = () => {
               Select the types of security news you want to receive
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(Object.keys(newsCategoryConfig) as NewsCategory[]).map((category) => {
-                const categoryInfo = newsCategoryConfig[category];
+              {NEWS_CATEGORIES.map((category) => {
+                const categoryInfo = NEWS_CATEGORY_CONFIG[category];
                 const isSelected = selectedCategories.includes(category);
                 
                 return (

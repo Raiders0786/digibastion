@@ -3,16 +3,21 @@ import { z } from 'npm:zod@3.23.8';
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import {
   hasCompleteSlowMistPage,
-  isHighConfidenceSlowMistDuplicate,
   normalizeSlowMistIncident,
   parseSlowMistPage,
   slowMistRecordNeedsWrite,
-  slowMistTargetFromTitle,
   SLOWMIST_EXPECTED_PAGE_SIZE,
   SLOWMIST_PAGE_URL,
   type NormalizedSlowMistArticle,
-  type SlowMistDuplicateCandidate,
 } from '../_shared/slowmist.ts';
+import {
+  candidateFromRow,
+  isHighConfidenceDuplicate,
+  pickCanonical,
+  rowProvider,
+  type DuplicateCandidate,
+  type IncidentRow,
+} from '../_shared/incident-dedup.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,14 +29,6 @@ const MAX_RESPONSE_BYTES = 750_000;
 const FETCH_TIMEOUT_MS = 15_000;
 const CANONICAL_PROVIDERS = new Set(['quillmonitor', 'web3-incidents', 'web3']);
 const MAX_RELATED_ROWS = 500;
-
-type ExistingIncidentRow = {
-  uid: string;
-  title: string;
-  published_at: string;
-  source_name: string | null;
-  metadata: unknown;
-};
 
 async function timingSafeEqual(left: string, right: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -129,47 +126,6 @@ function metadataRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function rowDuplicateCandidate(row: ExistingIncidentRow): SlowMistDuplicateCandidate | null {
-  const metadata = metadataRecord(row.metadata);
-  const metadataTarget = typeof metadata.project_name === 'string' ? metadata.project_name.trim() : '';
-  const target = metadataTarget || slowMistTargetFromTitle(row.title);
-  const metadataDate = typeof metadata.incident_date === 'string' ? metadata.incident_date : '';
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(metadataDate)
-    ? metadataDate
-    : row.published_at?.slice(0, 10);
-  if (!target || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  return {
-    target,
-    date,
-    attackMethod: typeof metadata.attack_type === 'string' ? metadata.attack_type : null,
-    amountInUsd: typeof metadata.amount_lost_usd === 'number' && Number.isFinite(metadata.amount_lost_usd)
-      ? metadata.amount_lost_usd
-      : null,
-    reference: typeof metadata.reference_url === 'string' ? metadata.reference_url : null,
-  };
-}
-
-function rowProvider(row: ExistingIncidentRow): string {
-  const provider = metadataRecord(row.metadata).provider;
-  if (typeof provider === 'string') return provider.trim().toLowerCase();
-  return row.source_name?.trim().toLowerCase() === 'slowmist hacked' ? 'slowmist' : '';
-}
-
-function canonicalPriority(row: ExistingIncidentRow): number {
-  const provider = rowProvider(row);
-  if (provider === 'quillmonitor') return 0;
-  if (provider === 'web3-incidents' || provider === 'web3') return 1;
-  return 2;
-}
-
-function pickCanonical(current: ExistingIncidentRow | undefined, candidate: ExistingIncidentRow): ExistingIncidentRow {
-  if (!current) return candidate;
-  const priorityDifference = canonicalPriority(candidate) - canonicalPriority(current);
-  if (priorityDifference < 0) return candidate;
-  if (priorityDifference > 0) return current;
-  return candidate.uid.localeCompare(current.uid) < 0 ? candidate : current;
-}
-
 function shiftDate(date: string, days: number): string {
   const shifted = new Date(`${date}T00:00:00.000Z`);
   shifted.setUTCDate(shifted.getUTCDate() + days);
@@ -245,20 +201,20 @@ Deno.serve(async (req) => {
       throw new Error('Existing incident match window exceeded the safety limit');
     }
 
-    const existingRows = (relatedRows ?? []) as ExistingIncidentRow[];
+    const existingRows = (relatedRows ?? []) as IncidentRow[];
     const existingSlowMistUids = new Set(
       existingRows.filter((row) => rowProvider(row) === 'slowmist').map((row) => row.uid),
     );
     const existingSlowMistByUid = new Map(
       existingRows.filter((row) => rowProvider(row) === 'slowmist').map((row) => [row.uid, row]),
     );
-    const canonicalRows: ExistingIncidentRow[] = [];
+    const canonicalCandidates: DuplicateCandidate[] = [];
     for (const row of existingRows) {
       const provider = rowProvider(row);
       if (!CANONICAL_PROVIDERS.has(provider)) continue;
       if (metadataRecord(row.metadata).classification_relevant === false) continue;
-      if (!rowDuplicateCandidate(row)) continue;
-      canonicalRows.push(row);
+      const candidate = candidateFromRow(row);
+      if (candidate) canonicalCandidates.push(candidate);
     }
 
     const articles: NormalizedSlowMistArticle[] = [];
@@ -269,11 +225,10 @@ Deno.serve(async (req) => {
       const article = normalized[index];
       const metadata = metadataRecord(article.metadata);
       const incident = parsed.incidents[index];
-      let canonical: ExistingIncidentRow | undefined;
-      for (const row of canonicalRows) {
-        const candidate = rowDuplicateCandidate(row);
-        if (candidate && isHighConfidenceSlowMistDuplicate(incident, candidate)) {
-          canonical = pickCanonical(canonical, row);
+      let canonical: DuplicateCandidate | undefined;
+      for (const candidate of canonicalCandidates) {
+        if (isHighConfidenceDuplicate(incident, candidate)) {
+          canonical = pickCanonical(canonical, candidate);
         }
       }
       const existing = existingSlowMistByUid.get(article.uid);

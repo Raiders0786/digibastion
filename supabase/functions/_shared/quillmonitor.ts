@@ -1,4 +1,7 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
+import { severityFromLoss } from './incident-severity.ts';
+import { mergeIncidentSources, readIncidentFields, type IncidentSource } from './incident-fields.ts';
+import { isPendingSummary } from './summary-text.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 
@@ -153,10 +156,6 @@ function slug(value: string): string {
     .slice(0, 60);
 }
 
-function includesAny(value: string, signals: string[]): boolean {
-  return signals.some((signal) => value.includes(signal));
-}
-
 function normalizeIncidentDate(value: unknown): string | null {
   const date = cleanText(value, 40);
   if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(date)) return null;
@@ -214,15 +213,7 @@ export function mapQuillMonitorCategory(incident: QuillMonitorIncident): Normali
 }
 
 export function mapQuillMonitorSeverity(incident: QuillMonitorIncident): NormalizedQuillMonitorArticle['severity'] {
-  const amount = incident.amountInUsd;
-  if (typeof amount === 'number' && amount >= 50_000_000) return 'critical';
-  if (typeof amount === 'number' && amount >= 10_000_000) return 'high';
-  if (typeof amount === 'number' && amount >= 1_000_000) return 'medium';
-
-  const attack = incident.attackedMethod.toLowerCase();
-  if (includesAny(attack, ['private key', 'access control', 'oracle', 'reentrancy', 'flash loan'])) return 'high';
-  if (typeof amount === 'number' && amount > 0) return 'medium';
-  return 'low';
+  return severityFromLoss(incident.amountInUsd, incident.attackedMethod);
 }
 
 export function formatUsd(amount: number | null): string | null {
@@ -362,8 +353,51 @@ export function normalizeQuillMonitorIncident(incident: QuillMonitorIncident): N
       provider_updated_at: incident.updatedAt,
       summary_status: incident.description ? 'available' : 'pending',
       summary_origin: 'provider',
+      sources: [{
+        provider: 'quillmonitor',
+        url: referenceUrl,
+        label: 'QuillMonitor',
+        amount_usd: incident.amountInUsd,
+      }],
       attribution_url: quillMonitorUrl,
       synced_at: new Date().toISOString(),
+    },
+  };
+}
+
+export interface ExistingQuillMonitorRow {
+  summary: string | null;
+  metadata: unknown;
+}
+
+/**
+ * Final write shape for one QuillMonitor row. The upsert replaces metadata, so
+ * sources merged from duplicate records are added back on every sync.
+ * duplicateSources is null when the duplicate lookup did not run this sync;
+ * then the row keeps the non-QuillMonitor sources it already had instead of
+ * losing them.
+ */
+export function finalizeQuillMonitorArticle(
+  article: NormalizedQuillMonitorArticle,
+  existing: ExistingQuillMonitorRow | undefined,
+  duplicateSources: IncidentSource[] | null,
+): NormalizedQuillMonitorArticle {
+  const ownSources = readIncidentFields(article.metadata).sources;
+  const existingFields = readIncidentFields(existing?.metadata);
+  const carriedSources = duplicateSources ??
+    existingFields.sources.filter((source) => source.provider !== 'quillmonitor');
+  // While QuillMonitor has no description, keep the summary summarize-article
+  // wrote; otherwise every sync of the record would reset it to "Summary pending".
+  const keepAiSummary = article.metadata.summary_status === 'pending' &&
+    existingFields.summaryOrigin === 'ai' &&
+    !isPendingSummary(existing?.summary);
+  return {
+    ...article,
+    ...(keepAiSummary ? { summary: String(existing?.summary) } : {}),
+    metadata: {
+      ...article.metadata,
+      sources: mergeIncidentSources(ownSources, carriedSources),
+      ...(keepAiSummary ? { summary_origin: 'ai' } : {}),
     },
   };
 }

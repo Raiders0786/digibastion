@@ -81,3 +81,6 @@ verify_jwt = false
 
 [functions.post-telegram-alerts]
 verify_jwt = false
+
+[functions.dedupe-incidents]
+verify_jwt = false

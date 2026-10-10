@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { VALID_NEWS_CATEGORIES } from "../_shared/news-categories.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,10 +13,7 @@ const MAX_EMAIL_LENGTH = 255;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_SOCIAL_LENGTH = 100;
 const MAX_URL_LENGTH = 500;
-const VALID_CATEGORIES = new Set([
-  'operational-security', 'supply-chain', 'personal-protection', 'web3-security',
-  'defi-exploits', 'vulnerability-disclosure', 'tools-reviews',
-]);
+const VALID_CATEGORIES = VALID_NEWS_CATEGORIES;
 const VALID_FREQUENCIES = new Set(['immediate', 'daily', 'weekly']);
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low', 'info']);
 const VALID_CONTENT_SCOPES = new Set(['all', 'web3-incidents']);

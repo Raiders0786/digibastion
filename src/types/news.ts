@@ -9,6 +9,11 @@ export type NewsCategory =
 
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
+/**
+ * Threat Intel view and subscription content scope.
+ * 'web3-incidents' is the default page view (no ?scope param); 'all' is ?scope=all.
+ * The same two values are stored in subscriptions.content_scope.
+ */
 export type ThreatIntelScope = 'all' | 'web3-incidents';
 
 export type AlertType = 'vulnerability' | 'exploit' | 'tool-update' | 'best-practice' | 'incident';
@@ -24,6 +29,8 @@ export interface NewsArticle {
   sourceUrl?: string;
   link?: string;
   publishedAt: Date;
+  /** When Digibastion stored the record (news_articles.created_at). */
+  createdAt?: Date;
   affectedTechnologies?: string[];
   author?: string;
   imageUrl?: string;
@@ -35,6 +42,7 @@ export interface NewsArticle {
     is_web3_incident?: boolean;
     security_domain?: string;
     classification_relevant?: boolean;
+    duplicate_of_uid?: string | null;
     provider_incident_id?: string;
     project_name?: string;
     chain?: string;
@@ -48,7 +56,7 @@ export interface NewsArticle {
     provider_created_at?: string;
     provider_updated_at?: string;
     summary_status?: 'available' | 'pending';
-    summary_origin?: 'provider' | 'provider-template' | 'ai';
+    summary_origin?: 'provider' | 'provider-template' | 'ai' | 'publisher';
     suppress_realtime_alert?: boolean;
     attribution_url?: string;
     [key: string]: unknown;

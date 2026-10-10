@@ -1,7 +1,7 @@
 import { NewsCategory, SeverityLevel } from '@/types/news';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { newsCategoryConfig } from '@/data/newsData';
+import { NEWS_CATEGORIES, NEWS_CATEGORY_CONFIG, SEVERITY_LEVELS, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
 import { Filter, X } from 'lucide-react';
 
 interface NewsFiltersProps {
@@ -10,6 +10,8 @@ interface NewsFiltersProps {
   onCategoryToggle: (category: NewsCategory) => void;
   onSeverityToggle: (severity: SeverityLevel) => void;
   onClearFilters: () => void;
+  /** Overrides when Clear shows, for callers whose filters go beyond categories and severities. */
+  showClear?: boolean;
 }
 
 export const NewsFilters = ({
@@ -17,17 +19,16 @@ export const NewsFilters = ({
   selectedSeverities,
   onCategoryToggle,
   onSeverityToggle,
-  onClearFilters
+  onClearFilters,
+  showClear,
 }: NewsFiltersProps) => {
-  const hasActiveFilters = selectedCategories.length > 0 || selectedSeverities.length > 0;
+  const hasActiveFilters = showClear ?? (selectedCategories.length > 0 || selectedSeverities.length > 0);
 
-  const severityLevels: { value: SeverityLevel; label: string; color: string }[] = [
-    { value: 'critical', label: 'Critical', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
-    { value: 'high', label: 'High', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
-    { value: 'medium', label: 'Medium', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
-    { value: 'low', label: 'Low', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-    { value: 'info', label: 'Info', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20' }
-  ];
+  const severityLevels: { value: SeverityLevel; label: string; color: string }[] = SEVERITY_LEVELS.map((level) => ({
+    value: level,
+    label: SEVERITY_STYLES[level].label,
+    color: SEVERITY_STYLES[level].badgeClass,
+  }));
 
   return (
     <Card className="glass-card sticky top-24">
@@ -56,9 +57,9 @@ export const NewsFilters = ({
         <div>
           <h4 className="text-sm font-medium mb-3">Categories</h4>
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(newsCategoryConfig) as NewsCategory[]).map((category) => {
+            {NEWS_CATEGORIES.map((category) => {
               const isSelected = selectedCategories.includes(category);
-              const categoryInfo = newsCategoryConfig[category];
+              const categoryInfo = NEWS_CATEGORY_CONFIG[category];
               
               return (
                 <button

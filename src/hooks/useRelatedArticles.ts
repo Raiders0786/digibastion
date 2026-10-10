@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { NewsArticle, NewsCategory, SeverityLevel } from '@/types/news';
+import type { NewsArticle, NewsCategory } from '@/types/news';
+import { mapPublishableNewsArticleRows, NEWS_ARTICLE_COLUMNS } from '@/lib/threatIntel/articleRow';
+import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER } from '@/utils/newsIncident';
 
 interface UseRelatedArticlesOptions {
   currentArticleId: string;
@@ -9,88 +11,68 @@ interface UseRelatedArticlesOptions {
   limit?: number;
 }
 
+const TAG_SEPARATOR = '\u0000';
+
 export function useRelatedArticles({
   currentArticleId,
   category,
   tags,
-  limit = 4
+  limit = 4,
 }: UseRelatedArticlesOptions) {
   const [relatedArticles, setRelatedArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Key on tag contents so a new array with the same tags does not refetch.
+  const tagsKey = tags.map((tag) => tag.toLowerCase()).join(TAG_SEPARATOR);
 
   useEffect(() => {
+    let cancelled = false;
+    const wantedTags = tagsKey ? tagsKey.split(TAG_SEPARATOR) : [];
+
     const fetchRelatedArticles = async () => {
       try {
         setIsLoading(true);
 
-        // Fetch articles from the same category, excluding the current one
         const { data, error } = await supabase
           .from('news_articles')
-          .select('*')
+          .select(NEWS_ARTICLE_COLUMNS)
+          .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
           .eq('category', category)
           .neq('id', currentArticleId)
           .order('published_at', { ascending: false })
           .limit(limit + 5); // Fetch extra to allow for scoring
 
         if (error) throw error;
+        if (cancelled) return;
 
-        if (!data || data.length === 0) {
-          setRelatedArticles([]);
-          return;
-        }
+        const scored = mapPublishableNewsArticleRows(data).map((article) => ({
+          article,
+          score: wantedTags.filter((tag) => article.tags.some((articleTag) => articleTag.toLowerCase() === tag)).length,
+        }));
 
-        // Transform and score articles by tag overlap
-        const scoredArticles = data.map((row: any) => {
-          const articleTags = row.tags || [];
-          const tagOverlap = tags.filter(t => 
-            articleTags.some((at: string) => at.toLowerCase() === t.toLowerCase())
-          ).length;
+        // Higher tag overlap first, then newest first.
+        scored.sort((a, b) => (
+          b.score - a.score || b.article.publishedAt.getTime() - a.article.publishedAt.getTime()
+        ));
 
-          return {
-            article: {
-              id: row.id,
-              title: row.title,
-              content: row.content || row.summary || '',
-              summary: row.summary || '',
-              category: row.category as NewsCategory,
-              tags: row.tags || [],
-              severity: row.severity as SeverityLevel,
-              link: row.link,
-              sourceUrl: row.source_url || undefined,
-              publishedAt: new Date(row.published_at),
-              affectedTechnologies: row.affected_technologies || [],
-              author: row.author || row.source_name,
-              cveId: row.cve_id,
-              isProcessed: row.is_processed || false,
-              sourceName: row.source_name,
-              metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-                ? row.metadata as NewsArticle['metadata']
-                : undefined,
-            } as NewsArticle,
-            score: tagOverlap
-          };
-        });
-
-        // Sort by tag overlap score (higher is better), then by date
-        scoredArticles.sort((a, b) => {
-          if (b.score !== a.score) return b.score - a.score;
-          return new Date(b.article.publishedAt).getTime() - new Date(a.article.publishedAt).getTime();
-        });
-
-        // Take the top N related articles
-        setRelatedArticles(scoredArticles.slice(0, limit).map(s => s.article));
+        setRelatedArticles(scored.slice(0, limit).map((entry) => entry.article));
       } catch (err) {
         console.error('Error fetching related articles:', err);
-        setRelatedArticles([]);
+        if (!cancelled) setRelatedArticles([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     if (currentArticleId && category) {
-      fetchRelatedArticles();
+      void fetchRelatedArticles();
+    } else {
+      setIsLoading(false);
     }
-  }, [currentArticleId, category, tags, limit]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentArticleId, category, tagsKey, limit]);
 
   return { relatedArticles, isLoading };
 }

@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Bell, Users, Loader2, CheckCircle, Mail, Shield, User, Settings, Clock } from 'lucide-react';
+import { Bell, Loader2, CheckCircle, Mail, Shield, User, Settings, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useSubscriberCount } from '@/hooks/useSubscriberCount';
+import { EmailPreview } from '@/components/news/EmailPreview';
+import type { NewsCategory } from '@/types/news';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDeliveryTime, formatUtcOffset, getDefaultTimezoneOffset } from '@/lib/digestSchedule';
+
+const QUICK_SUBSCRIBE_CATEGORIES: NewsCategory[] = ['web3-security', 'defi-exploits', 'vulnerability-disclosure'];
 
 interface QuickSubscribeCardProps {
   className?: string;
@@ -21,7 +23,6 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
   const [isSuccess, setIsSuccess] = useState(false);
   const [submissionOutcome, setSubmissionOutcome] = useState<'new' | 'pending' | 'existing' | 'inactive'>('new');
   const { toast } = useToast();
-  const { data: subscriberCount } = useSubscriberCount();
   
   // Auto-detect timezone on component mount
   const timezoneOffset = useMemo(() => getDefaultTimezoneOffset(), []);
@@ -49,7 +50,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
           data: {
             email,
             name: name.trim() || undefined,
-            categories: ['web3-security', 'defi-exploits', 'vulnerability-disclosure'],
+            categories: QUICK_SUBSCRIBE_CATEGORIES,
             frequency: 'daily',
             severity: 'high',
             preferred_hour: preferredHour,
@@ -151,15 +152,19 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 <h3 className="text-base sm:text-lg font-semibold text-foreground">
                   Get Security Alerts
                 </h3>
-                {subscriberCount && subscriberCount.count > 0 && (
-                  <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5">
-                    <Users className="w-3 h-3" />
-                    <span className="text-[10px] sm:text-xs">{subscriberCount.label}</span>
-                  </Badge>
-                )}
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Daily digest of critical crypto security threats at <span className="font-medium text-foreground">{deliveryTimeDisplay}</span>
+                Daily digest of high and critical crypto security threats at <span className="font-medium text-foreground">{deliveryTimeDisplay}</span>.{' '}
+                <EmailPreview
+                  categories={QUICK_SUBSCRIBE_CATEGORIES}
+                  frequency="daily"
+                  severity="high"
+                  preferredHour={preferredHour}
+                  timezoneOffset={timezoneOffset}
+                  triggerLabel="See a sample email"
+                  triggerVariant="link"
+                  triggerClassName="h-auto p-0 text-xs sm:text-sm"
+                />
               </p>
             </div>
           </div>

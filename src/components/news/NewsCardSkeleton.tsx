@@ -84,10 +84,10 @@ export const AlertListSkeleton = ({ count = 3 }: { count?: number }) => {
 
 export const StatsSkeleton = () => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
       {Array.from({ length: 4 }).map((_, i) => (
         <Card key={i} className="glass-card">
-          <CardContent className="p-2 sm:p-3 text-center space-y-1">
+          <CardContent className="p-1.5 sm:p-3 text-center space-y-1">
             <Skeleton className="h-6 w-10 mx-auto" />
             <Skeleton className="h-3 w-16 mx-auto" />
           </CardContent>
