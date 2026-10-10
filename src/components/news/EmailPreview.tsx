@@ -1,361 +1,237 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button, type ButtonProps } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Eye, Clock } from 'lucide-react';
-import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
-import { newsCategoryConfig } from '@/data/newsData';
-import { formatDeliveryTime } from '@/lib/digestSchedule';
+import { Eye } from 'lucide-react';
+
+export type EmailPreviewTab = 'alert' | 'daily' | 'weekly';
 
 interface EmailPreviewProps {
-  categories: NewsCategory[];
-  frequency: 'immediate' | 'daily' | 'weekly';
-  severity: SeverityLevel;
-  contentScope?: ThreatIntelScope;
-  name?: string;
-  preferredHour?: number;
-  timezoneOffset?: number;
-  preferredDay?: number;
+  /** Tab shown first, e.g. the first email type the subscriber picked. */
+  initialTab?: EmailPreviewTab;
   /** Text on the button that opens the preview. */
   triggerLabel?: string;
   triggerVariant?: ButtonProps['variant'];
   triggerClassName?: string;
 }
 
-interface PreviewArticle {
+// Static samples that follow the email copy rules: every item names its
+// source, status words come from the source, losses read "~$X reported".
+// Project names are invented so the sample is never mistaken for a real report.
+
+interface SampleItem {
+  severity: 'critical' | 'high' | 'medium';
   title: string;
+  meta: string;
   summary: string;
-  severity: SeverityLevel;
-  category: NewsCategory;
-  published_at: string;
-  cve_id: string | null;
-  source_name: string;
-  link: string;
-  is_web3_incident?: boolean;
-  security_domain?: string;
-  verification_status?: 'verified' | 'unverified';
-  attribution_url?: string;
+  source: string;
+  status?: 'Confirmed' | 'Unconfirmed';
 }
 
-// Mock articles for preview
-const mockArticles: PreviewArticle[] = [
+const ALERT_SAMPLE: SampleItem = {
+  severity: 'high',
+  title: 'Example Bridge: access control exploit on Ethereum',
+  meta: 'Ethereum · Access control · ~$4.2M reported',
+  summary: 'An attacker reportedly called an unprotected withdrawal function on the bridge contract. The team has paused deposits.',
+  source: 'QuillMonitor',
+  status: 'Unconfirmed',
+};
+
+const DAILY_SECTIONS: { title: string; items: SampleItem[] }[] = [
   {
-    title: 'Bridge protocol exploit causes a reported $8.4M loss',
-    summary: 'Summary pending',
-    severity: 'high',
-    category: 'defi-exploits',
-    published_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    cve_id: null,
-    source_name: 'QuillMonitor',
-    link: '#',
-    is_web3_incident: true,
-    security_domain: 'web3',
-    verification_status: 'unverified',
-    attribution_url: 'https://www.quillaudits.com/web3-hacks-database',
+    title: 'Confirmed incidents',
+    items: [{
+      severity: 'critical',
+      title: 'Sample Lending: price oracle manipulation on Arbitrum',
+      meta: 'Arbitrum · Oracle manipulation · ~$12.5M reported',
+      summary: 'A thin-liquidity collateral market was used to inflate a price feed and borrow against it.',
+      source: 'SlowMist',
+      status: 'Confirmed',
+    }],
   },
   {
-    title: "Critical RCE Vulnerability in Popular DeFi Protocol",
-    summary: "A severe remote code execution flaw affecting smart contract interactions has been discovered. Immediate patching recommended.",
-    severity: "critical",
-    category: "defi-exploits",
-    published_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    cve_id: "CVE-2024-1234",
-    source_name: "Security Research Lab",
-    link: "#",
+    title: 'Still unconfirmed',
+    items: [ALERT_SAMPLE],
   },
   {
-    title: "High-Severity Phishing Campaign Targeting Wallet Users",
-    summary: "New sophisticated phishing attacks impersonating major wallet providers detected across social media platforms.",
-    severity: "high",
-    category: "personal-protection",
-    published_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    cve_id: null,
-    source_name: "Digibastion Intelligence",
-    link: "#",
+    title: 'Status changes',
+    items: [{
+      severity: 'medium',
+      title: 'Demo Swap: loss revised from ~$900K to ~$1.3M reported',
+      meta: 'BNB Chain · Revised',
+      summary: 'The source updated the reported loss after the team published its post-mortem.',
+      source: 'QuillMonitor',
+    }],
   },
   {
-    title: "Medium-Risk API Exposure in Exchange Platform",
-    summary: "Security researchers disclosed an API vulnerability that could leak partial user data under specific conditions.",
-    severity: "medium",
-    category: "vulnerability-disclosure",
-    published_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    cve_id: null,
-    source_name: "Vendor Advisory",
-    link: "#",
-  },
-  {
-    title: "Bridge Protocol Security Audit Reveals Issues",
-    summary: "A comprehensive audit of a popular cross-chain bridge identified potential vulnerabilities in the validation logic.",
-    severity: "low",
-    category: "defi-exploits",
-    published_at: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    cve_id: null,
-    source_name: "Audit Report",
-    link: "#",
+    title: 'Vulnerabilities and supply chain',
+    items: [{
+      severity: 'high',
+      title: 'Compromised npm release of a sample wallet SDK',
+      meta: 'Supply chain · CVE pending',
+      summary: 'One published version shipped code that read seed phrases. The maintainers removed it from the registry.',
+      source: 'Maintainer advisory',
+    }],
   },
 ];
 
-const severityRank: Record<string, number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-  info: 4,
+const WEEKLY_STATS = [
+  { label: 'Reported losses', value: '~$18.4M', note: 'vs ~$9.1M last week' },
+  { label: 'Incidents', value: '7', note: '2 unconfirmed' },
+  { label: 'Funds returned', value: '1', note: 'incident' },
+];
+
+const SEVERITY_COLORS: Record<SampleItem['severity'], string> = {
+  critical: '#dc2626',
+  high: '#ea580c',
+  medium: '#ca8a04',
 };
 
-function getSeverityColor(severity: string): string {
-  switch (severity) {
-    case 'critical': return '#dc2626';
-    case 'high': return '#ea580c';
-    case 'medium': return '#eab308';
-    case 'low': return '#3b82f6';
-    default: return '#6b7280';
-  }
-}
+const shell: CSSProperties = {
+  maxWidth: '640px',
+  margin: '0 auto',
+  backgroundColor: '#1f2937',
+  borderRadius: '10px',
+  overflow: 'hidden',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+};
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
+const EmailShell = ({ subject, heading, period, children }: { subject: string; heading: string; period: string; children: ReactNode }) => (
+  <div style={{ backgroundColor: '#111827', padding: '16px' }}>
+    <p className="mb-3 break-words text-xs text-slate-300">
+      <span className="font-semibold text-slate-100">Subject:</span> {subject}
+    </p>
+    <div style={shell}>
+      <div style={{ padding: '24px', background: '#4c1d95' }}>
+        <p style={{ margin: '0 0 8px', color: '#ede9fe', fontSize: '12px', fontWeight: 700, letterSpacing: '1.2px' }}>DIGIBASTION · THREAT INTELLIGENCE</p>
+        <h3 style={{ margin: 0, color: '#ffffff', fontSize: '22px' }}>{heading}</h3>
+        <p style={{ margin: '6px 0 0', color: '#ede9fe', fontSize: '13px' }}>{period}</p>
+      </div>
+      <div style={{ padding: '8px 24px 16px' }}>{children}</div>
+      <div style={{ padding: '16px 24px', background: '#111827', textAlign: 'center' }}>
+        <p style={{ margin: 0, color: '#a8b3c7', fontSize: '12px', lineHeight: '19px' }}>
+          Unsubscribe &nbsp;·&nbsp; Manage preferences
+        </p>
+        <p style={{ margin: '6px 0 0', color: '#a8b3c7', fontSize: '12px' }}>Digibastion postal address</p>
+      </div>
+    </div>
+  </div>
+);
 
-const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const SampleItemRow = ({ item }: { item: SampleItem }) => (
+  <div style={{ padding: '14px 0', borderBottom: '1px solid #334155' }}>
+    <p style={{ margin: '0 0 6px', fontSize: '11px', textTransform: 'uppercase', color: '#cbd5e1' }}>
+      <span style={{ background: SEVERITY_COLORS[item.severity], color: '#ffffff', padding: '2px 8px', borderRadius: '4px', marginRight: '8px' }}>{item.severity}</span>
+      {item.status && <span style={{ color: item.status === 'Unconfirmed' ? '#fbbf24' : '#4ade80', fontWeight: 700 }}>{item.status}</span>}
+    </p>
+    <p style={{ margin: 0, color: '#93c5fd', fontWeight: 700, fontSize: '16px', lineHeight: 1.4 }}>{item.title}</p>
+    <p style={{ margin: '4px 0 0', color: '#a8b3c7', fontSize: '12px' }}>{item.meta}</p>
+    <p style={{ margin: '6px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5 }}>{item.summary}</p>
+    <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: '12px' }}>Source: {item.source}</p>
+  </div>
+);
 
-export const EmailPreview = ({ 
-  categories, 
-  frequency, 
-  severity, 
-  contentScope = 'all',
-  name,
-  preferredHour = 9,
-  timezoneOffset = 0,
-  preferredDay = 0,
+const SectionTitle = ({ children }: { children: ReactNode }) => (
+  <p style={{ margin: '16px 0 0', color: '#e5e7eb', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{children}</p>
+);
+
+const AlertSample = () => (
+  <EmailShell
+    subject="[Unconfirmed] High: Example Bridge access control exploit, ~$4.2M reported"
+    heading="Security alert"
+    period="Sent when a matching critical or high incident is added"
+  >
+    <SampleItemRow item={ALERT_SAMPLE} />
+    <p style={{ margin: '12px 0 0', color: '#cbd5e1', fontSize: '13px', lineHeight: 1.5 }}>
+      This report is unconfirmed by its source. You get one follow-up if it is retracted or upgraded to critical.
+    </p>
+  </EmailShell>
+);
+
+const DailySample = () => (
+  <EmailShell
+    subject="Daily brief, Oct 12: 1 incident, 1 unconfirmed, 1 status change, 1 vulnerability"
+    heading="Daily brief"
+    period="Items added in the previous 24 hours (UTC)"
+  >
+    {DAILY_SECTIONS.map((section) => (
+      <div key={section.title}>
+        <SectionTitle>{section.title}</SectionTitle>
+        {section.items.map((item) => <SampleItemRow key={item.title} item={item} />)}
+      </div>
+    ))}
+    <SectionTitle>One action today</SectionTitle>
+    <p style={{ margin: '6px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5 }}>
+      Review the token approvals on your main wallet and revoke the ones you no longer use.
+    </p>
+  </EmailShell>
+);
+
+const WeeklySample = () => (
+  <EmailShell
+    subject="Weekly deep-dive, week of Oct 5: ~$18.4M reported across 7 incidents"
+    heading="Weekly deep-dive"
+    period="Web3 incidents added Oct 5 to Oct 11 (UTC)"
+  >
+    <div className="grid grid-cols-1 gap-2 pt-3 sm:grid-cols-3">
+      {WEEKLY_STATS.map((stat) => (
+        <div key={stat.label} style={{ background: '#111827', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+          <p style={{ margin: 0, color: '#ffffff', fontSize: '20px', fontWeight: 700 }}>{stat.value}</p>
+          <p style={{ margin: '2px 0 0', color: '#a8b3c7', fontSize: '11px', textTransform: 'uppercase' }}>{stat.label}</p>
+          <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '11px' }}>{stat.note}</p>
+        </div>
+      ))}
+    </div>
+    <SectionTitle>Top incidents</SectionTitle>
+    <SampleItemRow item={DAILY_SECTIONS[0].items[0]} />
+    <p style={{ margin: '8px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5 }}>
+      What to do: lending users can check whether their collateral sits in low-liquidity markets; builders can compare oracle prices against a second feed.
+    </p>
+    <SectionTitle>Trends</SectionTitle>
+    <p style={{ margin: '6px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5 }}>
+      Access control flaws accounted for 3 of the 7 incidents. Totals are computed from the source records, and unconfirmed reports are counted separately.
+    </p>
+    <SectionTitle>Opsec tip</SectionTitle>
+    <p style={{ margin: '6px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5 }}>
+      Keep long-term funds in a wallet you never connect to new sites. Read the wallet guide on Digibastion.
+    </p>
+  </EmailShell>
+);
+
+export const EmailPreview = ({
+  initialTab = 'alert',
   triggerLabel = 'Preview Email',
   triggerVariant = 'outline',
   triggerClassName,
-}: EmailPreviewProps) => {
-  // Filter mock articles based on preferences
-  const thresholdRank = severityRank[severity] ?? 2;
-  const filteredArticles = mockArticles.filter(article => {
-    const articleRank = severityRank[article.severity] ?? 4;
-    if (articleRank > thresholdRank) return false;
-    if (contentScope === 'web3-incidents' && !article.is_web3_incident) return false;
-    const categoryMatch = categories.includes(article.category)
-      || (categories.includes('web3-security') && article.security_domain === 'web3');
-    if (categories.length > 0 && !categoryMatch) return false;
-    return true;
-  });
-
-  const criticalArticles = filteredArticles.filter(a => a.severity === 'critical');
-  const highArticles = filteredArticles.filter(a => a.severity === 'high');
-  const otherArticles = filteredArticles.filter(a => !['critical', 'high'].includes(a.severity));
-
-  const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
-  const displayName = name || 'there';
-  const periodStart = new Date(Date.now() - (frequency === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
-  const periodEnd = new Date();
-  const dateRange = `${formatDate(periodStart.toISOString())} - ${formatDate(periodEnd.toISOString())}`;
-  const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
-  const deliverySchedule = frequency === 'weekly' 
-    ? `${dayNames[preferredDay]}s at ${deliveryTime}`
-    : `Daily at ${deliveryTime}`;
-
-  const renderArticle = (article: typeof mockArticles[0]) => (
-    <tr key={article.title}>
-      <td style={{ padding: '18px 0', borderBottom: '1px solid #334155' }}>
-        <div style={{ marginBottom: '9px' }}>
-          <span style={{ 
-            background: getSeverityColor(article.severity), 
-            color: 'white', 
-            padding: '2px 8px', 
-            borderRadius: '4px', 
-            fontSize: '11px', 
-            textTransform: 'uppercase' as const 
-          }}>
-            {article.severity}
-          </span>
-        </div>
-        <p style={{ margin: '0 0 7px', color: '#a8b3c7', fontSize: '12px', lineHeight: '18px' }}>
-          {article.source_name} · {formatDate(article.published_at)}{article.cve_id ? ` · ${article.cve_id}` : ''}
-        </p>
-        <a href={article.link} style={{ color: '#93c5fd', textDecoration: 'none', fontWeight: 700, fontSize: '17px', lineHeight: 1.45 }}>
-          {article.title}
-        </a>
-        <p style={{ margin: '8px 0 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.55 }}>
-          {article.summary.slice(0, 150)}{article.summary.length > 150 ? '...' : ''}
-        </p>
-        {article.is_web3_incident && (
-          <p style={{ margin: '6px 0 0', color: '#60a5fa', fontSize: '11px', fontWeight: 600 }}>
-            Web3 Incident{article.verification_status === 'unverified' ? ' · Preliminary' : ''}
-          </p>
-        )}
-        {article.attribution_url && (
-          <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: '11px' }}>
-            <a href={article.attribution_url} style={{ color: '#93c5fd' }}>Powered by QuillMonitor</a>
-          </p>
-        )}
-      </td>
-    </tr>
-  );
-
-  const renderSection = (title: string, sectionArticles: typeof mockArticles, bgColor: string) => {
-    if (sectionArticles.length === 0) return null;
-    return (
-      <>
-        <tr>
-          <td style={{ padding: '16px 0 8px 0' }}>
-            <h3 style={{ margin: 0, color: bgColor, fontSize: '14px', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
-              {title} ({sectionArticles.length})
-            </h3>
-          </td>
-        </tr>
-        {sectionArticles.map(renderArticle)}
-      </>
-    );
-  };
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button type="button" variant={triggerVariant} size="sm" className={cn('gap-2', triggerClassName)}>
-          <Eye className="w-4 h-4" aria-hidden="true" />
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
-        <DialogHeader className="p-4 border-b">
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="w-5 h-5" />
-            Email Preview
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Preview of the security briefing generated from your current alert preferences.
-          </DialogDescription>
-        </DialogHeader>
-        
-        {/* Email Preview */}
-        <div style={{ backgroundColor: '#111827', padding: '16px' }}>
-          <table width="100%" cellPadding={0} cellSpacing={0} style={{ maxWidth: '640px', margin: '0 auto', backgroundColor: '#1f2937', borderRadius: '10px', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-            {/* Header */}
-            <tbody>
-              <tr>
-                <td style={{ padding: '26px 28px', background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' }}>
-                  <p style={{ margin: '0 0 10px', color: '#ede9fe', fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px' }}>DIGIBASTION · THREAT INTELLIGENCE</p>
-                  <h1 style={{ margin: 0, color: 'white', fontSize: '24px' }}>{periodLabel} Security Briefing</h1>
-                  <p style={{ margin: '7px 0 0 0', color: '#ede9fe', fontSize: '13px' }}>
-                    {dateRange}
-                  </p>
-                </td>
-              </tr>
-              
-              {/* Summary Stats */}
-              <tr>
-                <td style={{ padding: '20px 24px' }}>
-                  <table width="100%" cellPadding={0} cellSpacing={0}>
-                    <tbody>
-                      <tr>
-                        <td width="33%" style={{ textAlign: 'center', padding: '12px', background: 'rgba(220, 38, 38, 0.1)', borderRadius: '8px' }}>
-                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626' }}>{criticalArticles.length}</div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const }}>Critical</div>
-                        </td>
-                        <td width="4%"></td>
-                        <td width="33%" style={{ textAlign: 'center', padding: '12px', background: 'rgba(234, 88, 12, 0.1)', borderRadius: '8px' }}>
-                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ea580c' }}>{highArticles.length}</div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const }}>High</div>
-                        </td>
-                        <td width="4%"></td>
-                        <td width="33%" style={{ textAlign: 'center', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px' }}>
-                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>{filteredArticles.length}</div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const }}>Updates</div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-
-              {/* Greeting */}
-              <tr>
-                <td style={{ padding: '0 24px 16px 24px' }}>
-                  <p style={{ color: '#d1d5db', margin: 0, fontSize: '14px' }}>
-                    Hi {displayName}, here are {filteredArticles.length} security update{filteredArticles.length !== 1 ? 's' : ''} matching your preferences.
-                  </p>
-                </td>
-              </tr>
-
-              {/* Articles */}
-              <tr>
-                <td style={{ padding: '0 24px' }}>
-                  <table width="100%" cellPadding={0} cellSpacing={0}>
-                    <tbody>
-                      {renderSection('🚨 Critical Threats', criticalArticles, '#dc2626')}
-                      {renderSection('⚠️ High Severity', highArticles, '#ea580c')}
-                      {renderSection('📋 Other Alerts', otherArticles.slice(0, 10), '#6b7280')}
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-
-              {/* Empty State */}
-              {filteredArticles.length === 0 && (
-                <tr>
-                  <td style={{ padding: '24px', textAlign: 'center' }}>
-                    <p style={{ color: '#9ca3af', fontSize: '14px' }}>
-                      No threats match your current filter settings.<br />
-                      Try selecting more categories or lowering the severity threshold.
-                    </p>
-                  </td>
-                </tr>
-              )}
-
-              {/* CTA Button */}
-              <tr>
-                <td style={{ padding: '24px', textAlign: 'center' }}>
-                  <a href="#" style={{ display: 'inline-block', background: '#3b82f6', color: 'white', padding: '12px 28px', borderRadius: '6px', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
-                    Open Threat Intelligence
-                  </a>
-                </td>
-              </tr>
-
-              {/* Footer */}
-              <tr>
-                <td style={{ padding: '16px 24px', background: '#111827', textAlign: 'center' }}>
-                  <p style={{ margin: 0, color: '#6b7280', fontSize: '11px' }}>
-                    You're receiving this {frequency} digest because you subscribed to Digibastion Threat Intel.<br />
-                    <a href="#" style={{ color: '#60a5fa' }}>Manage preferences</a> | <a href="#" style={{ color: '#60a5fa' }}>Unsubscribe</a>
-                  </p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Info Banner */}
-        <div className="p-4 bg-muted/50 text-sm text-muted-foreground border-t">
-          <p className="flex items-center gap-2 mb-2">
-            <span className="text-primary">ℹ️</span>
-            <strong>This is a preview with sample data.</strong>
-          </p>
-          <div className="space-y-1 text-xs">
-            <p className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>Delivery schedule: <strong className="text-foreground">{deliverySchedule}</strong></span>
-            </p>
-            <p>
-              Content: {contentScope === 'web3-incidents' ? 'Web3 incidents only' : 'All intelligence'}
-            </p>
-            <p>
-              Categories: {categories.length > 0 ? categories.map(c => newsCategoryConfig[c]?.name).join(', ') : 'none selected'}
-            </p>
-            <p>
-              Min severity: {severity}
-            </p>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+}: EmailPreviewProps) => (
+  <Dialog>
+    <DialogTrigger asChild>
+      <Button type="button" variant={triggerVariant} size="sm" className={cn('gap-2', triggerClassName)}>
+        <Eye className="w-4 h-4" aria-hidden="true" />
+        {triggerLabel}
+      </Button>
+    </DialogTrigger>
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogHeader className="p-4 border-b">
+        <DialogTitle className="flex items-center gap-2">
+          <Eye className="w-5 h-5" aria-hidden="true" />
+          Email Preview
+        </DialogTitle>
+        <DialogDescription>
+          Sample content. Real emails list only the items that match your preferences.
+        </DialogDescription>
+      </DialogHeader>
+      <Tabs defaultValue={initialTab} className="px-4 pb-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="alert">Alert</TabsTrigger>
+          <TabsTrigger value="daily">Daily brief</TabsTrigger>
+          <TabsTrigger value="weekly">Weekly</TabsTrigger>
+        </TabsList>
+        <TabsContent value="alert"><AlertSample /></TabsContent>
+        <TabsContent value="daily"><DailySample /></TabsContent>
+        <TabsContent value="weekly"><WeeklySample /></TabsContent>
+      </Tabs>
+    </DialogContent>
+  </Dialog>
+);

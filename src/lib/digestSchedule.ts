@@ -69,3 +69,24 @@ export function formatDeliveryTime(hour: number, offset: number): string {
   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   return `${displayHour}:00 ${period} ${formatUtcOffset(offset)}`;
 }
+
+// Same rule as the subscriptions.timezone CHECK constraint and the API.
+const IANA_TIME_ZONE = /^[A-Za-z]+(\/[A-Za-z0-9_+-]+){0,2}$/;
+
+/** The browser's IANA timezone (e.g. Asia/Kolkata), or null when it has none the API accepts. */
+export function getBrowserTimeZone(): string | null {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof zone === 'string' && zone.length <= 64 && IANA_TIME_ZONE.test(zone) ? zone : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Delivery time in the subscriber's IANA zone when known, else the UTC offset. */
+export function formatDeliveryTimeIn(hour: number, offset: number, timezone: string | null): string {
+  if (!timezone) return formatDeliveryTime(hour, offset);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour}:00 ${period} ${timezone}`;
+}

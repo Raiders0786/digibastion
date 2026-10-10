@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, AlertTriangle, Trash2, Lock, Send, Clock } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Trash2, Lock, Send, PauseCircle } from 'lucide-react';
 import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { technologyCategories, newsCategoryConfig } from '@/data/newsData';
 import { useToast } from '@/hooks/use-toast';
@@ -14,8 +14,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
-import { dayOptions, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
 import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
+import { DeliveryPreferencesFields, type DeliveryPreferencesValue } from '@/components/news/DeliveryPreferencesFields';
+import { useThreatIntelFacets } from '@/hooks/useThreatIntelFacets';
+import {
+  CHANNEL_REQUIRED_MESSAGE,
+  buildSubscriptionPayload,
+  defaultFormStateForBrowser,
+  hasDeliveryChannel,
+  stateFromSubscription,
+} from '@/lib/subscriptionPayload';
+
+type DeliveryState = Omit<DeliveryPreferencesValue, 'scope'>;
+
+function deliveryFrom(state: DeliveryPreferencesValue): DeliveryState {
+  const { realtime, daily, weekly, includePreliminary, chains, preferredHour, timezone, timezoneOffset } = state;
+  return { realtime, daily, weekly, includePreliminary, chains, preferredHour, timezone, timezoneOffset };
+}
 
 export default function ManageSubscription() {
   const [searchParams] = useSearchParams();
@@ -29,11 +44,11 @@ export default function ManageSubscription() {
   const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>([]);
   const [contentScope, setContentScope] = useState<ThreatIntelScope>('all');
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
-  const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
   const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
-  const [preferredHour, setPreferredHour] = useState<number>(9);
-  const [timezoneOffset, setTimezoneOffset] = useState<number>(0);
-  const [preferredDay, setPreferredDay] = useState<number>(0);
+  const [delivery, setDelivery] = useState<DeliveryState>(() => deliveryFrom(defaultFormStateForBrowser()));
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [isResubscribing, setIsResubscribing] = useState(false);
+  const [resubscribeRequested, setResubscribeRequested] = useState(false);
   const [isLoading, setIsLoading] = useState(hasSecureAccess);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
@@ -46,6 +61,7 @@ export default function ManageSubscription() {
   const [isRequestingLink, setIsRequestingLink] = useState(false);
   const [linkRequested, setLinkRequested] = useState(false);
   const { toast } = useToast();
+  const facets = useThreatIntelFacets(contentScope);
 
   const loadSubscription = useCallback(async () => {
     if (!emailParam || !tokenParam) {
@@ -65,15 +81,13 @@ export default function ManageSubscription() {
 
       if (data?.success && data?.subscription) {
         const sub = data.subscription;
+        const state = stateFromSubscription(sub);
         setName(sub.name || '');
-        setSelectedCategories((sub.categories || []).filter((category: string): category is NewsCategory => category in newsCategoryConfig));
-        setContentScope(sub.content_scope === 'web3-incidents' ? 'web3-incidents' : 'all');
-        setSelectedTechnologies(sub.technologies || []);
-        setAlertFrequency(sub.frequency || 'daily');
-        setSeverityThreshold(sub.severity_threshold || 'medium');
-        setPreferredHour(sub.preferred_hour ?? 9);
-        setTimezoneOffset(sub.timezone_offset ?? 0);
-        setPreferredDay(sub.preferred_day ?? 0);
+        setSelectedCategories(state.categories.filter((category): category is NewsCategory => category in newsCategoryConfig));
+        setContentScope(state.scope);
+        setSelectedTechnologies(state.technologies);
+        setSeverityThreshold(state.severity);
+        setDelivery(deliveryFrom(state));
         setIsActive(sub.is_active !== false);
         setSubscriptionFound(true);
       } else {
@@ -169,6 +183,11 @@ export default function ManageSubscription() {
       return;
     }
 
+    if (!hasDeliveryChannel(delivery)) {
+      setChannelError(CHANNEL_REQUIRED_MESSAGE);
+      return;
+    }
+
     if (selectedCategories.length === 0) {
       toast({
         title: "Validation Error",
@@ -186,25 +205,27 @@ export default function ManageSubscription() {
           email,
           token,
           name: name || null,
-          categories: selectedCategories,
-          content_scope: contentScope,
-          technologies: selectedTechnologies,
-          frequency: alertFrequency,
-          severity_threshold: severityThreshold,
-          preferred_hour: preferredHour,
-          timezone_offset: timezoneOffset,
-          preferred_day: preferredDay,
+          ...buildSubscriptionPayload({
+            ...delivery,
+            categories: selectedCategories,
+            technologies: selectedTechnologies,
+            scope: contentScope,
+            severity: severityThreshold,
+          }, 'manage'),
         },
       });
 
       if (error) throw error;
 
       if (data?.success) {
-        setIsActive(true);
+        // Saving never re-activates an unsubscribed address; trust the server.
+        if (typeof data.subscription?.is_active === 'boolean') setIsActive(data.subscription.is_active);
         setUpdateSuccess(true);
         toast({
-          title: "Preferences Updated! ✓",
-          description: "Your subscription preferences have been saved.",
+          title: "Preferences saved",
+          description: isActive
+            ? "Your subscription preferences have been saved."
+            : "Saved. You stay unsubscribed until you resubscribe.",
         });
         setTimeout(() => setUpdateSuccess(false), 3000);
       } else {
@@ -219,6 +240,33 @@ export default function ManageSubscription() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleResubscribe = async () => {
+    if (!token) return;
+    setIsResubscribing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("update-subscription", {
+        body: { action: 'resubscribe', email, token },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Resubscribe failed');
+      if (data.alreadyActive) {
+        setIsActive(true);
+        return;
+      }
+      setResubscribeRequested(true);
+      toast({ title: "Check your inbox to confirm", description: "Your emails restart after you click the link we sent." });
+    } catch (error) {
+      console.error('Resubscribe error:', error);
+      toast({
+        title: "Error",
+        description: "Could not send the confirmation email. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResubscribing(false);
     }
   };
 
@@ -422,7 +470,7 @@ export default function ManageSubscription() {
               <CardDescription>
                 {isActive
                   ? 'Update your security alert preferences or unsubscribe.'
-                  : 'Your alerts are paused. Review your preferences, then reactivate them securely.'}
+                  : 'Review the preferences saved for this address.'}
               </CardDescription>
             </CardHeader>
 
@@ -440,6 +488,23 @@ export default function ManageSubscription() {
                     <span className="text-sm">{email}</span>
                     <Lock className="w-3 h-3 text-green-500 ml-auto" />
                   </div>
+
+                  {!isActive && (
+                    <div role="status" className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+                      <p className="flex items-start gap-2 text-sm">
+                        <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
+                        <span>You're unsubscribed. Saving keeps your preferences without sending emails.</span>
+                      </p>
+                      {resubscribeRequested ? (
+                        <p className="text-sm font-medium">Check your inbox to confirm. Your emails restart after you click the link.</p>
+                      ) : (
+                        <Button type="button" variant="outline" size="sm" onClick={handleResubscribe} disabled={isResubscribing}>
+                          {isResubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Mail className="mr-2 h-4 w-4" aria-hidden="true" />}
+                          Resubscribe
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Name Input */}
                   <div className="space-y-2">
@@ -538,105 +603,33 @@ export default function ManageSubscription() {
                     </div>
                   </div>
 
-                  {/* Alert Preferences */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="frequency">Alert Frequency</Label>
-                      <Select value={alertFrequency} onValueChange={(value: any) => setAlertFrequency(value)}>
-                        <SelectTrigger id="frequency">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="immediate">Immediate (Critical &amp; high)</SelectItem>
-                          <SelectItem value="daily">Daily Digest</SelectItem>
-                          <SelectItem value="weekly">Weekly Summary</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <DeliveryPreferencesFields
+                    value={{ ...delivery, scope: contentScope }}
+                    onChange={(patch) => {
+                      const next = deliveryFrom({ ...delivery, scope: contentScope, ...patch });
+                      if (hasDeliveryChannel(next)) setChannelError(null);
+                      setDelivery(next);
+                    }}
+                    chainOptions={facets.chains}
+                    idPrefix="manage"
+                    channelError={channelError}
+                  />
 
-                    <div className="space-y-2">
-                      <Label htmlFor="severity">Minimum Severity</Label>
-                      <Select value={severityThreshold} onValueChange={(value: any) => setSeverityThreshold(value)}>
-                        <SelectTrigger id="severity">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="critical">
-                            <span className={getSeverityColor('critical')}>Critical</span>
+                  <div className="space-y-2 sm:max-w-xs">
+                    <Label htmlFor="severity">Minimum Severity</Label>
+                    <Select value={severityThreshold} onValueChange={(value) => setSeverityThreshold(value as SeverityLevel)}>
+                      <SelectTrigger id="severity">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(['critical', 'high', 'medium', 'low', 'info'] as const).map((level) => (
+                          <SelectItem key={level} value={level}>
+                            <span className={getSeverityColor(level)}>{level.charAt(0).toUpperCase() + level.slice(1)}</span>
                           </SelectItem>
-                          <SelectItem value="high">
-                            <span className={getSeverityColor('high')}>High</span>
-                          </SelectItem>
-                          <SelectItem value="medium">
-                            <span className={getSeverityColor('medium')}>Medium</span>
-                          </SelectItem>
-                          <SelectItem value="low">
-                            <span className={getSeverityColor('low')}>Low</span>
-                          </SelectItem>
-                          <SelectItem value="info">
-                            <span className={getSeverityColor('info')}>Info</span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-
-                  {/* Delivery Time Preferences */}
-                  {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
-                    <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border">
-                      <Label className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        Preferred Delivery Time
-                      </Label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="manage-delivery-time" className="text-xs text-muted-foreground">Time</Label>
-                          <Select value={String(preferredHour)} onValueChange={(v) => setPreferredHour(Number(v))}>
-                            <SelectTrigger id="manage-delivery-time">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {hourOptions.map((hour) => (
-                                <SelectItem key={hour.value} value={String(hour.value)}>
-                                  {hour.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="manage-delivery-timezone" className="text-xs text-muted-foreground">Timezone</Label>
-                          <Select value={String(timezoneOffset)} onValueChange={(v) => setTimezoneOffset(Number(v))}>
-                            <SelectTrigger id="manage-delivery-timezone">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {timezoneOptions.map((timezone) => (
-                                <SelectItem key={timezone.value} value={String(timezone.value)}>
-                                  {timezone.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {alertFrequency === 'weekly' && (
-                          <div className="space-y-1.5">
-                            <Label htmlFor="manage-delivery-day" className="text-xs text-muted-foreground">Day</Label>
-                            <Select value={String(preferredDay)} onValueChange={(v) => setPreferredDay(Number(v))}>
-                              <SelectTrigger id="manage-delivery-day">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                              {dayOptions.map((day) => (
-                                <SelectItem key={day.value} value={String(day.value)}>{day.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -656,7 +649,7 @@ export default function ManageSubscription() {
                           Saved!
                         </>
                       ) : (
-                        isActive ? 'Save Preferences' : 'Reactivate Alerts'
+                        'Save Preferences'
                       )}
                     </Button>
                     

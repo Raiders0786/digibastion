@@ -3,35 +3,75 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Bell, Loader2, CheckCircle, Mail, Shield, User, Settings, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmailPreview } from '@/components/news/EmailPreview';
 import type { NewsCategory } from '@/types/news';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDeliveryTime, formatUtcOffset, getDefaultTimezoneOffset } from '@/lib/digestSchedule';
+import { formatDeliveryTimeIn, formatUtcOffset } from '@/lib/digestSchedule';
+import {
+  CHANNEL_REQUIRED_MESSAGE,
+  buildSubscriptionPayload,
+  defaultFormStateForBrowser,
+  hasDeliveryChannel,
+  type SubscriptionFormState,
+} from '@/lib/subscriptionPayload';
 
 const QUICK_SUBSCRIBE_CATEGORIES: NewsCategory[] = ['web3-security', 'defi-exploits', 'vulnerability-disclosure'];
+
+const QUICK_CHANNELS = [
+  { key: 'realtime', label: 'Real-time alerts' },
+  { key: 'daily', label: 'Daily brief' },
+  { key: 'weekly', label: 'Weekly deep-dive' },
+] as const;
 
 interface QuickSubscribeCardProps {
   className?: string;
 }
 
+function initialQuickState(): SubscriptionFormState {
+  return {
+    ...defaultFormStateForBrowser(),
+    categories: [...QUICK_SUBSCRIBE_CATEGORIES],
+    scope: 'web3-incidents',
+    severity: 'high',
+    realtime: true,
+    daily: false,
+    weekly: false,
+  };
+}
+
 export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [form, setForm] = useState<SubscriptionFormState>(initialQuickState);
+  const [channelError, setChannelError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submissionOutcome, setSubmissionOutcome] = useState<'new' | 'pending' | 'existing' | 'inactive'>('new');
   const { toast } = useToast();
-  
-  // Auto-detect timezone on component mount
-  const timezoneOffset = useMemo(() => getDefaultTimezoneOffset(), []);
-  const preferredHour = 9; // Default to 9 AM local time
-  const deliveryTimeDisplay = useMemo(() => formatDeliveryTime(preferredHour, timezoneOffset), [timezoneOffset]);
+
+  const timezoneLabel = form.timezone ?? formatUtcOffset(form.timezoneOffset);
+  const deliveryTimeDisplay = useMemo(
+    () => formatDeliveryTimeIn(form.preferredHour, form.timezoneOffset, form.timezone),
+    [form.preferredHour, form.timezoneOffset, form.timezone],
+  );
+
+  const toggleChannel = (key: (typeof QUICK_CHANNELS)[number]['key'], checked: boolean) => {
+    const next = { ...form, [key]: checked };
+    if (hasDeliveryChannel(next)) setChannelError(null);
+    setForm(next);
+  };
 
   const handleQuickSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!hasDeliveryChannel(form)) {
+      setChannelError(CHANNEL_REQUIRED_MESSAGE);
+      return;
+    }
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast({
         title: "Invalid Email",
@@ -42,20 +82,15 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke("submit-form", {
-        body: { 
-          type: "subscription", 
+        body: {
+          type: "subscription",
           data: {
             email,
             name: name.trim() || undefined,
-            categories: QUICK_SUBSCRIBE_CATEGORIES,
-            frequency: 'daily',
-            severity: 'high',
-            preferred_hour: preferredHour,
-            timezone_offset: timezoneOffset,
-            preferred_day: 0
+            ...buildSubscriptionPayload(form, 'quick-subscribe'),
           }
         },
       });
@@ -66,24 +101,25 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
         setIsSuccess(true);
         setSubmissionOutcome(data.inactive ? 'inactive' : data.alreadyVerified ? 'existing' : data.isNewSubscription ? 'new' : 'pending');
         const toastTitle = data.inactive
-          ? "Reactivation Link Sent"
+          ? "Check your inbox to confirm"
           : data.alreadyVerified
-          ? "Welcome Back! 👋"
-          : "Check Your Email! 📧";
+          ? "You're already subscribed"
+          : "Check your email";
         const toastDesc = data.inactive
-          ? "Use the secure email link to review and reactivate your alerts."
+          ? "We sent a link to confirm you want these emails again."
           : data.alreadyVerified
-          ? "You're already subscribed. We've sent a confirmation to your email."
+          ? "We've sent a confirmation to your email."
           : "Please verify your subscription to start receiving alerts.";
-        
+
         toast({
           title: toastTitle,
           description: toastDesc,
         });
-        
+
         setTimeout(() => {
           setEmail('');
           setName('');
+          setForm(initialQuickState());
           setSubmissionOutcome('new');
           setIsSuccess(false);
         }, 5000);
@@ -108,11 +144,11 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
         <CardContent className="p-5 sm:p-6 text-center">
           <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-foreground mb-1">
-            {submissionOutcome === 'inactive' ? 'Reactivate Your Alerts' : submissionOutcome === 'existing' ? 'You’re Already Subscribed' : submissionOutcome === 'pending' ? 'Verification Email Resent' : 'You’re Almost In'}
+            {submissionOutcome === 'inactive' ? 'Confirm From Your Inbox' : submissionOutcome === 'existing' ? 'You’re Already Subscribed' : submissionOutcome === 'pending' ? 'Verification Email Resent' : 'You’re Almost In'}
           </h3>
           <p className="text-sm text-muted-foreground mb-3">
             {submissionOutcome === 'inactive'
-              ? 'Check your inbox for a secure link to review and reactivate your alerts.'
+              ? 'Check your inbox for a link to confirm you want these emails again.'
               : submissionOutcome === 'existing'
               ? 'Check your inbox for a secure link to manage your saved preferences.'
               : submissionOutcome === 'pending'
@@ -120,10 +156,10 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 : 'Check your inbox for a verification email.'}
           </p>
           <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground space-y-1">
-            {submissionOutcome === 'new' && (
+            {submissionOutcome === 'new' && (form.daily || form.weekly) && (
             <p className="flex items-center justify-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>You'll receive daily alerts at <strong className="text-foreground">{deliveryTimeDisplay}</strong></span>
+              <span>Your {form.daily ? 'daily brief' : 'weekly deep-dive'} arrives at <strong className="text-foreground">{deliveryTimeDisplay}</strong></span>
             </p>
             )}
             <p>
@@ -154,13 +190,9 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 </h3>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Daily digest of high and critical crypto security threats at <span className="font-medium text-foreground">{deliveryTimeDisplay}</span>.{' '}
+                Web3 incident reports by email, each with its source named.{' '}
                 <EmailPreview
-                  categories={QUICK_SUBSCRIBE_CATEGORIES}
-                  frequency="daily"
-                  severity="high"
-                  preferredHour={preferredHour}
-                  timezoneOffset={timezoneOffset}
+                  initialTab={form.realtime ? 'alert' : form.daily ? 'daily' : 'weekly'}
                   triggerLabel="See a sample email"
                   triggerVariant="link"
                   triggerClassName="h-auto p-0 text-xs sm:text-sm"
@@ -168,9 +200,27 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
               </p>
             </div>
           </div>
-          
+
           {/* Form */}
-          <form onSubmit={handleQuickSubscribe} className="space-y-3">
+          <form onSubmit={handleQuickSubscribe} noValidate className="space-y-3">
+            <fieldset className="space-y-1">
+              <legend className="sr-only">Emails to receive</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {QUICK_CHANNELS.map((channel) => (
+                  <label key={channel.key} htmlFor={`quick-${channel.key}`} className="flex cursor-pointer items-center gap-2 text-xs sm:text-sm">
+                    <Checkbox
+                      id={`quick-${channel.key}`}
+                      checked={form[channel.key]}
+                      onCheckedChange={(checked) => toggleChannel(channel.key, checked === true)}
+                      disabled={isSubmitting}
+                    />
+                    {channel.label}
+                  </label>
+                ))}
+              </div>
+              {channelError && <p role="alert" className="text-xs font-medium text-destructive">{channelError}</p>}
+            </fieldset>
+
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Name field */}
               <div className="relative flex-1 sm:flex-none">
@@ -186,7 +236,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                   disabled={isSubmitting}
                 />
               </div>
-              
+
               {/* Email field */}
               <div className="relative flex-1">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -202,9 +252,9 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                   required
                 />
               </div>
-              
-              <Button 
-                type="submit" 
+
+              <Button
+                type="submit"
                 aria-label={isSubmitting ? 'Subscribing to security alerts' : 'Subscribe to security alerts'}
                 disabled={isSubmitting}
                 className="shrink-0"
@@ -219,15 +269,15 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                 )}
               </Button>
             </div>
-            
+
             {/* Advanced options link */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                <span>Detected: {formatUtcOffset(timezoneOffset)}</span>
+                <span>Detected: {timezoneLabel}</span>
               </div>
-              <Link 
-                to="/threat-intel?tab=subscribe" 
+              <Link
+                to="/threat-intel?tab=subscribe&scope=web3-incidents"
                 className="flex items-center gap-1 text-primary hover:underline"
               >
                 <Settings className="w-3 h-3" />

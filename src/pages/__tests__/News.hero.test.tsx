@@ -224,13 +224,15 @@ describe('threat-intel hero and mobile filters', () => {
     });
   });
 
-  it('leaves the incident filters out of the email alerts link', async () => {
+  it('carries the status and chain filters, which emails honour, into the email alerts link', async () => {
     renderAt('/threat-intel?status=confirmed&chain=ethereum&attack=phishing&source=slowmist&categories=defi-exploits');
 
     const emailHref = (await screen.findByRole('link', { name: 'Get email alerts' })).getAttribute('href') ?? '';
     const params = new URLSearchParams(emailHref.split('?')[1]);
     expect(params.get('categories')).toBe('defi-exploits');
-    ['status', 'chain', 'attack', 'source'].forEach((key) => expect(params.has(key)).toBe(false));
+    expect(params.get('status')).toBe('confirmed');
+    expect(params.getAll('chain')).toEqual(['ethereum']);
+    ['attack', 'source'].forEach((key) => expect(params.has(key)).toBe(false));
   });
 
   it('counts each incident filter once', () => {

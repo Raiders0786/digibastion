@@ -5,29 +5,35 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Mail, Shield, Zap, CheckCircle, Loader2, Clock } from 'lucide-react';
+import { Bell, Mail, Shield, Zap, CheckCircle, Loader2 } from 'lucide-react';
 import { NewsCategory, SeverityLevel, ThreatIntelScope } from '@/types/news';
 import { technologyCategories } from '@/data/newsData';
-import { NEWS_CATEGORIES, NEWS_CATEGORY_CONFIG, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
+import { NEWS_CATEGORIES, NEWS_CATEGORY_CONFIG, SEVERITY_LEVELS, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
+import type { VerificationFilter } from '@/lib/threatIntel/query';
 import { useToast } from '@/hooks/use-toast';
+import { useThreatIntelFacets } from '@/hooks/useThreatIntelFacets';
 import { supabase } from "@/integrations/supabase/client";
 import { EmailPreview } from './EmailPreview';
 import { z } from 'zod';
-import { dayOptions, formatDeliveryTime, getDefaultTimezoneOffset, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
+import { formatDeliveryTimeIn } from '@/lib/digestSchedule';
 import { ContentScopeSelector } from './ContentScopeSelector';
+import { DeliveryPreferencesFields, type DeliveryPreferencesValue } from './DeliveryPreferencesFields';
+import {
+  CHANNEL_REQUIRED_MESSAGE,
+  buildSubscriptionPayload,
+  defaultFormStateForBrowser,
+  describeFormChannels,
+  hasDeliveryChannel,
+  initialStateFromView,
+  type SubscriptionFormState,
+} from '@/lib/subscriptionPayload';
 
-// Input validation schema
-const subscriptionSchema = z.object({
+// Identity fields; the email types are checked by hasDeliveryChannel and the
+// rest of the preferences by the API (parseSubscriptionPreferences).
+const subscriberSchema = z.object({
   name: z.string().max(100, "Name must be less than 100 characters").optional(),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   categories: z.array(z.string()).min(1, "Select at least one category").max(10),
-  content_scope: z.enum(['all', 'web3-incidents']),
-  technologies: z.array(z.string()).max(20).optional(),
-  frequency: z.enum(["immediate", "daily", "weekly"]),
-  severity: z.enum(["critical", "high", "medium", "low", "info"]),
-  preferred_hour: z.number().min(0).max(23).optional(),
-  timezone_offset: z.number().min(-12).max(14).refine((value) => Number.isInteger(value * 4), "Timezone must use a 15-minute offset").optional(),
-  preferred_day: z.number().min(0).max(6).optional(),
 });
 
 interface SubscriptionFormProps {
@@ -35,58 +41,71 @@ interface SubscriptionFormProps {
   initialCategories?: NewsCategory[];
   /** Pre-selected content scope, e.g. from `?scope=`. */
   initialScope?: ThreatIntelScope;
+  /** Chains of the view the form was opened from (`?chain=`). */
+  initialChains?: string[];
+  /** Status filter of that view (`?status=`); confirmed turns unconfirmed reports off. */
+  initialVerification?: VerificationFilter;
+  /** Opened from the weekly page: only the weekly box starts checked. */
+  initialWeekly?: boolean;
 }
 
-export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: SubscriptionFormProps) => {
+function initialFormState(props: SubscriptionFormProps): SubscriptionFormState {
+  return {
+    ...defaultFormStateForBrowser(),
+    ...initialStateFromView({
+      categories: props.initialCategories,
+      scope: props.initialScope,
+      chains: props.initialChains,
+      verification: props.initialVerification,
+      weekly: props.initialWeekly,
+    }),
+  };
+}
+
+export const SubscriptionForm = (props: SubscriptionFormProps) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<NewsCategory[]>(() => [...(initialCategories ?? [])]);
-  const [contentScope, setContentScope] = useState<ThreatIntelScope>(initialScope);
-  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
-  const [alertFrequency, setAlertFrequency] = useState<'immediate' | 'daily' | 'weekly'>('daily');
-  const [severityThreshold, setSeverityThreshold] = useState<SeverityLevel>('medium');
-  const [preferredHour, setPreferredHour] = useState<number>(9);
-  const [timezoneOffset, setTimezoneOffset] = useState<number>(() => getDefaultTimezoneOffset());
-  const [preferredDay, setPreferredDay] = useState<number>(0);
+  const [form, setForm] = useState<SubscriptionFormState>(() => initialFormState(props));
+  const [channelError, setChannelError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submissionOutcome, setSubmissionOutcome] = useState<'new' | 'pending' | 'existing' | 'inactive'>('new');
   const { toast } = useToast();
+  const facets = useThreatIntelFacets(form.scope);
+
+  const update = (patch: Partial<SubscriptionFormState>) => setForm((current) => ({ ...current, ...patch }));
+
+  const updateDelivery = (patch: Partial<DeliveryPreferencesValue>) => {
+    const next = { ...form, ...patch };
+    if (hasDeliveryChannel(next)) setChannelError(null);
+    setForm(next);
+  };
 
   const handleCategoryToggle = (category: NewsCategory) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
+    update({
+      categories: form.categories.includes(category)
+        ? form.categories.filter((c) => c !== category)
+        : [...form.categories, category],
+    });
   };
 
   const handleTechnologyToggle = (techId: string) => {
-    setSelectedTechnologies(prev =>
-      prev.includes(techId)
-        ? prev.filter(t => t !== techId)
-        : [...prev, techId]
-    );
+    update({
+      technologies: form.technologies.includes(techId)
+        ? form.technologies.filter((t) => t !== techId)
+        : [...form.technologies, techId],
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const rawData = {
-      name: name || undefined,
-      email,
-      categories: selectedCategories,
-      content_scope: contentScope,
-      technologies: selectedTechnologies,
-      frequency: alertFrequency,
-      severity: severityThreshold,
-      preferred_hour: preferredHour,
-      timezone_offset: timezoneOffset,
-      preferred_day: preferredDay,
-    };
 
-    // Validate inputs
-    const validation = subscriptionSchema.safeParse(rawData);
+    if (!hasDeliveryChannel(form)) {
+      setChannelError(CHANNEL_REQUIRED_MESSAGE);
+      return;
+    }
+
+    const validation = subscriberSchema.safeParse({ name: name || undefined, email, categories: form.categories });
     if (!validation.success) {
       const firstError = validation.error.errors[0]?.message || "Invalid input";
       toast({
@@ -98,10 +117,17 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke("submit-form", {
-        body: { type: "subscription", data: validation.data },
+        body: {
+          type: "subscription",
+          data: {
+            name: validation.data.name,
+            email: validation.data.email,
+            ...buildSubscriptionPayload(form, 'threat-intel-form'),
+          },
+        },
       });
 
       if (error) throw error;
@@ -109,32 +135,22 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
       if (data?.success) {
         setIsSuccess(true);
         setSubmissionOutcome(data.inactive ? 'inactive' : data.alreadyVerified ? 'existing' : data.isNewSubscription ? 'new' : 'pending');
-        
-        // Different messages for different scenarios
-        let title = "Verification Email Sent! 📧";
+
+        let title = "Verification email sent";
         let message = "Please check your email to verify your subscription.";
-        
         if (data.alreadyVerified) {
-          title = data.inactive ? "Reactivation Link Sent" : "Welcome Back! 👋";
+          title = data.inactive ? "Check your inbox to confirm" : "You're already subscribed";
           message = data.inactive
-            ? "Your alerts are paused. Use the secure link in your email to review and reactivate them."
-            : "You're already subscribed. We've sent a confirmation with your current settings.";
-        } else if (!data.needsVerification) {
-          title = "Subscription Updated! 🎉";
-          message = "Your preferences have been saved.";
+            ? "We sent a link to confirm you want these emails again. Nothing changes until you click it."
+            : "We've sent a confirmation with your current settings.";
         }
-        
         toast({ title, description: message });
-        
+
         // Reset form after delay
         setTimeout(() => {
           setEmail('');
           setName('');
-          setSelectedCategories([]);
-          setContentScope('all');
-          setSelectedTechnologies([]);
-          setAlertFrequency('daily');
-          setSeverityThreshold('medium');
+          setForm(defaultFormStateForBrowser());
           setSubmissionOutcome('new');
           setIsSuccess(false);
         }, 5000);
@@ -155,14 +171,6 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
 
   const getSeverityColor = (severity: SeverityLevel) => SEVERITY_STYLES[severity].textClass;
 
-  const getFrequencyLabel = () => {
-    switch (alertFrequency) {
-      case 'daily': return 'Daily';
-      case 'weekly': return `Weekly on ${dayOptions.find(d => d.value === preferredDay)?.label || 'Sunday'}s`;
-      case 'immediate': return 'Immediate (critical & high)';
-    }
-  };
-
   if (isSuccess) {
     return (
       <Card className="w-full max-w-4xl mx-auto glass-card glow border-green-500/30">
@@ -170,11 +178,11 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
           <div className="text-center mb-8">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">
-              {submissionOutcome === 'inactive' ? 'Reactivate Your Alerts' : submissionOutcome === 'existing' ? 'You’re Already Subscribed' : submissionOutcome === 'pending' ? 'Verification Email Resent' : 'Almost There'}
+              {submissionOutcome === 'inactive' ? 'Confirm From Your Inbox' : submissionOutcome === 'existing' ? 'You’re Already Subscribed' : submissionOutcome === 'pending' ? 'Verification Email Resent' : 'Almost There'}
             </h2>
             <p className="text-muted-foreground">
               {submissionOutcome === 'inactive'
-                ? 'We sent a secure link to review your saved preferences and reactivate alerts.'
+                ? 'We sent a link to confirm you want these emails again. Nothing changes until you click it.'
                 : submissionOutcome === 'existing'
                 ? 'We sent a secure management link to your email. Use it to review or change your saved preferences.'
                 : submissionOutcome === 'pending'
@@ -187,35 +195,43 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
           {submissionOutcome === 'new' && <div className="bg-muted/30 rounded-lg p-6 space-y-4 max-w-md mx-auto">
             <h3 className="font-semibold text-center mb-4">Your Alert Settings</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Frequency</span>
-                <span className="font-medium">{getFrequencyLabel()}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Emails</span>
+                <span className="font-medium text-right">{describeFormChannels(form).join(', ')}</span>
               </div>
-              {alertFrequency !== 'immediate' && (
-                <div className="flex justify-between">
+              {(form.daily || form.weekly) && (
+                <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Delivery Time</span>
-                  <span className="font-medium">{formatDeliveryTime(preferredHour, timezoneOffset)}</span>
+                  <span className="font-medium text-right">{formatDeliveryTimeIn(form.preferredHour, form.timezoneOffset, form.timezone)}</span>
                 </div>
               )}
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">Content</span>
-                <span className="font-medium">{contentScope === 'web3-incidents' ? 'Web3 incidents only' : 'All intelligence'}</span>
+                <span className="font-medium">{form.scope === 'web3-incidents' ? 'Web3 incidents only' : 'All intelligence'}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Unconfirmed reports</span>
+                <span className="font-medium">{form.includePreliminary ? 'Included' : 'Left out'}</span>
+              </div>
+              <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">Categories</span>
-                <span className="font-medium">{selectedCategories.length} selected</span>
+                <span className="font-medium">{form.categories.length} selected</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">Min Severity</span>
-                <span className={`font-medium ${getSeverityColor(severityThreshold)}`}>
-                  {severityThreshold.charAt(0).toUpperCase() + severityThreshold.slice(1)}
+                <span className={`font-medium ${getSeverityColor(form.severity)}`}>
+                  {form.severity.charAt(0).toUpperCase() + form.severity.slice(1)}
                 </span>
               </div>
             </div>
           </div>}
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            📧 {submissionOutcome === 'existing' || submissionOutcome === 'inactive' ? 'Check your inbox for the management link.' : 'Check your inbox for the verification link.'}
+            {submissionOutcome === 'existing'
+              ? 'Check your inbox for the management link.'
+              : submissionOutcome === 'inactive'
+                ? 'Check your inbox for the confirmation link.'
+                : 'Check your inbox for the verification link.'}
           </p>
         </CardContent>
       </Card>
@@ -232,13 +248,12 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
           </CardTitle>
         </div>
         <CardDescription>
-          Get personalized security alerts based on your technology stack. No login required - 
-          we'll send updates directly to your email.
+          Real-time alerts, a daily brief or a weekly deep-dive, filtered like the Threat Intel page. No login required.
         </CardDescription>
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* Name & Email Input */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -274,11 +289,19 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
           </div>
 
           <ContentScopeSelector
-            value={contentScope}
-            onChange={setContentScope}
+            value={form.scope}
+            onChange={(scope) => update({ scope })}
             label="Content coverage"
             showDescription
             idPrefix="subscription-content-scope"
+          />
+
+          <DeliveryPreferencesFields
+            value={form}
+            onChange={updateDelivery}
+            chainOptions={facets.chains}
+            idPrefix="subscription"
+            channelError={channelError}
           />
 
           {/* Categories Selection */}
@@ -293,8 +316,8 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {NEWS_CATEGORIES.map((category) => {
                 const categoryInfo = NEWS_CATEGORY_CONFIG[category];
-                const isSelected = selectedCategories.includes(category);
-                
+                const isSelected = form.categories.includes(category);
+
                 return (
                   <label
                     key={category}
@@ -304,12 +327,12 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
                     }`}
                   >
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
+                      <Checkbox
                         id={`category-${category}`}
-                        checked={isSelected} 
+                        checked={isSelected}
                         onCheckedChange={() => handleCategoryToggle(category)}
                       />
-                      <div className="cursor-pointer flex-1">
+                      <div className="cursor-pointer flex-1 min-w-0">
                         <div className="font-medium">{categoryInfo.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {categoryInfo.description}
@@ -337,8 +360,8 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
                   <h4 className="font-medium text-sm">{category.name}</h4>
                   <div className="flex flex-wrap gap-2">
                     {category.technologies.map((tech) => {
-                      const isSelected = selectedTechnologies.includes(tech.id);
-                      
+                      const isSelected = form.technologies.includes(tech.id);
+
                       return (
                         <button
                           key={tech.id}
@@ -360,119 +383,27 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
             </div>
           </div>
 
-          {/* Alert Preferences */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="frequency">Alert Frequency</Label>
-              <Select value={alertFrequency} onValueChange={(value: any) => setAlertFrequency(value)}>
-                <SelectTrigger id="frequency">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="immediate">Immediate (Critical &amp; high)</SelectItem>
-                  <SelectItem value="daily">Daily Digest</SelectItem>
-                  <SelectItem value="weekly">Weekly Summary</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="severity">Minimum Severity</Label>
-              <Select value={severityThreshold} onValueChange={(value: any) => setSeverityThreshold(value)}>
-                <SelectTrigger id="severity">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="critical">
-                    <span className={getSeverityColor('critical')}>Critical</span>
+          <div className="space-y-2 sm:max-w-xs">
+            <Label htmlFor="severity">Minimum Severity</Label>
+            <Select value={form.severity} onValueChange={(value) => update({ severity: value as SeverityLevel })}>
+              <SelectTrigger id="severity">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SEVERITY_LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    <span className={getSeverityColor(level)}>{level.charAt(0).toUpperCase() + level.slice(1)}</span>
                   </SelectItem>
-                  <SelectItem value="high">
-                    <span className={getSeverityColor('high')}>High</span>
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    <span className={getSeverityColor('medium')}>Medium</span>
-                  </SelectItem>
-                  <SelectItem value="low">
-                    <span className={getSeverityColor('low')}>Low</span>
-                  </SelectItem>
-                  <SelectItem value="info">
-                    <span className={getSeverityColor('info')}>Info</span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-
-          {/* Delivery Time Preferences */}
-          {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
-            <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Preferred Delivery Time
-              </Label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="delivery-time" className="text-xs text-muted-foreground">Time</Label>
-                  <Select value={String(preferredHour)} onValueChange={(v) => setPreferredHour(Number(v))}>
-                    <SelectTrigger id="delivery-time">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hourOptions.map((hour) => (
-                        <SelectItem key={hour.value} value={String(hour.value)}>
-                          {hour.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="delivery-timezone" className="text-xs text-muted-foreground">Timezone</Label>
-                  <Select value={String(timezoneOffset)} onValueChange={(v) => setTimezoneOffset(Number(v))}>
-                    <SelectTrigger id="delivery-timezone">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timezoneOptions.map((tz) => (
-                        <SelectItem key={tz.value} value={String(tz.value)}>
-                          {tz.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {alertFrequency === 'weekly' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="delivery-day" className="text-xs text-muted-foreground">Day</Label>
-                    <Select value={String(preferredDay)} onValueChange={(v) => setPreferredDay(Number(v))}>
-                      <SelectTrigger id="delivery-day">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {dayOptions.map((day) => (
-                          <SelectItem key={day.value} value={String(day.value)}>
-                            {day.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {alertFrequency === 'weekly' 
-                  ? `You'll receive your digest every ${dayOptions.find(d => d.value === preferredDay)?.label} at ${hourOptions.find(h => h.value === preferredHour)?.label}`
-                  : `You'll receive your digest daily at ${hourOptions.find(h => h.value === preferredHour)?.label}`
-                }
-              </p>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              type="submit" 
-              className="flex-1" 
+            <Button
+              type="submit"
+              className="flex-1"
               disabled={isSubmitting}
               size="lg"
             >
@@ -488,19 +419,8 @@ export const SubscriptionForm = ({ initialCategories, initialScope = 'all' }: Su
                 </>
               )}
             </Button>
-            
-            {(alertFrequency === 'daily' || alertFrequency === 'weekly') && (
-              <EmailPreview 
-                categories={selectedCategories}
-                contentScope={contentScope}
-                frequency={alertFrequency}
-                severity={severityThreshold}
-                name={name}
-                preferredHour={preferredHour}
-                timezoneOffset={timezoneOffset}
-                preferredDay={preferredDay}
-              />
-            )}
+
+            <EmailPreview initialTab={form.realtime ? 'alert' : form.daily ? 'daily' : 'weekly'} />
           </div>
 
           <p className="text-xs text-muted-foreground text-center">

@@ -147,12 +147,13 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     () => ({ verification, chains, attackTypes, sources }),
     [verification, chains, attackTypes, sources],
   );
-  // "Get email alerts" carries the current view so the form opens pre-filled.
+  // "Get email alerts" (Subscribe to this view) carries the current view so the
+  // form opens pre-filled: scope, categories, chains and the status filter.
   const subscribeHref = useMemo(() => {
     const next = new URLSearchParams(searchParams);
-    // Email alerts do not filter by status, chain, attack type or source, so
-    // the subscribe link leaves them out rather than implying that they do.
-    ['page', 'q', 'article', 'sort', 'date', 'status', 'chain', 'attack', 'source'].forEach((key) => next.delete(key));
+    // Emails do not filter by search text, date, attack type or source, so the
+    // subscribe link leaves those out rather than implying that they do.
+    ['page', 'q', 'article', 'sort', 'date', 'attack', 'source'].forEach((key) => next.delete(key));
     next.set('scope', feedView);
     next.set('tab', 'subscribe');
     return `/threat-intel?${next.toString()}`;
@@ -1096,6 +1097,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 <SubscriptionForm
                   initialCategories={selectedCategories}
                   initialScope={searchParams.has('scope') ? feedView : undefined}
+                  initialChains={chains}
+                  initialVerification={verification}
+                  initialWeekly={searchParams.get('weekly') === '1'}
                 />
               </div>
             </ErrorBoundary>
