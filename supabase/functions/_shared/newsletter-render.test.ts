@@ -3,6 +3,9 @@ import { buildDailyBriefContent, buildDailySubject } from './daily-brief.ts';
 import { buildUnsubscribeLinks } from './email-compliance.ts';
 import type { DailyBriefContent, NewsletterItem, StatusChange } from './newsletter-content.ts';
 import { renderDailyBriefEmail, renderNewsletterEmail, type RenderContext } from './newsletter-render.ts';
+import { assembleWeeklyContent } from './weekly-content.ts';
+import { buildWeeklySubject } from './weekly-render.ts';
+import { computeWeeklyTotals } from './weekly-stats.ts';
 
 const SITE = 'https://www.digibastion.com';
 const POSTAL = '123 Example Street, Suite 4, Springfield, IL 62701, USA';
@@ -202,7 +205,26 @@ describe('renderNewsletterEmail', () => {
     expect(renderNewsletterEmail('daily', { kind: 'weekly' }, ctx)).toBeNull();
   });
 
-  it('returns null for weekly until the weekly renderer is wired in', () => {
+  it('renders a stored weekly issue, archive included, and rejects malformed weekly content', () => {
+    const top = [item({ createdAt: '2026-10-07T08:00:00.000Z', incidentDate: '2026-10-07' })];
+    const stored = assembleWeeklyContent({
+      weekStart: '2026-10-05',
+      totals: computeWeeklyTotals({ weekStart: '2026-10-05', thisWeek: top, previousWeek: [] }),
+      top,
+      vulnerabilities: [],
+      knownProjectNames: [],
+      modelOutput: null,
+      aiEnabled: false,
+      model: null,
+      prompt: null,
+      rawOutput: null,
+      error: null,
+    });
+    const rendered = renderNewsletterEmail('weekly', stored, ctx);
+    expect(rendered?.subject).toBe(buildWeeklySubject(stored));
+    expect(rendered?.html).toContain(POSTAL);
+    expect(rendered?.html).not.toContain('archive');
     expect(renderNewsletterEmail('weekly', { kind: 'weekly', version: 1 }, ctx)).toBeNull();
+    expect(renderNewsletterEmail('weekly', content(), ctx)).toBeNull();
   });
 });

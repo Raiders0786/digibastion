@@ -12,6 +12,7 @@ import {
 } from './email-compliance.ts';
 import { formatLossReported, type DailyBriefContent, type NewsletterItem, type StatusChange } from './newsletter-content.ts';
 import { escapeHtml } from './subscription-delivery.ts';
+import { isWeeklyPublicContent, renderWeeklyEmail, toPublicWeekly } from './weekly-render.ts';
 
 export interface RenderContext { links: UnsubscribeLinks; postalAddress: string | null; testWarning?: boolean; siteUrl: string }
 export interface RenderedEmail { subject: string; html: string; text: string }
@@ -179,10 +180,10 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
 
 /**
  * Renders a stored issue for one subscriber. Daily content must already be
- * filtered. Returns null for content it cannot render; 'weekly' returns null
- * until the weekly renderer is wired in here.
+ * filtered; weekly is one shared edition and its archive is never rendered.
+ * Returns null for content it cannot render.
  */
 export function renderNewsletterEmail(kind: 'daily' | 'weekly', content: unknown, ctx: RenderContext): RenderedEmail | null {
   if (kind === 'daily') return isDailyBriefContent(content) ? renderDailyBriefEmail(content, ctx) : null;
-  return null;
+  return isWeeklyPublicContent(content) ? renderWeeklyEmail(toPublicWeekly(content), ctx) : null;
 }
