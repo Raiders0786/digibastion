@@ -3,18 +3,22 @@ import { z } from 'npm:zod@3.23.8';
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import {
   buildTelegramIncidentMessage,
+  buildWeeklyLinkMessage,
   isEligibleForTelegram,
+  isIncidentPostUid,
   planTelegramPostUpdate,
+  WEEKLY_POST_UID_PREFIX,
   type TelegramAlertArticle,
   type TelegramSeverity,
 } from '../_shared/telegram-alerts.ts';
+import { isWeeklyPublicContent, toPublicWeekly } from '../_shared/weekly-render.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 const RequestSchema = z.object({
-  mode: z.enum(['run', 'seed', 'check']).optional().default('run'),
+  mode: z.enum(['run', 'seed', 'check', 'weekly']).optional().default('run'),
   dryRun: z.boolean().optional().default(false),
   limit: z.number().int().min(1).max(10).optional().default(10),
 }).strict();
@@ -25,6 +29,10 @@ const MAX_RETRY_AFTER_SECONDS = 30;
 const MAX_SEND_ATTEMPTS = 3;
 const EDIT_WINDOW_DAYS = 14;
 const SEVERITIES: TelegramSeverity[] = ['critical', 'high', 'medium', 'low', 'info'];
+// The weekly post runs Monday 01:00 UTC for the issue whose week started the
+// Monday before; eight days leaves room for a late rebuild without ever
+// reaching back to the week before that.
+const WEEKLY_LOOKBACK_DAYS = 8;
 
 type TelegramResult = {
   ok: boolean;
@@ -33,6 +41,10 @@ type TelegramResult = {
   error_code?: number;
   parameters?: { retry_after?: number };
 };
+
+type PostTarget = { uid: string; articleId: string | null; projectName: string | null };
+
+type DeliveryOutcome = 'sent' | 'failed' | 'unknown';
 
 type PostRow = {
   id: string;
@@ -182,7 +194,7 @@ async function loadCandidates(db: SupabaseClient, now: Date): Promise<TelegramAl
     .limit(100);
   if (error) throw new Error('Candidate incidents could not be read');
   // Post oldest first so the channel reads in the order incidents arrived.
-  return ((data || []) as TelegramAlertArticle[]).reverse();
+  return ((data || []) as TelegramAlertArticle[]).filter((article) => isIncidentPostUid(article.uid)).reverse();
 }
 
 async function syncPostedMessages(
@@ -199,11 +211,14 @@ async function syncPostedMessages(
     .select('id,article_uid,message_id,status,attempts,posted_text,posted_verification,project_name')
     .eq('chat_id', chatId)
     .eq('status', 'sent')
+    .not('article_uid', 'like', `${WEEKLY_POST_UID_PREFIX}%`)
     .gte('created_at', since)
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) throw new Error('Posted messages could not be read');
-  const rows = (posts || []) as PostRow[];
+  // Weekly link posts have no article; without this filter the edit pass would
+  // find none and edit them to RETRACTED.
+  const rows = ((posts || []) as PostRow[]).filter((row) => isIncidentPostUid(row.article_uid));
   if (rows.length === 0) return { edited: 0, retracted: 0, failed: 0 };
 
   const { data: articles, error: articleError } = await db
@@ -258,19 +273,18 @@ async function syncPostedMessages(
 async function claimPost(
   db: SupabaseClient,
   chatId: string,
-  article: TelegramAlertArticle,
+  target: PostTarget,
   previous: { id: string; status: string; attempts: number } | undefined,
 ): Promise<{ id: string; attempts: number } | null> {
   if (!previous) {
     // The unique (article_uid, chat_id) insert is the claim: when the cron run
     // and the QuillMonitor trigger overlap, only one of them wins.
-    const projectName = article.metadata?.project_name;
     const { data, error } = await db.from('telegram_posts').insert({
-      article_uid: article.uid,
-      article_id: article.id,
+      article_uid: target.uid,
+      article_id: target.articleId,
       chat_id: chatId,
       status: 'claimed',
-      project_name: typeof projectName === 'string' ? projectName.slice(0, 200) : null,
+      project_name: target.projectName ? target.projectName.slice(0, 200) : null,
     }).select('id').single();
     return error || !data ? null : { id: data.id, attempts: 0 };
   }
@@ -283,6 +297,66 @@ async function claimPost(
     .eq('attempts', previous.attempts)
     .select('id');
   return error || !data?.length ? null : { id: previous.id, attempts: previous.attempts };
+}
+
+function articleTarget(article: TelegramAlertArticle): PostTarget {
+  const projectName = article.metadata?.project_name;
+  return { uid: article.uid, articleId: article.id, projectName: typeof projectName === 'string' ? projectName : null };
+}
+
+/**
+ * Sends one claimed post and records the outcome on its row. Throws
+ * TelegramRateLimitError after releasing the claim when rate limited.
+ */
+async function deliverClaimedPost(
+  db: SupabaseClient,
+  token: string,
+  chatId: string,
+  claim: { id: string; attempts: number },
+  text: string,
+  sentFields: { posted_verification: string | null; posted_severity: string | null },
+): Promise<DeliveryOutcome> {
+  let result: TelegramResult;
+  try {
+    result = await callTelegram(token, 'sendMessage', {
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+    });
+  } catch (error) {
+    // Rate limited: nothing was delivered, so release the claim without
+    // spending an attempt and stop the run.
+    await db.from('telegram_posts').update({ status: 'failed', last_error: 'Telegram rate limit exceeded' }).eq('id', claim.id);
+    throw error;
+  }
+
+  const messageId = Number(result.result?.message_id);
+  if (result.ok && Number.isFinite(messageId)) {
+    const { error: saveError } = await db.from('telegram_posts').update({
+      status: 'sent',
+      message_id: messageId,
+      attempts: claim.attempts + 1,
+      posted_text: text,
+      ...sentFields,
+      last_error: null,
+      sent_at: new Date().toISOString(),
+    }).eq('id', claim.id);
+    // The row stays `claimed`, which is never retried, so this cannot repost.
+    if (saveError) console.warn('[post-telegram-alerts] Sent message could not be recorded');
+    return 'sent';
+  }
+
+  // Only an explicit rejection from Telegram proves nothing was posted. A
+  // timeout or 5xx may have been delivered, so it is parked as `unknown`
+  // for manual review instead of being retried into a duplicate.
+  const rejected = isRejected(result);
+  await db.from('telegram_posts').update({
+    status: rejected ? 'failed' : 'unknown',
+    attempts: claim.attempts + 1,
+    last_error: sanitizeError(result),
+  }).eq('id', claim.id);
+  return rejected ? 'failed' : 'unknown';
 }
 
 async function postNewIncidents(
@@ -308,58 +382,68 @@ async function postNewIncidents(
   let unknown = 0;
   for (const article of eligible) {
     if (sent + failed + unknown >= limit) break;
-    const claim = await claimPost(db, chatId, article, existingByUid.get(article.uid));
+    const claim = await claimPost(db, chatId, articleTarget(article), existingByUid.get(article.uid));
     if (!claim) continue;
 
     if (pacingStarted || sent + failed + unknown > 0) await sleep(SEND_INTERVAL_MS);
-    const text = buildTelegramIncidentMessage(article, siteUrl);
-    let result: TelegramResult;
-    try {
-      result = await callTelegram(token, 'sendMessage', {
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML',
-        link_preview_options: { is_disabled: true },
-      });
-    } catch (error) {
-      // Rate limited: nothing was delivered, so release the claim without
-      // spending an attempt and stop the run.
-      await db.from('telegram_posts').update({ status: 'failed', last_error: 'Telegram rate limit exceeded' }).eq('id', claim.id);
-      throw error;
-    }
-
-    const messageId = Number(result.result?.message_id);
-    if (result.ok && Number.isFinite(messageId)) {
-      sent++;
-      const metadata = article.metadata || {};
-      const { error: saveError } = await db.from('telegram_posts').update({
-        status: 'sent',
-        message_id: messageId,
-        attempts: claim.attempts + 1,
-        posted_text: text,
-        posted_verification: typeof metadata.verification_status === 'string' ? metadata.verification_status : null,
-        posted_severity: article.severity,
-        last_error: null,
-        sent_at: new Date().toISOString(),
-      }).eq('id', claim.id);
-      // The row stays `claimed`, which is never retried, so this cannot repost.
-      if (saveError) console.warn('[post-telegram-alerts] Sent message could not be recorded');
-      continue;
-    }
-
-    // Only an explicit rejection from Telegram proves nothing was posted. A
-    // timeout or 5xx may have been delivered, so it is parked as `unknown`
-    // for manual review instead of being retried into a duplicate.
-    const rejected = isRejected(result);
-    if (rejected) failed++;
+    const metadata = article.metadata || {};
+    const outcome = await deliverClaimedPost(db, token, chatId, claim, buildTelegramIncidentMessage(article, siteUrl), {
+      posted_verification: typeof metadata.verification_status === 'string' ? metadata.verification_status : null,
+      posted_severity: article.severity,
+    });
+    if (outcome === 'sent') sent++;
+    else if (outcome === 'failed') failed++;
     else unknown++;
-    await db.from('telegram_posts').update({
-      status: rejected ? 'failed' : 'unknown',
-      attempts: claim.attempts + 1,
-      last_error: sanitizeError(result),
-    }).eq('id', claim.id);
   }
   return { sent, failed, unknown };
+}
+
+type WeeklyPostResult =
+  | { skipped: 'no_weekly_issue' | 'already_posted'; weekStart: string | null }
+  | { outcome: DeliveryOutcome; weekStart: string };
+
+/** Posts the link to the latest ready or sent weekly issue once per chat, keyed weekly:<weekStart>. */
+async function postWeeklyLink(
+  db: SupabaseClient,
+  token: string,
+  chatId: string,
+  siteUrl: string,
+  now: Date,
+): Promise<WeeklyPostResult> {
+  const since = new Date(now.getTime() - WEEKLY_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data: issue, error } = await db
+    .from('newsletter_issues')
+    .select('period_start,content')
+    .eq('kind', 'weekly')
+    .in('status', ['ready', 'sent'])
+    .gte('period_start', since)
+    .order('period_start', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error('Weekly issue could not be read');
+  if (!issue) return { skipped: 'no_weekly_issue', weekStart: null };
+  if (!isWeeklyPublicContent(issue.content)) throw new Error('Weekly issue content is invalid');
+
+  const periodStart = new Date(String(issue.period_start));
+  if (Number.isNaN(periodStart.getTime())) throw new Error('Weekly issue period is invalid');
+  const weekStart = periodStart.toISOString().slice(0, 10);
+  const uid = `${WEEKLY_POST_UID_PREFIX}${weekStart}`;
+
+  const { data: existing, error: existingError } = await db
+    .from('telegram_posts')
+    .select('id,status,attempts')
+    .eq('chat_id', chatId)
+    .eq('article_uid', uid)
+    .maybeSingle();
+  if (existingError) throw new Error('Existing weekly post could not be read');
+  const claim = await claimPost(db, chatId, { uid, articleId: null, projectName: null }, existing ?? undefined);
+  if (!claim) return { skipped: 'already_posted', weekStart };
+
+  const url = `${siteUrl.replace(/\/+$/, '')}/threat-intel/weekly/${weekStart}` +
+    '?utm_source=telegram&utm_medium=social&utm_campaign=weekly_deep_dive';
+  const text = buildWeeklyLinkMessage(toPublicWeekly(issue.content), url);
+  const outcome = await deliverClaimedPost(db, token, chatId, claim, text, { posted_verification: null, posted_severity: null });
+  return { outcome, weekStart };
 }
 
 async function seedExisting(db: SupabaseClient, chatId: string, eligible: TelegramAlertArticle[]): Promise<number> {
@@ -432,7 +516,7 @@ Deno.serve(async (req) => {
 
     const targetRef = dryRun ? testChannelRef : channelRef;
     if (!targetRef) throw new Error(dryRun ? 'TELEGRAM_TEST_CHANNEL_ID is not configured' : 'TELEGRAM_CHANNEL_ID is not configured');
-    if (mode === 'run' && !dryRun && !postingEnabled) {
+    if ((mode === 'run' || mode === 'weekly') && !dryRun && !postingEnabled) {
       await recordIngestionRun(db, {
         pipeline: 'telegram', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
         success: true, duration_ms: Date.now() - startedAt, metadata: { mode, skipped: 'posting_disabled' },
@@ -446,6 +530,42 @@ Deno.serve(async (req) => {
     if (!chat) throw new Error('Telegram chat could not be resolved; run mode "check"');
 
     const now = new Date();
+    if (mode === 'weekly') {
+      let result: WeeklyPostResult | null = null;
+      let rateLimited = false;
+      try {
+        result = await postWeeklyLink(db, token, chat.id, siteUrl, now);
+      } catch (error) {
+        if (!(error instanceof TelegramRateLimitError)) throw error;
+        rateLimited = true;
+      }
+      const outcome = result && 'outcome' in result ? result.outcome : null;
+      const skipped = result && 'skipped' in result ? result.skipped : null;
+      const success = !rateLimited && (outcome === null || outcome === 'sent');
+      console.log(`[post-telegram-alerts] mode=weekly dry_run=${dryRun} week_start=${result?.weekStart ?? 'none'} outcome=${outcome ?? skipped ?? 'rate_limited'}`);
+      await recordIngestionRun(db, {
+        pipeline: 'telegram', attempted_at: attemptedAt, completed_at: new Date().toISOString(),
+        success, records_found: result?.weekStart ? 1 : 0, records_inserted: outcome === 'sent' ? 1 : 0,
+        records_invalid: outcome === 'failed' || outcome === 'unknown' ? 1 : 0,
+        duration_ms: Date.now() - startedAt,
+        error_summary: rateLimited
+          ? 'Telegram rate limit reached; run mode "weekly" again to post the link'
+          : outcome === 'unknown'
+            ? 'Weekly Telegram post has an unknown outcome; review telegram_posts rows with status unknown'
+            : outcome === 'failed' ? 'Weekly Telegram post was rejected' : undefined,
+        metadata: { mode, dry_run: dryRun, week_start: result?.weekStart ?? null, outcome, skipped },
+      });
+      return new Response(JSON.stringify({
+        success,
+        mode,
+        dryRun,
+        weekStart: result?.weekStart ?? null,
+        outcome,
+        skipped,
+        rateLimited,
+      }), { status: success ? 200 : 207, headers: jsonHeaders });
+    }
+
     const candidates = await loadCandidates(db, now);
     const eligible = candidates.filter((article) => isEligibleForTelegram(article, now, { minSeverity }));
 

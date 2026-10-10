@@ -1,3 +1,6 @@
+import { shortIssueDate } from './daily-brief.ts';
+import { formatLossReported, type NewsletterItem, type WeeklyPublicContent } from './newsletter-content.ts';
+
 export const TELEGRAM_MESSAGE_LIMIT = 4096;
 
 export type TelegramSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
@@ -183,4 +186,91 @@ export function planTelegramPostUpdate(
     baseText,
     verification,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Weekly deep-dive link post
+// ---------------------------------------------------------------------------
+
+/** telegram_posts.article_uid prefix for weekly link posts: `weekly:<weekStart>`. */
+export const WEEKLY_POST_UID_PREFIX = 'weekly:';
+/** Kept short so the post reads as a teaser for the page. */
+export const WEEKLY_LINK_MESSAGE_LIMIT = 1024;
+const WEEKLY_TOP_LINES = 3;
+const WEEKLY_NAME_CHARS = 80;
+const WEEKLY_SOURCE_CHARS = 60;
+const WEEKLY_SOURCES_CHARS = 300;
+
+/**
+ * True for incident posts. Weekly link posts have no article behind them, so
+ * the edit pass must skip them or it would edit them to RETRACTED.
+ */
+export function isIncidentPostUid(uid: string): boolean {
+  return !uid.startsWith(WEEKLY_POST_UID_PREFIX);
+}
+
+const weeklyPlural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+const reported = (amount: number) => (amount > 0 ? formatLossReported(amount) : null);
+
+function clip(value: string | null | undefined, limit: number): string {
+  const trimmed = (value ?? '').replace(/\s+/g, ' ').trim();
+  return Array.from(trimmed).length > limit ? truncateAtWord(trimmed, limit) : trimmed;
+}
+
+function weeklyTopLine(item: NewsletterItem): string {
+  const name = clip(item.projectName || item.title, WEEKLY_NAME_CHARS) || 'Incident';
+  const facts = [item.status === 'unconfirmed' ? 'unconfirmed' : '', formatLossReported(item.amountUsd) ?? 'loss not disclosed']
+    .filter(Boolean).join(', ');
+  const source = clip(item.sourceName, WEEKLY_SOURCE_CHARS);
+  return `• ${escapeTelegramHtml(name)}: ${escapeTelegramHtml(facts)}${source ? ` (${escapeTelegramHtml(source)})` : ''}`;
+}
+
+function weeklySourcesLine(sources: string[]): string {
+  const names = sources.map((source) => clip(source, WEEKLY_SOURCE_CHARS)).filter(Boolean);
+  const kept: string[] = [];
+  let length = 0;
+  for (const name of names) {
+    if (length + name.length + 2 > WEEKLY_SOURCES_CHARS) break;
+    kept.push(name);
+    length += name.length + 2;
+  }
+  if (kept.length === 0) return '';
+  const more = names.length - kept.length;
+  return `Sources: ${escapeTelegramHtml(kept.join(', '))}${more > 0 ? ` and ${more} more` : ''}`;
+}
+
+/** The weekly post: totals and top items in source wording, plus the link to the public page. */
+export function buildWeeklyLinkMessage(c: WeeklyPublicContent, url: string): string {
+  const t = c.totals;
+  const heading = `<b>Weekly deep-dive: Web3 security week of ${escapeTelegramHtml(`${shortIssueDate(c.weekStart)}, ${c.weekStart.slice(0, 4)}`)}</b>`;
+  const loss = reported(t.lossUsd);
+  const summary = t.incidentCount > 0
+    ? `${loss ? `${loss} across ` : ''}${weeklyPlural(t.incidentCount, 'incident', 'incidents')}.`
+    : 'No incidents recorded this week.';
+  const unconfirmedLoss = reported(t.unconfirmedLossUsd);
+  const unconfirmed = t.unconfirmedCount > 0
+    ? `${weeklyPlural(t.unconfirmedCount, 'unconfirmed report', 'unconfirmed reports')}${unconfirmedLoss ? ` (${unconfirmedLoss})` : ''} not included.`
+    : '';
+  const link = `<a href="${escapeTelegramHtml(url)}">Read the weekly deep-dive</a>`;
+  const sources = weeklySourcesLine(c.sources);
+
+  const build = (topCount: number, withSources: boolean) => {
+    const top = c.top.slice(0, topCount).map((entry) => weeklyTopLine(entry.item));
+    return [
+      heading,
+      escapeTelegramHtml([summary, unconfirmed].filter(Boolean).join(' ')),
+      ...(top.length > 0 ? ['', 'Top incidents:', ...top] : []),
+      ...(withSources && sources ? ['', sources] : []),
+      '',
+      link,
+    ].join('\n');
+  };
+
+  for (const withSources of [true, false]) {
+    for (let topCount = Math.min(WEEKLY_TOP_LINES, c.top.length); topCount >= 0; topCount--) {
+      const message = build(topCount, withSources);
+      if (message.length <= WEEKLY_LINK_MESSAGE_LIMIT) return message;
+    }
+  }
+  return [heading, link].join('\n');
 }

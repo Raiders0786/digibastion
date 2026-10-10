@@ -3,16 +3,21 @@ import {
   buildIncidentUrl,
   buildRetractionMessage,
   buildTelegramIncidentMessage,
+  buildWeeklyLinkMessage,
   escapeTelegramHtml,
   isEligibleForTelegram,
+  isIncidentPostUid,
   planTelegramPostUpdate,
   TELEGRAM_MESSAGE_LIMIT,
+  WEEKLY_LINK_MESSAGE_LIMIT,
+  WEEKLY_POST_UID_PREFIX,
   type TelegramAlertArticle,
 } from '../../../supabase/functions/_shared/telegram-alerts';
 import {
   finalizeQuillMonitorArticle,
   normalizeQuillMonitorIncident,
 } from '../../../supabase/functions/_shared/quillmonitor';
+import { weeklyItem, weeklyPublicContent } from '../../../supabase/functions/_shared/weekly-test-fixtures';
 
 const NOW = new Date('2026-10-10T12:00:00.000Z');
 const SITE = 'https://www.digibastion.com';
@@ -207,5 +212,66 @@ describe('Telegram post updates', () => {
   it('does not retract twice', () => {
     const retracted = { posted_text: buildRetractionMessage('Example Protocol', SITE), posted_verification: 'retracted' };
     expect(planTelegramPostUpdate(retracted, null, SITE, NOW)).toEqual({ action: 'none' });
+  });
+});
+
+describe('buildWeeklyLinkMessage', () => {
+  const URL = `${SITE}/threat-intel/weekly/2026-10-05`;
+
+  it('states the week, the reported totals, the top items with their sources and the link', () => {
+    const message = buildWeeklyLinkMessage(weeklyPublicContent(), URL);
+    expect(message).toContain('<b>Weekly deep-dive: Web3 security week of Oct 5, 2026</b>');
+    expect(message).toContain('~$12.3M reported across 9 incidents');
+    expect(message).toContain('2 unconfirmed reports (~$3M reported) not included');
+    expect(message).toContain('Example Protocol: ~$5M reported (QuillMonitor)');
+    expect(message).toContain('Third Pool: unconfirmed, ~$3M reported (QuillMonitor)');
+    expect(message).toContain('Sources: QuillMonitor, SlowMist, Web3 Is Going Great, The Hacker News');
+    expect(message).toContain(`<a href="${URL}">Read the weekly deep-dive</a>`);
+    expect(message).not.toMatch(/verified by digibastion|massive|devastating|urgent/i);
+    expect(message).not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+
+  it('escapes HTML from titles, sources and the URL', () => {
+    const content = weeklyPublicContent();
+    content.top = [{ ...content.top[0], item: weeklyItem({ projectName: '<script>x</script> & Co', sourceName: 'A<b>' }) }];
+    content.sources = ['A<b>'];
+    const message = buildWeeklyLinkMessage(content, `${URL}?a=1&b="2"`);
+    expect(message).toContain('&lt;script&gt;x&lt;/script&gt; &amp; Co');
+    expect(message).toContain('(A&lt;b&gt;)');
+    expect(message).toContain('href="https://www.digibastion.com/threat-intel/weekly/2026-10-05?a=1&amp;b=&quot;2&quot;"');
+    expect(message).not.toContain('<script>');
+  });
+
+  it('stays within the length limit and keeps the link when content is long', () => {
+    const content = weeklyPublicContent();
+    content.top = content.top.map((entry, index) => ({
+      ...entry,
+      item: weeklyItem({ uid: `u${index}`, projectName: `${'Long name '.repeat(40)}${index}`, sourceName: 'S'.repeat(300) }),
+    }));
+    content.sources = Array.from({ length: 60 }, (_, index) => `Source number ${index} with a long name`);
+    const message = buildWeeklyLinkMessage(content, URL);
+    expect(message.length).toBeLessThanOrEqual(WEEKLY_LINK_MESSAGE_LIMIT);
+    expect(WEEKLY_LINK_MESSAGE_LIMIT).toBe(1024);
+    expect(message).toContain(`<a href="${URL}">Read the weekly deep-dive</a>`);
+    expect(message).toContain('reported');
+  });
+
+  it('handles a week with no incidents', () => {
+    const content = weeklyPublicContent({ top: [], sources: [] });
+    content.totals = { ...content.totals, lossUsd: 0, incidentCount: 0, unconfirmedCount: 0, unconfirmedLossUsd: 0 };
+    const message = buildWeeklyLinkMessage(content, URL);
+    expect(message).toContain('No incidents recorded this week.');
+    expect(message).not.toContain('Top incidents');
+    expect(message).not.toContain('Sources:');
+  });
+});
+
+describe('isIncidentPostUid', () => {
+  it('keeps incident posts and skips weekly link posts in the sync pass', () => {
+    expect(WEEKLY_POST_UID_PREFIX).toBe('weekly:');
+    expect(isIncidentPostUid('quillmonitor:abc123')).toBe(true);
+    expect(isIncidentPostUid('weekly:2026-10-05')).toBe(false);
+    const rows = [{ article_uid: 'quillmonitor:1' }, { article_uid: 'weekly:2026-10-05' }];
+    expect(rows.filter((row) => isIncidentPostUid(row.article_uid))).toEqual([{ article_uid: 'quillmonitor:1' }]);
   });
 });
