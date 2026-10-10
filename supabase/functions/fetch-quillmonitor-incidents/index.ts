@@ -9,6 +9,8 @@ import {
   normalizeQuillMonitorIncident,
   parseQuillMonitorPage,
   parseQuillMonitorIncident,
+  QUILLMONITOR_FULL_SYNC_MAX_PAGES,
+  resolveQuillMonitorMaxPages,
   type ExistingQuillMonitorRow,
   type NormalizedQuillMonitorArticle,
 } from '../_shared/quillmonitor.ts';
@@ -30,7 +32,7 @@ const corsHeaders = {
 };
 const RequestSchema = z.object({
   page_size: z.number().int().min(1).max(100).optional().default(100),
-  max_pages: z.number().int().min(1).max(100).optional().default(20),
+  max_pages: z.number().int().min(1).max(QUILLMONITOR_FULL_SYNC_MAX_PAGES).optional(),
   pages: z.number().int().min(1).max(20).optional(),
   mode: z.enum(['auto', 'full']).optional().default('auto'),
 }).strict();
@@ -201,9 +203,10 @@ Deno.serve(async (req) => {
     let verifiedRecords = 0;
     let preliminaryRecords = 0;
 
+    const maxPages = resolveQuillMonitorMaxPages(request.data.mode, request.data.max_pages);
     while (nextPage !== null) {
-      if (pagesFetched >= request.data.max_pages) {
-        throw new Error(`QuillMonitor pagination exceeded the ${request.data.max_pages}-page safety limit`);
+      if (pagesFetched >= maxPages) {
+        throw new Error(`QuillMonitor pagination exceeded the ${maxPages}-page safety limit`);
       }
       const currentPage = nextPage;
       const rawPayload = await fetchPage(

@@ -6,6 +6,17 @@ import { isPendingSummary } from './summary-text.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 
+// Page caps per run. An incremental sync reads a few recent pages; a full sync
+// walks the whole archive, which passed 20 pages in October 2026.
+export const QUILLMONITOR_INCREMENTAL_MAX_PAGES = 20;
+export const QUILLMONITOR_FULL_SYNC_MAX_PAGES = 100;
+
+/** The page cap for a run: the caller's max_pages, else the default for the mode. */
+export function resolveQuillMonitorMaxPages(mode: 'auto' | 'full', requested?: number): number {
+  if (requested !== undefined) return requested;
+  return mode === 'full' ? QUILLMONITOR_FULL_SYNC_MAX_PAGES : QUILLMONITOR_INCREMENTAL_MAX_PAGES;
+}
+
 export interface QuillMonitorIncident {
   id: string;
   target: string;
