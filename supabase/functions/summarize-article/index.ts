@@ -209,11 +209,12 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`[summarize-article] Error processing ${article.id}:`, error);
-        errors.push(`${article.id}: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown summarization error';
+        errors.push(`${article.id}: ${errorMessage}`);
         failed++;
         
         // If rate limited, stop processing
-        if (error.message === 'Rate limit exceeded') {
+        if (errorMessage === 'Rate limit exceeded') {
           console.log('[summarize-article] Rate limited, stopping...');
           break;
         }
@@ -235,7 +236,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[summarize-article] Fatal error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown summarization error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
