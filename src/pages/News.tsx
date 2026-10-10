@@ -7,6 +7,7 @@ import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
 import { countActiveFilters, FeedToolbar } from '@/components/news/FeedToolbar';
 import { InlineSubscribeCard } from '@/components/news/InlineSubscribeCard';
+import { AlertsPanel } from '@/components/news/AlertsPanel';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -15,11 +16,10 @@ import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { PullToRefresh } from '@/components/mobile/PullToRefresh';
 import { SwipeableTabs } from '@/components/mobile/SwipeableTabs';
-import { NewsListSkeleton, AlertListSkeleton, StatsSkeleton } from '@/components/news/NewsCardSkeleton';
+import { NewsListSkeleton, StatsSkeleton } from '@/components/news/NewsCardSkeleton';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
@@ -30,16 +30,11 @@ import { METHODOLOGY_PATH, TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/offici
 import { parseThreatIntelFilters } from '@/lib/threatIntel/query';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
-  isPreliminaryQuillMonitorArticle,
-  isQuillMonitorArticle,
-} from '@/utils/newsIncident';
-import {
   getDuplicateOfUid,
   isPublishable,
   mapNewsArticleRow,
   NEWS_ARTICLE_COLUMNS,
 } from '@/lib/threatIntel/articleRow';
-import { safeExternalUrl } from '@/utils/safeUrl';
 import {
   buildNewsArticleSchema,
   buildNewsBreadcrumbSchema,
@@ -50,13 +45,6 @@ import {
   Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-
-const AUTO_REFRESH_OPTIONS = [
-  { value: '0', label: 'Off' },
-  { value: '30', label: '30s' },
-  { value: '60', label: '1m' },
-  { value: '300', label: '5m' },
-];
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -387,14 +375,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Use database articles directly (filtering handled by hook)
   const filteredArticles = dbArticles;
-
-  const criticalAlerts = useMemo(() => {
-    return activeAlerts.filter(article => article.severity === 'critical');
-  }, [activeAlerts]);
-
-  const highAlerts = useMemo(() => {
-    return activeAlerts.filter(article => article.severity === 'high');
-  }, [activeAlerts]);
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -973,217 +953,19 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 id="threat-intel-panel-alerts"
                 aria-labelledby="threat-intel-tab-alerts"
               >
-                {/* Breadcrumb Navigation */}
-                {/* Header with breadcrumb and refresh */}
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => navigate('/')}
-                      className="h-auto p-1 hover:text-foreground"
-                    >
-                      <Home className="w-4 h-4" />
-                    </Button>
-                    <span>/</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleTabChange('feed')}
-                      className="h-auto p-1 hover:text-foreground"
-                    >
-                      Threat Intel
-                    </Button>
-                    <span>/</span>
-                    <span className="text-foreground">Active Alerts</span>
-                  </nav>
-                  <div className="flex items-center gap-2">
-                    {/* Auto-refresh selector */}
-                    <Select 
-                      value={autoRefreshInterval.toString()} 
-                      onValueChange={(v) => setAutoRefreshInterval(parseInt(v))}
-                    >
-                      <SelectTrigger className="w-24 h-8 text-xs">
-                        <Clock className="w-3 h-3 mr-1" />
-                        <SelectValue placeholder="Auto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AUTO_REFRESH_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {autoRefreshInterval > 0 && (
-                      <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30 text-green-400">
-                        Auto-refresh: {AUTO_REFRESH_OPTIONS.find(o => o.value === autoRefreshInterval.toString())?.label}
-                      </Badge>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => void refetchAlerts()}
-                      disabled={alertsLoading}
-                    >
-                      {alertsLoading ? (
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                      )}
-                      Refresh
-                    </Button>
-                  </div>
-                </div>
-
-                {alertsLoading && <AlertListSkeleton count={3} />}
-
-                {/* Critical Alerts */}
-                {!alertsLoading && criticalAlerts.length > 0 && (
-                <Card className="glass-card border-red-500/30 bg-red-500/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-400">
-                      <AlertTriangle className="w-5 h-5" />
-                      Critical Alerts ({alertsCriticalCount})
-                    </CardTitle>
-                    <CardDescription>
-                      Critical-severity threats and published incident reports requiring prompt review
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {criticalAlerts.map((alert) => (
-                      <div 
-                        key={alert.id}
-                        className="p-4 border border-red-500/20 rounded-lg bg-background/50 hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => handleArticleClick(alert)}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className={SEVERITY_STYLES.critical.solidBadgeClass}>CRITICAL</Badge>
-                              {isQuillMonitorArticle(alert) && (
-                                <a
-                                  href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary underline underline-offset-2"
-                                  onClick={(event) => event.stopPropagation()}
-                                  onKeyDown={(event) => event.stopPropagation()}
-                                >
-                                  Powered by QuillMonitor
-                                </a>
-                              )}
-                              {isPreliminaryQuillMonitorArticle(alert) ? (
-                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">Preliminary</Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-red-500 text-red-400">Action Required</Badge>
-                              )}
-                              {alert.cveId && (
-                                <Badge variant="secondary">{alert.cveId}</Badge>
-                              )}
-                            </div>
-                            <h3 className="font-medium mb-1">
-                              <button
-                                type="button"
-                                className="text-left"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleArticleClick(alert);
-                                }}
-                              >
-                                {alert.title}
-                              </button>
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {alert.affectedTechnologies?.map((tech) => (
-                                <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {alert.metadata?.incident_date || format(new Date(alert.publishedAt), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* High Priority Alerts */}
-              {!alertsLoading && highAlerts.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-orange-500" />
-                      High Priority Alerts ({alertsHighCount})
-                    </CardTitle>
-                    <CardDescription>Important security alerts requiring attention</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {highAlerts.map((alert) => (
-                      <div 
-                        key={alert.id}
-                        className="p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => handleArticleClick(alert)}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className={SEVERITY_STYLES.high.solidBadgeClass}>HIGH</Badge>
-                              {isQuillMonitorArticle(alert) && (
-                                <a
-                                  href={safeExternalUrl(alert.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary underline underline-offset-2"
-                                  onClick={(event) => event.stopPropagation()}
-                                  onKeyDown={(event) => event.stopPropagation()}
-                                >
-                                  Powered by QuillMonitor
-                                </a>
-                              )}
-                              {isPreliminaryQuillMonitorArticle(alert) ? (
-                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300">Preliminary</Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-orange-500 text-orange-400">Action Required</Badge>
-                              )}
-                            </div>
-                            <h3 className="font-medium mb-1">
-                              <button
-                                type="button"
-                                className="text-left"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleArticleClick(alert);
-                                }}
-                              >
-                                {alert.title}
-                              </button>
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-3">{alert.summary}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {alert.affectedTechnologies?.map((tech) => (
-                                <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {alert.metadata?.incident_date || format(new Date(alert.publishedAt), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
+                <AlertsPanel
+                  alerts={activeAlerts}
+                  criticalCount={alertsCriticalCount}
+                  highCount={alertsHighCount}
+                  loading={alertsLoading}
+                  error={alertsError}
+                  autoRefreshInterval={autoRefreshInterval}
+                  onAutoRefreshIntervalChange={setAutoRefreshInterval}
+                  onRefresh={() => void refetchAlerts()}
+                  onSelectAlert={handleArticleClick}
+                  onNavigateHome={() => navigate('/')}
+                  onNavigateFeed={() => handleTabChange('feed')}
+                />
 
               {/* Alert pagination */}
               {!alertsLoading && alertsTotalPages > 1 && (
@@ -1212,18 +994,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     </Button>
                   </div>
                 </nav>
-              )}
-
-              {/* Empty state */}
-              {!alertsLoading && activeAlerts.length === 0 && (
-                <Card className="glass-card">
-                  <CardContent className="p-8 text-center">
-                    <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No alerts available</h3>
-                    <p className="text-muted-foreground mb-4">{alertsError || 'No critical or high priority alerts are active.'}</p>
-                    <Button onClick={() => void refetchAlerts()}>Try Again</Button>
-                  </CardContent>
-                </Card>
               )}
               </div>
             </ErrorBoundary>
