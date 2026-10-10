@@ -1,5 +1,11 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
 import { severityFromLoss } from './incident-severity.ts';
+import {
+  incidentTargetFromTitle,
+  isHighConfidenceDuplicate,
+  normalizeIncidentTarget,
+  type DuplicateCandidate,
+} from './incident-dedup.ts';
 
 export const SLOWMIST_PAGE_URL = 'https://hacked.slowmist.io/en/';
 export const SLOWMIST_EXPECTED_PAGE_SIZE = 20;
@@ -18,13 +24,15 @@ export interface ParsedSlowMistPage {
   incidents: SlowMistIncident[];
 }
 
-export interface SlowMistDuplicateCandidate {
-  target: string;
-  date: string;
-  attackMethod: string | null;
-  amountInUsd: number | null;
-  reference: string | null;
-}
+// The matcher moved to incident-dedup.ts; these aliases keep the SlowMist
+// Deno tests and any older callers working unchanged.
+export type SlowMistDuplicateCandidate = Omit<DuplicateCandidate, 'uid' | 'provider'>;
+export const normalizeSlowMistTarget = normalizeIncidentTarget;
+export const slowMistTargetFromTitle = incidentTargetFromTitle;
+export const isHighConfidenceSlowMistDuplicate: (
+  incident: SlowMistIncident,
+  candidate: SlowMistDuplicateCandidate,
+) => boolean = isHighConfidenceDuplicate;
 
 export interface NormalizedSlowMistArticle {
   uid: string;
@@ -173,51 +181,6 @@ export function parseSlowMistPage(html: string): ParsedSlowMistPage | null {
     else invalidRecords++;
   }
   return { recordsFound: items.length, invalidRecords, incidents };
-}
-
-export function normalizeSlowMistTarget(value: string): string {
-  return value
-    .normalize('NFKC')
-    .toLocaleLowerCase('en-US')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-export function slowMistTargetFromTitle(value: unknown): string {
-  const title = cleanText(value, 300);
-  if (!title) return '';
-  const boundaries = [
-    title.indexOf(':'),
-    title.search(/\s[-–—]\s/),
-    title.search(/\s+(?:(?:is|was)\s+)?(?:exploited|suffers?|loses?|hit\s+by)\b/i),
-  ].filter((index) => index > 0);
-  const boundary = boundaries.length ? Math.min(...boundaries) : -1;
-  return (boundary > 0 ? title.slice(0, boundary) : title).trim();
-}
-
-export function isHighConfidenceSlowMistDuplicate(
-  incident: SlowMistIncident,
-  candidate: SlowMistDuplicateCandidate,
-): boolean {
-  if (normalizeSlowMistTarget(incident.target) !== normalizeSlowMistTarget(candidate.target)) return false;
-  const incidentTime = new Date(`${incident.date}T00:00:00.000Z`).getTime();
-  const candidateTime = new Date(`${candidate.date}T00:00:00.000Z`).getTime();
-  if (!Number.isFinite(incidentTime) || !Number.isFinite(candidateTime)) return false;
-  const dayDifference = Math.abs(incidentTime - candidateTime) / 86_400_000;
-  if (dayDifference === 0) return true;
-  if (dayDifference > 2) return false;
-
-  const sameAmount = incident.amountInUsd !== null && candidate.amountInUsd !== null &&
-    incident.amountInUsd === candidate.amountInUsd;
-  const sameAttackMethod = Boolean(
-    incident.attackMethod && candidate.attackMethod &&
-    normalizeSlowMistTarget(incident.attackMethod) === normalizeSlowMistTarget(candidate.attackMethod),
-  );
-  const sameReference = Boolean(
-    incident.reference && candidate.reference && incident.reference === candidate.reference,
-  );
-  return sameAmount || sameAttackMethod || sameReference;
 }
 
 function slug(value: string): string {
