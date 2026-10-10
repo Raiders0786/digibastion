@@ -36,8 +36,12 @@ describe('threat-intel taxonomy drift', () => {
     '%s validates categories through the shared module',
     (name) => {
       const source = readFileSync(resolve(process.cwd(), 'supabase/functions', name, 'index.ts'), 'utf8');
-      expect(source).toContain('../_shared/news-categories.ts');
+      // parseSubscriptionPreferences checks categories against news-categories.ts.
+      expect(source).toContain('../_shared/subscription-preferences.ts');
+      expect(source).toContain('parseSubscriptionPreferences(');
       expect(source).not.toMatch(/["']tools-reviews["']/);
+      const shared = readFileSync(resolve(process.cwd(), 'supabase/functions/_shared/subscription-preferences.ts'), 'utf8');
+      expect(shared).toContain("from './news-categories.ts'");
     },
   );
 });

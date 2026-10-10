@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { emailHash } from "../_shared/email-compliance.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -199,8 +200,19 @@ serve(async (req) => {
       );
     }
 
+    // A bounced or complained address gets no mail. The response is the same
+    // as a normal send, so the endpoint never reveals the suppression.
+    const { data: suppression, error: suppressionError } = await supabase
+      .from("email_suppressions")
+      .select("email_hash")
+      .eq("email_hash", await emailHash(normalizedEmail))
+      .maybeSingle();
+    if (suppressionError) throw suppressionError;
+
     // Send the email with the new management link
-    if (resendApiKey) {
+    if (suppression) {
+      console.warn(`[request-management-link] Subscription ${subscription.id} is suppressed; no email sent`);
+    } else if (resendApiKey) {
       const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(normalizedEmail)}&token=${encodeURIComponent(managementToken)}`;
       
       try {

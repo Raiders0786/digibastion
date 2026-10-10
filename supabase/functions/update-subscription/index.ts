@@ -1,6 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
-import { VALID_NEWS_CATEGORIES } from "../_shared/news-categories.ts";
+import { emailHash, normalizeEmail } from "../_shared/email-compliance.ts";
+import { parseSubscriptionPreferences } from "../_shared/subscription-preferences.ts";
+import {
+  OPTIN_TTL_MS,
+  RESUBSCRIBE_RATE_LIMIT,
+  mergeStoredPreferences,
+  optinConfirmUrl,
+  renderResubscribeEmail,
+  subscriptionColumns,
+} from "../_shared/subscription-optin.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,12 +20,13 @@ const corsHeaders = {
 const MAX_EMAIL_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 100;
 const MAX_NAME_LENGTH = 100;
-const MAX_CATEGORIES = 10;
-const MAX_TECHNOLOGIES = 20;
-const VALID_FREQUENCIES = ["immediate", "daily", "weekly"];
-const VALID_SEVERITIES = ["critical", "high", "medium", "low", "info"];
-const VALID_CONTENT_SCOPES = ["all", "web3-incidents"];
-const VALID_CATEGORIES = VALID_NEWS_CATEGORIES;
+
+// The stored row: identity, state and every preference column that
+// parseSubscriptionPreferences reads (a resubscribe re-uses them).
+const STORED_PREFERENCE_COLUMNS =
+  "id, name, is_active, categories, technologies, content_scope, severity_threshold, frequency, wants_realtime, wants_daily, wants_weekly, include_preliminary, chains, timezone, timezone_offset, preferred_hour";
+const RETURNED_COLUMNS =
+  "id, email, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day, wants_realtime, wants_daily, wants_weekly, include_preliminary, chains, timezone, is_active, unsubscribed_at";
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
@@ -38,17 +48,21 @@ async function hashIdentifier(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function checkRateLimit(supabase: SupabaseClient, scope: string, identifier: string, maxAttempts: number) {
+async function checkRateLimit(supabase: SupabaseClient, scope: string, identifier: string, maxAttempts: number, windowSeconds = RATE_LIMIT_WINDOW_SECONDS) {
   const { data, error } = await supabase.rpc("consume_rate_limit", {
     _scope: scope,
     _identifier_hash: await hashIdentifier(identifier),
     _max_attempts: maxAttempts,
-    _window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+    _window_seconds: windowSeconds,
   });
   if (error) throw error;
   const result = data as { allowed?: boolean; reset_at?: string } | null;
-  const resetIn = result?.reset_at ? Math.max(1, Math.ceil((Date.parse(result.reset_at) - Date.now()) / 1000)) : RATE_LIMIT_WINDOW_SECONDS;
+  const resetIn = result?.reset_at ? Math.max(1, Math.ceil((Date.parse(result.reset_at) - Date.now()) / 1000)) : windowSeconds;
   return { allowed: result?.allowed === true, resetIn };
+}
+
+function respond(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...corsHeaders } });
 }
 
 // Sanitize string input
@@ -89,118 +103,62 @@ serve(async (req) => {
       );
     }
 
-    const { email, token, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return respond({ success: false, error: "Invalid request" }, 400);
+    }
+    const { email, token, name, action } = body as Record<string, unknown>;
 
     // Validate email
     if (!email || typeof email !== "string") {
-      return new Response(
-        JSON.stringify({ success: false, error: "Email is required" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return respond({ success: false, error: "Email is required" }, 400);
     }
 
     if (email.length > MAX_EMAIL_LENGTH || !EMAIL_REGEX.test(email)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid email format" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return respond({ success: false, error: "Invalid email format" }, 400);
     }
 
     // Rate limit by email
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
     const emailRateLimit = await checkRateLimit(supabase, "subscription:update:email", normalizedEmail, MAX_ATTEMPTS_PER_EMAIL);
     if (!emailRateLimit.allowed) {
-      console.warn(`[update-subscription] Rate limit exceeded for email: ${normalizedEmail}`);
+      console.warn("[update-subscription] Rate limit exceeded for an email address");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: "Too many requests for this email. Please try again later.",
           retryAfter: emailRateLimit.resetIn
         }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
             "Content-Type": "application/json",
             "Retry-After": String(emailRateLimit.resetIn)
-          } 
+          }
         }
       );
     }
 
     // Validate token - REQUIRED for security
     if (!token || typeof token !== "string") {
-      return new Response(
-        JSON.stringify({ success: false, error: "Authentication token is required" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return respond({ success: false, error: "Authentication token is required" }, 401);
     }
 
     if (token.length > MAX_TOKEN_LENGTH || !UUID_REGEX.test(token)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid token format" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return respond({ success: false, error: "Invalid token format" }, 401);
     }
 
-    // Validate categories
-    if (!categories || !Array.isArray(categories) || categories.length === 0) {
-      return new Response(
-        JSON.stringify({ success: false, error: "At least one category is required" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-    if (categories.length > MAX_CATEGORIES || !categories.every((category) => typeof category === "string" && VALID_CATEGORIES.has(category))) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid security category" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
-      );
-    }
-    if (technologies !== undefined && (!Array.isArray(technologies) || technologies.length > MAX_TECHNOLOGIES || !technologies.every((technology) => typeof technology === "string" && technology.length <= 50))) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid technology preference" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
-      );
+    if (action !== undefined && action !== "resubscribe") {
+      return respond({ success: false, error: "Invalid action" }, 400);
     }
 
-    // Validate frequency
-    if (frequency && !VALID_FREQUENCIES.includes(frequency)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid frequency value" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Validate severity
-    if (severity_threshold && !VALID_SEVERITIES.includes(severity_threshold)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid severity value" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-    if (content_scope !== undefined && !VALID_CONTENT_SCOPES.includes(content_scope)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid content scope" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-    if (
-      (preferred_hour !== undefined && (!Number.isInteger(preferred_hour) || preferred_hour < 0 || preferred_hour > 23)) ||
-      (preferred_day !== undefined && (!Number.isInteger(preferred_day) || preferred_day < 0 || preferred_day > 6)) ||
-      (timezone_offset !== undefined && (!Number.isFinite(timezone_offset) || timezone_offset < -12 || timezone_offset > 14 || !Number.isInteger(timezone_offset * 4)))
-    ) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid delivery schedule" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
-      );
-    }
-
-    console.log(`[update-subscription] Verifying token for subscription update from IP: ${clientIP}`);
+    console.log(`[update-subscription] Verifying token for subscription update`);
 
     // First verify the token matches the email
     const { data: existingSubscription, error: lookupError } = await supabase
       .from("subscriptions")
-      .select("id, content_scope")
+      .select(STORED_PREFERENCE_COLUMNS)
       .eq("email", normalizedEmail)
       .eq("verification_token", token)
       .eq("is_verified", true)
@@ -213,42 +171,110 @@ serve(async (req) => {
 
     if (!existingSubscription) {
       console.log(`[update-subscription] Token validation failed`);
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid email or token" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      return respond({ success: false, error: "Invalid email or token" }, 401);
+    }
+    const stored = existingSubscription as unknown as Record<string, unknown>;
+
+    if (action === "resubscribe") {
+      if (stored.is_active !== false) {
+        return respond({ success: true, alreadyActive: true, message: "Your emails are already on." });
+      }
+      const resubscribeLimit = await checkRateLimit(
+        supabase,
+        RESUBSCRIBE_RATE_LIMIT.scope,
+        normalizedEmail,
+        RESUBSCRIBE_RATE_LIMIT.maxAttempts,
+        RESUBSCRIBE_RATE_LIMIT.windowSeconds,
       );
+      if (!resubscribeLimit.allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Too many requests. Please try again later.", retryAfter: resubscribeLimit.resetIn }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(resubscribeLimit.resetIn) } },
+        );
+      }
+      const storedPreferences = parseSubscriptionPreferences(stored);
+      if (!storedPreferences.ok) {
+        return respond({ success: false, error: `${storedPreferences.error}. Save your preferences first.` }, 400);
+      }
+
+      const { data: suppression, error: suppressionError } = await supabase
+        .from("email_suppressions")
+        .select("email_hash")
+        .eq("email_hash", await emailHash(normalizedEmail))
+        .maybeSingle();
+      if (suppressionError) throw suppressionError;
+      // A bounced or complained address gets no mail; the response stays the same.
+      if (suppression) {
+        console.warn(`[update-subscription] Subscription ${stored.id} is suppressed; no opt-in email sent`);
+        return respond({ success: true, message: "Check your inbox to confirm" });
+      }
+
+      const optinToken = crypto.randomUUID();
+      const { error: optinError } = await supabase
+        .from("subscriptions")
+        .update({
+          optin_token: optinToken,
+          optin_token_expires_at: new Date(Date.now() + OPTIN_TTL_MS).toISOString(),
+          optin_pending: subscriptionColumns(storedPreferences.value),
+        })
+        .eq("id", stored.id)
+        .eq("is_active", false);
+      if (optinError) throw optinError;
+
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (!resendApiKey) {
+        console.warn("[update-subscription] RESEND_API_KEY not configured");
+      } else {
+        const message = renderResubscribeEmail({
+          name: typeof stored.name === "string" ? stored.name : null,
+          channels: storedPreferences.value.channels,
+          categories: storedPreferences.value.categories,
+          confirmUrl: optinConfirmUrl(optinToken),
+        });
+        try {
+          const emailResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "Digibastion Security <alerts@digibastion.com>",
+              reply_to: "support@digibastion.com",
+              to: [normalizedEmail],
+              subject: message.subject,
+              html: message.html,
+              text: message.text,
+            }),
+          });
+          if (!emailResponse.ok) console.error(`[update-subscription] Resend API error: status ${emailResponse.status}`);
+        } catch (emailError) {
+          console.error("[update-subscription] Failed to send opt-in email:", emailError);
+        }
+      }
+      console.log(`[update-subscription] Re-subscribe opt-in started for ${stored.id}`);
+      return respond({ success: true, message: "Check your inbox to confirm" });
     }
 
-    // Sanitize and prepare update data
+    // A legacy payload (frequency only) keeps the stored scope, preliminary
+    // choice, chains and timezone instead of resetting them.
+    const parsed = parseSubscriptionPreferences(mergeStoredPreferences(body, stored));
+    if (!parsed.ok) {
+      return respond({ success: false, error: parsed.error }, 400);
+    }
+
+    // Saving never changes is_active: an unsubscribed address stays
+    // unsubscribed until it confirms a re-subscribe link.
     const updateData: Record<string, unknown> = {
+      ...subscriptionColumns(parsed.value),
       name: name ? sanitizeString(String(name)).slice(0, MAX_NAME_LENGTH) : null,
-      categories: categories.slice(0, MAX_CATEGORIES).map((c: unknown) => String(c).slice(0, 50)),
-      technologies: (technologies || []).slice(0, MAX_TECHNOLOGIES).map((t: unknown) => String(t).slice(0, 50)),
-      frequency: frequency || "daily",
-      severity_threshold: severity_threshold || "medium",
-      content_scope: content_scope || existingSubscription.content_scope || "all",
-      is_active: true,
       updated_at: new Date().toISOString(),
     };
 
-    // Add time preferences if provided
-    if (typeof preferred_hour === 'number') {
-      updateData.preferred_hour = Math.min(23, Math.max(0, preferred_hour));
-    }
-    if (typeof timezone_offset === 'number') {
-      updateData.timezone_offset = Math.min(14, Math.max(-12, timezone_offset));
-    }
-    if (typeof preferred_day === 'number') {
-      updateData.preferred_day = Math.min(6, Math.max(0, preferred_day));
-    }
-
-    console.log(`[update-subscription] Updating subscription: ${existingSubscription.id}`);
+    console.log(`[update-subscription] Updating subscription: ${stored.id}`);
 
     const { data, error } = await supabase
       .from("subscriptions")
       .update(updateData)
-      .eq("id", existingSubscription.id)
-      .select("id, email, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day")
+      .eq("id", stored.id)
+      .select(RETURNED_COLUMNS)
       .single();
 
     if (error) {
@@ -257,11 +283,8 @@ serve(async (req) => {
     }
 
     console.log(`[update-subscription] Successfully updated subscription`);
-    
-    return new Response(
-      JSON.stringify({ success: true, subscription: data }),
-      { headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+
+    return respond({ success: true, subscription: data });
   } catch (error) {
     console.error("[update-subscription] Error:", error);
     return new Response(

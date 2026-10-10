@@ -104,7 +104,7 @@ serve(async (req) => {
     const normalizedEmail = email.toLowerCase().trim();
     const emailRateLimit = await checkRateLimit(supabase, "subscription:get:email", normalizedEmail, MAX_ATTEMPTS_PER_EMAIL);
     if (!emailRateLimit.allowed) {
-      console.warn(`[get-subscription] Rate limit exceeded for email: ${normalizedEmail}`);
+      console.warn("[get-subscription] Rate limit exceeded for an email address");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -142,7 +142,7 @@ serve(async (req) => {
     // Require BOTH email AND valid token to match - prevents enumeration
     const { data: subscription, error } = await supabase
       .from("subscriptions")
-      .select("id, email, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day, is_active, is_verified")
+      .select("id, email, name, categories, technologies, frequency, severity_threshold, content_scope, preferred_hour, timezone_offset, preferred_day, wants_realtime, wants_daily, wants_weekly, include_preliminary, chains, timezone, is_active, is_verified, unsubscribed_at")
       .eq("email", normalizedEmail)
       .eq("verification_token", token)
       .eq("is_verified", true)
@@ -162,7 +162,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[get-subscription] Found subscription for ${normalizedEmail}`);
+    console.log(`[get-subscription] Found subscription ${subscription.id}`);
     
     return new Response(
       JSON.stringify({ success: true, subscription }),

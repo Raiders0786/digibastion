@@ -1,6 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
-import { VALID_NEWS_CATEGORIES } from "../_shared/news-categories.ts";
+import { emailHash, normalizeEmail } from "../_shared/email-compliance.ts";
+import { parseSubscriptionPreferences, readDeliveryChannels } from "../_shared/subscription-preferences.ts";
+import {
+  OPTIN_TTL_MS,
+  RESUBSCRIBE_RATE_LIMIT,
+  describeChannels,
+  optinConfirmUrl,
+  parseSignupConsentSource,
+  planSubscribeRequest,
+  renderResubscribeEmail,
+  subscriptionColumns,
+} from "../_shared/subscription-optin.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,10 +24,6 @@ const MAX_EMAIL_LENGTH = 255;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_SOCIAL_LENGTH = 100;
 const MAX_URL_LENGTH = 500;
-const VALID_CATEGORIES = VALID_NEWS_CATEGORIES;
-const VALID_FREQUENCIES = new Set(['immediate', 'daily', 'weekly']);
-const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low', 'info']);
-const VALID_CONTENT_SCOPES = new Set(['all', 'web3-incidents']);
 
 // Rate limiting configuration
 const MAX_SUBSCRIPTIONS_PER_EMAIL = 3; // Max subscription attempts per email per hour
@@ -31,34 +38,14 @@ interface ContactFormData {
   message: string;
 }
 
-interface SubscriptionFormData {
+/**
+ * Subscription payload. Preferences are validated by
+ * parseSubscriptionPreferences, which also accepts the legacy frequency shape.
+ */
+interface SubscriptionFormData extends Record<string, unknown> {
   name?: string;
-  email: string;
-  categories: string[];
-  technologies?: string[];
-  frequency: string;
-  severity: string;
-  content_scope?: string;
-  preferred_hour?: number;
-  timezone_offset?: number;
-  preferred_day?: number;
-}
-
-interface SanitizedSubscriptionData {
-  email: string;
-  name: string | null;
-  categories: string[];
-  technologies: string[];
-  frequency: string;
-  severity_threshold: string;
-  content_scope: string;
-  preferred_hour: number;
-  timezone_offset: number;
-  preferred_day: number;
-  is_active: boolean;
-  is_verified: boolean;
-  verification_token?: string;
-  verification_token_expires_at?: string;
+  email?: string;
+  consent_source?: string;
 }
 
 function validateEmail(email: string): boolean {
@@ -206,99 +193,187 @@ const handler = async (req: Request): Promise<Response> => {
       );
 
     } else if (type === "subscription") {
-      const subData = data as SubscriptionFormData;
-      
-      // Validate required fields
-      if (!subData.email || !Array.isArray(subData.categories) || subData.categories.length === 0 || subData.categories.length > 10) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Missing required fields" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      const subData = (data ?? {}) as SubscriptionFormData;
+      const json = (body: Record<string, unknown>, status = 200) => new Response(
+        JSON.stringify(body),
+        { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
 
-      // Validate email
+      if (typeof subData.email !== "string" || !subData.email) {
+        return json({ success: false, error: "Missing required fields" }, 400);
+      }
       if (!validateEmail(subData.email)) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Invalid email address" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return json({ success: false, error: "Invalid email address" }, 400);
       }
 
-      if (!subData.categories.every((category) => typeof category === 'string' && VALID_CATEGORIES.has(category))) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Invalid security category" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (subData.technologies !== undefined && (!Array.isArray(subData.technologies) || subData.technologies.length > 20 || !subData.technologies.every((technology) => typeof technology === 'string' && technology.length <= 50))) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Invalid technology preference" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (
-        !VALID_FREQUENCIES.has(subData.frequency) ||
-        !VALID_SEVERITIES.has(subData.severity) ||
-        (subData.content_scope !== undefined && !VALID_CONTENT_SCOPES.has(subData.content_scope))
-      ) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Invalid alert preference" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (
-        (subData.preferred_hour !== undefined && (!Number.isInteger(subData.preferred_hour) || subData.preferred_hour < 0 || subData.preferred_hour > 23)) ||
-        (subData.preferred_day !== undefined && (!Number.isInteger(subData.preferred_day) || subData.preferred_day < 0 || subData.preferred_day > 6)) ||
-        (subData.timezone_offset !== undefined && (!Number.isFinite(subData.timezone_offset) || subData.timezone_offset < -12 || subData.timezone_offset > 14 || !Number.isInteger(subData.timezone_offset * 4)))
-      ) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Invalid delivery schedule" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+      // Same validation as update-subscription: new payload (wants_*,
+      // include_preliminary, chains, timezone) or the legacy frequency one.
+      const parsed = parseSubscriptionPreferences(subData);
+      if (!parsed.ok) return json({ success: false, error: parsed.error }, 400);
+      const preferences = parsed.value;
+      const consentSource = parseSignupConsentSource(subData.consent_source);
+      if (!consentSource) return json({ success: false, error: "Invalid consent source" }, 400);
 
       // Rate limit by email for subscriptions (prevent spam signups)
-      const normalizedEmail = subData.email.toLowerCase().trim();
+      const normalizedEmail = normalizeEmail(sanitizeString(subData.email, MAX_EMAIL_LENGTH));
       const { data: emailRateLimit, error: emailLimitError } = await supabase.rpc('consume_rate_limit', { _scope: 'subscription:email', _identifier_hash: await hashIdentifier(normalizedEmail), _max_attempts: MAX_SUBSCRIPTIONS_PER_EMAIL, _window_seconds: 3600 });
-      
+
       // Also rate limit by IP as secondary protection
       const clientIP = getClientIP(req);
       const { data: ipRateLimit, error: ipLimitError } = await supabase.rpc('consume_rate_limit', { _scope: 'subscription:ip', _identifier_hash: await hashIdentifier(clientIP), _max_attempts: MAX_CONTACTS_PER_IP, _window_seconds: 3600 });
       if (emailLimitError || ipLimitError) throw emailLimitError || ipLimitError;
-      
+
       if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
         console.warn("[submit-form] Subscription rate limit exceeded");
         return new Response(
-          JSON.stringify({ 
-            success: false, 
+          JSON.stringify({
+            success: false,
             error: "Too many subscription attempts. Please try again later.",
             retryAfter: 3600
           }),
-          { 
-            status: 429, 
-            headers: { 
-              ...corsHeaders, 
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
               "Content-Type": "application/json",
               "Retry-After": "3600"
-            } 
+            }
           }
         );
       }
 
-      // Check if this email already has a verified subscription
-      const { data: existingSub } = await supabase
-        .from('subscriptions')
-        .select('id, email, name, is_verified, verification_token, verification_token_expires_at, frequency, preferred_hour, timezone_offset, preferred_day, categories, technologies, severity_threshold, content_scope, is_active')
-        .eq('email', sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase())
-        .maybeSingle();
+      // The response a brand-new signup gets. Suppressed addresses get it too,
+      // so the form never reveals that an address bounced or complained.
+      const checkEmailResponse = () => json({
+        success: true,
+        message: "Please check your email to verify your subscription.",
+        needsVerification: true,
+        alreadyVerified: false,
+        isNewSubscription: true,
+        inactive: false,
+      });
 
-      const isNewSubscription = !existingSub;
-      const alreadyVerified = existingSub?.is_verified === true;
-      const inactive = existingSub?.is_active === false;
-      const needsVerification = !alreadyVerified;
+      const [{ data: existingSub, error: lookupError }, { data: suppression, error: suppressionError }] = await Promise.all([
+        supabase
+          .from('subscriptions')
+          .select('id, email, name, is_verified, is_active, verification_token, verification_token_expires_at, frequency, wants_realtime, wants_daily, wants_weekly, preferred_hour, timezone_offset, timezone, categories')
+          .eq('email', normalizedEmail)
+          .maybeSingle(),
+        supabase
+          .from('email_suppressions')
+          .select('email_hash')
+          .eq('email_hash', await emailHash(normalizedEmail))
+          .maybeSingle(),
+      ]);
+      if (lookupError) throw lookupError;
+      if (suppressionError) throw suppressionError;
 
-      // Keep a pending subscriber's valid token so a public retry cannot
-      // invalidate a link already delivered to their inbox.
+      const action = planSubscribeRequest({ existing: existingSub, suppressed: Boolean(suppression) });
+      console.log(`[submit-form] Subscription request: action=${action}`);
+
+      if (action === 'suppressed') return checkEmailResponse();
+
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      const sendEmail = async (to: string, subject: string, html: string, text: string, label: string) => {
+        if (!resendApiKey) {
+          console.warn("[submit-form] RESEND_API_KEY not configured");
+          return;
+        }
+        try {
+          const emailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Digibastion Security <alerts@digibastion.com>',
+              reply_to: 'support@digibastion.com',
+              to: [to],
+              subject,
+              html,
+              text,
+            }),
+          });
+          if (!emailResponse.ok) {
+            console.error(`[submit-form] Resend API error (${label}): status ${emailResponse.status}`);
+          } else {
+            console.log(`[submit-form] ${label} email sent`);
+          }
+        } catch (emailError) {
+          console.error(`[submit-form] Failed to send ${label} email:`, emailError);
+        }
+      };
+
+      if (action === 'resubscribe') {
+        // Re-activation only happens when the address owner clicks the opt-in
+        // link; is_active, the saved preferences and the management token stay
+        // as they are until then.
+        const { data: resubscribeLimit, error: resubscribeLimitError } = await supabase.rpc('consume_rate_limit', {
+          _scope: RESUBSCRIBE_RATE_LIMIT.scope,
+          _identifier_hash: await hashIdentifier(normalizedEmail),
+          _max_attempts: RESUBSCRIBE_RATE_LIMIT.maxAttempts,
+          _window_seconds: RESUBSCRIBE_RATE_LIMIT.windowSeconds,
+        });
+        if (resubscribeLimitError) throw resubscribeLimitError;
+        if (resubscribeLimit?.allowed) {
+          const optinToken = crypto.randomUUID();
+          const { error: optinError } = await supabase
+            .from('subscriptions')
+            .update({
+              optin_token: optinToken,
+              optin_token_expires_at: new Date(Date.now() + OPTIN_TTL_MS).toISOString(),
+              optin_pending: subscriptionColumns(preferences),
+            })
+            .eq('id', existingSub!.id)
+            .eq('is_verified', true)
+            .eq('is_active', false);
+          if (optinError) throw optinError;
+          const email = renderResubscribeEmail({
+            name: existingSub!.name ?? null,
+            channels: preferences.channels,
+            categories: preferences.categories,
+            confirmUrl: optinConfirmUrl(optinToken),
+          });
+          await sendEmail(normalizedEmail, email.subject, email.html, email.text, 'Re-subscribe opt-in');
+        } else {
+          console.warn("[submit-form] Re-subscribe rate limit reached; no email sent");
+        }
+        return json({
+          success: true,
+          message: "Check your inbox to confirm you want these emails again.",
+          needsVerification: false,
+          alreadyVerified: true,
+          isNewSubscription: false,
+          inactive: true,
+        });
+      }
+
+      if (action === 'already-active') {
+        // Public signup never overwrites an existing subscriber's preferences.
+        // The management link goes to the address they already proved they control.
+        const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(existingSub!.email)}&token=${encodeURIComponent(existingSub!.verification_token || '')}`;
+        const channels = describeChannels(readDeliveryChannels(existingSub!));
+        await sendEmail(
+          normalizedEmail,
+          "You're already subscribed - Digibastion Security",
+          generateAlreadyVerifiedEmail(existingSub!.name, channels, existingSub!.preferred_hour, existingSub!.timezone_offset, existingSub!.timezone, existingSub!.categories || [], manageUrl),
+          generateAlreadyVerifiedEmailText(existingSub!.name, channels, existingSub!.preferred_hour, existingSub!.timezone_offset, existingSub!.timezone, existingSub!.categories || [], manageUrl),
+          'Existing subscriber',
+        );
+        return json({
+          success: true,
+          message: "You're already subscribed! We've sent a confirmation to your email.",
+          needsVerification: false,
+          alreadyVerified: true,
+          isNewSubscription: false,
+          inactive: false,
+        });
+      }
+
+      // New or still-unverified address: (re)send the verification link. Keep
+      // a pending subscriber's valid token so a public retry cannot invalidate
+      // a link already delivered to their inbox.
       const existingTokenIsValid = Boolean(
         existingSub?.verification_token &&
         existingSub.verification_token_expires_at &&
@@ -308,153 +383,62 @@ const handler = async (req: Request): Promise<Response> => {
         ? existingSub?.verification_token as string
         : crypto.randomUUID();
       const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+      const subscriberName = subData.name ? sanitizeString(String(subData.name), MAX_NAME_LENGTH) : null;
 
-      // Sanitize and prepare subscription data
-      // BUG FIX: Don't overwrite existing verification_token for already-verified users
-      // Their token is their permanent management token
-      const subscriptionData: SanitizedSubscriptionData = {
-        email: sanitizeString(subData.email, MAX_EMAIL_LENGTH).toLowerCase(),
-        name: subData.name ? sanitizeString(subData.name, MAX_NAME_LENGTH) : null,
-        categories: subData.categories.slice(0, 10).map(c => sanitizeString(c, 50)),
-        technologies: (subData.technologies || []).slice(0, 20).map(t => sanitizeString(t, 50)),
-        frequency: sanitizeString(subData.frequency, 20),
-        severity_threshold: sanitizeString(subData.severity, 20),
-        content_scope: subData.content_scope || 'all',
-        preferred_hour: typeof subData.preferred_hour === 'number' ? Math.min(23, Math.max(0, subData.preferred_hour)) : 9,
-        timezone_offset: typeof subData.timezone_offset === 'number' ? Math.min(14, Math.max(-12, subData.timezone_offset)) : 0,
-        preferred_day: typeof subData.preferred_day === 'number' ? Math.min(6, Math.max(0, subData.preferred_day)) : 0,
-        is_active: true,
-        is_verified: existingSub?.is_verified || false,
-      };
-
-      // Only set verification token for new/unverified users
-      if (needsVerification) {
-        subscriptionData.verification_token = verificationToken;
-        subscriptionData.verification_token_expires_at = tokenExpiresAt;
-      }
-      // For already-verified users, do NOT touch their verification_token (management token)
-
-      console.log(`[submit-form] Subscription request: isNew=${isNewSubscription}, needsVerification=${needsVerification}`);
-
-      // Public signup may create a new row, but it must never overwrite an
-      // existing subscriber's preferences. Existing users receive a link at
-      // the address they already proved they control.
-      let subscription = existingSub;
-      let dbError = null;
-      if (isNewSubscription) {
-        const result = await supabase
+      if (action === 'create') {
+        const { error: insertError } = await supabase
           .from('subscriptions')
-          .insert(subscriptionData)
-          .select()
-          .single();
-        subscription = result.data;
-        dbError = result.error;
-      } else if (!alreadyVerified && !existingTokenIsValid) {
-        const result = await supabase
+          .insert({
+            email: normalizedEmail,
+            name: subscriberName,
+            ...subscriptionColumns(preferences),
+            is_active: true,
+            is_verified: false,
+            verification_token: verificationToken,
+            verification_token_expires_at: tokenExpiresAt,
+            consent_source: consentSource,
+            consent_ip_hash: clientIP === "unknown" ? null : await hashIdentifier(clientIP),
+          });
+        if (insertError) {
+          console.error("[submit-form] Database error:", insertError);
+          throw new Error("Failed to save subscription");
+        }
+      } else if (!existingTokenIsValid) {
+        const { error: refreshError } = await supabase
           .from('subscriptions')
           .update({
             verification_token: verificationToken,
             verification_token_expires_at: tokenExpiresAt,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existingSub.id)
-          .eq('is_verified', false)
-          .select()
-          .single();
-        subscription = result.data;
-        dbError = result.error;
+          .eq('id', existingSub!.id)
+          .eq('is_verified', false);
+        if (refreshError) {
+          console.error("[submit-form] Database error:", refreshError);
+          throw new Error("Failed to save subscription");
+        }
       }
-
-      if (dbError) {
-        console.error("[submit-form] Database error:", dbError);
-        throw new Error("Failed to save subscription");
-      }
-
-      if (!subscription) throw new Error("Failed to resolve subscription");
       console.log("[submit-form] Subscription request saved");
 
-      const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      
-      // Send appropriate email based on verification status
-      if (needsVerification) {
-        // New or unverified user - send verification email
-        if (resendApiKey) {
-          const verifyUrl = `https://www.digibastion.com/verify-email?token=${verificationToken}`;
-          const verificationName = isNewSubscription ? subscriptionData.name : existingSub?.name || null;
-          const verificationCategories = isNewSubscription ? subscriptionData.categories : existingSub?.categories || [];
-          
-          try {
-            const emailResponse = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${resendApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: 'Digibastion Security <alerts@digibastion.com>',
-                reply_to: 'support@digibastion.com',
-                to: [subscriptionData.email],
-                subject: 'Verify your email - Digibastion Security Alerts',
-                html: generateVerificationEmail(verificationName, verifyUrl, verificationCategories),
-                text: generateVerificationEmailText(verificationName, verifyUrl, verificationCategories),
-              }),
-            });
-
-            if (!emailResponse.ok) {
-              const errorText = await emailResponse.text();
-              console.error("[submit-form] Resend API error:", errorText);
-            } else {
-              console.log("[submit-form] Verification email sent");
-            }
-          } catch (emailError) {
-            console.error("[submit-form] Failed to send verification email:", emailError);
-          }
-        }
-      } else {
-        // Already verified - send confirmation email with their current settings
-        if (resendApiKey) {
-          // BUG FIX: Use the subscriber's existing verification_token (management token), not their subscription ID
-          const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(existingSub!.email)}&token=${encodeURIComponent(existingSub!.verification_token || '')}`;
-          
-          try {
-            const emailResponse = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${resendApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: 'Digibastion Security <alerts@digibastion.com>',
-                reply_to: 'support@digibastion.com',
-                to: [subscriptionData.email],
-                subject: inactive ? 'Reactivate your Digibastion security alerts' : 'You\'re already subscribed! - Digibastion Security',
-                html: generateAlreadyVerifiedEmail(existingSub!.name, existingSub!.frequency, existingSub!.preferred_hour, existingSub!.timezone_offset, existingSub!.categories, manageUrl, inactive),
-                text: generateAlreadyVerifiedEmailText(existingSub!.name, existingSub!.frequency, existingSub!.preferred_hour, existingSub!.timezone_offset, existingSub!.categories, manageUrl, inactive),
-              }),
-            });
-
-            if (!emailResponse.ok) {
-              const errorText = await emailResponse.text();
-              console.error("[submit-form] Resend API error:", errorText);
-            } else {
-              console.log("[submit-form] Existing subscriber email sent");
-            }
-          } catch (emailError) {
-            console.error("[submit-form] Failed to send already verified email:", emailError);
-          }
-        }
-      }
-
-      const responseMessage = needsVerification
-        ? "Please check your email to verify your subscription."
-        : inactive
-          ? "Your alerts are paused. We've emailed a secure reactivation link."
-          : "You're already subscribed! We've sent a confirmation to your email.";
-
-      return new Response(
-        JSON.stringify({ success: true, message: responseMessage, needsVerification, alreadyVerified, isNewSubscription, inactive }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      const verifyUrl = `https://www.digibastion.com/verify-email?token=${verificationToken}`;
+      const verificationName = action === 'create' ? subscriberName : existingSub?.name || null;
+      const verificationCategories = action === 'create' ? preferences.categories : existingSub?.categories || [];
+      await sendEmail(
+        normalizedEmail,
+        'Verify your email - Digibastion Security Alerts',
+        generateVerificationEmail(verificationName, verifyUrl, verificationCategories),
+        generateVerificationEmailText(verificationName, verifyUrl, verificationCategories),
+        'Verification',
       );
+
+      return json({
+        success: true,
+        message: "Please check your email to verify your subscription.",
+        needsVerification: true,
+        alreadyVerified: false,
+        isNewSubscription: action === 'create',
+        inactive: false,
+      });
 
     } else {
       return new Response(
@@ -581,35 +565,42 @@ https://digibastion.com
   `.trim();
 }
 
-// Helper function to format delivery time
-function formatDeliveryTime(hour: number, offset: number): string {
+// Delivery time for the daily brief and weekly: the IANA zone when the
+// subscriber has one, otherwise the stored UTC offset.
+function formatDeliveryTime(hour: number, offset: number, timezone: string | null): string {
   const period = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  if (timezone) return `${displayHour}:00 ${period} (${timezone})`;
   const sign = offset >= 0 ? '+' : '';
   return `${displayHour}:00 ${period} UTC${sign}${offset}`;
 }
 
+function categoryName(category: string): string {
+  return category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 function generateAlreadyVerifiedEmail(
-  name: string | null, 
-  frequency: string, 
-  preferredHour: number, 
+  name: string | null,
+  channels: string[],
+  preferredHour: number,
   timezoneOffset: number,
+  timezone: string | null,
   categories: string[],
   manageUrl: string,
-  inactive = false,
 ): string {
   const displayName = escapeHtml(name || 'Security Professional');
   const escapedManageUrl = escapeHtml(manageUrl);
-  const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${escapeHtml(c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</li>`).join('');
-  const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
-  const frequencyDisplay = frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Immediate';
-  const statusLabel = inactive ? 'Alerts Paused' : 'Already Verified';
-  const heading = inactive ? 'Reactivate Your Security Alerts' : "You're Already Subscribed!";
-  const intro = inactive
-    ? 'Your email is verified, but these alerts are currently paused. Review the saved settings below and reactivate them from the secure management page:'
-    : "Good news - your email is already verified and you're receiving our security alerts! Here's a reminder of your current settings:";
-  const actionLabel = inactive ? 'Review & Reactivate' : 'Manage Preferences';
-  
+  const categoryList = categories.slice(0, 5).map(c => `<li style="margin-bottom: 4px;">${escapeHtml(categoryName(c))}</li>`).join('');
+  const channelList = channels.map(c => `<li style="margin-bottom: 4px;">${escapeHtml(c)}</li>`).join('');
+  const showDelivery = channels.some((channel) => channel !== 'Real-time alerts');
+  const deliveryRow = showDelivery
+    ? `<tr>
+                        <td style="color: #9ca3af; font-size: 14px; padding-bottom: 8px;">
+                          <strong style="color: #f3f4f6;">Daily and weekly delivery:</strong> ${escapeHtml(formatDeliveryTime(preferredHour, timezoneOffset, timezone))}
+                        </td>
+                      </tr>`
+    : '';
+
   return `
 <!DOCTYPE html>
 <html>
@@ -624,48 +615,36 @@ function generateAlreadyVerifiedEmail(
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(30, 30, 50, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(34, 197, 94, 0.3);">
           <tr>
             <td style="padding: 40px;">
-              <!-- Header -->
               <table width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center" style="padding-bottom: 30px;">
-                    <h1 style="color: #f3f4f6; margin: 0; font-size: 28px;">🛡️ Digibastion</h1>
+                    <h1 style="color: #f3f4f6; margin: 0; font-size: 28px;">Digibastion</h1>
                     <p style="color: #9ca3af; margin: 8px 0 0 0; font-size: 14px;">Security Threat Intelligence</p>
                   </td>
                 </tr>
               </table>
-              
-              <!-- Content -->
               <table width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td style="padding-bottom: 24px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                      <span style="display: inline-block; background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-                        ✓ ${statusLabel}
-                      </span>
-                    </div>
-                    <h2 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 22px;">${heading}</h2>
+                    <h2 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 22px;">You're already subscribed</h2>
                     <p style="color: #d1d5db; margin: 0; font-size: 16px; line-height: 1.6;">
                       Hi ${displayName},<br><br>
-                      ${intro}
+                      Your email is already verified. Here are your current settings:
                     </p>
                   </td>
                 </tr>
-                
-                <!-- Current Settings -->
                 <tr>
-                  <td style="padding: 24px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; margin-top: 24px;">
-                    <h3 style="color: #f3f4f6; margin: 0 0 16px 0; font-size: 16px;">Your Alert Settings:</h3>
+                  <td style="padding: 24px; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
                     <table width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td style="color: #9ca3af; font-size: 14px; padding-bottom: 8px;">
-                          <strong style="color: #f3f4f6;">Frequency:</strong> ${frequencyDisplay} digest
+                          <strong style="color: #f3f4f6;">Emails:</strong>
+                          <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                            ${channelList}
+                          </ul>
                         </td>
                       </tr>
-                      <tr>
-                        <td style="color: #9ca3af; font-size: 14px; padding-bottom: 8px;">
-                          <strong style="color: #f3f4f6;">Delivery Time:</strong> ${deliveryTime}
-                        </td>
-                      </tr>
+                      ${deliveryRow}
                       <tr>
                         <td style="color: #9ca3af; font-size: 14px; padding-top: 8px;">
                           <strong style="color: #f3f4f6;">Categories:</strong>
@@ -677,19 +656,15 @@ function generateAlreadyVerifiedEmail(
                     </table>
                   </td>
                 </tr>
-                
-                <!-- Manage Button -->
                 <tr>
                   <td align="center" style="padding: 24px 0;">
-                    <a href="${escapedManageUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                      ${actionLabel}
+                    <a href="${escapedManageUrl}" style="display: inline-block; background: #16a34a; color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                      Manage preferences
                     </a>
                   </td>
                 </tr>
-                
-                <!-- Footer -->
                 <tr>
-                  <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 32px;">
+                  <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
                     <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.6;">
                       You're receiving this because someone tried to subscribe with your email. If this wasn't you, you can safely ignore this message.
                     </p>
@@ -711,36 +686,37 @@ function generateAlreadyVerifiedEmail(
 }
 
 function generateAlreadyVerifiedEmailText(
-  name: string | null, 
-  frequency: string, 
-  preferredHour: number, 
+  name: string | null,
+  channels: string[],
+  preferredHour: number,
   timezoneOffset: number,
+  timezone: string | null,
   categories: string[],
   manageUrl: string,
-  inactive = false,
 ): string {
   const displayName = name || 'Security Professional';
-  const categoryList = categories.slice(0, 5).map(c => `- ${c.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n');
-  const deliveryTime = formatDeliveryTime(preferredHour, timezoneOffset);
-  const frequencyDisplay = frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Immediate';
-  
-  return `
-Digibastion Security - ${inactive ? 'Reactivate Your Alerts' : "You're Already Subscribed!"}
-
-Hi ${displayName},
-
-${inactive ? 'Your verified subscription is currently paused. Review the saved settings below and reactivate it securely.' : "Good news - your email is already verified and you're receiving our security alerts!"}
-
-YOUR CURRENT SETTINGS:
-- Frequency: ${frequencyDisplay} digest
-- Delivery Time: ${deliveryTime}
-- Categories:
-${categoryList}
-
-To ${inactive ? 'review and reactivate' : 'update'} your preferences, visit: ${manageUrl}
-
----
-Digibastion Security Threat Intelligence
-https://digibastion.com
-  `.trim();
+  const lines = [
+    "Digibastion Security - You're already subscribed",
+    '',
+    `Hi ${displayName},`,
+    '',
+    'Your email is already verified. Here are your current settings:',
+    '',
+    'Emails:',
+    ...channels.map((channel) => `- ${channel}`),
+  ];
+  if (channels.some((channel) => channel !== 'Real-time alerts')) {
+    lines.push(`Daily and weekly delivery: ${formatDeliveryTime(preferredHour, timezoneOffset, timezone)}`);
+  }
+  lines.push(
+    'Categories:',
+    ...categories.slice(0, 5).map((c) => `- ${categoryName(c)}`),
+    '',
+    `To update your preferences, visit: ${manageUrl}`,
+    '',
+    '---',
+    'Digibastion Security Threat Intelligence',
+    'https://digibastion.com',
+  );
+  return lines.join('\n');
 }
