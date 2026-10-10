@@ -15,6 +15,13 @@
       "when": 1791642257239,
       "tag": "0001_threat_intel_incident_filters",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791656984566,
+      "tag": "0002_add_telegram_alerts",
+      "breakpoints": true
     }
   ]
 }
