@@ -10,6 +10,8 @@ interface NewsFiltersProps {
   onCategoryToggle: (category: NewsCategory) => void;
   onSeverityToggle: (severity: SeverityLevel) => void;
   onClearFilters: () => void;
+  /** Overrides when Clear shows, for callers whose filters go beyond categories and severities. */
+  showClear?: boolean;
 }
 
 export const NewsFilters = ({
@@ -17,9 +19,10 @@ export const NewsFilters = ({
   selectedSeverities,
   onCategoryToggle,
   onSeverityToggle,
-  onClearFilters
+  onClearFilters,
+  showClear,
 }: NewsFiltersProps) => {
-  const hasActiveFilters = selectedCategories.length > 0 || selectedSeverities.length > 0;
+  const hasActiveFilters = showClear ?? (selectedCategories.length > 0 || selectedSeverities.length > 0);
 
   const severityLevels: { value: SeverityLevel; label: string; color: string }[] = SEVERITY_LEVELS.map((level) => ({
     value: level,

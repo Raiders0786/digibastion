@@ -5,7 +5,7 @@ import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
-import { FeedToolbar } from '@/components/news/FeedToolbar';
+import { countActiveFilters, FeedToolbar } from '@/components/news/FeedToolbar';
 import { InlineSubscribeCard } from '@/components/news/InlineSubscribeCard';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
@@ -430,13 +430,22 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     { id: 'subscribe', label: 'Subscribe', shortLabel: 'Subscribe', icon: Bell },
   ];
 
+  // Every filter the mobile "Filters (n)" count includes, plus search and a
+  // non-default scope, gets the header's "Clear filters" control.
+  const hasClearableFilters = countActiveFilters({ selectedCategories, selectedSeverities, dateFilter, sortBy }) > 0
+    || Boolean(searchQuery)
+    || feedView !== DEFAULT_SCOPE;
+
   const isIncidentView = feedView === 'web3-incidents';
   const heroTitle = isIncidentView
     ? 'Crypto and Web3 security incidents, as they happen'
     : 'Security news and incident alerts';
   const heroIntro = isIncidentView
-    ? 'Hacks, exploits, phishing and supply-chain attacks, collected from QuillMonitor and other incident trackers, merged into one record per incident, and labelled confirmed or unconfirmed. Free alerts on Telegram and by email.'
-    : 'Security news, vulnerability advisories and Web3 incidents from QuillMonitor, other incident trackers and security publishers, each linked to its source. Free alerts on Telegram and by email.';
+    ? 'Hacks, exploits, phishing and supply-chain attacks, collected from QuillMonitor and other incident trackers, merged into one record per incident, and labelled confirmed or unconfirmed.'
+    : 'Security news, vulnerability advisories and Web3 incidents from QuillMonitor, other incident trackers and security publishers, each linked to its source.';
+  // The CTA buttons below say the same thing, so phones skip this sentence to
+  // keep the first card above the fold.
+  const heroAlertsSentence = 'Free alerts on Telegram and by email.';
 
   // statsCaption comes from task B3: "in this view" when threat_intel_stats
   // counted the whole filtered result, "on this page" when it fell back to
@@ -564,10 +573,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       
       <Navbar />
       
-      <main className="pt-20 pb-12">
+      <main className="pt-[4.5rem] pb-12 sm:pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="mb-4 text-center sm:mb-6" aria-labelledby="threat-intel-heading">
+          <section className="mb-3 text-center sm:mb-6" aria-labelledby="threat-intel-heading">
             <div className="mb-2 flex items-center justify-center gap-2">
               <Shield className="h-5 w-5 text-primary sm:h-6 sm:w-6" aria-hidden="true" />
               <RealtimeStatusIndicator />
@@ -580,8 +589,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             </h1>
             <p className="mx-auto mt-2 max-w-2xl px-2 text-sm text-muted-foreground sm:text-base">
               {heroIntro}
+              <span className="hidden sm:inline"> {heroAlertsSentence}</span>
             </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:mt-4">
               <Button asChild size="sm" className="gap-2">
                 <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
                   <Send className="h-4 w-4" aria-hidden="true" />
@@ -600,11 +610,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           {/* Stat tiles: one row on every screen size. Counts cover the whole
               filtered result (threat_intel_stats) unless statsCaption says otherwise. */}
           {isLoading && stats.total === 0 ? (
-            <div className="mb-4 sm:mb-6">
+            <div className="mb-3 sm:mb-6">
               <StatsSkeleton />
             </div>
           ) : (
-            <div className="mb-4 grid grid-cols-4 gap-1.5 sm:mb-6 sm:gap-2">
+            <div className="mb-3 grid grid-cols-4 gap-1.5 sm:mb-6 sm:gap-2">
               {statTiles.map((tile) => (
                 <Card key={tile.label} className={`glass-card ${tile.border}`}>
                   <CardContent className="p-1.5 text-center sm:p-3">
@@ -618,7 +628,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           )}
 
           {/* Section tabs: three equal columns with short labels on phones */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-3 sm:mb-6">
             <div
               role="tablist"
               aria-label="Threat intelligence sections"
@@ -633,7 +643,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     role="tab"
                     id={`threat-intel-tab-${tab.id}`}
                     aria-selected={selected}
-                    aria-label={tab.label}
+                    aria-label={tab.count ? `${tab.label} (${tab.count})` : tab.label}
                     aria-controls={`threat-intel-panel-${tab.id}`}
                     tabIndex={selected ? 0 : -1}
                     onClick={() => handleTabChange(tab.id)}
@@ -671,7 +681,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
           >
           {selectedTab === 'feed' && (
             <div
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
               role="tabpanel"
               id="threat-intel-panel-feed"
               aria-labelledby="threat-intel-tab-feed"
@@ -710,7 +720,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 <div className="lg:col-span-3 space-y-4">
 {/* Results count and refresh button */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
                       <span className="text-sm text-muted-foreground">
                         {isLoading ? 'Loading...' : (
                           pagination.totalCount > 0 
@@ -743,9 +753,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                           </Badge>
                         </Link>
                       )}
+                      {/* Phones skip this line to keep the first card above the fold; the sources chip already shows freshness. */}
                       {feedStatus.newestPublishedAt && (
                         <span
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                          className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"
                           title={`Newest publisher timestamp: ${format(feedStatus.newestPublishedAt, 'PPpp')}`}
                         >
                           <Clock className="h-3 w-3" />
@@ -800,7 +811,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       </Button>
                         </>
                       )}
-                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== DEFAULT_SCOPE) && (
+                      {hasClearableFilters && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                           Clear filters
                         </Button>

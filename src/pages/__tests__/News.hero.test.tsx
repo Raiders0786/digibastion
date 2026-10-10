@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NewsArticle } from '@/types/news';
@@ -147,5 +147,27 @@ describe('threat-intel hero and mobile filters', () => {
     expect(chip.getAttribute('href')).toBe('/threat-intel/methodology#sources');
     expect(screen.getByRole('link', { name: 'sources and methodology' }).getAttribute('href'))
       .toBe('/threat-intel/methodology');
+  });
+
+  it('offers a clear control for a date-only filter that the mobile count includes', async () => {
+    const router = renderAt('/threat-intel?date=7d');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters (1)' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filter feed' });
+    expect(within(sheet).queryByRole('button', { name: /Clear/ })).not.toBeNull();
+    fireEvent.keyDown(sheet, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Filter feed' })).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await waitFor(() => expect(router.state.location.search).not.toContain('date='));
+  });
+
+  it('keeps the count in each tab name', async () => {
+    feed.articles = [makeArticle(1), makeArticle(2)];
+    renderAt('/threat-intel');
+
+    expect(await screen.findByRole('tab', { name: 'News Feed (2)' })).not.toBeNull();
+    expect(screen.getByRole('tab', { name: 'Active Alerts (2)' })).not.toBeNull();
+    expect(screen.getByRole('tab', { name: 'Subscribe' })).not.toBeNull();
   });
 });

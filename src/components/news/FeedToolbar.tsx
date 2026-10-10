@@ -92,7 +92,7 @@ export function FeedToolbar(props: FeedToolbarProps) {
   return (
     <Card className="glass-card">
       <CardContent className="p-3 sm:p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:gap-4">
+        <div className="flex flex-col gap-2 md:flex-row md:gap-4">
           <div className="flex gap-2 md:flex-1">
             <div className="relative flex-1">
               <label htmlFor="threat-intel-search" className="sr-only">Search threat intelligence</label>
@@ -131,13 +131,14 @@ export function FeedToolbar(props: FeedToolbarProps) {
                     onCategoryToggle={onCategoryToggle}
                     onSeverityToggle={onSeverityToggle}
                     onClearFilters={onClearFilters}
+                    showClear={activeCount > 0}
                   />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 md:flex-row md:flex-wrap">
             <ContentScopeSelector
               value={scope}
               onChange={onScopeChange}
