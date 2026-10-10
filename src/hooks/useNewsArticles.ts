@@ -215,7 +215,11 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
   const latestStatsKey = useRef<string | null>(null);
   const requestedStatsKey = useRef<string | null>(null);
   const serverStats = useRef<{ key: string; stats: ThreatIntelStats } | null>(null);
+  // Provisional total used until server stats arrive (may be a planner estimate).
   const pageFloor = useRef(0);
+  // Rows actually returned so far for this view: the only floor applied to a
+  // server total, which is exact.
+  const seenRowsFloor = useRef(0);
   const pageArticlesRef = useRef<NewsArticle[]>([]);
 
   // Callers rebuild their filter arrays on every URL change, including tab
@@ -293,6 +297,8 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     if (serverStats.current?.key !== statsKey) {
       // Never show the previous view's counts under this view's caption.
       serverStats.current = null;
+      pageFloor.current = 0;
+      seenRowsFloor.current = 0;
       setStats(EMPTY_THREAT_INTEL_STATS);
       setStatsSource('page');
     }
@@ -306,7 +312,7 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
       void fetchThreatIntelStats(filterParams).then(async (resolvedStats) => {
         if (latestStatsKey.current !== statsKey) return;
         if (resolvedStats) {
-          const total = Math.max(resolvedStats.total, pageFloor.current);
+          const total = Math.max(resolvedStats.total, seenRowsFloor.current);
           const resolved = { ...resolvedStats, total };
           serverStats.current = { key: statsKey, stats: resolved };
           setStats(resolved);
@@ -336,8 +342,9 @@ export function useNewsArticles(options: UseNewsArticlesOptions = {}): UseNewsAr
     const commitPage = (nextArticles: NewsArticle[], provisionalTotal: number, rawRowCount: number): number => {
       pageArticlesRef.current = nextArticles;
       pageFloor.current = Math.max(provisionalTotal, countFloor(offset, rawRowCount, limit));
+      seenRowsFloor.current = offset + rawRowCount;
       const known = serverStats.current?.key === statsKey ? serverStats.current.stats : null;
-      const total = known ? Math.max(known.total, pageFloor.current) : pageFloor.current;
+      const total = known ? Math.max(known.total, seenRowsFloor.current) : pageFloor.current;
       if (known) {
         const resolved = { ...known, total };
         serverStats.current = { key: statsKey, stats: resolved };
