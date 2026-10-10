@@ -8,6 +8,13 @@
       "when": 1791642205411,
       "tag": "0000_threat_intel_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791642257239,
+      "tag": "0001_threat_intel_incident_filters",
+      "breakpoints": true
     }
   ]
 }
