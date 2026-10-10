@@ -173,12 +173,19 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     setSearchInput(searchQuery);
   }, [searchQuery]);
 
-  // Input -> URL, once typing pauses.
+  // Input -> URL, once typing pauses. Invariant: the URL wins after an
+  // external change (Clear filters, Back). updateFeedParam is read through a
+  // ref because setSearchParams changes identity on every navigation, and
+  // re-running this effect then would write a stale debounced value back.
+  const updateFeedParamRef = useRef(updateFeedParam);
+  updateFeedParamRef.current = updateFeedParam;
   useEffect(() => {
+    if (debouncedSearch !== searchInput) return;
     if (debouncedSearch === lastSyncedSearch.current) return;
     lastSyncedSearch.current = debouncedSearch;
-    updateFeedParam('q', debouncedSearch || null, true);
-  }, [debouncedSearch, updateFeedParam]);
+    updateFeedParamRef.current('q', debouncedSearch || null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   // Fetch articles from database
   const { 

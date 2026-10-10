@@ -320,4 +320,60 @@ describe('threat-intel article navigation', () => {
     await waitFor(() => expect(router.state.location.search).not.toContain('tab='));
     expect(screen.getByRole('tab', { name: /News Feed/ }).getAttribute('aria-selected')).toBe('true');
   });
+
+  it('lets the URL win after Clear-style navigation removes a committed search', async () => {
+    const router = renderAt('/threat-intel?scope=all');
+    const search = (await screen.findByLabelText('Search threat intelligence')) as HTMLInputElement;
+    fireEvent.change(search, { target: { value: 'abc' } });
+    await waitFor(() => expect(router.state.location.search).toContain('q=abc'), { timeout: 1500 });
+
+    const seen: string[] = [];
+    router.subscribe((state) => seen.push(state.location.search));
+    await act(async () => {
+      await router.navigate('/threat-intel?scope=all');
+    });
+    await waitFor(() => expect(search.value).toBe(''));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    // No transient write either: the stale value must never reach the URL.
+    expect(seen.filter((entry) => entry.includes('q='))).toEqual([]);
+    expect(router.state.location.search).not.toContain('q=');
+    expect(search.value).toBe('');
+  });
+
+  it('never writes a pending keystroke after the URL changed underneath it', async () => {
+    const router = renderAt('/threat-intel?scope=all&q=abc');
+    const search = (await screen.findByLabelText('Search threat intelligence')) as HTMLInputElement;
+    expect(search.value).toBe('abc');
+
+    fireEvent.change(search, { target: { value: 'x' } });
+    const seen: string[] = [];
+    router.subscribe((state) => seen.push(state.location.search));
+    await act(async () => {
+      await router.navigate('/threat-intel?scope=all');
+    });
+    await waitFor(() => expect(search.value).toBe(''));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    // No transient write either: the stale value must never reach the URL.
+    expect(seen.filter((entry) => entry.includes('q='))).toEqual([]);
+    expect(router.state.location.search).not.toContain('q=');
+    expect(search.value).toBe('');
+  });
+
+  it('moves selection and focus with the arrow keys between tabs', async () => {
+    renderAt('/threat-intel?scope=all');
+    const feedTab = await screen.findByRole('tab', { name: /News Feed/ });
+    feedTab.focus();
+
+    fireEvent.keyDown(feedTab, { key: 'ArrowRight' });
+
+    const alertsTab = await screen.findByRole('tab', { name: /Active Alerts/ });
+    await waitFor(() => expect(alertsTab.getAttribute('aria-selected')).toBe('true'));
+    expect(document.activeElement).toBe(alertsTab);
+  });
 });
