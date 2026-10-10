@@ -129,3 +129,18 @@ export async function emailHash(email: string): Promise<string> {
   const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalizeEmail(email)));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
+
+/**
+ * True when a POST carries the RFC 8058 one-click signal. Mailbox providers
+ * send it as multipart/form-data (the RFC's example) or form-urlencoded.
+ */
+export async function isOneClickUnsubscribeRequest(req: Request): Promise<boolean> {
+  const contentType = (req.headers.get('content-type') ?? '').toLowerCase();
+  if (!contentType.startsWith('multipart/form-data') && !contentType.startsWith('application/x-www-form-urlencoded')) return false;
+  try {
+    const form = await req.formData();
+    return form.get('List-Unsubscribe') === 'One-Click';
+  } catch {
+    return false;
+  }
+}

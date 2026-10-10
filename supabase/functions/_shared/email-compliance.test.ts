@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildUnsubscribeLinks,
   emailHash,
+  isOneClickUnsubscribeRequest,
   listUnsubscribeHeaders,
   normalizeEmail,
   readPostalAddress,
@@ -112,5 +113,35 @@ describe('email hashing', () => {
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
     // sha256("a@b.com")
     expect(hash).toBe('fb98d44ad7501a959f3f4f4a3f004fe2d9e581ea6207e218c4b02c08a4d75adf');
+  });
+});
+
+describe('isOneClickUnsubscribeRequest (RFC 8058)', () => {
+  const url = 'https://example.test/functions/v1/one-click-unsubscribe?token=t';
+
+  it('accepts a form-urlencoded body', async () => {
+    const req = new Request(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'List-Unsubscribe=One-Click',
+    });
+    expect(await isOneClickUnsubscribeRequest(req)).toBe(true);
+  });
+
+  it('accepts a multipart/form-data body, as the RFC example sends', async () => {
+    const form = new FormData();
+    form.set('List-Unsubscribe', 'One-Click');
+    const req = new Request(url, { method: 'POST', body: form });
+    expect(req.headers.get('content-type')).toMatch(/^multipart\/form-data/);
+    expect(await isOneClickUnsubscribeRequest(req)).toBe(true);
+  });
+
+  it('rejects other content types, a missing value and a malformed body', async () => {
+    const json = new Request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"List-Unsubscribe":"One-Click"}' });
+    expect(await isOneClickUnsubscribeRequest(json)).toBe(false);
+    const wrong = new Request(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=Yes' });
+    expect(await isOneClickUnsubscribeRequest(wrong)).toBe(false);
+    const broken = new Request(url, { method: 'POST', headers: { 'Content-Type': 'multipart/form-data; boundary=x' }, body: 'not multipart' });
+    expect(await isOneClickUnsubscribeRequest(broken)).toBe(false);
   });
 });

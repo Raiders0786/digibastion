@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { isOneClickUnsubscribeRequest } from "../_shared/email-compliance.ts";
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -176,16 +177,9 @@ serve(async (req) => {
       });
     }
 
-    // RFC 8058 requires this exact form-encoded signal for a one-click action.
-    const contentType = req.headers.get("content-type") || "";
-    if (!contentType.includes("application/x-www-form-urlencoded")) {
-      return new Response(generateErrorHtml("Invalid one-click unsubscribe request."), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
-      });
-    }
-    const params = new URLSearchParams(await req.text());
-    if (params.get("List-Unsubscribe") !== "One-Click") {
+    // RFC 8058: the body carries List-Unsubscribe=One-Click, sent as
+    // multipart/form-data or application/x-www-form-urlencoded.
+    if (!await isOneClickUnsubscribeRequest(req)) {
       return new Response(generateErrorHtml("Invalid one-click unsubscribe request."), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "text/html" },
