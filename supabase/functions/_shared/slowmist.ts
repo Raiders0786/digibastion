@@ -1,4 +1,5 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
+import { severityFromLoss } from './incident-severity.ts';
 
 export const SLOWMIST_PAGE_URL = 'https://hacked.slowmist.io/en/';
 export const SLOWMIST_EXPECTED_PAGE_SIZE = 20;
@@ -235,18 +236,6 @@ function formatUsd(amount: number | null): string | null {
   return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
-function mapSeverity(incident: SlowMistIncident): NormalizedSlowMistArticle['severity'] {
-  const amount = incident.amountInUsd;
-  if (amount !== null && amount >= 50_000_000) return 'critical';
-  if (amount !== null && amount >= 10_000_000) return 'high';
-  if (amount !== null && amount >= 1_000_000) return 'medium';
-  const attack = normalizeSlowMistTarget(incident.attackMethod);
-  if (['private key', 'access control', 'oracle', 'reentrancy', 'flash loan']
-    .some((signal) => attack.includes(signal))) return 'high';
-  if (amount !== null && amount > 0) return 'medium';
-  return 'low';
-}
-
 async function digestValue(value: string, length = 24): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, length);
@@ -305,7 +294,7 @@ export async function normalizeSlowMistIncident(
     source_name: 'SlowMist Hacked',
     author: 'SlowMist',
     category: classification.category,
-    severity: mapSeverity(incident),
+    severity: severityFromLoss(incident.amountInUsd, incident.attackMethod),
     tags,
     affected_technologies: [incident.target],
     cve_id: null,

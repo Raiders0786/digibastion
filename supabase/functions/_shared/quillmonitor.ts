@@ -1,4 +1,5 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
+import { severityFromLoss } from './incident-severity.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
 
@@ -153,10 +154,6 @@ function slug(value: string): string {
     .slice(0, 60);
 }
 
-function includesAny(value: string, signals: string[]): boolean {
-  return signals.some((signal) => value.includes(signal));
-}
-
 function normalizeIncidentDate(value: unknown): string | null {
   const date = cleanText(value, 40);
   if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(date)) return null;
@@ -214,15 +211,7 @@ export function mapQuillMonitorCategory(incident: QuillMonitorIncident): Normali
 }
 
 export function mapQuillMonitorSeverity(incident: QuillMonitorIncident): NormalizedQuillMonitorArticle['severity'] {
-  const amount = incident.amountInUsd;
-  if (typeof amount === 'number' && amount >= 50_000_000) return 'critical';
-  if (typeof amount === 'number' && amount >= 10_000_000) return 'high';
-  if (typeof amount === 'number' && amount >= 1_000_000) return 'medium';
-
-  const attack = incident.attackedMethod.toLowerCase();
-  if (includesAny(attack, ['private key', 'access control', 'oracle', 'reentrancy', 'flash loan'])) return 'high';
-  if (typeof amount === 'number' && amount > 0) return 'medium';
-  return 'low';
+  return severityFromLoss(incident.amountInUsd, incident.attackedMethod);
 }
 
 export function formatUsd(amount: number | null): string | null {
