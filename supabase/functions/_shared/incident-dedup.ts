@@ -30,6 +30,8 @@ export interface IncidentRow {
   // Optional: used only as a source URL fallback for rows without reference_url.
   link?: string | null;
   source_url?: string | null;
+  // Optional: the exact string read, used to guard writes against concurrent changes.
+  updated_at?: string | null;
 }
 
 function metadataRecord(value: unknown): Record<string, unknown> {
@@ -284,7 +286,8 @@ export interface QuillMonitorDuplicatePlan {
   // Stored rows outside the batch whose metadata must change: a new or
   // re-pointed mark, a mark that no longer holds, or sources for a canonical
   // row. Write each only after the batch rows in dependsOn are stored.
-  updates: { uid: string; metadata: Record<string, unknown>; dependsOn: string[] }[];
+  // updatedAt is the row's updated_at as read, for a compare-and-swap write.
+  updates: { uid: string; metadata: Record<string, unknown>; dependsOn: string[]; updatedAt: string | null }[];
 }
 
 /**
@@ -346,10 +349,47 @@ export function planQuillMonitorDuplicates(batchRows: IncidentRow[], storedRows:
       }
     }
     if (next === metadata) continue;
-    updates.push({ uid: row.uid, metadata: next, dependsOn: [...new Set(related)].filter((uid) => batchUids.has(uid)).sort() });
+    updates.push({
+      uid: row.uid,
+      metadata: next,
+      dependsOn: [...new Set(related)].filter((uid) => batchUids.has(uid)).sort(),
+      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : null,
+    });
   }
 
   return { duplicateOfByUid, sourcesByCanonical, updates };
+}
+
+/**
+ * Upsert order for a sync: rows that stay visible first, losing rows last,
+ * otherwise as given. With the upsert split into chunks, a canonical row is
+ * then written no later than the chunk of any of its losers.
+ */
+export function orderCanonicalsFirst<T extends { uid: string }>(
+  rows: T[],
+  duplicateOfByUid: Record<string, string | null>,
+): T[] {
+  return [
+    ...rows.filter((row) => !duplicateOfByUid[row.uid]),
+    ...rows.filter((row) => duplicateOfByUid[row.uid]),
+  ];
+}
+
+/**
+ * The QuillMonitor duplicate decision for one row as its chunk is written:
+ * the canonical uid once that record exists (availableUids: stored before
+ * this sync, written earlier in it, or in the same upsert statement), 'keep'
+ * to leave the row's stored mark as it is when the canonical does not exist
+ * yet, or null for no mark.
+ */
+export function quillMonitorMarkForWrite(
+  uid: string,
+  duplicateOfByUid: Record<string, string | null>,
+  availableUids: Set<string>,
+): string | null | 'keep' {
+  const canonical = duplicateOfByUid[uid];
+  if (!canonical) return null;
+  return availableUids.has(canonical) ? canonical : 'keep';
 }
 
 export interface DuplicateMark {

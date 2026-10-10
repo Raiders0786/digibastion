@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   isQuillMonitorDuplicate,
+  orderCanonicalsFirst,
   planQuillMonitorDuplicates,
+  quillMonitorMarkForWrite,
   quillMonitorCanonicalOf,
   type IncidentRow,
 } from '../../../supabase/functions/_shared/incident-dedup';
@@ -241,5 +243,40 @@ describe('finalizeQuillMonitorArticle duplicate marks', () => {
   it('writes no mark by default', () => {
     const finalized = finalizeQuillMonitorArticle(unverified, undefined, []);
     expect(finalized.metadata.duplicate_of_uid).toBeUndefined();
+  });
+});
+
+describe('guarded writes outside the batch', () => {
+  it('carries the updated_at string read with each stored row, unchanged', () => {
+    const stamp = '2026-10-10T08:15:30.123456+00:00';
+    const plan = planQuillMonitorDuplicates([verified], [{ ...unverified, updated_at: stamp }]);
+    expect(plan.updates.map((update) => [update.uid, update.updatedAt])).toEqual([[UNVERIFIED_UID, stamp]]);
+    expect(planQuillMonitorDuplicates([verified], [unverified]).updates[0].updatedAt).toBeNull();
+  });
+});
+
+describe('upsert order for losing rows in the batch', () => {
+  const plan = planQuillMonitorDuplicates([unverified, verified], []);
+  const other = { ...verified, uid: 'quillmonitor:other' };
+
+  it('writes canonical and unrelated rows before losing rows, otherwise keeping the order', () => {
+    expect(orderCanonicalsFirst([unverified, other, verified], plan.duplicateOfByUid).map((row) => row.uid))
+      .toEqual(['quillmonitor:other', VERIFIED_UID, UNVERIFIED_UID]);
+  });
+
+  it('marks a loser only once its canonical exists, and keeps the old mark otherwise', () => {
+    expect(quillMonitorMarkForWrite(UNVERIFIED_UID, plan.duplicateOfByUid, new Set([VERIFIED_UID]))).toBe(VERIFIED_UID);
+    expect(quillMonitorMarkForWrite(UNVERIFIED_UID, plan.duplicateOfByUid, new Set())).toBe('keep');
+    expect(quillMonitorMarkForWrite(VERIFIED_UID, plan.duplicateOfByUid, new Set())).toBeNull();
+    expect(quillMonitorMarkForWrite('quillmonitor:not-planned', plan.duplicateOfByUid, new Set())).toBeNull();
+  });
+
+  it('keeps the stored mark but still applies this sync\'s sources when told to keep', () => {
+    const existing = { summary: null, metadata: marked(unverified, 'quillmonitor:earlier').metadata };
+    const kept = finalizeQuillMonitorArticle(unverified, existing, [], 'keep');
+    expect(kept.metadata).toMatchObject({ classification_relevant: false, duplicate_of_uid: 'quillmonitor:earlier' });
+    expect(kept.metadata.sources).toHaveLength(1);
+    const unmarked = finalizeQuillMonitorArticle(unverified, undefined, [], 'keep');
+    expect(unmarked.metadata.duplicate_of_uid).toBeUndefined();
   });
 });

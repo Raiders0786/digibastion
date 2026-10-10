@@ -378,12 +378,14 @@ export interface ExistingQuillMonitorRow {
  * sync. duplicateSources is null when the duplicate lookup did not run this
  * sync; then the row keeps the merged sources and the QuillMonitor duplicate
  * mark it already had instead of losing them, and duplicateOfUid is ignored.
+ * duplicateOfUid 'keep' keeps the stored QuillMonitor mark while still applying
+ * this sync's sources (used while the canonical record is not stored yet).
  */
 export function finalizeQuillMonitorArticle(
   article: NormalizedQuillMonitorArticle,
   existing: ExistingQuillMonitorRow | undefined,
   duplicateSources: IncidentSource[] | null,
-  duplicateOfUid: string | null = null,
+  duplicateOfUid: string | null | 'keep' = null,
 ): NormalizedQuillMonitorArticle {
   const ownSources = readIncidentFields(article.metadata).sources;
   const existingFields = readIncidentFields(existing?.metadata);
@@ -391,7 +393,7 @@ export function finalizeQuillMonitorArticle(
   // source is the old copy of it; later ones came from duplicate records.
   const carriedSources = duplicateSources ??
     existingFields.sources.filter((source, index) => !(index === 0 && source.provider === 'quillmonitor'));
-  const duplicateMark = duplicateSources === null
+  const duplicateMark = duplicateSources === null || duplicateOfUid === 'keep'
     ? (isQuillMonitorUid(existingFields.duplicateOfUid) ? existingFields.duplicateOfUid : null)
     : duplicateOfUid;
   // While QuillMonitor has no description, keep the summary summarize-article

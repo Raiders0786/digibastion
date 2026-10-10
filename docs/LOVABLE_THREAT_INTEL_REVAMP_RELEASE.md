@@ -151,9 +151,9 @@ authenticated with the project's CRON_SECRET from the backend secrets without
 displaying it, and return the JSON response. Then invoke it again with
 {"dryRun":true,"days":90} and return that response; it must show
 duplicatesToMark 0 and canonicalSourceUpdates 0. Then invoke
-fetch-quillmonitor-incidents once with the POST body {} and the same
-authorization, return its JSON response, and run this read-only SQL and return
-the rows:
+fetch-quillmonitor-incidents once with the POST body {"mode":"full"} and the
+same authorization, and return its JSON response, including incidentsUpdated
+and mergeLookup. Then run this read-only SQL and return the rows:
 
 select uid, metadata->>'duplicate_of_uid' as duplicate_of_uid
 from news_articles
@@ -161,15 +161,30 @@ where uid in ('quillmonitor:6abe7cb74bf2b9001882e340',
               'quillmonitor:6abf52e051c7780018c8e336');
 ```
 
+The full sync re-writes every QuillMonitor record, the NEAR pair included, so
+it really tests whether the mark survives an upsert (a sync with body `{}`
+only re-writes records QuillMonitor changed since the last run).
+`incidentsUpdated` should be roughly the total number of QuillMonitor
+incidents. A full sync spans more than 20 date windows, so it skips the
+duplicate lookup: `mergeLookup` is `too_many_date_windows`, and every row must
+keep the duplicate mark it already had. If `mergeLookup` is `ok`, the sync
+recomputed the pair instead, and the result must be the same. If the sync
+fails with the 20-page safety limit, run it again with
+{"mode":"full","max_pages":100}.
+
 After the sync, `quillmonitor:6abe7cb74bf2b9001882e340` must still show
 `duplicate_of_uid` = `quillmonitor:6abf52e051c7780018c8e336`, and the verified
 row must show null. The verified record's sources now also list the
 unverified record's reference link.
 
+After the next scheduled incremental QuillMonitor sync (it runs at :17 and :47
+past each hour), run the same SQL once more and confirm the result has not
+changed.
+
 If the unverified record was posted to Telegram in the last 14 days, the
-poster edits that post to RETRACTED ("The source withdrew this report or merged it into another
-one.") on its next run. That is expected; posts about the verified record are
-not affected.
+poster edits that post to RETRACTED ("The source withdrew this report or
+merged it into another one.") on its next run. That is expected; posts about
+the verified record are not affected.
 
 ### Fallback only: clear impossible loss figures by SQL
 
