@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { normalizeUtcMinuteToQuarterHour, prepareDigestArticles, severityRank, shouldSendToSubscriber } from "../_shared/digest-logic.ts";
+import { buildUnsubscribeLinks, listUnsubscribeHeaders, readPostalAddress } from "../_shared/email-compliance.ts";
 import {
   escapeHtml,
   formatDeliveryArticleText,
@@ -377,6 +378,14 @@ serve(async (req) => {
     });
   }
 
+  // Cutover switch: once the postal address is set, send-newsletters serves
+  // daily and weekly subscribers. Unset it to roll back to this function.
+  if (readPostalAddress(Deno.env.get('NEWSLETTER_POSTAL_ADDRESS'))) {
+    return new Response(JSON.stringify({ success: true, skipped: 'newsletters_live' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     // Parse request body
     let targetHour: number | null = null;
@@ -509,6 +518,13 @@ serve(async (req) => {
         );
       }
       
+      const testUnsubscribeLinks = buildUnsubscribeLinks({
+        siteUrl: 'https://www.digibastion.com',
+        functionsBaseUrl: `${supabaseUrl}/functions/v1`,
+        email: testEmail,
+        // Any well-formed token works in a test email's links: it matches no row.
+        token: mockSubscription.verification_token || '00000000-0000-0000-0000-000000000000',
+      });
       const testManageUrl = 'https://www.digibastion.com/manage-subscription';
       const emailText = generateDigestEmailText(testArticles, mockSubscription.name, mockSubscription.frequency, testPeriodStart, now, testManageUrl);
       const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -524,6 +540,7 @@ serve(async (req) => {
           html: emailHtml,
           text: emailText,
           reply_to: 'support@digibastion.com',
+          headers: listUnsubscribeHeaders(testUnsubscribeLinks),
         }),
       });
       
