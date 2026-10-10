@@ -123,6 +123,28 @@ describe('Telegram message', () => {
     expect(text).toContain('…');
   });
 
+  it('labels AI-written summaries and keeps the labelled paragraph within the cap', () => {
+    const labelled = buildTelegramIncidentMessage(incident({ summary: 'A & B drained.' }, { summary_origin: 'ai' }), SITE);
+    expect(labelled).toContain('\n<i>AI summary:</i> A &amp; B drained.\n');
+
+    for (const origin of ['provider', 'publisher', undefined]) {
+      const text = buildTelegramIncidentMessage(incident({}, { summary_origin: origin }), SITE);
+      expect(text).not.toContain('AI summary');
+      expect(text).toContain('\nAttacker drained the bridge hot wallet');
+    }
+
+    const long = buildTelegramIncidentMessage(incident({ summary: 'word '.repeat(200) }, { summary_origin: 'ai' }), SITE);
+    const paragraph = long.split('\n').find((line) => line.startsWith('<i>AI summary:</i> ')) ?? '';
+    // Same budget as an unlabelled summary: 400 code points before the ellipsis.
+    const visible = paragraph.replace(/<\/?i>/g, '');
+    expect(visible.startsWith('AI summary: word')).toBe(true);
+    expect(visible.endsWith('…')).toBe(true);
+    expect(Array.from(visible.slice(0, -1)).length).toBeLessThanOrEqual(400);
+
+    const pending = buildTelegramIncidentMessage(incident({ summary: 'Summary pending' }, { summary_origin: 'ai' }), SITE);
+    expect(pending).not.toContain('AI summary');
+  });
+
   it('adds a dated note when an update is applied', () => {
     const text = buildTelegramIncidentMessage(incident({}, { verification_status: 'verified' }), SITE, 'confirmed by QuillMonitor', NOW);
     expect(text).toContain('Updated 12:00 UTC: confirmed by QuillMonitor.');
