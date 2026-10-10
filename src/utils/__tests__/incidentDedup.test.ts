@@ -410,3 +410,28 @@ describe('planDuplicateBackfill', () => {
     expect(plan.samples).toHaveLength(MAX_BACKFILL_SAMPLES);
   });
 });
+
+describe('groupDuplicates with rows already marked as duplicates', () => {
+  it('never lets a marked row head a group when its canonical is not loaded', () => {
+    const w1 = {
+      ...meterWeb3,
+      uid: 'w-1',
+      metadata: { ...(meterWeb3.metadata as object), classification_relevant: false, duplicate_of_uid: 'quillmonitor:absent' },
+    };
+    const w2 = { ...meterWeb3, uid: 'w-2' };
+    expect(groupDuplicates([w1, w2])).toEqual([]);
+    const plan = planDuplicateBackfill([w1, w2]);
+    expect(plan.marks).toEqual([]);
+    expect(plan.canonicalUpdates).toEqual([]);
+  });
+
+  it('plans no writes on a second run when the marked canonical is loaded', () => {
+    const first = planDuplicateBackfill([nearQuillMonitor, nearWeb3Feed1]);
+    const canonical = { ...nearQuillMonitor, metadata: first.canonicalUpdates[0].metadata };
+    const duplicate = { ...nearWeb3Feed1, metadata: first.marks[0].metadata };
+    const second = planDuplicateBackfill([canonical, duplicate]);
+    expect(second.groups).toEqual([{ canonical: 'quillmonitor:near-intents-1', duplicates: ['a1b2c3-feed1-near'] }]);
+    expect(second.marks.every((mark) => !mark.needsWrite)).toBe(true);
+    expect(second.canonicalUpdates).toEqual([]);
+  });
+});

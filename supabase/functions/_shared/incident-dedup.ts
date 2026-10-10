@@ -320,16 +320,30 @@ export function groupDuplicates(rows: IncidentRow[]): { canonical: string; dupli
     .sort((a, b) =>
       providerPriority(a.provider) - providerPriority(b.provider) || a.uid.localeCompare(b.uid));
 
+  // A row already marked as a duplicate may join a group as a duplicate but
+  // never heads one. If its marked canonical is outside the loaded set it is
+  // left untouched: not a head, not re-pointed, no source updates.
+  const loadedUids = new Set(rows.map((row) => row.uid));
+  const markedTo = new Map<string, string>();
+  for (const row of rows) {
+    const duplicateOf = readIncidentFields(row.metadata).duplicateOfUid;
+    if (duplicateOf) markedTo.set(row.uid, duplicateOf);
+  }
+  const heads = candidates.filter((candidate) => !markedTo.has(candidate.uid));
+  const marked = candidates.filter((candidate) => markedTo.has(candidate.uid) && loadedUids.has(markedTo.get(candidate.uid) as string));
+
   const groups: { canonical: DuplicateCandidate; duplicates: string[] }[] = [];
-  for (const candidate of candidates) {
+  const matchingGroup = (candidate: DuplicateCandidate) => groups.find((existing) =>
+    !(existing.canonical.provider === 'quillmonitor' && candidate.provider === 'quillmonitor') &&
+    isHighConfidenceDuplicate(existing.canonical, candidate));
+  for (const candidate of heads) {
     // Sorted by priority then uid, so the first match is also what
     // pickCanonical would choose among the matching groups.
-    const group = groups.find((existing) =>
-      !(existing.canonical.provider === 'quillmonitor' && candidate.provider === 'quillmonitor') &&
-      isHighConfidenceDuplicate(existing.canonical, candidate));
+    const group = matchingGroup(candidate);
     if (group) group.duplicates.push(candidate.uid);
     else groups.push({ canonical: candidate, duplicates: [] });
   }
+  for (const candidate of marked) matchingGroup(candidate)?.duplicates.push(candidate.uid);
 
   return groups
     .filter((group) => group.duplicates.length > 0)
