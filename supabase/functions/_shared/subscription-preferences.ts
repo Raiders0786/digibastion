@@ -180,14 +180,14 @@ export function parseSubscriptionPreferences(input: unknown): ParseResult<Subscr
   }
 
   const channels = parseChannels(input);
-  if (!channels.ok) return channels;
+  if ('error' in channels) return fail(channels.error);
   if (frequencyFromChannels(channels.value) === null) return fail('Choose at least one email type');
 
   const includePreliminary = input.include_preliminary ?? true;
   if (typeof includePreliminary !== 'boolean') return fail('Invalid preliminary report preference');
 
   const chains = parseChains(input.chains);
-  if (!chains.ok) return chains;
+  if ('error' in chains) return fail(chains.error);
 
   let timezone: string | null = null;
   if (input.timezone !== undefined && input.timezone !== null && input.timezone !== '') {

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +51,37 @@ const toSitemapDate = (value: string | null | undefined, fallback: string) => {
   if (!value) return fallback;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? fallback : date.toISOString().slice(0, 10);
+};
+
+// Public weekly deep-dive pages (/threat-intel/weekly/<Monday>) for ready and
+// sent issues. A failure here drops only the weekly entries.
+const buildWeeklyEntries = async (supabase: SupabaseClient, today: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("newsletter_issues")
+      .select("period_start, updated_at")
+      .eq("kind", "weekly")
+      .in("status", ["ready", "sent"])
+      .order("period_start", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return (data || [])
+      .map((issue) => {
+        const start = new Date(String(issue.period_start));
+        if (Number.isNaN(start.getTime()) || start.getUTCDay() !== 1) return "";
+        return `<url>
+  <loc>${SITE_URL}/threat-intel/weekly/${start.toISOString().slice(0, 10)}</loc>
+  <lastmod>${toSitemapDate(issue.updated_at, today)}</lastmod>
+  <changefreq>yearly</changefreq>
+  <priority>0.6</priority>
+</url>`;
+      })
+      .filter(Boolean)
+      .join("\n");
+  } catch (error) {
+    console.error("Weekly deep-dive sitemap entries unavailable:", error);
+    return "";
+  }
 };
 
 const buildFallbackSitemap = (today: string) => `<?xml version="1.0" encoding="UTF-8"?>
@@ -110,7 +141,7 @@ Deno.serve(async (request) => {
 
     if (error) throw error;
 
-    const dynamicEntries = (articles || [])
+    const articleEntries = (articles || [])
       .filter((article) => typeof article.id === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(article.id))
       .map((article) => `<url>
   <loc>${SITE_URL}/threat-intel/${escapeXml(encodeURIComponent(article.id))}</loc>
@@ -120,6 +151,8 @@ Deno.serve(async (request) => {
 </url>`)
       .join("\n");
 
+    const weeklyEntries = await buildWeeklyEntries(supabase, today);
+    const dynamicEntries = [articleEntries, weeklyEntries].filter(Boolean).join("\n");
     if (dynamicEntries) {
       xml = xml.replace("</urlset>", `${dynamicEntries}\n</urlset>`);
     }
