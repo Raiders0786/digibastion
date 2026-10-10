@@ -1,3 +1,6 @@
+import { readIncidentFields } from './incident-fields.ts';
+import { normalizeChain } from './subscription-preferences.ts';
+
 export const CONTENT_SCOPES = ['all', 'web3-incidents'] as const;
 
 export type ContentScope = typeof CONTENT_SCOPES[number];
@@ -21,6 +24,10 @@ export interface DeliveryPreferences {
   technologies?: string[] | null;
   severity_threshold?: string | null;
   content_scope?: ContentScope | string | null;
+  /** Normalized chain names; empty or missing means every chain. Applies to Web3 incidents only. */
+  chains?: string[] | null;
+  /** false drops unconfirmed (unverified) records; null or missing keeps them. */
+  include_preliminary?: boolean | null;
 }
 
 export const severityRank: Record<string, number> = {
@@ -48,6 +55,19 @@ export function isQuillMonitorArticle(article: DeliverableArticle): boolean {
 export function isPreliminaryQuillMonitorArticle(article: DeliverableArticle): boolean {
   return isQuillMonitorArticle(article) &&
     metadataString(article.metadata, 'verification_status').toLowerCase() === 'unverified';
+}
+
+/** Any provider's unconfirmed record, not only QuillMonitor's. */
+export function isPreliminaryArticle(a: DeliverableArticle): boolean {
+  return readIncidentFields(a.metadata).verification === 'unverified';
+}
+
+// Same comparison as the page's chain filter: lower(btrim(metadata.chain)).
+function chainMatches(article: DeliverableArticle, chains: string[] | null | undefined): boolean {
+  const selected = (chains || []).map(normalizeChain).filter((chain): chain is string => chain !== null);
+  if (selected.length === 0 || !isWeb3IncidentArticle(article)) return true;
+  const chain = article.metadata?.chain;
+  return typeof chain === 'string' && selected.includes(chain.trim().toLowerCase());
 }
 
 export function isWeb3IncidentArticle(article: DeliverableArticle): boolean {
@@ -105,6 +125,9 @@ export function matchesDeliveryPreferences(
   preferences: DeliveryPreferences,
 ): boolean {
   if (article.metadata?.classification_relevant === false) return false;
+  // A merged duplicate is delivered through its canonical record only.
+  if (readIncidentFields(article.metadata).duplicateOfUid) return false;
+  if (preferences.include_preliminary === false && isPreliminaryArticle(article)) return false;
 
   const articleRank = severityRank[article.severity] ?? severityRank.info;
   const thresholdRank = severityRank[preferences.severity_threshold || 'medium'] ?? severityRank.medium;
@@ -112,6 +135,7 @@ export function matchesDeliveryPreferences(
 
   if (preferences.content_scope === 'web3-incidents' && !isWeb3IncidentArticle(article)) return false;
   if (!categoryMatches(article, preferences.categories)) return false;
+  if (!chainMatches(article, preferences.chains)) return false;
 
   // Technology selections prioritize personalized items. Critical and high
   // severity threats still pass, matching the promise made by the forms.

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatDeliveryArticleText,
   getDeliveryPresentation,
+  isPreliminaryArticle,
   matchesDeliveryPreferences,
   renderIncidentContextHtml,
   safeHttpUrl,
@@ -210,5 +211,54 @@ describe('subscription email presentation', () => {
     });
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     expect(html).not.toContain('<img src=x');
+  });
+});
+
+describe('phase 3 delivery filters', () => {
+  const web3Prefs = { categories: ['web3-security'], severity_threshold: 'medium' };
+  const withMeta = (metadata: Record<string, unknown>): DeliverableArticle => ({
+    ...baseArticle,
+    metadata: { ...baseArticle.metadata, ...metadata },
+  });
+
+  it('flags any unverified record as preliminary, whatever the provider', () => {
+    expect(isPreliminaryArticle(withMeta({ verification_status: 'unverified' }))).toBe(true);
+    expect(isPreliminaryArticle(withMeta({ provider: 'slowmist', verification_status: 'unverified' }))).toBe(true);
+    expect(isPreliminaryArticle(withMeta({ verification_status: 'verified' }))).toBe(false);
+    expect(isPreliminaryArticle({ ...baseArticle, metadata: null })).toBe(false);
+  });
+
+  it('never delivers a record marked as a duplicate of another incident', () => {
+    expect(matchesDeliveryPreferences(withMeta({ duplicate_of_uid: 'quillmonitor:1' }), web3Prefs)).toBe(false);
+  });
+
+  it('drops preliminary records only when include_preliminary is false', () => {
+    const preliminary = withMeta({ verification_status: 'unverified' });
+    expect(matchesDeliveryPreferences(preliminary, web3Prefs)).toBe(true);
+    expect(matchesDeliveryPreferences(preliminary, { ...web3Prefs, include_preliminary: null })).toBe(true);
+    expect(matchesDeliveryPreferences(preliminary, { ...web3Prefs, include_preliminary: true })).toBe(true);
+    expect(matchesDeliveryPreferences(preliminary, { ...web3Prefs, include_preliminary: false })).toBe(false);
+    expect(matchesDeliveryPreferences(withMeta({ verification_status: 'verified' }), { ...web3Prefs, include_preliminary: false }))
+      .toBe(true);
+  });
+
+  it('requires a selected chain for Web3 incidents', () => {
+    expect(matchesDeliveryPreferences(baseArticle, { ...web3Prefs, chains: ['ethereum'] })).toBe(true);
+    expect(matchesDeliveryPreferences(withMeta({ chain: '  ETHEREUM ' }), { ...web3Prefs, chains: ['Ethereum'] })).toBe(true);
+    expect(matchesDeliveryPreferences(baseArticle, { ...web3Prefs, chains: ['solana', 'base'] })).toBe(false);
+    expect(matchesDeliveryPreferences(withMeta({ chain: null }), { ...web3Prefs, chains: ['ethereum'] })).toBe(false);
+    expect(matchesDeliveryPreferences(baseArticle, { ...web3Prefs, chains: [] })).toBe(true);
+    expect(matchesDeliveryPreferences(baseArticle, { ...web3Prefs, chains: null })).toBe(true);
+  });
+
+  it('does not apply the chain filter to non-incident articles', () => {
+    const advisory: DeliverableArticle = {
+      ...baseArticle,
+      category: 'vulnerability-disclosure',
+      source_name: 'NVD',
+      metadata: { provider: 'rss', is_web3_incident: false },
+    };
+    expect(matchesDeliveryPreferences(advisory, { categories: [], severity_threshold: 'medium', chains: ['solana'] }))
+      .toBe(true);
   });
 });
