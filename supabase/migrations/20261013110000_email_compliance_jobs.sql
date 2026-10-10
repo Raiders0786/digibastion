@@ -14,7 +14,8 @@ SELECT cron.schedule('send-critical-alerts-30min', '25,55 * * * *', $$
   );
 $$);
 
--- Sign-ups that never confirmed their address are removed after 7 days.
+-- Sign-ups that never confirmed their address are removed after 7 days,
+-- unless a fresh verification link is still valid.
 SELECT cron.unschedule(jobid)
 FROM cron.job
 WHERE jobname = 'cleanup-unverified-subscriptions';
@@ -22,5 +23,6 @@ WHERE jobname = 'cleanup-unverified-subscriptions';
 SELECT cron.schedule('cleanup-unverified-subscriptions', '40 3 * * *', $$
   DELETE FROM public.subscriptions
   WHERE is_verified = false
-    AND created_at < now() - interval '7 days';
+    AND created_at < now() - interval '7 days'
+    AND (verification_token_expires_at IS NULL OR verification_token_expires_at < now());
 $$);
