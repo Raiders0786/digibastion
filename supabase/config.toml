@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.admin-api-keys]
 verify_jwt = false
+
+[functions.post-telegram-alerts]
+verify_jwt = false

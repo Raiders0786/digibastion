@@ -278,6 +278,19 @@ Deno.serve(async (req) => {
         category_counts: categoryCounts,
       },
     });
+    if (health.success && inserted + updated > 0) {
+      // Post new or changed incidents to Telegram right away instead of waiting
+      // for the poster's own half-hour schedule. The poster claims each post
+      // before sending, so overlapping with its cron run cannot double-post.
+      const trigger = fetch(`${url}/functions/v1/post-telegram-alerts`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      }).then((response) => response.body?.cancel()).catch(() => {
+        console.warn('[fetch-quillmonitor-incidents] Telegram trigger failed');
+      });
+      (globalThis as { EdgeRuntime?: { waitUntil(promise: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(trigger);
+    }
     return new Response(JSON.stringify({
       success: health.success,
       recordsFound,
