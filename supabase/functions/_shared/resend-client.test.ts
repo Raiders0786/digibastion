@@ -88,10 +88,10 @@ describe('sendResendEmail', () => {
     expect(outcome).toEqual({ status: 'failed', retryable: false, error: 'Invalid `to` field', httpStatus: 422 });
   });
 
-  it('marks 5xx as retryable', async () => {
+  it('treats 5xx as unknown, since Resend may have delivered it', async () => {
     const { impl } = fakeFetch([new Response('upstream down', { status: 503 })]);
     const outcome = await sendResendEmail({ fetchImpl: impl, apiKey: API_KEY, email, idempotencyKey: 'k' });
-    expect(outcome).toMatchObject({ status: 'failed', retryable: true, httpStatus: 503 });
+    expect(outcome).toEqual({ status: 'unknown', error: 'upstream down' });
   });
 
   it('reports a network error as unknown', async () => {

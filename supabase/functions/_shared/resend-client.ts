@@ -1,6 +1,6 @@
 // Resend send with an Idempotency-Key, one retry on 429, and outcomes the
 // email_sends ledger can act on. "unknown" means Resend may have sent the
-// email (timeout, network error, 409 for a concurrent request with the same
+// email (timeout, network error, 5xx, 409 for a concurrent request with the same
 // key); callers must not re-send those blindly.
 // Pure module: no Deno or URL imports, so vitest can import it.
 
@@ -128,8 +128,9 @@ export async function sendResendEmail(o: {
   }
 
   const error = sanitizeError(await errorText(response), o.apiKey);
-  if (response.status === 409) return { status: 'unknown', error };
-  if (response.status === 429 || response.status >= 500) {
+  // A 5xx may still have been delivered; report unknown so no retry under a new key.
+  if (response.status === 409 || response.status >= 500) return { status: 'unknown', error };
+  if (response.status === 429) {
     return { status: 'failed', retryable: true, error, httpStatus: response.status };
   }
   return { status: 'failed', retryable: false, error, httpStatus: response.status };
