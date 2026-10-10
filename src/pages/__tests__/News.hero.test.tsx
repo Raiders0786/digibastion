@@ -139,4 +139,13 @@ describe('threat-intel hero and mobile filters', () => {
       sortBy: 'severity',
     })).toBe(5);
   });
+
+  it('links the sources chip and the page footer to the methodology page', async () => {
+    renderAt('/threat-intel');
+
+    const chip = await screen.findByRole('link', { name: /sources checked/ });
+    expect(chip.getAttribute('href')).toBe('/threat-intel/methodology#sources');
+    expect(screen.getByRole('link', { name: 'sources and methodology' }).getAttribute('href'))
+      .toBe('/threat-intel/methodology');
+  });
 });

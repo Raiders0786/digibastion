@@ -26,6 +26,7 @@ const Links = React.lazy(() => import("./pages/Links"));
 const Contact = React.lazy(() => import("./pages/Contact"));
 const Support = React.lazy(() => import("./pages/Support"));
 const News = React.lazy(() => import("./pages/News"));
+const ThreatIntelMethodology = React.lazy(() => import("./pages/ThreatIntelMethodology"));
 const QuizResult = React.lazy(() => import("./pages/QuizResult"));
 const Quiz = React.lazy(() => import("./pages/Quiz"));
 const Leaderboard = React.lazy(() => import("./pages/Leaderboard"));
@@ -74,6 +75,8 @@ const App = () => {
                     <Route path="/" element={<><MetaTags /><Index /></>} />
                     <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
                     <Route path="/threat-intel" element={<><MetaTags /><News /></>} />
+                    {/* Keep before :articleId so "methodology" is never read as an article id. */}
+                    <Route path="/threat-intel/methodology" element={<><MetaTags /><ThreatIntelMethodology /></>} />
                     <Route path="/threat-intel/:articleId" element={<><MetaTags /><News /></>} />
                     <Route path="/news" element={<LegacyNewsRedirect />} />
                     <Route path="/share" element={<><MetaTags /><Share /></>} />

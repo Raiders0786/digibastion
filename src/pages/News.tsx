@@ -26,7 +26,7 @@ import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
 import { DEFAULT_SCOPE, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
-import { TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
+import { METHODOLOGY_PATH, TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
 import { parseThreatIntelFilters } from '@/lib/threatIntel/query';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
@@ -719,24 +719,29 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                         )}
                       </span>
                       {pagination.totalCount > 0 && (
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${
-                            feedStatus.source === 'cache' || feedStatus.pipelineIsStale
-                              ? 'border-yellow-500/40 text-yellow-500'
-                              : 'border-emerald-500/40 text-emerald-400'
-                          }`}
-                          title={feedStatus.pipelineCheckedAt
-                            ? `All active RSS sources checked by ${format(feedStatus.pipelineCheckedAt, 'PPpp')}`
-                            : (feedStatus.checkedAt ? `Database checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined)}
+                        <Link
+                          to={`${METHODOLOGY_PATH}#sources`}
+                          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
-                          <Database className="w-3 h-3 mr-1" />
-                          {feedStatus.source === 'cache'
-                            ? (feedStatus.isStale ? 'Cached · stale' : 'Cached')
-                            : feedStatus.pipelineCheckedAt
-                              ? `${feedStatus.checkedFeedCount}/${feedStatus.activeFeedCount} sources checked ${formatDistanceToNow(feedStatus.pipelineCheckedAt, { addSuffix: true })}`
-                              : 'Live database'}
-                        </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs hover:border-primary/60 ${
+                              feedStatus.source === 'cache' || feedStatus.pipelineIsStale
+                                ? 'border-yellow-500/40 text-yellow-500'
+                                : 'border-emerald-500/40 text-emerald-400'
+                            }`}
+                            title={feedStatus.pipelineCheckedAt
+                              ? `All active RSS sources checked by ${format(feedStatus.pipelineCheckedAt, 'PPpp')}`
+                              : (feedStatus.checkedAt ? `Database checked ${format(feedStatus.checkedAt, 'PPpp')}` : undefined)}
+                          >
+                            <Database className="w-3 h-3 mr-1" aria-hidden="true" />
+                            {feedStatus.source === 'cache'
+                              ? (feedStatus.isStale ? 'Cached · stale' : 'Cached')
+                              : feedStatus.pipelineCheckedAt
+                                ? `${feedStatus.checkedFeedCount}/${feedStatus.activeFeedCount} sources checked ${formatDistanceToNow(feedStatus.pipelineCheckedAt, { addSuffix: true })}`
+                                : 'Live database'}
+                          </Badge>
+                        </Link>
                       )}
                       {feedStatus.newestPublishedAt && (
                         <span
@@ -1251,6 +1256,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             </ErrorBoundary>
           )}
           </SwipeableTabs>
+
+          <p className="mt-10 border-t border-border/60 pt-6 text-center text-sm text-muted-foreground">
+            Where these records come from, how severity is set and how to report a mistake:{' '}
+            <Link to={METHODOLOGY_PATH} className="font-medium text-primary underline-offset-2 hover:underline">
+              sources and methodology
+            </Link>
+            .
+          </p>
         </div>
       </main>
 
