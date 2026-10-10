@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   candidateFromRow,
+  groupDuplicates,
   incidentDateWindows,
   incidentSourcesFromRow,
   incidentTargetFromTitle,
   isHighConfidenceDuplicate,
   matchExistingIncident,
+  MAX_BACKFILL_SAMPLES,
   normalizeIncidentTarget,
   pickCanonical,
   planCanonicalMerges,
+  planDuplicateBackfill,
   providerPriority,
   rowProvider,
   type IncidentRow,
@@ -316,5 +319,94 @@ describe('incidentDateWindows', () => {
       { from: '2026-09-30T00:00:00.000Z', to: '2026-10-06T00:00:00.000Z' },
     ]);
     expect(incidentDateWindows([])).toEqual([]);
+  });
+});
+
+describe('groupDuplicates', () => {
+  it('groups NEAR Intents and Meter under their QuillMonitor records', () => {
+    expect(groupDuplicates([nearWeb3Feed2, meterWeb3, nearWeb3Feed1, nearQuillMonitor, meterQuillMonitor])).toEqual([
+      { canonical: 'quillmonitor:meter-1', duplicates: ['meter-feed1'] },
+      { canonical: 'quillmonitor:near-intents-1', duplicates: ['a1b2c3-feed1-near', 'd4e5f6-feed2-near'] },
+    ]);
+  });
+
+  it('leaves Limit Break and Magic Eden as separate incidents', () => {
+    expect(groupDuplicates([limitBreak, magicEden])).toEqual([]);
+  });
+
+  it('is stable for rows that are already marked', () => {
+    const marked = {
+      ...nearWeb3Feed1,
+      metadata: { ...(nearWeb3Feed1.metadata as object), classification_relevant: false, duplicate_of_uid: 'quillmonitor:near-intents-1' },
+    };
+    expect(groupDuplicates([nearQuillMonitor, marked])).toEqual([
+      { canonical: 'quillmonitor:near-intents-1', duplicates: ['a1b2c3-feed1-near'] },
+    ]);
+  });
+
+  it('ignores rows hidden for other reasons and never merges two QuillMonitor rows', () => {
+    const hidden = { ...meterWeb3, metadata: { ...(meterWeb3.metadata as object), classification_relevant: false } };
+    expect(groupDuplicates([meterQuillMonitor, hidden])).toEqual([]);
+    const secondQuill = { ...meterQuillMonitor, uid: 'quillmonitor:meter-2' };
+    expect(groupDuplicates([meterQuillMonitor, secondQuill])).toEqual([]);
+  });
+
+  it('does not chain matches: each duplicate must match the canonical row itself', () => {
+    const day0 = { ...meterWeb3, uid: 'w-0', metadata: { provider: 'web3-incidents', incident_date: '2026-09-10', attack_type: 'exploit' } };
+    const day2 = { ...meterWeb3, uid: 'w-2', metadata: { provider: 'web3-incidents', incident_date: '2026-09-12', attack_type: 'exploit' } };
+    const day4 = { ...meterWeb3, uid: 'w-4', metadata: { provider: 'web3-incidents', incident_date: '2026-09-14', attack_type: 'exploit' } };
+    expect(groupDuplicates([day0, day2, day4])).toEqual([{ canonical: 'w-0', duplicates: ['w-2'] }]);
+  });
+});
+
+describe('planDuplicateBackfill', () => {
+  it('marks duplicates and adds their sources to the canonical row', () => {
+    const plan = planDuplicateBackfill([nearQuillMonitor, nearWeb3Feed1, nearWeb3Feed2, limitBreak, magicEden]);
+    expect(plan.groups).toEqual([
+      { canonical: 'quillmonitor:near-intents-1', duplicates: ['a1b2c3-feed1-near', 'd4e5f6-feed2-near'] },
+    ]);
+    expect(plan.marks.map((mark) => [mark.uid, mark.duplicateOfUid, mark.needsWrite])).toEqual([
+      ['a1b2c3-feed1-near', 'quillmonitor:near-intents-1', true],
+      ['d4e5f6-feed2-near', 'quillmonitor:near-intents-1', true],
+    ]);
+    expect(plan.canonicalUpdates).toHaveLength(1);
+    expect(plan.canonicalUpdates[0].uid).toBe('quillmonitor:near-intents-1');
+    expect(plan.canonicalUpdates[0].metadata).toMatchObject({ provider: 'quillmonitor', verification_status: 'verified' });
+    expect(plan.canonicalUpdates[0].metadata.sources).toEqual([
+      { provider: 'quillmonitor', url: 'https://x.com/near/status/1', label: 'QuillMonitor', amount_usd: 3_800_000 },
+      { provider: 'web3-incidents', url: 'https://x.com/zachxbt/status/2', label: 'Web3 incident tracker', amount_usd: 3_800_000 },
+      { provider: 'web3-incidents', url: null, label: 'Web3 incident tracker', amount_usd: null },
+    ]);
+    expect(plan.samples).toEqual([
+      {
+        canonical: { uid: 'quillmonitor:near-intents-1', title: 'NEAR Intents: Private Key Compromise ($3.8M loss)' },
+        duplicate: { uid: 'a1b2c3-feed1-near', title: 'NEAR Intents exploited for $3.8 million' },
+      },
+      {
+        canonical: { uid: 'quillmonitor:near-intents-1', title: 'NEAR Intents: Private Key Compromise ($3.8M loss)' },
+        duplicate: { uid: 'd4e5f6-feed2-near', title: 'NEAR Intents - Private Key Compromise ($3.8M)' },
+      },
+    ]);
+  });
+
+  it('plans no writes on a second run over already-merged rows', () => {
+    const first = planDuplicateBackfill([meterQuillMonitor, meterWeb3]);
+    const canonical = { ...meterQuillMonitor, metadata: first.canonicalUpdates[0].metadata };
+    const duplicate = { ...meterWeb3, metadata: first.marks[0].metadata };
+    const second = planDuplicateBackfill([canonical, duplicate]);
+    expect(second.marks.every((mark) => !mark.needsWrite)).toBe(true);
+    expect(second.canonicalUpdates).toEqual([]);
+  });
+
+  it(`caps samples at ${MAX_BACKFILL_SAMPLES}`, () => {
+    const rows: IncidentRow[] = [];
+    for (let index = 0; index < 60; index++) {
+      const target = `Project ${index}`;
+      rows.push({ ...meterQuillMonitor, uid: `quillmonitor:p${index}`, metadata: { provider: 'quillmonitor', project_name: target, incident_date: '2026-09-14' } });
+      rows.push({ ...meterWeb3, uid: `w${index}`, metadata: { provider: 'web3-incidents', project_name: target, incident_date: '2026-09-14' } });
+    }
+    const plan = planDuplicateBackfill(rows);
+    expect(plan.marks).toHaveLength(60);
+    expect(plan.samples).toHaveLength(MAX_BACKFILL_SAMPLES);
   });
 });

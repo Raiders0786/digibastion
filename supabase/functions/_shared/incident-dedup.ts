@@ -304,3 +304,88 @@ export function incidentDateWindows(dates: string[]): { from: string; to: string
   }
   return windows;
 }
+
+/**
+ * Groups rows into incidents. Each duplicate matches its canonical row
+ * directly; there is no chaining (A~B and B~C does not pull in C unless C~A),
+ * so repeated incidents at one project a few days apart stay separate.
+ * Two QuillMonitor rows are never merged: QuillMonitor rewrites its metadata
+ * on every sync, so a mark on its own row would not stick.
+ */
+export function groupDuplicates(rows: IncidentRow[]): { canonical: string; duplicates: string[] }[] {
+  const candidates = rows
+    .filter((row) => !isHiddenForOtherReasons(row))
+    .map(candidateFromRow)
+    .filter((candidate): candidate is DuplicateCandidate => candidate !== null)
+    .sort((a, b) =>
+      providerPriority(a.provider) - providerPriority(b.provider) || a.uid.localeCompare(b.uid));
+
+  const groups: { canonical: DuplicateCandidate; duplicates: string[] }[] = [];
+  for (const candidate of candidates) {
+    // Sorted by priority then uid, so the first match is also what
+    // pickCanonical would choose among the matching groups.
+    const group = groups.find((existing) =>
+      !(existing.canonical.provider === 'quillmonitor' && candidate.provider === 'quillmonitor') &&
+      isHighConfidenceDuplicate(existing.canonical, candidate));
+    if (group) group.duplicates.push(candidate.uid);
+    else groups.push({ canonical: candidate, duplicates: [] });
+  }
+
+  return groups
+    .filter((group) => group.duplicates.length > 0)
+    .map((group) => ({ canonical: group.canonical.uid, duplicates: [...group.duplicates].sort() }))
+    .sort((a, b) => a.canonical.localeCompare(b.canonical));
+}
+
+export const MAX_BACKFILL_SAMPLES = 50;
+
+export interface DuplicateBackfillPlan {
+  groups: { canonical: string; duplicates: string[] }[];
+  marks: DuplicateMark[];
+  // Canonical rows whose metadata.sources gain entries from their duplicates.
+  canonicalUpdates: { uid: string; metadata: Record<string, unknown> }[];
+  samples: { canonical: { uid: string; title: string }; duplicate: { uid: string; title: string } }[];
+}
+
+/**
+ * Everything the dedupe-incidents backfill would write, computed without
+ * touching the database so a dry run can show it for review first.
+ */
+export function planDuplicateBackfill(rows: IncidentRow[]): DuplicateBackfillPlan {
+  const byUid = new Map(rows.map((row) => [row.uid, row]));
+  const groups = groupDuplicates(rows);
+  const marks: DuplicateMark[] = [];
+  const canonicalUpdates: DuplicateBackfillPlan['canonicalUpdates'] = [];
+  const samples: DuplicateBackfillPlan['samples'] = [];
+
+  for (const group of groups) {
+    const canonical = byUid.get(group.canonical);
+    if (!canonical) continue;
+    // Start from the canonical row's own source so it stays first.
+    let sources = incidentSourcesFromRow(canonical);
+    for (const uid of group.duplicates) {
+      const row = byUid.get(uid);
+      if (!row) continue;
+      const metadata = metadataRecord(row.metadata);
+      marks.push({
+        uid,
+        duplicateOfUid: canonical.uid,
+        metadata: duplicateMetadata(row.metadata, canonical.uid),
+        needsWrite: metadata.classification_relevant !== false || metadata.duplicate_of_uid !== canonical.uid,
+      });
+      sources = mergeIncidentSources(sources, incidentSourcesFromRow(row));
+      if (samples.length < MAX_BACKFILL_SAMPLES) {
+        samples.push({
+          canonical: { uid: canonical.uid, title: canonical.title },
+          duplicate: { uid: row.uid, title: row.title },
+        });
+      }
+    }
+    const storedSources = readIncidentFields(canonical.metadata).sources;
+    if (JSON.stringify(sources) !== JSON.stringify(storedSources)) {
+      canonicalUpdates.push({ uid: canonical.uid, metadata: { ...metadataRecord(canonical.metadata), sources } });
+    }
+  }
+
+  return { groups, marks, canonicalUpdates, samples };
+}
