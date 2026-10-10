@@ -133,6 +133,52 @@ describe('NewsCard incident presentation', () => {
   it('renders a record whose category is no longer configured', () => {
     renderCard(<NewsCard article={{ ...preliminaryArticle, category: 'retired-category' as unknown as NewsArticle['category'] }} />);
     expect(screen.getByRole('link', { name: preliminaryArticle.title })).not.toBeNull();
+    expect(screen.getByText('Retired Category')).not.toBeNull();
+  });
+});
+
+describe('NewsCard source attribution', () => {
+  it('shows "Powered by" with the QuillMonitor link when it is the only source', () => {
+    renderCard(<NewsCard article={preliminaryArticle} />);
+
+    expect(screen.getByText('Powered by')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'QuillMonitor' }).getAttribute('href')).toBe(QM_DATABASE);
+    expect(screen.queryByText('Source:')).toBeNull();
+  });
+
+  it('keeps "Powered by QuillMonitor" and lists other sources as also reported by', () => {
+    renderCard(<NewsCard article={{
+      ...preliminaryArticle,
+      metadata: {
+        ...preliminaryArticle.metadata,
+        sources: [{ provider: 'peckshield', label: 'PeckShield', url: 'https://x.com/peckshield/status/1' }],
+      },
+    }} />);
+
+    expect(screen.getByText('Powered by')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'QuillMonitor' }).getAttribute('href')).toBe(QM_DATABASE);
+    expect(screen.getByText('Also reported by:')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'PeckShield' }).getAttribute('href'))
+      .toBe('https://x.com/peckshield/status/1');
+  });
+
+  it('uses "Source:" for a single non-QuillMonitor source', () => {
+    renderCard(<NewsCard article={{
+      id: 'rss-2',
+      title: 'Vendor patches flaw',
+      summary: 'A vendor patched a flaw that attackers were using in the wild.',
+      content: 'Details',
+      category: 'vulnerability-disclosure',
+      tags: [],
+      severity: 'high',
+      publishedAt: new Date('2026-10-08T10:00:00.000Z'),
+      sourceName: 'BleepingComputer',
+      link: 'https://www.bleepingcomputer.com/news/security/x/',
+      isProcessed: true,
+    }} />);
+
+    expect(screen.getByText('Source:')).not.toBeNull();
+    expect(screen.queryByText('Powered by')).toBeNull();
   });
 });
 

@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Clock, ExternalLink, RadioTower, Sparkles, Undo2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { VerificationBadge } from '@/components/news/VerificationBadge';
-import { getIncidentDisplay } from '@/lib/threatIntel/incidentDisplay';
+import { getIncidentDisplay, type IncidentSourceLink } from '@/lib/threatIntel/incidentDisplay';
 import { getCategoryConfig, getSeverityStyle } from '@/lib/threatIntel/taxonomy';
-import { isSlowMistArticle, isWeb3Incident } from '@/utils/newsIncident';
+import { isQuillMonitorArticle, isSlowMistArticle, isWeb3Incident } from '@/utils/newsIncident';
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -28,6 +28,19 @@ export const getArticleHref = (articleId: string) => `/threat-intel/${encodeURIC
 const isPlainLeftClick = (event: MouseEvent<HTMLAnchorElement>) =>
   event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 
+const renderSourceLink = (source: IncidentSourceLink) => (
+  <a
+    key={source.url}
+    href={source.url ?? undefined}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="pointer-events-auto relative z-10 inline-flex items-center gap-1 rounded-sm underline decoration-primary/50 underline-offset-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+  >
+    {source.label}
+    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+  </a>
+);
+
 export const NewsCard = ({ article, onClick, href }: NewsCardProps) => {
   const categoryInfo = getCategoryConfig(article.category);
   const severityStyle = getSeverityStyle(article.severity);
@@ -36,8 +49,15 @@ export const NewsCard = ({ article, onClick, href }: NewsCardProps) => {
   const display = getIncidentDisplay(article);
   const unconfirmed = display.verification === 'unconfirmed';
   const duplicateProviderAuthor = isSlowMistArticle(article) && article.author?.toLowerCase().includes('slowmist');
-  const visibleSources = display.sources.slice(0, MAX_CARD_SOURCES);
-  const hiddenSourceCount = display.sources.length - visibleSources.length;
+  // QuillMonitor records always lead with "Powered by QuillMonitor"; other
+  // sources follow. Decided by provider, not by the source label text.
+  const quillMonitor = isQuillMonitorArticle(article);
+  const quillMonitorSource = quillMonitor
+    ? display.sources.find((source) => source.label === 'QuillMonitor')
+    : undefined;
+  const remainingSources = display.sources.filter((source) => source !== quillMonitorSource);
+  const otherSources = remainingSources.slice(0, MAX_CARD_SOURCES);
+  const hiddenSourceCount = remainingSources.length - otherSources.length;
   const metadata = article.metadata;
 
   const handleTitleClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -79,7 +99,7 @@ export const NewsCard = ({ article, onClick, href }: NewsCardProps) => {
             <VerificationBadge
               verification={display.verification}
               help={display.verificationHelp}
-              className="relative z-10"
+              className="pointer-events-auto relative z-10"
             />
           )}
           {display.fundsReturned && (
@@ -94,7 +114,7 @@ export const NewsCard = ({ article, onClick, href }: NewsCardProps) => {
           <Link
             to={href ?? getArticleHref(article.id)}
             onClick={handleTitleClick}
-            className="text-inherit after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary"
+            className="text-inherit after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary"
           >
             {article.title}
           </Link>
@@ -113,21 +133,18 @@ export const NewsCard = ({ article, onClick, href }: NewsCardProps) => {
           )}
         </div>
 
-        {visibleSources.length > 0 && (
-          <div className="relative z-10 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <span>{visibleSources.length > 1 ? 'Sources:' : visibleSources[0].label === 'QuillMonitor' ? 'Powered by' : 'Source:'}</span>
-            {visibleSources.map((source) => (source.url ? (
-              <a
-                key={source.url}
-                href={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-sm underline decoration-primary/50 underline-offset-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                {source.label}
-                <ExternalLink className="h-3 w-3" aria-hidden="true" />
-              </a>
-            ) : (
+        {(quillMonitor || otherSources.length > 0) && (
+          <div className="pointer-events-none flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            {quillMonitor && (
+              <>
+                <span>Powered by</span>
+                {quillMonitorSource?.url ? renderSourceLink(quillMonitorSource) : <span>QuillMonitor</span>}
+              </>
+            )}
+            {otherSources.length > 0 && (
+              <span>{quillMonitor ? 'Also reported by:' : otherSources.length > 1 ? 'Sources:' : 'Source:'}</span>
+            )}
+            {otherSources.map((source) => (source.url ? renderSourceLink(source) : (
               <span key={`label:${source.label}`}>{source.label}</span>
             )))}
             {hiddenSourceCount > 0 && <span>+{hiddenSourceCount} more</span>}
