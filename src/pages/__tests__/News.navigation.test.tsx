@@ -176,7 +176,7 @@ describe('threat-intel article navigation', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'All Intelligence' }));
     await waitFor(() => {
-      expect(router.state.location.search).not.toContain('scope=');
+      expect(router.state.location.search).toContain('scope=all');
       expect(router.state.location.search).toContain('categories=web3-security%2Cdefi-exploits');
       expect(router.state.location.search).not.toContain('page=2');
     });
@@ -375,5 +375,26 @@ describe('threat-intel article navigation', () => {
     const alertsTab = await screen.findByRole('tab', { name: /Active Alerts/ });
     await waitFor(() => expect(alertsTab.getAttribute('aria-selected')).toBe('true'));
     expect(document.activeElement).toBe(alertsTab);
+  });
+
+  it('defaults to Web3 incidents and only writes scope=all for the broader view', async () => {
+    const router = renderAt('/threat-intel');
+
+    await waitFor(() => expect(useNewsArticlesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ view: 'web3-incidents' }),
+    ));
+    expect(screen.getByRole('button', { name: 'Web3 Incidents' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'All Intelligence' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toContain('scope=all');
+      expect(useNewsArticlesMock).toHaveBeenLastCalledWith(expect.objectContaining({ view: 'all' }));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Web3 Incidents' }));
+    await waitFor(() => {
+      expect(router.state.location.search).not.toContain('scope=');
+      expect(useNewsArticlesMock).toHaveBeenLastCalledWith(expect.objectContaining({ view: 'web3-incidents' }));
+    });
   });
 });

@@ -20,12 +20,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
+import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
 import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
-import { NEWS_CATEGORIES, SEVERITY_LEVELS, SEVERITY_STYLES, parseListParam } from '@/lib/threatIntel/taxonomy';
+import { DEFAULT_SCOPE, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
+import { parseThreatIntelFilters } from '@/lib/threatIntel/query';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
   isPreliminaryQuillMonitorArticle,
@@ -62,14 +63,11 @@ const News = () => {
   const navigate = useNavigate();
   const { articleId: routeArticleId } = useParams<{ articleId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedCategories = useMemo(
-    () => parseListParam(searchParams.get('categories') || searchParams.get('category'), NEWS_CATEGORIES),
-    [searchParams],
-  );
-  const selectedSeverities = useMemo(
-    () => parseListParam(searchParams.get('severities') || searchParams.get('severity'), SEVERITY_LEVELS),
-    [searchParams],
-  );
+  // Every shareable filter comes from the URL through one parser. No ?scope
+  // (or an unknown value) means the default Web3 incidents view.
+  const urlFilters = useMemo(() => parseThreatIntelFilters(searchParams), [searchParams]);
+  const selectedCategories = urlFilters.categories;
+  const selectedSeverities = urlFilters.severities;
   const [selectedTab, setSelectedTab] = useState(() => {
     const requestedTab = searchParams.get('tab');
     return requestedTab && ['feed', 'alerts', 'subscribe'].includes(requestedTab) ? requestedTab : 'feed';
@@ -133,15 +131,14 @@ const News = () => {
   };
 const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [deepLinkState, setDeepLinkState] = useState<'idle' | 'loading' | 'not-found' | 'error'>('idle');
-  const searchQuery = searchParams.get('q') || '';
-  const sortBy = searchParams.get('sort') === 'severity' ? 'severity' : 'date';
-  const dateFilter = ['7d', '30d', '90d'].includes(searchParams.get('date') || '')
-    ? searchParams.get('date') as '7d' | '30d' | '90d'
-    : 'all';
-  const feedView: ThreatIntelScope = searchParams.get('scope') === 'web3-incidents' ? 'web3-incidents' : 'all';
-  const parsedPage = Number.parseInt(searchParams.get('page') || '1', 10);
-  const currentPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  const pageSize = 20;
+  const {
+    searchQuery,
+    sortBy,
+    dateFilter,
+    scope: feedView,
+    page: currentPage,
+    pageSize,
+  } = urlFilters;
 
   const updateFeedParam = useCallback((key: string, value: string | null, replace = false) => {
     setSearchParams((current) => {
@@ -667,7 +664,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     <div className="flex gap-2 flex-wrap">
                       <ContentScopeSelector
                         value={feedView}
-                        onChange={(value) => updateFeedParam('scope', value === 'all' ? null : value)}
+                        onChange={(value) => updateFeedParam('scope', value === DEFAULT_SCOPE ? null : value)}
                         label="Choose intelligence scope"
                         idPrefix="feed-scope"
                       />
@@ -798,7 +795,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       </Button>
                         </>
                       )}
-                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== 'all') && (
+                      {(selectedCategories.length > 0 || selectedSeverities.length > 0 || searchQuery || feedView !== DEFAULT_SCOPE) && (
                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                           Clear filters
                         </Button>
