@@ -128,7 +128,10 @@ export function isHighConfidenceDuplicate(
   if (dayDifference === 0) return true;
   if (dayDifference > 2) return false;
 
-  const sameAmount = a.amountInUsd !== null && b.amountInUsd !== null && a.amountInUsd === b.amountInUsd;
+  // A zero or non-finite amount means "no loss reported", not evidence.
+  const reported = (amount: number | null): amount is number =>
+    typeof amount === 'number' && Number.isFinite(amount) && amount > 0;
+  const sameAmount = reported(a.amountInUsd) && reported(b.amountInUsd) && a.amountInUsd === b.amountInUsd;
   const sameAttackMethod = Boolean(
     a.attackMethod && b.attackMethod &&
     normalizeIncidentTarget(a.attackMethod) === normalizeIncidentTarget(b.attackMethod),

@@ -165,6 +165,11 @@ describe('isHighConfidenceDuplicate', () => {
     expect(isHighConfidenceDuplicate({ ...blank, target: '???' }, { ...blank, target: '—' })).toBe(false);
   });
 
+  it('does not treat a zero amount as matching evidence', () => {
+    const zero = { ...other, amountInUsd: 0 };
+    expect(isHighConfidenceDuplicate({ ...zero, date: '2026-09-20' }, { ...zero, date: '2026-09-21' })).toBe(false);
+  });
+
   it('needs a matching amount, attack method or reference within two days', () => {
     expect(isHighConfidenceDuplicate(incident, { ...other, attackMethod: 'Oracle Manipulation' })).toBe(true);
     expect(isHighConfidenceDuplicate(incident, { ...other, amountInUsd: 2_000_000 })).toBe(true);
