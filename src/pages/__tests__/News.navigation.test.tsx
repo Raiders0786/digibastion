@@ -91,6 +91,29 @@ vi.mock('@/components/news/NewsDetail', () => ({
   NewsDetail: ({ article: selected }: { article: NewsArticle }) => <div data-testid="article-detail">{selected.title}</div>,
 }));
 
+const useThreatIntelAlertsMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@/hooks/useThreatIntelAlerts', () => ({
+  useThreatIntelAlerts: (options: unknown) => useThreatIntelAlertsMock(options),
+}));
+
+vi.mock('@/components/news/NewsCardSkeleton', () => ({
+  NewsListSkeleton: () => <div data-testid="news-skeleton" />,
+  AlertListSkeleton: () => <div data-testid="alert-skeleton" />,
+  StatsSkeleton: () => <div data-testid="stats-skeleton" />,
+}));
+
+const idleAlerts = {
+  alerts: [],
+  totalCount: 0,
+  criticalCount: 0,
+  highCount: 0,
+  totalPages: 1,
+  isLoading: false,
+  error: null,
+  refetch: vi.fn(),
+};
+
 function renderAt(url: string) {
   const router = createMemoryRouter(
     [
@@ -109,6 +132,7 @@ describe('threat-intel article navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     for (const key of Object.keys(deepLink.rows)) delete deepLink.rows[key];
+    useThreatIntelAlertsMock.mockReturnValue(idleAlerts);
   });
 
   it('hydrates shareable feed filters and keeps them in the URL when scope changes', async () => {
@@ -235,5 +259,29 @@ describe('threat-intel article navigation', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(router.state.location.pathname).toBe('/threat-intel/dup-2');
     expect(screen.queryByTestId('article-detail')).toBeNull();
+  });
+
+  it('loads alerts for the selected scope and filters and shows a skeleton while loading', async () => {
+    useThreatIntelAlertsMock.mockReturnValue({ ...idleAlerts, isLoading: true });
+
+    renderAt('/threat-intel?tab=alerts&scope=all&categories=supply-chain&severities=critical');
+
+    expect(await screen.findByTestId('alert-skeleton')).not.toBeNull();
+    expect(useThreatIntelAlertsMock).toHaveBeenLastCalledWith({
+      filters: {
+        scope: 'all',
+        categories: ['supply-chain'],
+        severities: ['critical'],
+        searchQuery: '',
+        dateFilter: 'all',
+      },
+      page: 1,
+      enabled: true,
+    });
+    // Badge = stats.critical + stats.high from the feed hook mock (0 + 1).
+    const alertsTab = screen.getAllByText('Active Alerts')
+      .map((element) => element.closest('button'))
+      .find((button) => button !== null);
+    expect(alertsTab?.textContent).toContain('1');
   });
 });

@@ -22,10 +22,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle, ThreatIntelScope } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
+import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
+import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
 import { NEWS_CATEGORIES, SEVERITY_LEVELS, SEVERITY_STYLES, parseListParam } from '@/lib/threatIntel/taxonomy';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
-  CLASSIFICATION_RELEVANCE_POSTGREST_FILTER,
   isPreliminaryQuillMonitorArticle,
   isQuillMonitorArticle,
 } from '@/utils/newsIncident';
@@ -33,7 +34,6 @@ import {
   getDuplicateOfUid,
   isPublishable,
   mapNewsArticleRow,
-  mapPublishableNewsArticleRows,
   NEWS_ARTICLE_COLUMNS,
 } from '@/lib/threatIntel/articleRow';
 import { safeExternalUrl } from '@/utils/safeUrl';
@@ -73,10 +73,7 @@ const News = () => {
   });
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeAlerts, setActiveAlerts] = useState<NewsArticle[]>([]);
-  const [activeAlertCount, setActiveAlertCount] = useState(0);
-  const [alertsLoading, setAlertsLoading] = useState(false);
-  const [alertsError, setAlertsError] = useState<string | null>(null);
+  const [alertsPage, setAlertsPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -187,35 +184,36 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     pageSize,
   });
 
-  const fetchActiveAlerts = useCallback(async () => {
-    setAlertsLoading(true);
-    setAlertsError(null);
-    const { data, error: alertsFetchError } = await supabase
-      .from('news_articles')
-      .select(NEWS_ARTICLE_COLUMNS)
-      .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
-      .in('severity', ['critical', 'high'])
-      .order('published_at', { ascending: false })
-      .limit(100);
+  // Alerts follow the same view and filters as the feed (severity is narrowed
+  // to critical/high inside the hook) and page 20 at a time.
+  // Explicit type: without it `dateFilter` widens to string in the object literal.
+  const alertFilters = useMemo<ThreatIntelFilterInput>(() => ({
+    scope: feedView,
+    categories: selectedCategories,
+    severities: selectedSeverities,
+    searchQuery,
+    dateFilter,
+  }), [feedView, selectedCategories, selectedSeverities, searchQuery, dateFilter]);
+  const alertFiltersKey = JSON.stringify(alertFilters);
 
-    if (alertsFetchError) {
-      console.error('Failed to fetch active alerts:', alertsFetchError);
-      setAlertsError('Active alerts could not be loaded.');
-      setAlertsLoading(false);
-      return;
-    }
-
-    const alertRows = mapPublishableNewsArticleRows(data);
-    setActiveAlerts(alertRows);
-    setActiveAlertCount(alertRows.length);
-    setAlertsLoading(false);
-  }, []);
-
+  // A different view or filter set starts the alert list from page 1.
   useEffect(() => {
-    if (selectedTab === 'alerts' && activeAlerts.length === 0) {
-      void fetchActiveAlerts();
-    }
-  }, [selectedTab, activeAlerts.length, fetchActiveAlerts]);
+    setAlertsPage(1);
+  }, [alertFiltersKey]);
+
+  const {
+    alerts: activeAlerts,
+    isLoading: alertsLoading,
+    error: alertsError,
+    refetch: refetchAlerts,
+    criticalCount: alertsCriticalCount,
+    highCount: alertsHighCount,
+    totalPages: alertsTotalPages,
+  } = useThreatIntelAlerts({
+    filters: alertFilters,
+    page: alertsPage,
+    enabled: selectedTab === 'alerts',
+  });
 
   // Keep legacy ?article= links working while using a crawlable canonical route.
   const requestedArticleId = (routeArticleId || searchParams.get('article') || '').trim();
@@ -320,11 +318,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     if (selectedTab !== 'alerts' || autoRefreshInterval === 0) return;
     
     const intervalId = setInterval(() => {
-      void fetchActiveAlerts();
+      void refetchAlerts();
     }, autoRefreshInterval * 1000);
 
     return () => clearInterval(intervalId);
-  }, [selectedTab, autoRefreshInterval, fetchActiveAlerts]);
+  }, [selectedTab, autoRefreshInterval, refetchAlerts]);
 
   const handleCategoryToggle = (category: NewsCategory) => {
     const next = selectedCategories.includes(category)
@@ -359,10 +357,6 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     return activeAlerts.filter(article => article.severity === 'high');
   }, [activeAlerts]);
 
-  const actionRequiredAlerts = useMemo(() => {
-    return activeAlerts;
-  }, [activeAlerts]);
-
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
     const query = searchParams.toString();
@@ -382,8 +376,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Handle new articles from realtime
   const handleNewRealtimeArticle = useCallback(() => {
-    void Promise.all([refetch(), fetchActiveAlerts()]);
-  }, [refetch, fetchActiveAlerts]);
+    void Promise.all([refetch(), refetchAlerts()]);
+  }, [refetch, refetchAlerts]);
 
   // Tiles say "in this view" only when the server counted the whole result.
   const statsCaption = statsSource === 'server' ? 'in this view' : 'on this page';
@@ -391,7 +385,9 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   // Tab configuration with better visibility
   const tabs = [
     { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
-    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: activeAlertCount || actionRequiredAlerts.length },
+    // Feed stats share the alerts' scope and filters, so this matches the
+    // Alerts tab total and is available before the tab is opened.
+    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: stats.critical + stats.high },
     { id: 'subscribe', label: 'Subscribe', icon: Bell },
   ];
 
@@ -707,7 +703,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={async () => { await refreshWeb3Incidents(); await fetchActiveAlerts(); }}
+                        onClick={async () => { await refreshWeb3Incidents(); await refetchAlerts(); }}
                         disabled={isRefreshingWeb3}
                         className="bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20"
                         title="Fetch latest Web3 security incidents"
@@ -937,7 +933,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => void fetchActiveAlerts()}
+                      onClick={() => void refetchAlerts()}
                       disabled={alertsLoading}
                     >
                       {alertsLoading ? (
@@ -950,13 +946,15 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   </div>
                 </div>
 
+                {alertsLoading && <AlertListSkeleton count={3} />}
+
                 {/* Critical Alerts */}
-                {criticalAlerts.length > 0 && (
+                {!alertsLoading && criticalAlerts.length > 0 && (
                 <Card className="glass-card border-red-500/30 bg-red-500/5">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-red-400">
                       <AlertTriangle className="w-5 h-5" />
-                      Critical Alerts ({criticalAlerts.length})
+                      Critical Alerts ({alertsCriticalCount})
                     </CardTitle>
                     <CardDescription>
                       Critical-severity threats and published incident reports requiring prompt review
@@ -1027,12 +1025,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
               )}
 
               {/* High Priority Alerts */}
-              {highAlerts.length > 0 && (
+              {!alertsLoading && highAlerts.length > 0 && (
                 <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Shield className="w-5 h-5 text-orange-500" />
-                      High Priority Alerts ({highAlerts.length})
+                      High Priority Alerts ({alertsHighCount})
                     </CardTitle>
                     <CardDescription>Important security alerts requiring attention</CardDescription>
                   </CardHeader>
@@ -1097,6 +1095,35 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                 </Card>
               )}
 
+              {/* Alert pagination */}
+              {!alertsLoading && alertsTotalPages > 1 && (
+                <nav className="flex items-center justify-between gap-2" aria-label="Alert pages">
+                  <span className="text-sm text-muted-foreground">
+                    Page {alertsPage} of {alertsTotalPages}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAlertsPage((current) => Math.max(1, current - 1))}
+                      disabled={alertsPage <= 1}
+                    >
+                      <ChevronRight className="w-4 h-4 rotate-180" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAlertsPage((current) => Math.min(alertsTotalPages, current + 1))}
+                      disabled={alertsPage >= alertsTotalPages}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </nav>
+              )}
+
               {/* Empty state */}
               {!alertsLoading && activeAlerts.length === 0 && (
                 <Card className="glass-card">
@@ -1104,7 +1131,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                     <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">No alerts available</h3>
                     <p className="text-muted-foreground mb-4">{alertsError || 'No critical or high priority alerts are active.'}</p>
-                    <Button onClick={() => void fetchActiveAlerts()}>Try Again</Button>
+                    <Button onClick={() => void refetchAlerts()}>Try Again</Button>
                   </CardContent>
                 </Card>
               )}
