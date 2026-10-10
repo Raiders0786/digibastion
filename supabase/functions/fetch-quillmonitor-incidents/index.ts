@@ -123,7 +123,7 @@ async function loadDuplicateCandidates(
   for (const window of windows) {
     const { data, error, count } = await db
       .from('news_articles')
-      .select('uid,title,published_at,source_name,metadata,link', { count: 'exact' })
+      .select('uid,title,published_at,source_name,metadata,link,source_url', { count: 'exact' })
       .gte('published_at', window.from)
       .lt('published_at', window.to)
       .in('metadata->>provider', LOWER_PRIORITY_PROVIDERS)

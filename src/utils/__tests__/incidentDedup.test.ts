@@ -128,6 +128,7 @@ describe('rowProvider and candidateFromRow', () => {
       attackMethod: 'Private Key Compromise',
       amountInUsd: 3_800_000,
       reference: 'https://x.com/near/status/1',
+      references: ['https://x.com/i/status/1'],
     });
     expect(candidateFromRow(nearWeb3Feed1)).toMatchObject({ target: 'NEAR Intents', date: '2026-10-03' });
     expect(candidateFromRow({ ...meterWeb3, metadata: { provider: 'web3-incidents' } }))
@@ -150,6 +151,31 @@ describe('rowProvider and candidateFromRow', () => {
 });
 
 describe('isHighConfidenceDuplicate', () => {
+  it('matches the actual Meter reports through their shared Blockaid post', () => {
+    const web3 = candidateFromRow({ uid: 'meter-live-web3', title: 'Meter token prices crash after unauthorized mint',
+      published_at: '2026-09-24T00:00:00Z', link: 'https://x.com/Meter_IO/status/2103165031278125517',
+      source_url: JSON.stringify([{ url: 'https://x.com/blockaid_/status/2103121249706877178' }]),
+      metadata: { provider: 'web3-incidents', amount_lost_usd: 2_300_000 } });
+    const quill = candidateFromRow({ uid: 'meter-live-quill', title: 'Meter.IO: Security incident',
+      published_at: '2026-09-24T00:00:00Z', metadata: { provider: 'quillmonitor', project_name: 'Meter.IO',
+        amount_lost_usd: 2_300_000, reference_url: 'https://x.com/blockaid_/status/2103121249706877178' } });
+    if (!web3 || !quill) throw new Error('Invalid Meter fixtures');
+    expect(isHighConfidenceDuplicate(web3, quill)).toBe(true);
+    expect(isHighConfidenceDuplicate(web3, { ...quill, date: '2026-09-25' })).toBe(false);
+    expect(isHighConfidenceDuplicate(web3, { ...quill, amountInUsd: 0 })).toBe(false);
+    expect(isHighConfidenceDuplicate(web3, { ...quill, amountInUsd: 1_800_000 })).toBe(false);
+    expect(isHighConfidenceDuplicate(web3, { ...quill, references: [], reference: 'https://x.com/blockaid_/status/99' })).toBe(false);
+    expect(groupDuplicates([{ uid: web3.uid, title: web3.target, published_at: web3.date,
+      source_url: JSON.stringify([{ url: quill.reference }]), metadata: { provider: 'web3-incidents', amount_lost_usd: 2_300_000 } },
+      { uid: quill.uid, title: quill.target, published_at: quill.date,
+        metadata: { provider: 'quillmonitor', amount_lost_usd: 2_300_000, reference_url: quill.reference } }])).toHaveLength(1);
+  });
+
+  it('does not merge different project names through a generic provider page', () => {
+    const a = { target: 'Limit Break', date: '2026-09-25', amountInUsd: 1_800_000, attackMethod: null,
+      reference: 'https://www.quillaudits.com/web3-hacks-database' };
+    expect(isHighConfidenceDuplicate(a, { ...a, target: 'Magic Eden' })).toBe(false);
+  });
   const incident = {
     target: 'Example Bridge',
     date: '2026-09-20',
