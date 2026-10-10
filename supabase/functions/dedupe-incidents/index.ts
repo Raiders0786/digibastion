@@ -4,7 +4,9 @@ import { planDuplicateBackfill, type IncidentRow } from '../_shared/incident-ded
 import { planLegacyAmountRepairs, type LegacyAmountRow } from '../_shared/legacy-amounts.ts';
 
 // One-time (and repeatable) backfill with two modes. By default it marks
-// existing cross-provider duplicates. With repairLegacyAmounts it only
+// existing cross-provider duplicates, and QuillMonitor records listed twice by
+// QuillMonitor itself (same project, day and loss; the verified record is
+// kept). With repairLegacyAmounts it only
 // re-parses loss figures written by the old web3-incidents importer; run that
 // first, so the duplicate pass compares real amounts. Both modes default to a
 // dry run so the changes can be reviewed first.

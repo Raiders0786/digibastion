@@ -9,6 +9,10 @@ import {
   TELEGRAM_MESSAGE_LIMIT,
   type TelegramAlertArticle,
 } from '../../../supabase/functions/_shared/telegram-alerts';
+import {
+  finalizeQuillMonitorArticle,
+  normalizeQuillMonitorIncident,
+} from '../../../supabase/functions/_shared/quillmonitor';
 
 const NOW = new Date('2026-10-10T12:00:00.000Z');
 const SITE = 'https://www.digibastion.com';
@@ -180,6 +184,24 @@ describe('Telegram post updates', () => {
     expect(planTelegramPostUpdate(posted, null, SITE, NOW).action).toBe('retract');
     expect(planTelegramPostUpdate(posted, incident({}, { duplicate_of_uid: 'quillmonitor:2' }), SITE, NOW).action).toBe('retract');
     expect(planTelegramPostUpdate(posted, incident({}, { classification_relevant: false }), SITE, NOW).action).toBe('retract');
+  });
+
+  it('drops and retracts a QuillMonitor record merged into another QuillMonitor record', () => {
+    // Built the way the QuillMonitor sync writes the losing row of a
+    // same-provider pair, so this follows the real metadata shape.
+    const loser = normalizeQuillMonitorIncident({
+      id: '6abe7cb74bf2b9001882e340', target: 'NEAR Intents', date: '2026-10-09', chain: 'NEAR', category: 'Bridge',
+      attackedMethod: 'Private Key Compromise', amountInUsd: 3_800_000, description: 'Solver drained.',
+      reference: 'https://x.com/Phalcon_xyz/status/1', verificationStatus: 'unverified',
+      createdAt: '2026-10-09T10:00:00.000Z', updatedAt: '2026-10-09T10:00:00.000Z',
+    });
+    const written = finalizeQuillMonitorArticle(loser, undefined, [], 'quillmonitor:6abf52e051c7780018c8e336');
+    const article = incident({ uid: written.uid }, written.metadata);
+    expect(isEligibleForTelegram(article, NOW, { minSeverity: 'low' })).toBe(false);
+    expect(isEligibleForTelegram(incident({ uid: written.uid }, loser.metadata), NOW, { minSeverity: 'low' })).toBe(true);
+    const plan = planTelegramPostUpdate({ ...posted, project_name: 'NEAR Intents' }, article, SITE, NOW);
+    expect(plan.action).toBe('retract');
+    if (plan.action === 'retract') expect(plan.text).toContain('RETRACTED</b> · NEAR Intents');
   });
 
   it('does not retract twice', () => {

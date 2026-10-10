@@ -1,6 +1,7 @@
 import { classifyWeb3Incident } from './web3-taxonomy.ts';
 import { severityFromLoss } from './incident-severity.ts';
 import { mergeIncidentSources, readIncidentFields, type IncidentSource } from './incident-fields.ts';
+import { isQuillMonitorUid } from './incident-dedup.ts';
 import { isPendingSummary } from './summary-text.ts';
 
 export const QUILLMONITOR_API_URL = 'https://www.quillaudits.com/api/partner/hack-incidents';
@@ -372,20 +373,27 @@ export interface ExistingQuillMonitorRow {
 
 /**
  * Final write shape for one QuillMonitor row. The upsert replaces metadata, so
- * sources merged from duplicate records are added back on every sync.
- * duplicateSources is null when the duplicate lookup did not run this sync;
- * then the row keeps the non-QuillMonitor sources it already had instead of
- * losing them.
+ * sources merged from duplicate records, and the row's own mark as a duplicate
+ * of another QuillMonitor record (duplicateOfUid), are added back on every
+ * sync. duplicateSources is null when the duplicate lookup did not run this
+ * sync; then the row keeps the merged sources and the QuillMonitor duplicate
+ * mark it already had instead of losing them, and duplicateOfUid is ignored.
  */
 export function finalizeQuillMonitorArticle(
   article: NormalizedQuillMonitorArticle,
   existing: ExistingQuillMonitorRow | undefined,
   duplicateSources: IncidentSource[] | null,
+  duplicateOfUid: string | null = null,
 ): NormalizedQuillMonitorArticle {
   const ownSources = readIncidentFields(article.metadata).sources;
   const existingFields = readIncidentFields(existing?.metadata);
+  // Every write puts the row's own source first, so a leading QuillMonitor
+  // source is the old copy of it; later ones came from duplicate records.
   const carriedSources = duplicateSources ??
-    existingFields.sources.filter((source) => source.provider !== 'quillmonitor');
+    existingFields.sources.filter((source, index) => !(index === 0 && source.provider === 'quillmonitor'));
+  const duplicateMark = duplicateSources === null
+    ? (isQuillMonitorUid(existingFields.duplicateOfUid) ? existingFields.duplicateOfUid : null)
+    : duplicateOfUid;
   // While QuillMonitor has no description, keep the summary summarize-article
   // wrote; otherwise every sync of the record would reset it to "Summary pending".
   const keepAiSummary = article.metadata.summary_status === 'pending' &&
@@ -398,6 +406,7 @@ export function finalizeQuillMonitorArticle(
       ...article.metadata,
       sources: mergeIncidentSources(ownSources, carriedSources),
       ...(keepAiSummary ? { summary_origin: 'ai' } : {}),
+      ...(duplicateMark ? { classification_relevant: false, duplicate_of_uid: duplicateMark } : {}),
     },
   };
 }
