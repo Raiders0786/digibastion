@@ -1,11 +1,12 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
+import { Fragment, useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
-import { ContentScopeSelector } from '@/components/news/ContentScopeSelector';
+import { FeedToolbar } from '@/components/news/FeedToolbar';
+import { InlineSubscribeCard } from '@/components/news/InlineSubscribeCard';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -18,7 +19,6 @@ import { NewsListSkeleton, AlertListSkeleton, StatsSkeleton } from '@/components
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NewsCategory, SeverityLevel, NewsArticle } from '@/types/news';
 import { useNewsArticles } from '@/hooks/useNewsArticles';
@@ -26,6 +26,7 @@ import { useThreatIntelAlerts } from '@/hooks/useThreatIntelAlerts';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ThreatIntelFilterInput } from '@/lib/threatIntel/query';
 import { DEFAULT_SCOPE, SEVERITY_STYLES } from '@/lib/threatIntel/taxonomy';
+import { TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
 import { parseThreatIntelFilters } from '@/lib/threatIntel/query';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import {
@@ -45,8 +46,8 @@ import {
   buildThreatIntelCollectionSchema,
 } from '@/utils/seo';
 import { 
-  Newspaper, Shield, AlertTriangle, Bell,
-  Search, Calendar, Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
+  Newspaper, Shield, AlertTriangle, Bell, BellRing, Send,
+  Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -58,6 +59,9 @@ const AUTO_REFRESH_OPTIONS = [
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
+
+/** The inline subscribe card follows this many results. */
+const INLINE_SUBSCRIBE_AFTER = 5;
 
 const News = () => {
   const navigate = useNavigate();
@@ -139,6 +143,14 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     page: currentPage,
     pageSize,
   } = urlFilters;
+  // "Get email alerts" carries the current view so the form opens pre-filled.
+  const subscribeHref = useMemo(() => {
+    const next = new URLSearchParams(searchParams);
+    ['page', 'q', 'article', 'sort', 'date'].forEach((key) => next.delete(key));
+    next.set('scope', feedView);
+    next.set('tab', 'subscribe');
+    return `/threat-intel?${next.toString()}`;
+  }, [searchParams, feedView]);
 
   const updateFeedParam = useCallback((key: string, value: string | null, replace = false) => {
     setSearchParams((current) => {
@@ -411,11 +423,29 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Tab configuration with better visibility
   const tabs = [
-    { id: 'feed', label: 'News Feed', icon: Newspaper, count: stats.total },
+    { id: 'feed', label: 'News Feed', shortLabel: 'Feed', icon: Newspaper, count: stats.total },
     // Feed stats share the alerts' scope and filters, so this matches the
     // Alerts tab total and is available before the tab is opened.
-    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle, count: stats.critical + stats.high },
-    { id: 'subscribe', label: 'Subscribe', icon: Bell },
+    { id: 'alerts', label: 'Active Alerts', shortLabel: 'Alerts', icon: AlertTriangle, count: stats.critical + stats.high },
+    { id: 'subscribe', label: 'Subscribe', shortLabel: 'Subscribe', icon: Bell },
+  ];
+
+  const isIncidentView = feedView === 'web3-incidents';
+  const heroTitle = isIncidentView
+    ? 'Crypto and Web3 security incidents, as they happen'
+    : 'Security news and incident alerts';
+  const heroIntro = isIncidentView
+    ? 'Hacks, exploits, phishing and supply-chain attacks, collected from QuillMonitor and other incident trackers, merged into one record per incident, and labelled confirmed or unconfirmed. Free alerts on Telegram and by email.'
+    : 'Security news, vulnerability advisories and Web3 incidents from QuillMonitor, other incident trackers and security publishers, each linked to its source. Free alerts on Telegram and by email.';
+
+  // statsCaption comes from task B3: "in this view" when threat_intel_stats
+  // counted the whole filtered result, "on this page" when it fell back to
+  // counting the loaded page.
+  const statTiles = [
+    { label: 'Critical', value: stats.critical, color: SEVERITY_STYLES.critical.textClass, border: 'border-red-500/20', scope: statsCaption },
+    { label: 'High', value: stats.high, color: SEVERITY_STYLES.high.textClass, border: 'border-orange-500/20', scope: statsCaption },
+    { label: 'Supply chain', value: stats.supplyChain, color: 'text-purple-400', border: 'border-purple-500/20', scope: statsCaption },
+    { label: 'Total', value: stats.total, color: 'text-blue-400', border: 'border-blue-500/20', scope: statsCaption },
   ];
 
   // Get current tab index for swipe navigation
@@ -524,10 +554,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         enabled={true} 
       />
 
-      <MetaTags 
-        title="Crypto Threat Intelligence Feed — Real-Time Web3 Security Alerts | Digibastion"
-        description="Stay ahead of crypto threats with real-time security alerts. Track DeFi exploits, wallet drainers, phishing attacks, and supply chain vulnerabilities. Free email alerts for critical threats."
-        keywords="crypto security alerts, web3 threat intelligence, defi exploits, phishing detection, wallet drainer alerts, supply chain attacks, blockchain security news"
+      <MetaTags
+        title="Crypto and Web3 Security Incidents, As They Happen | Digibastion"
+        description="Crypto and Web3 hacks, exploits, phishing and supply-chain attacks from QuillMonitor and other trackers, one record per incident, labelled confirmed or unconfirmed. Free alerts on Telegram and email."
+        keywords="crypto hacks, web3 security incidents, defi exploits, crypto phishing, supply chain attacks, crypto security alerts, telegram security alerts"
         image="https://www.digibastion.com/og-threat-intel.png"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildThreatIntelCollectionSchema()) }} />
@@ -536,94 +566,100 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
       
       <main className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Hero Section - Compact */}
-          <div className="text-center mb-6">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-3">
-              <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Threat Intelligence Feed</h1>
+          {/* Hero */}
+          <section className="mb-4 text-center sm:mb-6" aria-labelledby="threat-intel-heading">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              <Shield className="h-5 w-5 text-primary sm:h-6 sm:w-6" aria-hidden="true" />
               <RealtimeStatusIndicator />
             </div>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-              Real-time security intelligence covering Web3, DeFi, and supply chain threats.
+            <h1
+              id="threat-intel-heading"
+              className="mx-auto max-w-3xl text-balance text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl"
+            >
+              {heroTitle}
+            </h1>
+            <p className="mx-auto mt-2 max-w-2xl px-2 text-sm text-muted-foreground sm:text-base">
+              {heroIntro}
             </p>
-          </div>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <Button asChild size="sm" className="gap-2">
+                <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  Join on Telegram
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="gap-2">
+                <Link to={subscribeHref}>
+                  <BellRing className="h-4 w-4" aria-hidden="true" />
+                  Get email alerts
+                </Link>
+              </Button>
+            </div>
+          </section>
 
-          {/* Stats Banner - counts cover the whole filtered result (threat_intel_stats) */}
+          {/* Stat tiles: one row on every screen size. Counts cover the whole
+              filtered result (threat_intel_stats) unless statsCaption says otherwise. */}
           {isLoading && stats.total === 0 ? (
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <StatsSkeleton />
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-              <Card className="glass-card border-red-500/20">
-                <CardContent className="p-2 sm:p-3 text-center">
-                  <div className={`text-lg sm:text-xl font-bold ${SEVERITY_STYLES.critical.textClass}`}>{stats.critical}</div>
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">Critical <span className="hidden sm:inline">Severity</span></div>
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card border-orange-500/20">
-                <CardContent className="p-2 sm:p-3 text-center">
-                  <div className={`text-lg sm:text-xl font-bold ${SEVERITY_STYLES.high.textClass}`}>{stats.high}</div>
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">High <span className="hidden sm:inline">Severity</span></div>
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card border-purple-500/20">
-                <CardContent className="p-2 sm:p-3 text-center">
-                  <div className="text-lg sm:text-xl font-bold text-purple-400">{stats.supplyChain}</div>
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">Supply Chain</div>
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card border-blue-500/20">
-                <CardContent className="p-2 sm:p-3 text-center">
-                  <div className="text-lg sm:text-xl font-bold text-blue-400">{stats.total}</div>
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">Total Articles</div>
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 mt-0.5">{statsCaption}</div>
-                </CardContent>
-              </Card>
+            <div className="mb-4 grid grid-cols-4 gap-1.5 sm:mb-6 sm:gap-2">
+              {statTiles.map((tile) => (
+                <Card key={tile.label} className={`glass-card ${tile.border}`}>
+                  <CardContent className="p-1.5 text-center sm:p-3">
+                    <div className={`text-base font-bold sm:text-xl ${tile.color}`}>{tile.value}</div>
+                    <div className="text-[10px] leading-tight text-muted-foreground sm:text-xs">{tile.label}</div>
+                    <div className="mt-0.5 text-[9px] leading-tight text-muted-foreground/60 sm:text-[10px]">{tile.scope}</div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
 
-          {/* Enhanced Tab Navigation - More Visible */}
-          <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
+          {/* Section tabs: three equal columns with short labels on phones */}
+          <div className="mb-4 sm:mb-6">
             <div
               role="tablist"
               aria-label="Threat intelligence sections"
-              className="flex gap-1.5 sm:gap-2 p-1.5 bg-card/80 rounded-xl border border-border shadow-lg min-w-max sm:min-w-0"
+              className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card/80 p-1 shadow-lg sm:flex sm:gap-2 sm:p-1.5"
             >
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  id={`threat-intel-tab-${tab.id}`}
-                  aria-selected={selectedTab === tab.id}
-                  aria-controls={`threat-intel-panel-${tab.id}`}
-                  tabIndex={selectedTab === tab.id ? 0 : -1}
-                  onClick={() => handleTabChange(tab.id)}
-                  onKeyDown={handleTabKeyDown}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
-                    selectedTab === tab.id
-                      ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                  {tab.count !== undefined && tab.count > 0 && (
-                    <Badge 
-                      variant={selectedTab === tab.id ? "secondary" : "outline"} 
-                      className={`ml-0.5 sm:ml-1 h-5 min-w-5 px-1 sm:px-1.5 text-[10px] sm:text-xs ${
-                        tab.id === 'alerts' && tab.count > 0 ? 'bg-red-500 text-white border-0' : ''
-                      }`}
-                    >
-                      {tab.count}
-                    </Badge>
-                  )}
-                </button>
-              ))}
+              {tabs.map((tab) => {
+                const selected = selectedTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`threat-intel-tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-label={tab.label}
+                    aria-controls={`threat-intel-panel-${tab.id}`}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => handleTabChange(tab.id)}
+                    onKeyDown={handleTabKeyDown}
+                    className={`flex min-w-0 items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-all sm:gap-2 sm:px-4 sm:py-3 sm:text-sm ${
+                      selected
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    <tab.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate sm:hidden">{tab.shortLabel}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    {tab.count !== undefined && tab.count > 0 && (
+                      <Badge
+                        variant={selected ? 'secondary' : 'outline'}
+                        className={`h-5 min-w-5 px-1 text-[10px] sm:ml-1 sm:px-1.5 sm:text-xs ${
+                          tab.id === 'alerts' ? 'bg-red-500 text-white border-0' : ''
+                        }`}
+                      >
+                        {tab.count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -640,63 +676,27 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
               id="threat-intel-panel-feed"
               aria-labelledby="threat-intel-tab-feed"
             >
-              {/* Search and Sort Bar */}
-              <Card className="glass-card">
-                <CardContent className="p-4">
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1">
-                      <label htmlFor="threat-intel-search" className="sr-only">
-                        Search threat intelligence
-                      </label>
-                      <Search
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <Input
-                        id="threat-intel-search"
-                        type="search"
-                        placeholder="Search articles, technologies, tags..."
-                        value={searchInput}
-                        onChange={(event) => setSearchInput(event.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <ContentScopeSelector
-                        value={feedView}
-                        onChange={(value) => updateFeedParam('scope', value === DEFAULT_SCOPE ? null : value)}
-                        label="Choose intelligence scope"
-                        idPrefix="feed-scope"
-                      />
-                      <Select value={dateFilter} onValueChange={(value: 'all' | '7d' | '30d' | '90d') => updateFeedParam('date', value === 'all' ? null : value)}>
-                        <SelectTrigger className="w-32">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          <SelectValue placeholder="Date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="7d">Last 7 Days</SelectItem>
-                          <SelectItem value="30d">Last 30 Days</SelectItem>
-                          <SelectItem value="90d">Last 90 Days</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={sortBy} onValueChange={(value: 'date' | 'severity') => updateFeedParam('sort', value === 'date' ? null : value)}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Sort" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="date">Latest First</SelectItem>
-                          <SelectItem value="severity">By Severity</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Search stays debounced: the toolbar edits searchInput, and the
+                  effect above writes ?q= once typing pauses. */}
+              <FeedToolbar
+                searchQuery={searchInput}
+                onSearchChange={setSearchInput}
+                scope={feedView}
+                onScopeChange={(value) => updateFeedParam('scope', value === DEFAULT_SCOPE ? null : value)}
+                dateFilter={dateFilter}
+                onDateFilterChange={(value) => updateFeedParam('date', value === 'all' ? null : value)}
+                sortBy={sortBy}
+                onSortChange={(value) => updateFeedParam('sort', value === 'date' ? null : value)}
+                selectedCategories={selectedCategories}
+                selectedSeverities={selectedSeverities}
+                onCategoryToggle={handleCategoryToggle}
+                onSeverityToggle={handleSeverityToggle}
+                onClearFilters={handleClearFilters}
+              />
 
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Filters Sidebar */}
-                <div className="lg:col-span-1">
+                {/* Filters Sidebar (the toolbar's sheet replaces it below md) */}
+                <div className="hidden md:block lg:col-span-1">
                   <NewsFilters
                     selectedCategories={selectedCategories}
                     selectedSeverities={selectedSeverities}
@@ -824,12 +824,16 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   {isLoading ? (
                     <NewsListSkeleton count={5} />
                   ) : filteredArticles.length > 0 ? (
-                    filteredArticles.map((article) => (
-                      <NewsCard 
-                        key={article.id} 
-                        article={article}
-                        onClick={() => handleArticleClick(article)}
-                      />
+                    filteredArticles.map((article, index) => (
+                      <Fragment key={article.id}>
+                        <NewsCard
+                          article={article}
+                          onClick={() => handleArticleClick(article)}
+                        />
+                        {index === INLINE_SUBSCRIBE_AFTER - 1 && (
+                          <InlineSubscribeCard subscribeHref={subscribeHref} />
+                        )}
+                      </Fragment>
                     ))
                   ) : (
                     <Card className="glass-card">

@@ -202,7 +202,7 @@ describe('threat-intel article navigation', () => {
     });
 
     await waitFor(() => expect(screen.queryByTestId('article-detail')).toBeNull());
-    expect(screen.getByRole('heading', { name: 'Threat Intelligence Feed' })).not.toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Crypto and Web3 security incidents, as they happen' })).not.toBeNull();
   });
 
   it('redirects a deep link for a merged duplicate to the primary incident', async () => {

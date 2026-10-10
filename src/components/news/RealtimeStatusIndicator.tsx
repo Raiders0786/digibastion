@@ -107,7 +107,7 @@ export const RealtimeStatusIndicator = ({ className }: RealtimeStatusIndicatorPr
             />
           </span>
           <Icon className="w-3 h-3" />
-          <span className="hidden sm:inline">{status === 'connected' ? 'Live' : config.label}</span>
+          <span>{status === 'connected' ? 'Live' : config.label}</span>
         </Badge>
       </TooltipTrigger>
       <TooltipContent>
