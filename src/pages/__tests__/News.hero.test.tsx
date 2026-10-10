@@ -242,4 +242,35 @@ describe('threat-intel hero and mobile filters', () => {
       incidentFilters: { verification: 'unconfirmed', chains: ['ethereum', 'bsc'], attackTypes: ['phishing'], sources: ['rss'] },
     })).toBe(5);
   });
+
+  it('says no incidents match and offers to clear when filters empty the feed', async () => {
+    feed.articles = [];
+    const router = renderAt('/threat-intel?chain=ethereum&q=bridge');
+
+    const empty = await screen.findByTestId('feed-empty-state');
+    expect(within(empty).getByRole('heading', { name: 'No incidents match these filters' })).not.toBeNull();
+    expect(empty.textContent).toContain('status, chain, attack type or source');
+    expect(empty.textContent).not.toMatch(/verified/i);
+
+    fireEvent.click(within(empty).getByRole('button', { name: 'Clear filters' }));
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+  });
+
+  it('keeps the no-data message, without claiming verification, when nothing is filtered', async () => {
+    feed.articles = [];
+    renderAt('/threat-intel');
+
+    const empty = await screen.findByTestId('feed-empty-state');
+    expect(within(empty).getByRole('heading', { name: 'No incidents yet' })).not.toBeNull();
+    expect(empty.textContent).not.toMatch(/verified/i);
+    expect(within(empty).queryByRole('button', { name: 'Clear filters' })).toBeNull();
+  });
+
+  it('treats a sort order alone as no filter in the empty state', async () => {
+    feed.articles = [];
+    renderAt('/threat-intel?scope=all&sort=severity');
+
+    const empty = await screen.findByTestId('feed-empty-state');
+    expect(within(empty).getByRole('heading', { name: 'No articles yet' })).not.toBeNull();
+  });
 });

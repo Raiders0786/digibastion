@@ -14,7 +14,7 @@ const options: Array<{ value: ThreatIntelScope; label: string; description: stri
   {
     value: 'web3-incidents',
     label: 'Web3 Incidents',
-    description: 'Verified and preliminary Web3 exploits, hacks, and security incidents.',
+    description: 'Confirmed and unconfirmed reports of Web3 exploits, hacks and security incidents from incident trackers.',
   },
   {
     value: 'all',

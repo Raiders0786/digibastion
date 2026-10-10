@@ -40,6 +40,7 @@ describe('ContentScopeSelector', () => {
 
     expect(all.getAttribute('aria-pressed')).toBe('false');
     expect(incidents.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByText('Verified and preliminary Web3 exploits, hacks, and security incidents.')).not.toBeNull();
+    expect(screen.getByText('Confirmed and unconfirmed reports of Web3 exploits, hacks and security incidents from incident trackers.')).not.toBeNull();
+    expect(document.body.textContent ?? '').not.toMatch(/\bverified\b/i);
   });
 });
