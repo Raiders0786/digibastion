@@ -105,6 +105,39 @@ describe('getIncidentDisplay', () => {
     ).lossLabel).toBeNull();
   });
 
+  it('shows no loss for legacy web3-incidents rows until the amount is re-parsed', () => {
+    // "$50,000" stored as 5e10 with "$50000M": under the $100B cap, still wrong.
+    const legacy = { provider: 'web3-incidents', amount_lost_usd: 50_000_000_000, amount_display: '$50000M' };
+    expect(getIncidentDisplay(quillMonitor(legacy), OPTIONS).lossLabel).toBeNull();
+    expect(getIncidentDisplay(quillMonitor({ ...legacy, provider: 'web3' }), OPTIONS).lossLabel).toBeNull();
+
+    // The backfill stamps amount_parser 'v2'; the new importer writes incident_date_unknown.
+    expect(getIncidentDisplay(
+      quillMonitor({ provider: 'web3-incidents', amount_lost_usd: 50_000, amount_display: '$50K', amount_parser: 'v2' }),
+      OPTIONS,
+    ).lossLabel).toBe('~$50K reported');
+    expect(getIncidentDisplay(
+      quillMonitor({ provider: 'web3-incidents', amount_lost_usd: 50_000, amount_display: '$50K', incident_date_unknown: false }),
+      OPTIONS,
+    ).lossLabel).toBe('~$50K reported');
+  });
+
+  it('only trusts a stored display string that looks like a dollar figure under the cap', () => {
+    const display = (amount_display: string, amount_lost_usd?: number) => getIncidentDisplay(
+      quillMonitor({ amount_display, amount_lost_usd }),
+      OPTIONS,
+    ).lossLabel;
+    expect(display('$3.8M', 3_800_000)).toBe('~$3.8M reported');
+    expect(display('~$1,200', 1_200)).toBe('~$1,200 reported');
+    // Not a dollar figure: fall back to formatting the amount.
+    expect(display('3.8 million-ish', 3_800_000)).toBe('~$3.8M reported');
+    expect(display('<b>$3.8M</b>', 3_800_000)).toBe('~$3.8M reported');
+    expect(display('3.8 million-ish')).toBeNull();
+    // A display figure above the cap is a parsing error, with or without an amount.
+    expect(display('$500000M')).toBeNull();
+    expect(display('$200B')).toBeNull();
+  });
+
   it('lists every merged source for a web3-incidents record', () => {
     const display = getIncidentDisplay(base({
       id: 'web3-incidents:meter',
@@ -120,6 +153,7 @@ describe('getIncidentDisplay', () => {
         data_source: 'feed-1',
         is_web3_incident: true,
         incident_date: '2026-10-01',
+        incident_date_unknown: false,
         amount_lost_usd: 1_200_000,
         amount_display: '$1.2M',
         amount_status: 'reported',

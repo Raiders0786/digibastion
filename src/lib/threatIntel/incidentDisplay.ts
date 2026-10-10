@@ -9,6 +9,7 @@ import {
 } from '@/utils/newsIncident';
 import { safeExternalUrl } from '@/utils/safeUrl';
 import { readIncidentFields, type IncidentFields } from '../../../supabase/functions/_shared/incident-fields';
+import { isLegacyAmountMetadata } from '../../../supabase/functions/_shared/legacy-amounts';
 import { QUILLMONITOR_DATABASE_URL, WEB3_IS_GOING_GREAT_URL } from './officialLinks';
 
 export type VerificationDisplay = 'confirmed' | 'unconfirmed';
@@ -122,6 +123,19 @@ export function getIncidentDate(
 // above $100B is a parsing error from the old web3-incidents importer, so the
 // card shows no figure rather than a wrong one.
 const MAX_PLAUSIBLE_LOSS_USD = 100_000_000_000;
+// "$3.8M", "$1,200", "$1.2B": the only display strings the importers write.
+const DISPLAY_AMOUNT = /^\$([\d.,]+)([KMB])?$/;
+const DISPLAY_MULTIPLIERS: Record<string, number> = { K: 1_000, M: 1_000_000, B: 1_000_000_000 };
+
+/** The stored display string when it is a plausible dollar figure, else null. */
+function trustedDisplayAmount(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const display = value.trim().replace(/^~\s*/, '');
+  const match = DISPLAY_AMOUNT.exec(display);
+  if (!match) return null;
+  const amount = Number(match[1].replace(/,/g, '')) * (match[2] ? DISPLAY_MULTIPLIERS[match[2]] : 1);
+  return Number.isFinite(amount) && amount > 0 && amount <= MAX_PLAUSIBLE_LOSS_USD ? display : null;
+}
 
 function getLossLabel(
   article: NewsArticle,
@@ -129,13 +143,13 @@ function getLossLabel(
   verification: VerificationDisplay | null,
 ): string | null {
   const metadata = article.metadata;
+  // Old importer rows read "$50,000" as $50,000M. They show no figure until
+  // the dedupe-incidents repair re-parses them.
+  if (isLegacyAmountMetadata(metadata)) return null;
   const rawAmount = metadata?.amount_lost_usd;
   if (typeof rawAmount === 'number' && rawAmount > MAX_PLAUSIBLE_LOSS_USD) return null;
   const amount = typeof rawAmount === 'number' && Number.isFinite(rawAmount) && rawAmount > 0 ? rawAmount : null;
-  const rawDisplay = typeof metadata?.amount_display === 'string'
-    ? metadata.amount_display.trim().replace(/^~\s*/, '')
-    : '';
-  const display = /\d/.test(rawDisplay) ? rawDisplay : amount !== null ? formatUsd(amount) : null;
+  const display = trustedDisplayAmount(metadata?.amount_display) ?? (amount !== null ? formatUsd(amount) : null);
   if (!display) return null;
   if (fields.amountStatus === 'revised') return `${display} (revised)`;
   const confirmed = fields.amountStatus === 'confirmed'
