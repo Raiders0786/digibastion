@@ -5,7 +5,9 @@ import {
   shareTargets,
   shareTextForIncident,
   shareTextForWeekly,
+  sourceCredit,
   stripTracking,
+  trackEmailLink,
   weeklyOgImageUrl,
 } from './share-links';
 import { weeklyPublicContent } from './weekly-test-fixtures';
@@ -108,4 +110,28 @@ describe('shareTextForWeekly', () => {
 it('builds og-image URLs on the functions host', () => {
   expect(incidentOgImageUrl('a/b')).toBe('https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?kind=incident&id=a%2Fb');
   expect(weeklyOgImageUrl('2026-10-05')).toBe('https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?kind=weekly&week=2026-10-05');
+});
+
+describe('trackEmailLink', () => {
+  it('tags our pages for an email campaign and leaves other hosts alone', () => {
+    expect(trackEmailLink('https://www.digibastion.com/threat-intel/a', 'daily_brief', 'title'))
+      .toBe('https://www.digibastion.com/threat-intel/a?utm_source=email&utm_medium=email&utm_campaign=daily_brief&utm_content=title');
+    expect(trackEmailLink('https://revoke.cash', 'daily_brief', 'action')).toBe('https://revoke.cash');
+  });
+});
+
+describe('sourceCredit', () => {
+  const incidentUrl = 'https://www.digibastion.com/threat-intel/a';
+  it('names and links the source and flags QuillMonitor-only items', () => {
+    expect(sourceCredit({ providers: ['quillmonitor'], sourceName: 'QuillMonitor', sourceUrl: 'https://x.com/a/status/1', incidentUrl }))
+      .toEqual({ label: 'QuillMonitor', url: 'https://x.com/a/status/1', poweredByQuillMonitor: true });
+  });
+  it('does not flag a merged two-source item', () => {
+    expect(sourceCredit({ providers: ['quillmonitor', 'web3-incidents'], sourceName: null, sourceUrl: null, incidentUrl }).poweredByQuillMonitor).toBe(false);
+  });
+  it('never links our own page as the source', () => {
+    expect(sourceCredit({ providers: [], sourceName: 'The Hacker News', sourceUrl: incidentUrl, incidentUrl }))
+      .toEqual({ label: 'The Hacker News', url: null, poweredByQuillMonitor: false });
+    expect(sourceCredit({ providers: [], sourceName: 'Digibastion Intelligence', sourceUrl: null, incidentUrl }).label).toBe('Source not given');
+  });
 });

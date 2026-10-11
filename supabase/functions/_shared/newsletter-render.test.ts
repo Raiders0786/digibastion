@@ -92,7 +92,7 @@ function content(overrides: Partial<Parameters<typeof buildDailyBriefContent>[0]
     statusChanges: [
       change({ change: 'confirmed', item: item({ uid: 'q:c' }) }),
       change({ change: 'revised', item: item({ uid: 'q:r', amountUsd: 40_000_000 }), previousAmountUsd: 4_200_000, amountUsd: 40_000_000 }),
-      change({ change: 'retracted', item: item({ uid: 'q:x', sourceName: 'SlowMist' }) }),
+      change({ change: 'retracted', item: item({ uid: 'q:x', sourceName: 'SlowMist', providers: ['slowmist'] }) }),
     ],
     ...overrides,
   });
@@ -189,9 +189,65 @@ describe('renderDailyBriefEmail', () => {
   });
 
   it('escapes source-provided text', () => {
-    const { html } = renderDailyBriefEmail(content({ recent: [item({ title: '<script>alert(1)</script>', sourceName: 'A & B' })] }), ctx);
+    const { html } = renderDailyBriefEmail(content({ recent: [item({ title: '<script>alert(1)</script>', sourceName: 'A & B', providers: [] })] }), ctx);
     expect(html).not.toContain('<script>');
     expect(html).toContain('A &amp; B');
+  });
+});
+
+describe('daily brief links and attribution', () => {
+  const tag = (content: string) => `utm_source=email&amp;utm_medium=email&amp;utm_campaign=daily_brief&amp;utm_content=${content}`;
+  const textTag = (content: string) => `utm_source=email&utm_medium=email&utm_campaign=daily_brief&utm_content=${content}`;
+  const one = (entry: NewsletterItem) => content({ recent: [entry], statusChanges: [] });
+
+  it('tags the title and details links and leaves the source link untagged', () => {
+    const entry = item({ uid: 'q:1' });
+    const { html, text } = renderDailyBriefEmail(one(entry), ctx);
+    expect(html).toContain(`href="${entry.incidentUrl}?${tag('title')}"`);
+    expect(html).toContain(`href="${entry.incidentUrl}?${tag('details')}"`);
+    expect(html).toContain('href="https://x.com/quillaudits/status/1"');
+    expect(text).toContain(`Details on Digibastion: ${entry.incidentUrl}?${textTag('details')}`);
+    expect(text).toContain('Source: QuillMonitor https://x.com/quillaudits/status/1');
+  });
+
+  it('tags our guide link in the action and leaves outside tools alone', () => {
+    const c = one(item({ uid: 'q:1' }));
+    const guide = renderDailyBriefEmail({ ...c, action: { id: 'g', text: 'Read it.', url: `${SITE}/category/wallet`, guideTitle: 'Wallet' } }, ctx);
+    expect(guide.html).toContain(`href="${SITE}/category/wallet?${tag('action')}"`);
+    const tool = renderDailyBriefEmail({ ...c, action: { id: 'r', text: 'Revoke.', url: 'https://revoke.cash', guideTitle: 'Revoke.cash' } }, ctx);
+    expect(tool.html).toContain('href="https://revoke.cash"');
+  });
+
+  it('links the latest weekly page and the Telegram channel', () => {
+    const latest = renderDailyBriefEmail(one(item()), { ...ctx, latestWeekStart: '2026-10-05' });
+    expect(latest.html).toContain(`href="${SITE}/threat-intel/weekly/2026-10-05?${tag('weekly')}"`);
+    expect(latest.text).toContain(`${SITE}/threat-intel/weekly/2026-10-05?${textTag('weekly')}`);
+    expect(latest.html).toContain('href="https://t.me/digibastion"');
+    expect(latest.text).toContain('https://t.me/digibastion');
+    const archive = renderDailyBriefEmail(one(item()), ctx);
+    expect(archive.html).toContain(`href="${SITE}/threat-intel/weekly?${tag('weekly')}"`);
+    const bad = renderDailyBriefEmail(one(item()), { ...ctx, latestWeekStart: '../x' });
+    expect(bad.html).toContain(`href="${SITE}/threat-intel/weekly?${tag('weekly')}"`);
+  });
+
+  it('credits QuillMonitor only on QuillMonitor-only items', () => {
+    const quill = renderDailyBriefEmail(one(item()), ctx);
+    expect(quill.html).toContain('Powered by <a href="https://www.quillaudits.com/web3-hacks-database"');
+    expect(quill.text).toContain('Powered by QuillMonitor: https://www.quillaudits.com/web3-hacks-database');
+    const merged = renderDailyBriefEmail(one(item({ providers: ['quillmonitor', 'web3-incidents'] })), ctx);
+    expect(merged.html).not.toContain('Powered by');
+  });
+
+  it('prints the source name unlinked when the only link is our own page', () => {
+    const entry = item({ providers: [], sourceName: 'BleepingComputer', sourceUrl: item().incidentUrl });
+    const { html, text } = renderDailyBriefEmail(one(entry), ctx);
+    expect(html).toContain('Source: BleepingComputer ·');
+    expect(text).toContain('Source: BleepingComputer\n');
+  });
+
+  it('never links the apex domain', () => {
+    const { html, text } = renderDailyBriefEmail(content(), ctx);
+    expect(`${html}${text}`).not.toMatch(/https:\/\/digibastion\.com/);
   });
 });
 

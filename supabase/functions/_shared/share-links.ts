@@ -3,7 +3,7 @@
 // returned untouched. Query strings are built by hand with
 // encodeURIComponent, so Deno, Node and browsers produce identical bytes.
 // Pure module: no Deno or URL imports.
-import { sourceLabelFor } from './attribution.ts';
+import { isQuillMonitorOnly, sourceLabelFor, sourceLinkFor } from './attribution.ts';
 import type { AnswerInput } from './incident-answer.ts';
 import type { WeeklyPublicContent } from './newsletter-content.ts';
 import { FUNCTIONS_BASE_URL, SITE_URL, trimTrailingSlashes } from './site-urls.ts';
@@ -22,6 +22,8 @@ export type UtmCampaign = 'incident_alerts' | 'weekly_deep_dive' | 'realtime_ale
 export interface Tracking { source: UtmSource; medium: UtmMedium; campaign: UtmCampaign; content?: string }
 
 export const SHARE_TEXT_LIMIT = 200;
+export const TELEGRAM_CHANNEL_URL = 'https://t.me/digibastion' as const;
+export const TELEGRAM_CHANNEL_HANDLE = '@digibastion' as const;
 // Links that carry a token or open someone's subscription. Tags there would
 // leak into analytics next to a secret, so they are never tagged.
 const UNTAGGED_PATHS = ['/verify-email', '/manage-subscription', '/unsubscribe'];
@@ -76,6 +78,30 @@ export function buildTrackedUrl(pathOrUrl: string, t?: Tracking, siteUrl: string
     ...(t.content ? [`utm_content=${encodeURIComponent(t.content)}`] : []),
   ];
   return joinUrl({ ...parts, query: [...parts.query.filter((pair) => !isTrackingParam(pair)), ...tags] });
+}
+
+/** Our page tagged for one email campaign; other hosts and token links stay untagged. */
+export function trackEmailLink(pathOrUrl: string, campaign: UtmCampaign, content: string, siteUrl: string = SITE_URL): string {
+  return buildTrackedUrl(pathOrUrl, { source: 'email', medium: 'email', campaign, content }, siteUrl);
+}
+
+export interface SourceCredit {
+  /** The source's name, never Digibastion; "Source not given" when unknown. */
+  label: string;
+  /** The original report, or null when missing, unsafe or one of our own pages: print the name unlinked. */
+  url: string | null;
+  /** True when QuillMonitor is the only source, so "Powered by QuillMonitor" must show. */
+  poweredByQuillMonitor: boolean;
+}
+
+/** How an email or post credits an item's source. */
+export function sourceCredit(item: {
+  providers: readonly string[];
+  sourceName: string | null;
+  sourceUrl: string | null;
+  incidentUrl: string;
+}): SourceCredit {
+  return { label: sourceLabelFor(item), url: sourceLinkFor(item), poweredByQuillMonitor: isQuillMonitorOnly(item.providers) };
 }
 
 /** Drops utm_* parameters and keeps everything else. */

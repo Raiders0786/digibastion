@@ -39,6 +39,7 @@ import {
   type ResendOutcome,
 } from '../_shared/resend-client.ts';
 import { matchesDeliveryPreferences, type DeliveryPreferences } from '../_shared/subscription-delivery.ts';
+import { SITE_URL } from '../_shared/site-urls.ts';
 
 // Real-time alerts. Every 30 minutes: critical and high records ingested in
 // the last 6 hours go to subscribers with real-time alerts on, one email per
@@ -50,7 +51,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SITE_URL = 'https://www.digibastion.com';
 const FROM = 'Digibastion Alerts <alerts@digibastion.com>';
 const REPLY_TO = 'support@digibastion.com';
 const LOOKBACK_MS = 6 * 3_600_000;
@@ -264,7 +264,7 @@ async function sendAlertTo(ctx: SendContext, sub: Subscriber, items: NewsletterI
 
   const sendItems = claimed.map((row) => row.item);
   const links = linksFor(sub.email, sub.verification_token, ctx.supabaseUrl);
-  const { html, text } = renderAlertEmail({ items: sendItems, links, postalAddress: ctx.postalAddress });
+  const { html, text } = renderAlertEmail({ items: sendItems, links, postalAddress: ctx.postalAddress, siteUrl: SITE_URL });
   await ctx.throttle();
   const outcome = await sendResendEmail({
     fetchImpl: fetch,
@@ -399,7 +399,7 @@ async function sendFollowUp(ctx: SendContext, candidate: FollowUpCandidate, supp
   }
 
   const links = linksFor(candidate.sub.email, candidate.sub.verification_token, ctx.supabaseUrl);
-  const { html, text } = renderFollowUpEmail({ kind: candidate.kind, item: candidate.item, links, postalAddress: ctx.postalAddress });
+  const { html, text } = renderFollowUpEmail({ kind: candidate.kind, item: candidate.item, links, postalAddress: ctx.postalAddress, siteUrl: SITE_URL });
   await ctx.throttle();
   const outcome = await sendResendEmail({
     fetchImpl: fetch,
@@ -434,7 +434,7 @@ async function sendTestAlert(db: Db, apiKey: string, supabaseUrl: string, adminE
   const token = typeof own?.verification_token === 'string' ? own.verification_token : PLACEHOLDER_TOKEN;
   const links = linksFor(adminEmail, token, supabaseUrl);
   const postalAddress = readPostalAddress(Deno.env.get('NEWSLETTER_POSTAL_ADDRESS'));
-  const { html, text } = renderAlertEmail({ items: [latest], links, postalAddress });
+  const { html, text } = renderAlertEmail({ items: [latest], links, postalAddress, siteUrl: SITE_URL });
   const outcome = await sendResendEmail({
     fetchImpl: fetch,
     apiKey,

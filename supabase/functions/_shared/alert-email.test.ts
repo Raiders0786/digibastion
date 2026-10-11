@@ -234,3 +234,66 @@ describe('renderFollowUpEmail', () => {
     expect(html).toContain('1 Example Street, Springfield 12345');
   });
 });
+
+describe('alert email links and attribution', () => {
+  const tag = (campaign: string, content: string) =>
+    `utm_source=email&amp;utm_medium=email&amp;utm_campaign=${campaign}&amp;utm_content=${content}`;
+  const textTag = (campaign: string, content: string) =>
+    `utm_source=email&utm_medium=email&utm_campaign=${campaign}&utm_content=${content}`;
+
+  it('tags our links and leaves the source link untagged', () => {
+    const { html, text } = renderAlertEmail({ items: [item()], links, postalAddress: null });
+    const incident = item().incidentUrl;
+    expect(html).toContain(`href="${incident}?${tag('realtime_alert', 'title')}"`);
+    expect(html).toContain(`href="${incident}?${tag('realtime_alert', 'details')}"`);
+    expect(html).toContain('>Details on Digibastion</a>');
+    expect(html).toContain(`href="${SITE}/threat-intel?${tag('realtime_alert', 'feed')}"`);
+    expect(html).toContain('href="https://x.com/quillaudits/status/1"');
+    expect(html).not.toMatch(/x\.com[^"]*utm_/);
+    expect(text).toContain(`Details on Digibastion: ${incident}?${textTag('realtime_alert', 'details')}`);
+    expect(text).toContain(`Threat Intel feed: ${SITE}/threat-intel?${textTag('realtime_alert', 'feed')}`);
+    expect(`${html}${text}`).not.toMatch(/https:\/\/digibastion\.com/);
+  });
+
+  it('uses the caller site URL for the feed link', () => {
+    const { html } = renderAlertEmail({ items: [item()], links, postalAddress: null, siteUrl: 'https://preview.example/' });
+    expect(html).toContain('href="https://preview.example/threat-intel?');
+  });
+
+  it('credits QuillMonitor only on QuillMonitor-only items', () => {
+    const quill = renderAlertEmail({ items: [item()], links, postalAddress: null });
+    expect(quill.html).toContain('Powered by <a href="https://www.quillaudits.com/web3-hacks-database"');
+    expect(quill.text).toContain('Powered by QuillMonitor: https://www.quillaudits.com/web3-hacks-database');
+    const merged = renderAlertEmail({ items: [item({ providers: ['quillmonitor', 'web3-incidents'] })], links, postalAddress: null });
+    expect(merged.html).not.toContain('Powered by');
+    expect(renderAlertEmail({ items: [vulnerability], links, postalAddress: null }).html).not.toContain('Powered by');
+  });
+
+  it('prints the source name unlinked when the only link is our own page', () => {
+    const own = item({ providers: [], sourceName: 'The Hacker News', sourceUrl: item().incidentUrl });
+    const { html, text } = renderAlertEmail({ items: [own], links, postalAddress: null });
+    expect(html).toContain('Source: The Hacker News</p>');
+    expect(text).toContain('Source: The Hacker News\n');
+  });
+
+  it('never credits Digibastion as the source', () => {
+    const unnamed = item({ providers: [], sourceName: null, sourceUrl: null });
+    const { html, text } = renderAlertEmail({ items: [unnamed], links, postalAddress: null });
+    expect(html).toContain('Source: Source not given');
+    expect(text).not.toMatch(/Source: Digibastion/);
+  });
+
+  it('links a retraction to the feed, never to the removed record', () => {
+    const { html, text } = renderFollowUpEmail({ kind: 'retracted', item: item(), links, postalAddress: null });
+    expect(html).not.toContain(item().incidentUrl);
+    expect(text).not.toContain(item().incidentUrl);
+    expect(html).toContain(`href="${SITE}/threat-intel?${tag('alert_followup', 'feed')}"`);
+    expect(text).toContain(`${SITE}/threat-intel?${textTag('alert_followup', 'feed')}`);
+  });
+
+  it('tags the follow-up for an upgrade and gives the text version the feed link', () => {
+    const { html, text } = renderFollowUpEmail({ kind: 'upgraded_critical', item: item({ severity: 'critical' }), links, postalAddress: null });
+    expect(html).toContain(`href="${item().incidentUrl}?${tag('alert_followup', 'title')}"`);
+    expect(text).toContain(`Threat Intel feed: ${SITE}/threat-intel?${textTag('alert_followup', 'feed')}`);
+  });
+});

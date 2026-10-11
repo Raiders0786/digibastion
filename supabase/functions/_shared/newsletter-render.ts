@@ -10,11 +10,22 @@ import {
   renderEmailDocument,
   type UnsubscribeLinks,
 } from './email-compliance.ts';
+import { QUILLMONITOR_DATABASE_URL } from './attribution.ts';
 import { formatLossReported, type DailyBriefContent, type NewsletterItem, type StatusChange } from './newsletter-content.ts';
+import { WEEK_START } from './publishable.ts';
+import { sourceCredit, TELEGRAM_CHANNEL_HANDLE, TELEGRAM_CHANNEL_URL, trackEmailLink } from './share-links.ts';
+import { weeklyPath } from './site-urls.ts';
 import { escapeHtml } from './subscription-delivery.ts';
 import { isWeeklyPublicContent, renderWeeklyEmail, toPublicWeekly } from './weekly-render.ts';
 
-export interface RenderContext { links: UnsubscribeLinks; postalAddress: string | null; testWarning?: boolean; siteUrl: string }
+export interface RenderContext {
+  links: UnsubscribeLinks;
+  postalAddress: string | null;
+  testWarning?: boolean;
+  siteUrl: string;
+  /** Monday of the latest published weekly issue; the daily brief links it, or the archive when absent. */
+  latestWeekStart?: string | null;
+}
 export interface RenderedEmail { subject: string; html: string; text: string }
 
 const DAILY_REASON = 'You get this email because you subscribed to the Digibastion daily brief.';
@@ -36,7 +47,19 @@ function clean(value: string | null | undefined): string {
 }
 
 const titleOf = (entry: NewsletterItem) => clean(entry.title) || 'Security report';
-const sourceOf = (entry: NewsletterItem) => clean(entry.sourceName) || null;
+/** The source's name, or null when unknown (sourceCredit then says "Source not given"). */
+function sourceOf(entry: NewsletterItem): string | null {
+  const label = sourceCredit(entry).label;
+  return label === 'Source not given' ? null : clean(label) || null;
+}
+const track = (url: string, content: string, ctx: RenderContext) => trackEmailLink(url, 'daily_brief', content, ctx.siteUrl);
+
+function weeklyUrl(ctx: RenderContext): { url: string; label: string } {
+  const week = ctx.latestWeekStart && WEEK_START.test(ctx.latestWeekStart) ? ctx.latestWeekStart : null;
+  return week
+    ? { url: track(weeklyPath(week), 'weekly', ctx), label: 'Read the latest weekly report' }
+    : { url: track('/threat-intel/weekly', 'weekly', ctx), label: 'Read the weekly reports' };
+}
 
 function statusWord(entry: NewsletterItem): string | null {
   if (entry.status === 'unconfirmed') return 'Unconfirmed';
@@ -73,21 +96,26 @@ function changeLine(change: StatusChange): string {
 // HTML
 // ---------------------------------------------------------------------------
 
-function itemHtml(entry: NewsletterItem, lead: string | null = null): string {
+function creditHtml(entry: NewsletterItem): string {
+  const credit = sourceCredit(entry);
+  const label = escapeHtml(clean(credit.label) || 'Source not given');
+  const source = `Source: ${credit.url ? `<a href="${escapeHtml(credit.url)}" style="${LINK}">${label}</a>` : label}`;
+  return credit.poweredByQuillMonitor
+    ? `${source} · Powered by <a href="${QUILLMONITOR_DATABASE_URL}" style="${LINK}">QuillMonitor</a>`
+    : source;
+}
+
+function itemHtml(entry: NewsletterItem, ctx: RenderContext, lead: string | null = null): string {
   const color = SEVERITY_COLORS[entry.severity] ?? SEVERITY_COLORS.info;
   const [severity, ...rest] = factParts(entry, lead === null);
   const facts = [`<b style="color:${color};">${escapeHtml(severity)}</b>`, ...rest.map((part) =>
     part === 'Unconfirmed' ? `<b style="color:#fbbf24;">${part}</b>` : escapeHtml(part))].join(' · ');
-  const source = sourceOf(entry);
-  const sourceLink = source
-    ? `Source: ${entry.sourceUrl ? `<a href="${escapeHtml(entry.sourceUrl)}" style="${LINK}">${escapeHtml(source)}</a>` : escapeHtml(source)} · `
-    : '';
   return `<tr><td class="email-pad" style="padding:12px 28px;border-bottom:1px solid #374151;">` +
     (lead ? `<p style="margin:0 0 4px;color:#fbbf24;font-size:13px;font-weight:700;">${escapeHtml(lead)}</p>` : '') +
     `<p style="margin:0;${MUTED}">${facts}</p>` +
-    `<p style="margin:4px 0 0;font-size:15px;line-height:21px;font-weight:700;"><a href="${escapeHtml(entry.incidentUrl)}" style="color:#f3f4f6;text-decoration:none;">${escapeHtml(titleOf(entry))}</a></p>` +
+    `<p style="margin:4px 0 0;font-size:15px;line-height:21px;font-weight:700;"><a href="${escapeHtml(track(entry.incidentUrl, 'title', ctx))}" style="color:#f3f4f6;text-decoration:none;">${escapeHtml(titleOf(entry))}</a></p>` +
     (entry.summary ? `<p style="margin:4px 0 0;color:#9ca3af;font-size:13px;line-height:19px;">${escapeHtml(entry.summary)}</p>` : '') +
-    `<p style="margin:4px 0 0;${MUTED}">${sourceLink}<a href="${escapeHtml(entry.incidentUrl)}" style="${LINK}">Details on Digibastion</a></p>` +
+    `<p style="margin:4px 0 0;${MUTED}">${creditHtml(entry)} · <a href="${escapeHtml(track(entry.incidentUrl, 'details', ctx))}" style="${LINK}">Details on Digibastion</a></p>` +
     `</td></tr>`;
 }
 
@@ -103,12 +131,25 @@ function headerHtml(c: DailyBriefContent): string {
     `</td></tr>`;
 }
 
-function actionHtml(c: DailyBriefContent): string {
+function actionHtml(c: DailyBriefContent, ctx: RenderContext): string {
   return sectionTitleHtml('One thing to do today') +
     `<tr><td class="email-pad" style="padding:6px 28px 20px;">` +
     `<p style="margin:0;color:#d1d5db;font-size:14px;line-height:21px;">${escapeHtml(c.action.text)}</p>` +
-    `<p style="margin:6px 0 0;${MUTED}"><a href="${escapeHtml(c.action.url)}" style="${LINK}">${escapeHtml(c.action.guideTitle)}</a></p>` +
+    `<p style="margin:6px 0 0;${MUTED}"><a href="${escapeHtml(track(c.action.url, 'action', ctx))}" style="${LINK}">${escapeHtml(c.action.guideTitle)}</a></p>` +
     `</td></tr>`;
+}
+
+function moreHtml(ctx: RenderContext): string {
+  const weekly = weeklyUrl(ctx);
+  return `<tr><td class="email-pad" style="padding:0 28px 20px;">` +
+    `<p style="margin:0;${MUTED}"><a href="${escapeHtml(weekly.url)}" style="${LINK}">${weekly.label}</a> · ` +
+    `New incidents on Telegram: <a href="${TELEGRAM_CHANNEL_URL}" style="${LINK}">${TELEGRAM_CHANNEL_HANDLE}</a></p>` +
+    `</td></tr>`;
+}
+
+function moreText(ctx: RenderContext): string {
+  const weekly = weeklyUrl(ctx);
+  return `${weekly.label}: ${weekly.url}\nNew incidents on Telegram: ${TELEGRAM_CHANNEL_URL}`;
 }
 
 function periodLine(c: DailyBriefContent): string {
@@ -120,14 +161,15 @@ function periodLine(c: DailyBriefContent): string {
 // Text
 // ---------------------------------------------------------------------------
 
-function itemText(entry: NewsletterItem, lead: string | null = null): string {
+function itemText(entry: NewsletterItem, ctx: RenderContext, lead: string | null = null): string {
   const lines: string[] = [];
   if (lead) lines.push(lead);
   lines.push(`[${factParts(entry, lead === null).join(' · ')}] ${titleOf(entry)}`);
   if (entry.summary) lines.push(entry.summary);
-  const source = sourceOf(entry);
-  if (source) lines.push(`Source: ${source}${entry.sourceUrl ? ` ${entry.sourceUrl}` : ''}`);
-  lines.push(`Details on Digibastion: ${entry.incidentUrl}`);
+  const credit = sourceCredit(entry);
+  lines.push(`Source: ${clean(credit.label) || 'Source not given'}${credit.url ? ` ${credit.url}` : ''}`);
+  if (credit.poweredByQuillMonitor) lines.push(`Powered by QuillMonitor: ${QUILLMONITOR_DATABASE_URL}`);
+  lines.push(`Details on Digibastion: ${track(entry.incidentUrl, 'details', ctx)}`);
   return lines.join('\n');
 }
 
@@ -144,14 +186,18 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
   const footer = { links: ctx.links, postalAddress: ctx.postalAddress, reason: DAILY_REASON, testWarning: ctx.testWarning };
 
   const sections: { title: string; html: string[]; text: string[] }[] = [
-    { title: 'Incidents', html: c.incidents.map((entry) => itemHtml(entry)), text: c.incidents.map((entry) => itemText(entry)) },
-    { title: 'Still unconfirmed', html: c.unconfirmed.map((entry) => itemHtml(entry)), text: c.unconfirmed.map((entry) => itemText(entry)) },
+    { title: 'Incidents', html: c.incidents.map((entry) => itemHtml(entry, ctx)), text: c.incidents.map((entry) => itemText(entry, ctx)) },
+    { title: 'Still unconfirmed', html: c.unconfirmed.map((entry) => itemHtml(entry, ctx)), text: c.unconfirmed.map((entry) => itemText(entry, ctx)) },
     {
       title: 'Status changes',
-      html: c.statusChanges.map((entry) => itemHtml(entry.item, changeLine(entry))),
-      text: c.statusChanges.map((entry) => itemText(entry.item, changeLine(entry))),
+      html: c.statusChanges.map((entry) => itemHtml(entry.item, ctx, changeLine(entry))),
+      text: c.statusChanges.map((entry) => itemText(entry.item, ctx, changeLine(entry))),
     },
-    { title: 'Vulnerabilities and supply-chain', html: c.vulnerabilities.map((entry) => itemHtml(entry)), text: c.vulnerabilities.map((entry) => itemText(entry)) },
+    {
+      title: 'Vulnerabilities and supply-chain',
+      html: c.vulnerabilities.map((entry) => itemHtml(entry, ctx)),
+      text: c.vulnerabilities.map((entry) => itemText(entry, ctx)),
+    },
   ].filter((section) => section.html.length > 0);
 
   const html = renderEmailDocument({
@@ -160,7 +206,8 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
     bodyHtml: [
       headerHtml(c),
       ...sections.map((section) => sectionTitleHtml(section.title) + section.html.join('')),
-      actionHtml(c),
+      actionHtml(c, ctx),
+      moreHtml(ctx),
     ].join('\n'),
     footerHtml: renderComplianceFooterHtml(footer),
   });
@@ -170,7 +217,9 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
     periodLine(c),
     '',
     ...sections.map((section) => `${sectionText(section.title, section.text)}\n`),
-    sectionText('One thing to do today', [`${c.action.text}\n${c.action.guideTitle}: ${c.action.url}`]),
+    sectionText('One thing to do today', [`${c.action.text}\n${c.action.guideTitle}: ${track(c.action.url, 'action', ctx)}`]),
+    '',
+    moreText(ctx),
     '',
     renderComplianceFooterText(footer),
   ].join('\n');

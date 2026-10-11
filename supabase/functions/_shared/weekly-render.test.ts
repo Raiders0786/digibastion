@@ -29,7 +29,7 @@ function build(thisWeek: NewsletterItem[], vulnerabilities: NewsletterItem[] = [
 
 const week = [
   item({ uid: 'a', amountUsd: 4_200_000 }),
-  item({ uid: 'b', amountUsd: 8_100_000, projectName: 'Second Vault', sourceName: 'SlowMist', chain: 'BNB Chain', attackType: 'Phishing' }),
+  item({ uid: 'b', amountUsd: 8_100_000, projectName: 'Second Vault', sourceName: 'SlowMist', providers: ['slowmist'], chain: 'BNB Chain', attackType: 'Phishing' }),
   item({ uid: 'c', status: 'unconfirmed', amountUsd: 2_000_000, projectName: 'Third Pool' }),
 ];
 
@@ -93,7 +93,7 @@ describe('renderWeeklyEmail', () => {
   });
 
   it('escapes source text', () => {
-    const { html } = renderWeeklyEmail(build([item({ uid: 'x', title: '<script>x</script>', sourceName: 'A & B' })]), ctx);
+    const { html } = renderWeeklyEmail(build([item({ uid: 'x', title: '<script>x</script>', sourceName: 'A & B', providers: [] })]), ctx);
     expect(html).not.toContain('<script>x');
     expect(html).toContain('A &amp; B');
   });
@@ -103,6 +103,55 @@ describe('renderWeeklyEmail', () => {
     const vulns = Array.from({ length: 10 }, (_, index) => vuln({ uid: `v${index}`, summary: 'y'.repeat(280), title: 'V'.repeat(300) }));
     const { html } = renderWeeklyEmail(build(many, vulns), ctx);
     expect(new TextEncoder().encode(html).length).toBeLessThan(90 * 1024);
+  });
+});
+
+describe('weekly email links and attribution', () => {
+  const tag = (content: string) => `utm_source=email&amp;utm_medium=email&amp;utm_campaign=weekly_deep_dive&amp;utm_content=${content}`;
+  const textTag = (content: string) => `utm_source=email&utm_medium=email&utm_campaign=weekly_deep_dive&utm_content=${content}`;
+  const webVersion = `${SITE}/threat-intel/weekly/${WEEK_START}`;
+
+  it('links the web version under the period line and asks readers to share it', () => {
+    const { html, text } = renderWeeklyEmail(build(week), ctx);
+    const read = html.indexOf('>Read this issue on the web</a>');
+    expect(read).toBeGreaterThan(-1);
+    expect(html.lastIndexOf(`href="${webVersion}?${tag('web_version')}"`, read)).toBeGreaterThan(html.indexOf('Figures are computed'));
+    expect(read).toBeLessThan(html.indexOf('This week in numbers'));
+    expect(html).toContain(`Share this issue: <a href="${webVersion}?${tag('web_version')}"`);
+    expect(text).toContain(`Read this issue on the web: ${webVersion}?${textTag('web_version')}`);
+    expect(text).toContain(`Share this issue: ${webVersion}?${textTag('web_version')}`);
+  });
+
+  it('tags item links, keeps source links clean and credits QuillMonitor only on QuillMonitor-only items', () => {
+    const content = build(week);
+    const { html, text } = renderWeeklyEmail(content, ctx);
+    const top = content.top[0].item;
+    expect(html).toContain(`href="${top.incidentUrl}?${tag('title')}"`);
+    expect(html).toContain(`href="${top.incidentUrl}?${tag('details')}"`);
+    expect(text).toContain(`Details on Digibastion: ${top.incidentUrl}?${textTag('details')}`);
+    expect(html).toContain('href="https://x.com/quillaudits/status/1"');
+    expect(html).toContain('Powered by <a href="https://www.quillaudits.com/web3-hacks-database"');
+    const merged = renderWeeklyEmail(build([item({ uid: 'm', providers: ['quillmonitor', 'web3-incidents'] })], []), ctx);
+    expect(merged.html).not.toContain('Powered by');
+  });
+
+  it('tags our guide in the tip and leaves outside tools alone', () => {
+    const content = build(week);
+    expect(renderWeeklyEmail({ ...content, opsecTip: { ...content.opsecTip, url: `${SITE}/category/opsec` } }, ctx).html)
+      .toContain(`href="${SITE}/category/opsec?${tag('tip')}"`);
+    expect(renderWeeklyEmail({ ...content, opsecTip: { ...content.opsecTip, url: 'https://revoke.cash' } }, ctx).html)
+      .toContain('href="https://revoke.cash"');
+  });
+
+  it('prints the source name unlinked when the only link is our own page', () => {
+    const own = item({ uid: 'o', providers: [], sourceName: 'Rekt', sourceUrl: `${SITE}/threat-intel/id-o` });
+    const { html } = renderWeeklyEmail(build([own], []), ctx);
+    expect(html).toContain('Source: Rekt ·');
+  });
+
+  it('never links the apex domain', () => {
+    const { html, text } = renderWeeklyEmail(build(week), ctx);
+    expect(`${html}${text}`).not.toMatch(/https:\/\/digibastion\.com/);
   });
 });
 

@@ -6,6 +6,7 @@ import {
   resubscribeConfirmedColumns,
 } from "../_shared/subscription-optin.ts";
 import { emailHash } from "../_shared/email-compliance.ts";
+import { SITE_URL } from "../_shared/site-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +31,7 @@ function respond(body: Record<string, unknown>, status = 200): Response {
 }
 
 function manageUrlFor(email: string, token: string): string {
-  return `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`;
+  return `${SITE_URL}/manage-subscription?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`;
 }
 
 serve(async (req) => {

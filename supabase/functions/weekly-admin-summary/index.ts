@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { SITE_URL } from "../_shared/site-urls.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -231,7 +232,7 @@ function generateEmailHtml(stats: WeeklyStats, weekStart: string, weekEnd: strin
     <td style="padding:20px 24px;background:#111827;text-align:center;">
       <p style="margin:0;color:#6b7280;font-size:12px;">
         Digibastion Admin Summary · Delivered every Monday 12:35 PM IST<br>
-        <a href="https://digibastion.com/admin/analytics" style="color:#60a5fa;">Open Dashboard</a>
+        <a href="${SITE_URL}/admin/analytics" style="color:#60a5fa;">Open Dashboard</a>
       </p>
     </td>
   </tr>

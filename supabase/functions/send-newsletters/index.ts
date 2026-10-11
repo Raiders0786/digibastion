@@ -25,6 +25,7 @@ import {
   type Zone,
 } from '../_shared/send-window.ts';
 import type { DeliveryPreferences } from '../_shared/subscription-delivery.ts';
+import { SITE_URL } from '../_shared/site-urls.ts';
 
 // Daily briefs and weekly deep-dives, sent at each subscriber's local hour.
 // Cron calls this four times an hour (:00, :15, :30, :45). Nothing goes to
@@ -35,7 +36,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SITE_URL = 'https://www.digibastion.com';
 const FROM = 'Digibastion Threat Intel <alerts@digibastion.com>';
 const REPLY_TO = 'support@digibastion.com';
 const DAY_MS = 86_400_000;
@@ -180,6 +180,21 @@ async function loadIssues(db: Db, now: Date): Promise<Map<string, Issue>> {
   return issues;
 }
 
+/** Monday of the newest published weekly issue, for the daily brief's weekly link; null when none or on error. */
+async function loadLatestWeekStart(db: Db): Promise<string | null> {
+  const { data, error } = await db
+    .from('newsletter_issues')
+    .select('period_start')
+    .eq('kind', 'weekly')
+    .in('status', ['ready', 'sent'])
+    .order('period_start', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  const start = new Date(String(data.period_start));
+  return Number.isNaN(start.getTime()) ? null : start.toISOString().slice(0, 10);
+}
+
 async function loadSubscribers(db: Db): Promise<Subscriber[]> {
   const rows: Subscriber[] = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
@@ -275,6 +290,7 @@ interface RunContext {
   throttle: () => Promise<void>;
   now: Date;
   markedSent: Set<string>;
+  latestWeekStart: string | null;
 }
 
 function tally(counters: KindCounters, outcome: ResendOutcome): void {
@@ -303,7 +319,7 @@ async function runTask(ctx: RunContext, task: Task, suppressed: boolean, counter
   }
 
   const links = linksFor(sub.email, sub.verification_token, ctx.supabaseUrl);
-  const renderContext: RenderContext = { links, postalAddress: ctx.postalAddress, siteUrl: SITE_URL };
+  const renderContext: RenderContext = { links, postalAddress: ctx.postalAddress, siteUrl: SITE_URL, latestWeekStart: ctx.latestWeekStart };
   const rendered = content === undefined ? null : renderNewsletterEmail(kind, content, renderContext);
   if (!rendered) {
     // No ledger row: once the renderer handles this content, a later slot sends it.
@@ -381,6 +397,7 @@ async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail:
     postalAddress,
     testWarning: postalAddress === null,
     siteUrl: SITE_URL,
+    latestWeekStart: kind === 'daily' ? await loadLatestWeekStart(db) : null,
   });
   if (!rendered) return json({ success: false, error: `This ${kind} issue cannot be rendered yet` }, 409);
 
@@ -515,6 +532,7 @@ Deno.serve(async (req) => {
       throttle: createThrottle(RESEND_MIN_INTERVAL_MS),
       now,
       markedSent: new Set(),
+      latestWeekStart: await loadLatestWeekStart(db),
     };
     let requests = 0;
     for (const task of tasks) {

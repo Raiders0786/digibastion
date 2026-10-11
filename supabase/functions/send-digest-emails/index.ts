@@ -11,6 +11,9 @@ import {
   stripHtml,
   type ContentScope,
 } from "../_shared/subscription-delivery.ts";
+import { sourceLabelFor, sourceLinkFor } from "../_shared/attribution.ts";
+import { trackEmailLink, type UtmCampaign } from "../_shared/share-links.ts";
+import { absoluteSiteUrl, incidentPath, SITE_URL } from "../_shared/site-urls.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,6 +87,27 @@ function formatDate(dateStr: string): string {
   });
 }
 
+const digestCampaign = (frequency: string): UtmCampaign => (frequency === 'weekly' ? 'digest_weekly' : 'digest_daily');
+
+/** Our incident page, tagged for this digest. */
+function digestIncidentUrl(article: NewsArticle, frequency: string): string {
+  return trackEmailLink(incidentPath(article.id), digestCampaign(frequency), 'title');
+}
+
+function digestFeedUrl(frequency: string): string {
+  return trackEmailLink('/threat-intel', digestCampaign(frequency), 'feed');
+}
+
+function articleProviders(article: NewsArticle): string[] {
+  const provider = article.metadata?.provider;
+  return typeof provider === 'string' && provider ? [provider.toLowerCase()] : [];
+}
+
+/** The original report, or null when missing, unsafe or our own page. Never falls back to our page. */
+function digestSourceLink(article: NewsArticle): string | null {
+  return sourceLinkFor({ sourceUrl: safeHttpUrl(article.link) || null, incidentUrl: absoluteSiteUrl(incidentPath(article.id)) });
+}
+
 function generateDigestEmailText(
   articles: NewsArticle[],
   subscriberName: string | null,
@@ -95,10 +119,9 @@ function generateDigestEmailText(
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
   const displayedArticles = articles.slice(0, 20);
   const lines = displayedArticles.map((article) => {
-    return formatDeliveryArticleText(
-      article,
-      `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`,
-    );
+    // The source line ends the block when there is one; our page always follows.
+    const block = formatDeliveryArticleText({ ...article, link: digestSourceLink(article) ?? '' }).replace(/\n+$/, '');
+    return `${block}\nDetails on Digibastion: ${digestIncidentUrl(article, frequency)}`;
   });
 
   return [
@@ -111,7 +134,7 @@ function generateDigestEmailText(
     '',
     ...lines,
     '',
-    'View all threat intelligence: https://www.digibastion.com/threat-intel',
+    `View all threat intelligence: ${digestFeedUrl(frequency)}`,
     `Manage preferences or unsubscribe: ${manageUrl}`,
   ].join('\n');
 }
@@ -143,9 +166,10 @@ function generateDigestEmailHtml(
 
   const renderArticle = (article: NewsArticle) => {
     const cat = getCategoryDisplay(article.category);
-    const digiLink = `https://www.digibastion.com/threat-intel/${article.id}`;
+    const digiLink = escapeHtml(digestIncidentUrl(article, frequency));
     const cleanSummary = stripHtml(article.summary);
-    const safeOriginalLink = escapeHtml(safeHttpUrl(article.link, digiLink));
+    const sourceLink = digestSourceLink(article);
+    const sourceLabel = sourceLabelFor({ providers: articleProviders(article), sourceName: article.source_name ?? null });
     return `
     <tr>
       <td style="padding: 18px 0; border-bottom: 1px solid #334155;">
@@ -155,7 +179,7 @@ function generateDigestEmailHtml(
           <td style="color: ${cat.color}; padding: 3px 7px; border: 1px solid ${cat.color}; border-radius: 4px; font-size: 11px; line-height: 14px; font-weight: 600;">${cat.icon} ${cat.label}</td>
         </tr></table>
         <p style="margin: 0 0 7px; color: #a8b3c7; font-size: 12px; line-height: 18px;">
-          ${escapeHtml(article.source_name || 'Digibastion Intelligence')} · ${formatDate(article.published_at)}${article.cve_id ? ` · ${escapeHtml(article.cve_id)}` : ''}
+          ${escapeHtml(sourceLabel)} · ${formatDate(article.published_at)}${article.cve_id ? ` · ${escapeHtml(article.cve_id)}` : ''}
         </p>
         <a href="${digiLink}" style="color: #93c5fd; text-decoration: none; font-weight: 700; font-size: 17px; line-height: 1.45;">
           ${escapeHtml(stripHtml(article.title))}
@@ -163,7 +187,7 @@ function generateDigestEmailHtml(
         ${cleanSummary ? `<p style="margin: 8px 0 0; color: #cbd5e1; font-size: 14px; line-height: 1.55;">${escapeHtml(cleanSummary.slice(0, 190))}${cleanSummary.length > 190 ? '…' : ''}</p>` : ''}
         ${renderIncidentContextHtml(article)}
         <div style="margin-top: 10px;">
-          <a href="${safeOriginalLink}" style="color: #93c5fd; text-decoration: underline; font-size: 13px;">Read source report</a>
+          ${sourceLink ? `<a href="${escapeHtml(sourceLink)}" style="color: #93c5fd; text-decoration: underline; font-size: 13px;">Read source report</a> &nbsp;·&nbsp; ` : ''}<a href="${digiLink}" style="color: #93c5fd; text-decoration: underline; font-size: 13px;">Details on Digibastion</a>
         </div>
       </td>
     </tr>
@@ -187,8 +211,8 @@ function generateDigestEmailHtml(
   const encodedEmail = encodeURIComponent(subscriberEmail);
   const encodedToken = verificationToken ? encodeURIComponent(verificationToken) : '';
   const manageUrl = verificationToken 
-    ? `https://www.digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
-    : `https://www.digibastion.com/manage-subscription?email=${encodedEmail}`;
+    ? `${SITE_URL}/manage-subscription?email=${encodedEmail}&token=${encodedToken}`
+    : `${SITE_URL}/manage-subscription?email=${encodedEmail}`;
 
   // Summary stats
   const criticalCount = articles.filter(a => a.severity === 'critical').length;
@@ -290,7 +314,7 @@ function generateDigestEmailHtml(
     <!-- CTA Button -->
     <tr>
       <td class="email-pad" style="padding:28px;text-align:center;">
-        <a href="https://www.digibastion.com/threat-intel" style="display:inline-block;background-color:#2563eb;color:#ffffff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;line-height:20px;">
+        <a href="${escapeHtml(digestFeedUrl(frequency))}" style="display:inline-block;background-color:#2563eb;color:#ffffff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;line-height:20px;">
           Open Threat Intelligence
         </a>
       </td>
@@ -519,13 +543,13 @@ serve(async (req) => {
       }
       
       const testUnsubscribeLinks = buildUnsubscribeLinks({
-        siteUrl: 'https://www.digibastion.com',
+        siteUrl: SITE_URL,
         functionsBaseUrl: `${supabaseUrl}/functions/v1`,
         email: testEmail,
         // Any well-formed token works in a test email's links: it matches no row.
         token: mockSubscription.verification_token || '00000000-0000-0000-0000-000000000000',
       });
-      const testManageUrl = 'https://www.digibastion.com/manage-subscription';
+      const testManageUrl = `${SITE_URL}/manage-subscription`;
       const emailText = generateDigestEmailText(testArticles, mockSubscription.name, mockSubscription.frequency, testPeriodStart, now, testManageUrl);
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -720,7 +744,7 @@ serve(async (req) => {
         const encodedToken = sub.verification_token ? encodeURIComponent(sub.verification_token) : '';
         const encodedEmail = encodeURIComponent(sub.email);
         const oneClickUnsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
-        const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodedEmail}&token=${encodedToken}`;
+        const manageUrl = `${SITE_URL}/manage-subscription?email=${encodedEmail}&token=${encodedToken}`;
         const emailText = generateDigestEmailText(matchingArticles, sub.name, sub.frequency, effectivePeriodStart, now, manageUrl);
         
         const emailResponse = await fetch('https://api.resend.com/emails', {

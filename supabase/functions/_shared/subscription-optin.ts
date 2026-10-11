@@ -5,6 +5,8 @@
 // Pure module: no Deno or URL imports, so vitest can import it.
 import { escapeHtml } from './subscription-delivery.ts';
 import { renderEmailDocument } from './email-compliance.ts';
+import { TELEGRAM_CHANNEL_HANDLE, TELEGRAM_CHANNEL_URL, trackEmailLink } from './share-links.ts';
+import { SITE_URL } from './site-urls.ts';
 import {
   parseSubscriptionPreferences,
   preferencesToColumns,
@@ -13,7 +15,7 @@ import {
   type SubscriptionPreferences,
 } from './subscription-preferences.ts';
 
-export const SITE_URL = 'https://www.digibastion.com';
+export { SITE_URL };
 export const OPTIN_TTL_MS = 24 * 60 * 60 * 1000;
 export const RESUBSCRIBE_RATE_LIMIT = { scope: 'subscription:resubscribe:email', maxAttempts: 3, windowSeconds: 3600 } as const;
 /**
@@ -126,11 +128,11 @@ export function renderResubscribeEmail(o: {
   categories: string[];
   confirmUrl: string;
 }): { subject: string; html: string; text: string } {
-  const subject = 'Confirm you want DigiBastion emails again';
+  const subject = 'Confirm you want Digibastion emails again';
   const displayName = o.name || 'there';
   const channels = describeChannels(o.channels);
   const categories = o.categories.slice(0, 10).map(categoryLabel);
-  const intro = 'Someone asked to restart DigiBastion emails for this address. If that was you, confirm below. Nothing changes unless you confirm.';
+  const intro = 'Someone asked to restart Digibastion emails for this address. If that was you, confirm below. Nothing changes unless you confirm.';
   const listItem = (value: string) => `<li style="margin:0 0 4px;">${escapeHtml(value)}</li>`;
 
   const bodyHtml = `
@@ -173,13 +175,38 @@ export function renderResubscribeEmail(o: {
     '',
     'This link works once and expires in 24 hours. If you did not ask for this, ignore this email and you will stay unsubscribed.',
     '',
-    'DigiBastion Threat Intelligence',
+    'Digibastion Threat Intelligence',
     SITE_URL,
   ].join('\n');
 
   return {
     subject,
-    html: renderEmailDocument({ title: subject, preheader: 'Confirm to restart your DigiBastion emails.', bodyHtml, footerHtml }),
+    html: renderEmailDocument({ title: subject, preheader: 'Confirm to restart your Digibastion emails.', bodyHtml, footerHtml }),
     text,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Next steps: the short block in the verify and already-subscribed emails
+// ---------------------------------------------------------------------------
+
+function weeklyReportsUrl(siteUrl: string): string {
+  return trackEmailLink('/threat-intel/weekly', 'subscribe_confirm', 'weekly', siteUrl);
+}
+
+/** "While you wait: join @digibastion on Telegram, or read last week's report." */
+export function renderNextStepsHtml(lead: string, siteUrl: string = SITE_URL): string {
+  const link = (href: string, label: string) =>
+    `<a href="${escapeHtml(href)}" style="color:#a78bfa;text-decoration:underline;">${escapeHtml(label)}</a>`;
+  return `<p style="margin:0;color:#d1d5db;font-size:14px;line-height:1.6;">${escapeHtml(lead)}: join ` +
+    `${link(TELEGRAM_CHANNEL_URL, TELEGRAM_CHANNEL_HANDLE)} on Telegram for new Web3 incidents, or ` +
+    `${link(weeklyReportsUrl(siteUrl), "read last week's report")}.</p>`;
+}
+
+export function renderNextStepsText(lead: string, siteUrl: string = SITE_URL): string {
+  return [
+    `${lead}:`,
+    `- Join ${TELEGRAM_CHANNEL_HANDLE} on Telegram for new Web3 incidents: ${TELEGRAM_CHANNEL_URL}`,
+    `- Read last week's report: ${weeklyReportsUrl(siteUrl)}`,
+  ].join('\n');
 }

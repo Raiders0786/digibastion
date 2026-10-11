@@ -10,6 +10,8 @@ import {
   optinConfirmUrl,
   parseSignupConsentSource,
   planSubscribeRequest,
+  renderNextStepsHtml,
+  renderNextStepsText,
   renderResubscribeEmail,
   resubscribeConfirmedColumns,
   subscriptionColumns,
@@ -190,7 +192,9 @@ describe('resubscribe email', () => {
       categories: ['defi-exploits'],
       confirmUrl: 'https://www.digibastion.com/verify-email?token=t&x=1',
     });
-    expect(email.subject).toBe('Confirm you want DigiBastion emails again');
+    expect(email.subject).toBe('Confirm you want Digibastion emails again');
+    expect(`${email.html}${email.text}`).not.toContain('DigiBastion');
+    expect(`${email.html}${email.text}`).not.toMatch(/https:\/\/digibastion\.com/);
     expect(email.html).toContain('&lt;b&gt;Ann&lt;/b&gt;');
     expect(email.html).not.toContain('<b>Ann</b>');
     expect(email.html).toContain('https://www.digibastion.com/verify-email?token=t&amp;x=1');
@@ -201,5 +205,26 @@ describe('resubscribe email', () => {
     expect(email.text).toContain('Nothing changes unless you confirm');
     // No emoji or hype in the subject.
     expect(email.subject).not.toMatch(/[\u{1F300}-\u{1FAFF}]|urgent|immediate/iu);
+  });
+});
+
+describe('next steps after subscribing', () => {
+  const weekly = 'https://www.digibastion.com/threat-intel/weekly?utm_source=email&utm_medium=email&utm_campaign=subscribe_confirm&utm_content=weekly';
+
+  it('points to the Telegram channel and the weekly reports with subscribe_confirm tags', () => {
+    const html = renderNextStepsHtml('While you wait');
+    expect(html).toContain('While you wait');
+    expect(html).toContain('href="https://t.me/digibastion"');
+    expect(html).toContain('@digibastion');
+    expect(html).toContain(`href="${weekly.replace(/&/g, '&amp;')}"`);
+    const text = renderNextStepsText('While you wait');
+    expect(text).toContain('https://t.me/digibastion');
+    expect(text).toContain(weekly);
+  });
+
+  it('never tags the Telegram link or carries personal data in the tags', () => {
+    const html = renderNextStepsHtml('More from Digibastion', 'https://www.digibastion.com/');
+    expect(html).not.toMatch(/t\.me\/digibastion\?/);
+    expect(html).not.toMatch(/utm_[a-z]+=[^&"]*(@|token)/);
   });
 });

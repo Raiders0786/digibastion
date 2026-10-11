@@ -3,9 +3,9 @@
 // the Threat Intel pages already reference.
 // Pure module: no Deno or URL imports, so vitest can import it.
 import type { SecurityAction } from './newsletter-content.ts';
+import { SITE_URL } from './site-urls.ts';
 
-const SITE = 'https://www.digibastion.com';
-const guide = (id: string) => `${SITE}/category/${id}`;
+const guide = (id: string) => `${SITE_URL}/category/${id}`;
 
 export const SECURITY_ACTIONS: readonly SecurityAction[] = [
   {

@@ -110,6 +110,17 @@ describe('toNewsletterItem', () => {
   });
 });
 
+describe('stored URLs stay clean', () => {
+  it('never stores UTM tags in incidentUrl or sourceUrl, because the public weekly page renders the same JSON', () => {
+    for (const row of [quillRow, { ...quillRow, link: null }]) {
+      const stored = toNewsletterItem(row, SITE);
+      expect(stored.incidentUrl).toBe(`${SITE}/threat-intel/${quillRow.id}`);
+      expect(`${stored.incidentUrl} ${stored.sourceUrl}`).not.toContain('utm_');
+    }
+    expect(statusChangeItem({ id: quillRow.id, title: 't' }, quillRow.uid, SITE).incidentUrl).not.toContain('utm_');
+  });
+});
+
 describe('statusChangeItem', () => {
   it('builds an item from an incident_status_events snapshot', () => {
     const snapshot = {

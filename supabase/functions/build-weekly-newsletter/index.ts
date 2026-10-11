@@ -17,6 +17,7 @@ import {
   weeklyCountedIncidents,
   weeklyPeriod,
 } from '../_shared/weekly-stats.ts';
+import { SITE_URL } from '../_shared/site-urls.ts';
 
 // Builds the shared weekly deep-dive (cron Monday 00:10 UTC) for the previous
 // Monday to Sunday into newsletter_issues. Figures come from code; the model
@@ -29,7 +30,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SITE_URL = 'https://www.digibastion.com';
 const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 const INCIDENT_LIMIT = 1000;

@@ -3,6 +3,7 @@
 // the validated model text or the templates. Copy follows spec section 9:
 // name the source, use the source's status words, "~$4.2M reported", no hype.
 // Pure module: no Deno or URL imports, so vitest can import it.
+import { QUILLMONITOR_DATABASE_URL } from './attribution.ts';
 import { shortIssueDate } from './daily-brief.ts';
 import { renderComplianceFooterHtml, renderComplianceFooterText, renderEmailDocument } from './email-compliance.ts';
 import {
@@ -14,6 +15,9 @@ import {
   type WeeklyPublicContent,
 } from './newsletter-content.ts';
 import type { RenderContext, RenderedEmail } from './newsletter-render.ts';
+import { WEEK_START } from './publishable.ts';
+import { sourceCredit, trackEmailLink } from './share-links.ts';
+import { weeklyPath } from './site-urls.ts';
 import { escapeHtml } from './subscription-delivery.ts';
 
 const WEEKLY_REASON = 'You get this email because you subscribed to the Digibastion weekly deep-dive.';
@@ -128,7 +132,20 @@ function factParts(entry: NewsletterItem): string[] {
 }
 
 const titleOf = (entry: NewsletterItem) => clean(entry.title) || 'Security report';
-const sourceOf = (entry: NewsletterItem) => clean(entry.sourceName) || null;
+
+/** Tags our links for this email; other hosts come back unchanged. */
+type Track = (url: string, content: string) => string;
+
+function trackerFor(ctx: RenderContext): Track {
+  return (url, content) => trackEmailLink(url, 'weekly_deep_dive', content, ctx.siteUrl);
+}
+
+const stripQuery = (url: string) => url.split(/[?#]/)[0];
+
+/** The issue's public page, or null when weekStart is malformed. */
+function webVersionUrl(c: WeeklyPublicContent, track: Track): string | null {
+  return WEEK_START.test(c.weekStart) ? track(weeklyPath(c.weekStart), 'web_version') : null;
+}
 
 // ---------------------------------------------------------------------------
 // HTML
@@ -152,17 +169,20 @@ function factsHtml(entry: NewsletterItem): string {
     part === 'Unconfirmed' ? `<b style="color:#fbbf24;">${part}</b>` : escapeHtml(part))].join(' · ');
 }
 
-function linksHtml(entry: NewsletterItem): string {
-  const source = sourceOf(entry);
-  const sourceLink = source
-    ? `Source: ${entry.sourceUrl ? `<a href="${escapeHtml(entry.sourceUrl)}" style="${LINK}">${escapeHtml(source)}</a>` : escapeHtml(source)} · `
-    : '';
-  return `<p style="margin:6px 0 0;${MUTED}">${sourceLink}<a href="${escapeHtml(entry.incidentUrl)}" style="${LINK}">Details on Digibastion</a></p>`;
+function linksHtml(entry: NewsletterItem, track: Track): string {
+  const credit = sourceCredit(entry);
+  const label = escapeHtml(clean(credit.label) || 'Source not given');
+  const parts = [
+    `Source: ${credit.url ? `<a href="${escapeHtml(credit.url)}" style="${LINK}">${label}</a>` : label}`,
+    credit.poweredByQuillMonitor ? `Powered by <a href="${QUILLMONITOR_DATABASE_URL}" style="${LINK}">QuillMonitor</a>` : '',
+    `<a href="${escapeHtml(track(entry.incidentUrl, 'details'))}" style="${LINK}">Details on Digibastion</a>`,
+  ].filter(Boolean);
+  return `<p style="margin:6px 0 0;${MUTED}">${parts.join(' · ')}</p>`;
 }
 
-function itemHeadHtml(entry: NewsletterItem): string {
+function itemHeadHtml(entry: NewsletterItem, track: Track): string {
   return `<p style="margin:0;${MUTED}">${factsHtml(entry)}</p>` +
-    `<p style="margin:4px 0 0;font-size:15px;line-height:21px;font-weight:700;"><a href="${escapeHtml(entry.incidentUrl)}" style="color:#f3f4f6;text-decoration:none;">${escapeHtml(titleOf(entry))}</a></p>`;
+    `<p style="margin:4px 0 0;font-size:15px;line-height:21px;font-weight:700;"><a href="${escapeHtml(track(entry.incidentUrl, 'title'))}" style="color:#f3f4f6;text-decoration:none;">${escapeHtml(titleOf(entry))}</a></p>`;
 }
 
 function totalsHtml(c: WeeklyPublicContent): string {
@@ -179,23 +199,25 @@ function totalsHtml(c: WeeklyPublicContent): string {
       breakdown('By chain', c.totals.byChain), '6px 28px 12px');
 }
 
-function topHtml(c: WeeklyPublicContent): string {
+function topHtml(c: WeeklyPublicContent, track: Track): string {
   if (c.top.length === 0) return '';
   return sectionTitleHtml('Top incidents') + c.top.map((entry) =>
-    row(itemHeadHtml(entry.item) + paragraphHtml(entry.what) + paragraphHtml(entry.action) + linksHtml(entry.item),
+    row(itemHeadHtml(entry.item, track) + paragraphHtml(entry.what) + paragraphHtml(entry.action) + linksHtml(entry.item, track),
       '12px 28px;border-bottom:1px solid #374151')).join('');
 }
 
-function vulnerabilitiesHtml(c: WeeklyPublicContent): string {
-  const items = c.vulnerabilities.items.map((entry) => `<div style="margin:10px 0 0;">${itemHeadHtml(entry)}${linksHtml(entry)}</div>`).join('');
+function vulnerabilitiesHtml(c: WeeklyPublicContent, track: Track): string {
+  const items = c.vulnerabilities.items.map((entry) =>
+    `<div style="margin:10px 0 0;">${itemHeadHtml(entry, track)}${linksHtml(entry, track)}</div>`).join('');
   return sectionTitleHtml('Vulnerabilities and supply-chain') + row(paragraphHtml(c.vulnerabilities.summary) + items, '0 28px 12px');
 }
 
-function headerHtml(c: WeeklyPublicContent): string {
+function headerHtml(c: WeeklyPublicContent, webVersion: string | null): string {
   return row(
     `<p style="margin:0;color:#93c5fd;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Digibastion Threat Intel</p>` +
     `<h1 style="margin:6px 0 0;color:#f3f4f6;font-size:22px;line-height:28px;">Weekly deep-dive, week of ${escapeHtml(shortIssueDate(c.weekStart))}</h1>` +
-    `<p style="margin:6px 0 0;color:#a8b3c7;font-size:14px;line-height:20px;">${escapeHtml(periodLine(c))}</p>`,
+    `<p style="margin:6px 0 0;color:#a8b3c7;font-size:14px;line-height:20px;">${escapeHtml(periodLine(c))}</p>` +
+    (webVersion ? `<p style="margin:8px 0 0;font-size:13px;line-height:19px;"><a href="${escapeHtml(webVersion)}" style="${LINK}">Read this issue on the web</a></p>` : ''),
     '24px 28px;background-color:#111827;border-bottom:1px solid #374151',
   );
 }
@@ -212,11 +234,12 @@ function paragraphText(p: WeeklyParagraph): string {
   return p.origin === 'ai' ? `${p.text}\n(${AI_NOTE})` : p.text;
 }
 
-function itemText(entry: NewsletterItem, paragraphs: WeeklyParagraph[] = []): string {
+function itemText(entry: NewsletterItem, track: Track, paragraphs: WeeklyParagraph[] = []): string {
   const lines = [`[${factParts(entry).join(' · ')}] ${titleOf(entry)}`, ...paragraphs.map(paragraphText)];
-  const source = sourceOf(entry);
-  if (source) lines.push(`Source: ${source}${entry.sourceUrl ? ` ${entry.sourceUrl}` : ''}`);
-  lines.push(`Details on Digibastion: ${entry.incidentUrl}`);
+  const credit = sourceCredit(entry);
+  lines.push(`Source: ${clean(credit.label) || 'Source not given'}${credit.url ? ` ${credit.url}` : ''}`);
+  if (credit.poweredByQuillMonitor) lines.push(`Powered by QuillMonitor: ${QUILLMONITOR_DATABASE_URL}`);
+  lines.push(`Details on Digibastion: ${track(entry.incidentUrl, 'details')}`);
   return lines.join('\n');
 }
 
@@ -228,23 +251,29 @@ export function renderWeeklyEmail(c: WeeklyPublicContent, ctx: RenderContext): R
   const subject = buildWeeklySubject(c);
   const footer = { links: ctx.links, postalAddress: ctx.postalAddress, reason: WEEKLY_REASON, testWarning: ctx.testWarning };
   const sources = c.sources.map(clean).filter(Boolean);
+  const track = trackerFor(ctx);
+  const webVersion = webVersionUrl(c, track);
+  const tipUrl = track(c.opsecTip.url, 'tip');
 
   const html = renderEmailDocument({
     title: subject,
     preheader: periodLine(c),
     bodyHtml: [
-      headerHtml(c),
+      headerHtml(c, webVersion),
       totalsHtml(c),
-      topHtml(c),
+      topHtml(c, track),
       sectionTitleHtml('Trends') + row(paragraphHtml(c.trends), '0 28px 12px'),
-      vulnerabilitiesHtml(c),
+      vulnerabilitiesHtml(c, track),
       sectionTitleHtml('Opsec tip') + row(
         `<p style="margin:0;${BODY}">${escapeHtml(c.opsecTip.text)}</p>` +
-        `<p style="margin:6px 0 0;${MUTED}"><a href="${escapeHtml(c.opsecTip.url)}" style="${LINK}">${escapeHtml(c.opsecTip.guideTitle)}</a></p>`,
+        `<p style="margin:6px 0 0;${MUTED}"><a href="${escapeHtml(tipUrl)}" style="${LINK}">${escapeHtml(c.opsecTip.guideTitle)}</a></p>`,
         '6px 28px 12px',
       ),
       sources.length > 0
         ? sectionTitleHtml('Sources this week') + row(`<p style="margin:0;${MUTED}">${escapeHtml(sources.join(', '))}</p>`, '6px 28px 20px')
+        : '',
+      webVersion
+        ? row(`<p style="margin:0;${MUTED}">Share this issue: <a href="${escapeHtml(webVersion)}" style="${LINK}">${escapeHtml(stripQuery(webVersion))}</a></p>`, '0 28px 20px')
         : '',
     ].join('\n'),
     footerHtml: renderComplianceFooterHtml(footer),
@@ -260,19 +289,21 @@ export function renderWeeklyEmail(c: WeeklyPublicContent, ctx: RenderContext): R
   const text = [
     `Digibastion weekly deep-dive, week of ${shortIssueDate(c.weekStart)}`,
     periodLine(c),
+    ...(webVersion ? [`Read this issue on the web: ${webVersion}`] : []),
     '',
     sectionText('This week in numbers', totalsText),
     '',
     ...(c.top.length > 0
-      ? [sectionText('Top incidents', c.top.map((entry) => itemText(entry.item, [entry.what, entry.action])).join('\n\n')), '']
+      ? [sectionText('Top incidents', c.top.map((entry) => itemText(entry.item, track, [entry.what, entry.action])).join('\n\n')), '']
       : []),
     sectionText('Trends', paragraphText(c.trends)),
     '',
-    sectionText('Vulnerabilities and supply-chain', [paragraphText(c.vulnerabilities.summary), ...c.vulnerabilities.items.map((entry) => itemText(entry))].join('\n\n')),
+    sectionText('Vulnerabilities and supply-chain', [paragraphText(c.vulnerabilities.summary), ...c.vulnerabilities.items.map((entry) => itemText(entry, track))].join('\n\n')),
     '',
-    sectionText('Opsec tip', `${c.opsecTip.text}\n${c.opsecTip.guideTitle}: ${c.opsecTip.url}`),
+    sectionText('Opsec tip', `${c.opsecTip.text}\n${c.opsecTip.guideTitle}: ${tipUrl}`),
     '',
     ...(sources.length > 0 ? [sectionText('Sources this week', sources.join(', ')), ''] : []),
+    ...(webVersion ? [`Share this issue: ${webVersion}`, ''] : []),
     renderComplianceFooterText(footer),
   ].join('\n');
 

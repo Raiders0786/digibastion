@@ -9,9 +9,12 @@ import {
   optinConfirmUrl,
   parseSignupConsentSource,
   planSubscribeRequest,
+  renderNextStepsHtml,
+  renderNextStepsText,
   renderResubscribeEmail,
   subscriptionColumns,
 } from "../_shared/subscription-optin.ts";
+import { SITE_URL } from "../_shared/site-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -352,7 +355,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (action === 'already-active') {
         // Public signup never overwrites an existing subscriber's preferences.
         // The management link goes to the address they already proved they control.
-        const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(existingSub!.email)}&token=${encodeURIComponent(existingSub!.verification_token || '')}`;
+        const manageUrl = `${SITE_URL}/manage-subscription?email=${encodeURIComponent(existingSub!.email)}&token=${encodeURIComponent(existingSub!.verification_token || '')}`;
         const channels = describeChannels(readDeliveryChannels(existingSub!));
         await sendEmail(
           normalizedEmail,
@@ -420,7 +423,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       console.log("[submit-form] Subscription request saved");
 
-      const verifyUrl = `https://www.digibastion.com/verify-email?token=${verificationToken}`;
+      const verifyUrl = `${SITE_URL}/verify-email?token=${encodeURIComponent(verificationToken)}`;
       const verificationName = action === 'create' ? subscriberName : existingSub?.name || null;
       const verificationCategories = action === 'create' ? preferences.categories : existingSub?.categories || [];
       await sendEmail(
@@ -518,6 +521,12 @@ function generateVerificationEmail(name: string | null, verifyUrl: string, categ
                   </td>
                 </tr>
                 
+                <tr>
+                  <td style="padding-top: 24px;">
+                    ${renderNextStepsHtml('While you wait')}
+                  </td>
+                </tr>
+
                 <!-- Footer -->
                 <tr>
                   <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 32px;">
@@ -525,7 +534,7 @@ function generateVerificationEmail(name: string | null, verifyUrl: string, categ
                       This link will expire in 24 hours. If you didn't sign up for Digibastion alerts, you can safely ignore this email.
                     </p>
                     <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
-                      <a href="https://digibastion.com" style="color: #8b5cf6; text-decoration: none;">digibastion.com</a>
+                      <a href="${SITE_URL}" style="color: #8b5cf6; text-decoration: none;">www.digibastion.com</a>
                     </p>
                   </td>
                 </tr>
@@ -557,11 +566,13 @@ Verify your email: ${verifyUrl}
 Your Subscription Includes:
 ${categoryList}
 
+${renderNextStepsText('While you wait')}
+
 This link will expire in 24 hours. If you didn't sign up for Digibastion alerts, you can safely ignore this email.
 
 ---
 Digibastion Security Threat Intelligence
-https://digibastion.com
+${SITE_URL}
   `.trim();
 }
 
@@ -664,12 +675,17 @@ function generateAlreadyVerifiedEmail(
                   </td>
                 </tr>
                 <tr>
+                  <td style="padding-bottom: 24px;">
+                    ${renderNextStepsHtml('More from Digibastion')}
+                  </td>
+                </tr>
+                <tr>
                   <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
                     <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.6;">
                       You're receiving this because someone tried to subscribe with your email. If this wasn't you, you can safely ignore this message.
                     </p>
                     <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
-                      <a href="https://digibastion.com" style="color: #22c55e; text-decoration: none;">digibastion.com</a>
+                      <a href="${SITE_URL}" style="color: #22c55e; text-decoration: none;">www.digibastion.com</a>
                     </p>
                   </td>
                 </tr>
@@ -714,9 +730,11 @@ function generateAlreadyVerifiedEmailText(
     '',
     `To update your preferences, visit: ${manageUrl}`,
     '',
+    renderNextStepsText('More from Digibastion'),
+    '',
     '---',
     'Digibastion Security Threat Intelligence',
-    'https://digibastion.com',
+    SITE_URL,
   );
   return lines.join('\n');
 }

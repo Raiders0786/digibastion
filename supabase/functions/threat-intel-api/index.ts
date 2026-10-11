@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { SITE_URL } from "../_shared/site-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -167,7 +168,7 @@ Deno.serve(async (req) => {
              <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Requests (last hour)</td><td style="padding:8px;border-bottom:1px solid #374151;">${RATE_LIMIT_MAX}+</td></tr>
             <tr><td style="padding:8px;color:#9ca3af;">Time (UTC)</td><td style="padding:8px;">${new Date().toISOString()}</td></tr>
           </table>
-          <p style="color:#9ca3af;font-size:12px;">This may indicate abuse or a misconfigured client. Review in <a href="https://digibastion.com/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
+          <p style="color:#9ca3af;font-size:12px;">This may indicate abuse or a misconfigured client. Review in <a href="${SITE_URL}/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
         </div>`
       );
       return new Response(
@@ -280,7 +281,7 @@ Deno.serve(async (req) => {
             <tr><td style="padding:8px;border-bottom:1px solid #374151;color:#9ca3af;">Created</td><td style="padding:8px;border-bottom:1px solid #374151;">${keyRecord.created_at}</td></tr>
             <tr><td style="padding:8px;color:#9ca3af;">First Used (UTC)</td><td style="padding:8px;">${new Date().toISOString()}</td></tr>
           </table>
-          <p style="color:#9ca3af;font-size:12px;">If this wasn't expected, review in <a href="https://digibastion.com/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
+          <p style="color:#9ca3af;font-size:12px;">If this wasn't expected, review in <a href="${SITE_URL}/admin/api-keys" style="color:#60a5fa;">Admin → API Keys</a>.</p>
         </div>`
       );
     }

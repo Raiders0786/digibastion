@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { emailHash } from "../_shared/email-compliance.ts";
+import { SITE_URL } from "../_shared/site-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,7 +106,7 @@ function generateManagementLinkEmail(name: string | null, manageUrl: string): st
                       If you didn't request this link, you can safely ignore this email. Your subscription settings remain unchanged.
                     </p>
                     <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
-                      <a href="https://digibastion.com" style="color: #8b5cf6; text-decoration: none;">digibastion.com</a>
+                      <a href="${SITE_URL}" style="color: #8b5cf6; text-decoration: none;">www.digibastion.com</a>
                     </p>
                   </td>
                 </tr>
@@ -213,7 +214,7 @@ serve(async (req) => {
     if (suppression) {
       console.warn(`[request-management-link] Subscription ${subscription.id} is suppressed; no email sent`);
     } else if (resendApiKey) {
-      const manageUrl = `https://www.digibastion.com/manage-subscription?email=${encodeURIComponent(normalizedEmail)}&token=${encodeURIComponent(managementToken)}`;
+      const manageUrl = `${SITE_URL}/manage-subscription?email=${encodeURIComponent(normalizedEmail)}&token=${encodeURIComponent(managementToken)}`;
       
       try {
         const emailResponse = await fetch('https://api.resend.com/emails', {
