@@ -14,6 +14,7 @@ import {
   type ExistingSend,
   type LedgerDb,
 } from '../_shared/email-ledger.ts';
+import { openPixelUrl } from '../_shared/email-open.ts';
 import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import { renderNewsletterEmail, type RenderContext } from '../_shared/newsletter-render.ts';
 import { createThrottle, RESEND_MIN_INTERVAL_MS, sendResendEmail, type ResendOutcome } from '../_shared/resend-client.ts';
@@ -335,7 +336,15 @@ async function runTask(ctx: RunContext, task: Task, suppressed: boolean, counter
   const content = contentFor(task);
 
   const links = linksFor(sub.email, sub.verification_token, ctx.supabaseUrl);
-  const renderContext: RenderContext = { links, postalAddress: ctx.postalAddress, siteUrl: SITE_URL, latestWeekStart: ctx.latestWeekStart };
+  // The pixel's id is the one the "sent" event below records, so email-tracking only accepts opens of real sends.
+  const trackingId = crypto.randomUUID();
+  const renderContext: RenderContext = {
+    links,
+    postalAddress: ctx.postalAddress,
+    siteUrl: SITE_URL,
+    latestWeekStart: ctx.latestWeekStart,
+    openPixelUrl: openPixelUrl(`${ctx.supabaseUrl}/functions/v1`, trackingId),
+  };
   const rendered = content === undefined ? null : renderNewsletterEmail(kind, content, renderContext);
   if (!rendered) {
     // No ledger row: once the renderer handles this content, a later slot sends it.
@@ -375,7 +384,7 @@ async function runTask(ctx: RunContext, task: Task, suppressed: boolean, counter
   // Admin analytics count sends from email_events.
   const { error: eventError } = await ctx.db.from('email_events').insert({
     subscription_id: sub.id,
-    tracking_id: crypto.randomUUID(),
+    tracking_id: trackingId,
     email_type: EVENT_TYPES[kind],
     event_type: 'sent',
   });

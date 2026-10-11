@@ -223,6 +223,14 @@ describe('renderDailyBriefEmail', () => {
     expect(html).toContain('Phishing wave hits wallets');
   });
 
+  it('adds the open pixel only when the send has one', () => {
+    const pixel = 'https://fn.example/functions/v1/email-tracking?tid=0f8fad5b-d9cb-469f-a165-70867728950e&a=o';
+    const { html } = renderDailyBriefEmail(content(), { ...ctx, openPixelUrl: pixel });
+    expect(html.match(/<img/g)).toHaveLength(1);
+    expect(html).toContain('email-tracking?tid=0f8fad5b-d9cb-469f-a165-70867728950e&amp;a=o');
+    expect(renderDailyBriefEmail(content(), ctx).html).not.toMatch(/<img/i);
+  });
+
   it('escapes source-provided text', () => {
     const { html } = renderDailyBriefEmail(content({ recent: [item({ title: '<script>alert(1)</script>', sourceName: 'A & B', providers: [] })] }), ctx);
     expect(html).not.toContain('<script>');

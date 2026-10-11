@@ -26,7 +26,7 @@ No. Digibastion shows the status the source gives. QuillMonitor marks incidents 
 
 ## How do I get alerts?
 
-Join @digibastion on Telegram for new Web3 incidents from QuillMonitor, or subscribe by email for alerts on critical and high incidents, checked every 30 minutes. The daily brief and weekly deep-dive emails start soon; the weekly report is already published on the site every Monday.
+Join @digibastion on Telegram for new incidents from QuillMonitor, or subscribe by email for real-time alerts on critical and high incidents (checked every 30 minutes), a daily brief or a weekly deep-dive. All are free.
 
 ## How is severity set?
 

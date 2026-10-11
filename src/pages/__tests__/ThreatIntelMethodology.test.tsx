@@ -103,7 +103,8 @@ describe('ThreatIntelMethodology alerts section', () => {
     const section = screen.getByRole('region', { name: 'Alerts and newsletters' });
     expect(section.textContent).toMatch(/Email alerts go out every 30 minutes for new critical and high incidents/);
     expect(section.textContent).toMatch(/posts new incidents from QuillMonitor, plus a link to the weekly report every Monday/);
-    expect(section.textContent).toMatch(/The daily brief and weekly deep-dive emails start soon\./);
+    expect(section.textContent).toMatch(/The daily brief and the weekly deep-dive email go out at the hour each subscriber picks\./);
+    expect(section.textContent).not.toMatch(/start soon/);
     expect(section.textContent).not.toMatch(/high and critical/);
   });
 });

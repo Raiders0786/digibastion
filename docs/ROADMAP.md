@@ -23,7 +23,7 @@ repo root is Lovable's own task log.
 | People can find incidents quickly | Whole-result stats, filters for status, chain, attack type and source, severity sort, rebuilt incident pages | Live |
 | People get told about incidents | Email alerts for critical and high incidents every 30 minutes; Telegram `@digibastion` for new QuillMonitor incidents | Live; Telegram settings and send health need owner access |
 | People get a weekly summary | `/threat-intel/weekly/<YYYY-MM-DD>` every Monday, with a Telegram link post | Released with Phase 3; each issue depends on the Monday job running |
-| People can get a daily or weekly email | Daily brief and weekly email, built with one-click unsubscribe, suppressions and a consent audit | **Built, not sending.** Waits for `NEWSLETTER_POSTAL_ADDRESS` |
+| People can get a daily or weekly email | Daily brief and weekly email with "more updates", a quiet-day brief, one-click unsubscribe, suppressions, a consent audit and privacy-friendly open counts | Launching October 2026 with `NEWSLETTER_POSTAL_ADDRESS`; the legacy digest stands down then |
 | Search and answer engines can find every incident and guide | Dynamic and news sitemaps in `robots.txt`, IndexNow every 30 minutes, RSS/Atom/JSON feeds, per-page HTML at build time, `llms.txt` and `llms-full.txt`, share bar and preview cards | Built on branch `seo-aeo-docs`; validated by [`LOVABLE_SEO_RELEASE.md`](LOVABLE_SEO_RELEASE.md) after release |
 | People can learn by topic | 71 guides, a tools directory with 27 entries, a links directory | 52 older guides got a source-backed rewrite; reviews continue |
 | Teams can ask for expert help | `/services`, `/services/opsec-consulting`, `/services/full-stack-review`, `/contact` | Public routes checked |
@@ -36,20 +36,15 @@ its data.
 
 ## Now
 
-### 1. Launch the newsletters
+### 1. Finish the newsletter launch
 
-- Read and approve a privacy page that says what the site collects, before any
-  newsletter goes out.
-- `send-newsletters` now covers everything the legacy digest sends ("more
-  updates", quiet-day brief, each subscriber's weekly day, a parity test).
-  Before the switch, `send-newsletters {"parity": true}` must report
-  `ready_for_cutover: true`, which needs a daily issue built by the new
-  builder. (The first attempt, on 11 October 2026, left high-threshold
-  subscribers with no email and was rolled back.)
-- Then set `NEWSLETTER_POSTAL_ADDRESS` in Lovable Cloud. That starts the daily brief
-  and weekly email and makes the legacy digest stand down by itself.
-- Set `NEWSLETTERS_LIVE = true` in `src/seo/siteFacts.ts` in the same change, so
-  the site copy stops saying "starting soon".
+- Done: `send-newsletters` covers everything the legacy digest sends (a parity
+  test checks it), the privacy page describes the open pixel, and
+  `NEWSLETTERS_LIVE` is true. (The first attempt, on 11 October 2026, left
+  high-threshold subscribers with no email and was rolled back.)
+- Set `NEWSLETTER_POSTAL_ADDRESS` in Lovable Cloud; the legacy digest stands
+  down by itself. `send-newsletters {"parity": true}` should report
+  `ready_for_cutover: true` once the Monday weekly issue is built.
 - After a clean week, retire `send-digest-emails` and its four cron jobs.
 
 Success: subscribers who chose daily or weekly get one email at their local

@@ -66,9 +66,11 @@ const Privacy = () => (
         <Section id="emails" title="What our emails record">
           <List
             items={[
-              'Real-time alerts, the daily brief and the weekly deep-dive contain no tracking pixel. We record that each email was sent, and whether our email provider reports it as delivered, bounced or marked as spam.',
+              'For every email we record that it was sent, and whether our email provider reports it as delivered, bounced or marked as spam.',
+              'The daily brief and the weekly deep-dive contain a small open pixel. The first time your mail app loads it, we record that the email was opened, when, your country, your device type (mobile, tablet or desktop) and your email app, worked out from the request. We do not store your IP address, a hash of it, your region or your browser’s user-agent string, and later opens of the same email record nothing. Mail apps that block images send us nothing.',
+              'Real-time alerts contain no tracking pixel.',
               'Links in these emails carry utm tags that name the email type, so we can see which emails bring readers to the site. The tags do not identify you.',
-              'The older daily and weekly digest emails, which go out until the new newsletters launch, do contain a tracking pixel and tracked links. When you open one or click a link, we record the time, the link, a hashed IP address, your country and region, your device type, your email app and your browser’s user-agent string.',
+              'The older daily and weekly digest emails, sent until the newsletters launched in October 2026, contain a tracking pixel and tracked links. When you open one or click a link, we record the time, the link, a hashed IP address, your country and region, your device type, your email app and your browser’s user-agent string.',
               'If an address bounces or reports an email as spam, we add a hash of the address to a suppression list and turn the subscription off.',
             ]}
           />

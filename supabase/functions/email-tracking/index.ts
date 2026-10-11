@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { isPrivateOpenType, privateOpenEvent } from "../_shared/email-open.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,6 +145,38 @@ serve(async (req) => {
 
     if (sentEventError || !sentEvent) {
       if (sentEventError) console.error("[email-tracking] Tracking ID lookup failed:", sentEventError);
+      return new Response(TRACKING_PIXEL, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "image/gif",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+    }
+
+    // Newsletters (daily brief, weekly deep-dive): the first open only, with
+    // the time, country, device type and email app. No IP, region or user agent.
+    if (isPrivateOpenType(sentEvent.email_type)) {
+      const { data: opened } = await supabase
+        .from("email_events")
+        .select("id")
+        .eq("tracking_id", trackingId)
+        .eq("event_type", "open")
+        .limit(1)
+        .maybeSingle();
+      if (!opened) {
+        const { deviceType, emailClient } = parseUserAgent(req.headers.get("user-agent") || "");
+        const { error: openError } = await supabase.from("email_events").insert(privateOpenEvent({
+          subscriptionId: sentEvent.subscription_id,
+          trackingId,
+          emailType: sentEvent.email_type,
+          at: new Date(),
+          countryCode: getGeoInfo(req).countryCode,
+          deviceType,
+          emailClient,
+        }));
+        if (openError) console.error("[email-tracking] Failed to log newsletter open:", openError.message);
+      }
       return new Response(TRACKING_PIXEL, {
         headers: {
           ...corsHeaders,

@@ -151,7 +151,8 @@ function isValidOffset(value: unknown): value is number {
  * Validates a subscribe or update payload. Accepts the new shape (wants_*,
  * include_preliminary, chains, timezone) and the legacy one (frequency, plus
  * severity or severity_threshold) so old frontends keep working.
- * preferred_day is ignored: the weekly goes out on Mondays.
+ * preferred_day is not set here: new subscriptions get the column default,
+ * Monday, and older ones keep the day they chose on the old form.
  */
 export function parseSubscriptionPreferences(input: unknown): ParseResult<SubscriptionPreferences> {
   if (!isRecord(input)) return fail('Invalid request');

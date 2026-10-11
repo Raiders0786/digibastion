@@ -69,16 +69,17 @@ describe('QuickSubscribeCard', () => {
     expect(data).not.toHaveProperty('frequency');
   });
 
-  it('marks the newsletters as starting soon while they are gated', () => {
+  it('offers the three email types now that the newsletters are live', () => {
     renderCard();
 
     expect(screen.getByText('Real-time alerts')).not.toBeNull();
-    expect(screen.getByText('Daily brief (starting soon)')).not.toBeNull();
-    expect(screen.getByText('Weekly deep-dive (starting soon)')).not.toBeNull();
+    expect(screen.getByText('Daily brief')).not.toBeNull();
+    expect(screen.getByText('Weekly deep-dive (Mondays)')).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/starting soon|once the newsletter launches/i);
     expect(screen.getByRole('heading', { name: 'Get alerts' })).not.toBeNull();
   });
 
-  it('says the daily brief waits for launch and real-time alerts start now', async () => {
+  it('says when the daily brief arrives and that real-time alerts start now', async () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { success: true, isNewSubscription: true }, error: null } as never);
     renderCard();
 
@@ -88,7 +89,7 @@ describe('QuickSubscribeCard', () => {
 
     const line = await screen.findByTestId('quick-delivery-line');
     expect(line.textContent).toMatch(
-      /^Your daily brief will arrive at .+ once the newsletter launches\. Real-time alerts start with the next matching incident\.$/,
+      /^Your daily brief arrives at .+\. Real-time alerts start with the next matching incident\.$/,
     );
   });
 

@@ -10,7 +10,7 @@ import {
 import type { PrerenderLink } from './routeTypes';
 
 /** Flip to true in the same commit that confirms NEWSLETTER_POSTAL_ADDRESS is set in production. */
-export const NEWSLETTERS_LIVE = false;
+export const NEWSLETTERS_LIVE = true;
 /** From index.html twitter:site and the quiz share text. Set to null if the account is not Digibastion's. */
 export const X_HANDLE: string | null = 'digibastion';
 export const GITHUB_REPO_URL = 'https://github.com/Raiders0786/digibastion';

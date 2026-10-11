@@ -276,9 +276,16 @@ Follow-up emails go out for retractions and upgrades to critical.
 - Suppressions: `resend-webhook` checks Resend's signature
   (`RESEND_WEBHOOK_SECRET`) and adds bounced and complaining addresses to
   `email_suppressions`. Senders skip suppressed addresses.
-- Tracking: only the legacy digest uses `email-tracking`, which records opens
-  and clicks with a hashed IP, country, device and email client in
-  `email_events`. Alerts and the new newsletters carry no tracking pixel.
+- Tracking: `email-tracking` serves two kinds of pixel.
+  - The daily brief and the weekly deep-dive record only the first open of
+    each email: the time, the country, a device type and an email app. There
+    is no IP, IP hash, region or user agent (`_shared/email-open.ts`).
+  - The legacy digest records every open and click with a hashed IP, country,
+    region, device, email client and user agent.
+
+  Both write `email_events`, which `/admin/analytics` reads. Real-time alerts
+  carry no pixel. Open counts are rough: some apps block images, and Apple
+  Mail Privacy Protection loads them for the reader.
 - Links to our own pages in emails, Telegram posts and share buttons carry UTM
   tags; see [SEO_AND_DISTRIBUTION.md](SEO_AND_DISTRIBUTION.md). Links to sources
   are never tagged.
@@ -345,7 +352,7 @@ user's token.
 | | `send-newsletters` | cron, admin (test send) | Send issues; gated on `NEWSLETTER_POSTAL_ADDRESS` |
 | | `send-digest-emails` | cron, admin (test send) | Legacy digests; stands down at launch |
 | | `resend-webhook` | Resend signature | Bounces and complaints to suppressions |
-| | `email-tracking` | public | Open pixel and allowlisted click redirect for the legacy digest |
+| | `email-tracking` | public | Open pixel (newsletters: first open only, no IP; legacy digest: full) and allowlisted click redirect |
 | Subscribers | `submit-form`, `verify-email`, `get-subscription`, `update-subscription`, `request-management-link`, `unsubscribe`, `one-click-unsubscribe` | public, with tokens and rate limits | Contact form, subscribe, confirm, manage, unsubscribe |
 | Quiz | `start-quiz-session`, `submit-quiz-score` | public, signed session and rate limit | Server-scored self-check |
 | | `cleanup-quiz-logs` | cron | Unused by cron; the SQL job `cleanup-quiz-submission-logs` does this |

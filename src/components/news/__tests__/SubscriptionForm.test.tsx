@@ -98,9 +98,10 @@ describe('SubscriptionForm channels and submit', () => {
       'Telegram (@digibastion) posts new Web3 incidents from QuillMonitor, plus a link to the weekly report every Monday. Email alerts follow the filters you pick.',
     )).not.toBeNull();
     expect(screen.getByText('Critical and high incidents, checked every 30 minutes')).not.toBeNull();
-    expect(screen.getByText('Daily brief (starting soon)')).not.toBeNull();
-    expect(screen.getByText('Weekly deep-dive (starting soon)')).not.toBeNull();
+    expect(screen.getByText('Daily brief')).not.toBeNull();
+    expect(screen.getByText('Weekly deep-dive (Mondays)')).not.toBeNull();
     expect(screen.getByText('Get Threat Intel alerts')).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/starting soon|start soon|once the newsletter launches/i);
     expect(document.body.textContent).not.toMatch(/high and critical|as they are reported|same alerts post to Telegram/i);
   });
 

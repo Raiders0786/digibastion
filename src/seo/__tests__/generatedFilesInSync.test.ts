@@ -69,7 +69,9 @@ describe('generated SEO file content', () => {
     expect(llms).toContain('https://t.me/digibastion');
     expect(llms).toContain('threat-intel-feed?format=rss');
     expect(llms).toContain('https://vantage.digibastion.com');
-    expect(llms).not.toMatch(/daily brief/i);
+    // Newsletters are live: llms.txt may name them, but never as "soon".
+    expect(llms).toMatch(/daily brief and weekly deep-dive/i);
+    expect(llms).not.toMatch(/start soon|starting soon/i);
     expect((llms.match(/\(https:\/\/www\.digibastion\.com\/articles\/[^)]+\)/g) ?? []).length).toBe(articlesMeta.length);
     expect((llms.match(/\(https:\/\/www\.digibastion\.com\/category\/[^)]+\)/g) ?? []).length).toBe(initialSecurityData.length);
   });

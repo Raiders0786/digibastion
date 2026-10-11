@@ -1,7 +1,8 @@
 // Newsletter emails: the daily brief body (HTML and text) inside the shared
 // compliance shell, and the kind dispatcher the sender calls. Copy follows
 // spec section 9: name the source, use the source's status words, "~$4.2M
-// reported", no hype, no tracking pixel.
+// reported", no hype. Subscriber sends carry one privacy-friendly open pixel
+// (see email-open.ts); test sends carry none.
 // Pure module: no Deno or URL imports, so vitest can import it.
 import { buildDailySubject, isDailyBriefContent, shortIssueDate } from './daily-brief.ts';
 import {
@@ -11,6 +12,7 @@ import {
   type UnsubscribeLinks,
 } from './email-compliance.ts';
 import { QUILLMONITOR_DATABASE_URL } from './attribution.ts';
+import { openPixelHtml } from './email-open.ts';
 import { formatLossReported, type DailyBriefContent, type NewsletterItem, type StatusChange } from './newsletter-content.ts';
 import { WEEK_START } from './publishable.ts';
 import { sourceCredit, TELEGRAM_CHANNEL_HANDLE, TELEGRAM_CHANNEL_URL, trackEmailLink } from './share-links.ts';
@@ -25,6 +27,8 @@ export interface RenderContext {
   siteUrl: string;
   /** Monday of the latest published weekly issue; the daily brief links it, or the archive when absent. */
   latestWeekStart?: string | null;
+  /** The open pixel for this send (openPixelUrl); absent on test sends. */
+  openPixelUrl?: string | null;
 }
 export interface RenderedEmail { subject: string; html: string; text: string }
 
@@ -249,7 +253,7 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
       actionHtml(c, ctx),
       moreHtml(ctx),
     ].join('\n'),
-    footerHtml: renderComplianceFooterHtml(footer),
+    footerHtml: renderComplianceFooterHtml(footer) + openPixelHtml(ctx.openPixelUrl),
   });
 
   const text = [

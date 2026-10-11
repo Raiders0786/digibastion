@@ -4,6 +4,7 @@
 // name the source, use the source's status words, "~$4.2M reported", no hype.
 // Pure module: no Deno or URL imports, so vitest can import it.
 import { QUILLMONITOR_DATABASE_URL } from './attribution.ts';
+import { openPixelHtml } from './email-open.ts';
 import { shortIssueDate } from './daily-brief.ts';
 import { renderComplianceFooterHtml, renderComplianceFooterText, renderEmailDocument } from './email-compliance.ts';
 import {
@@ -312,7 +313,7 @@ export function renderWeeklyEmail(c: WeeklyPublicContent, ctx: RenderContext): R
         ? row(`<p style="margin:0;${MUTED}">Share this issue: <a href="${escapeHtml(webVersion)}" style="${LINK}">${escapeHtml(stripQuery(webVersion))}</a></p>`, '0 28px 20px')
         : '',
     ].join('\n'),
-    footerHtml: renderComplianceFooterHtml(footer),
+    footerHtml: renderComplianceFooterHtml(footer) + openPixelHtml(ctx.openPixelUrl),
   });
 
   const t = c.totals;

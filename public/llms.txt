@@ -14,7 +14,7 @@ Incident records come from the sources each one names (QuillMonitor, Web3 Is Goi
 - [Atom feed](https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom): The same incidents as Atom 1.0.
 - [JSON Feed](https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=json): The same incidents as JSON Feed 1.1.
 - [Telegram channel @digibastion](https://t.me/digibastion): Posts new Web3 incidents from QuillMonitor, plus a link to the weekly report every Monday.
-- [Email alerts](https://www.digibastion.com/threat-intel?tab=subscribe): Alerts on critical and high incidents, checked every 30 minutes. Free, double opt-in.
+- [Email alerts](https://www.digibastion.com/threat-intel?tab=subscribe): Alerts on critical and high incidents, checked every 30 minutes, plus an optional daily brief and weekly deep-dive email.
 - Severity: Mostly by reported loss: $50M or more is critical and $10M or more is high. Private-key compromise, access-control flaws, oracle manipulation, reentrancy and flash-loan attacks are rated high even when no loss is disclosed. Any other disclosed loss is medium, and the rest are low. Security news uses the publisher's own rating.
 - Duplicates: Digibastion keeps one record and lists both sources. It merges only on a strong match: the same project name on the same day, or within two days plus one more matching fact such as the loss. It never merges records just because the names look alike, because a wrong merge would hide a real incident.
 
