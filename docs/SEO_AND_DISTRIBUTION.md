@@ -178,19 +178,19 @@ Build settings, all optional:
 | --- | --- |
 | `PRERENDER=0` | Skip the step entirely |
 | `PRERENDER_DYNAMIC=0` | Skip incidents and weekly reports (no network needed) |
-| `PRERENDER_LAYOUT` | `file` (default) writes `threat-intel/methodology.html`; `dir` writes `threat-intel/methodology/index.html`; `both` writes both |
+| `PRERENDER_LAYOUT` | `dir` (default) writes `threat-intel/methodology/index.html`; `file` writes `threat-intel/methodology.html`; `both` writes both |
 | `PRERENDER_INCIDENT_LIMIT` | How many incidents to prerender (default 500) |
 | `PRERENDER_STRICT=1` | Fail the build on a prerender error instead of warning |
 
 The step never fails the build unless `PRERENDER_STRICT=1`. If Supabase is down,
 slow or unreachable, the incident and weekly pages are skipped with one warning.
-The default layout is `file` because a `dir` layout risks the host redirecting
-`/page` to `/page/`, which would contradict the canonical. The `file` layout has
-its own risk: it writes `threat-intel.html` next to a `threat-intel/` folder of
-incident pages (and the same for `articles`, `services` and
-`threat-intel/weekly`), and some hosts redirect a URL to the folder of the same
-name. The release check tests every hub for that, and says to turn the
-prerender off if it happens.
+The default layout is `dir`. The first release built `file` and the canary
+showed what Lovable's host does: it answers both `/__prerender-check` and
+`/__prerender-check/` from `__prerender-check/index.html`, with 200 and no
+redirect, and ignores the `.html` file. On a host that redirects `/page` to
+`/page/`, `dir` would contradict the canonical, so the release check still
+tests every hub for a redirect and says to turn the prerender off if one
+appears.
 
 **Unverified:** whether Lovable serves these files before its fallback. The
 canary pages `public/__prerender-check.html` (prints `prerender-file-ok`) and

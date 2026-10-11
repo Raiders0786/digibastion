@@ -30,14 +30,14 @@ describe('runPrerender', () => {
   });
 
   it('links the fetched incidents from the prerendered /threat-intel page', async () => {
-    const hub = await readFile(path.join(outDir, 'threat-intel.html'), 'utf8');
+    const hub = await readFile(path.join(outDir, 'threat-intel', 'index.html'), 'utf8');
     expect(hub).toContain('<a href="/threat-intel/inc-one">Alpha Bridge</a>');
     expect(hub).toContain('<a href="/threat-intel/inc-two">Beta Vault</a>');
     expect(hub).toContain('"@type":"ItemList"');
   });
 
   it('still writes each incident page and the fallback shell', async () => {
-    expect(await readFile(path.join(outDir, 'threat-intel', 'inc-one.html'), 'utf8')).toContain('<h1>Alpha Bridge</h1>');
+    expect(await readFile(path.join(outDir, 'threat-intel', 'inc-one', 'index.html'), 'utf8')).toContain('<h1>Alpha Bridge</h1>');
     expect(await readFile(path.join(outDir, 'index.html'), 'utf8')).not.toContain('<!--seo:body-->');
   });
 });

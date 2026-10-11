@@ -75,10 +75,11 @@ const DEFAULT_INCIDENT_LIMIT = 500;
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 function parseLayout(value: string | undefined, log: PrerenderLogger): PrerenderLayout {
-  if (!value) return 'file';
+  // Lovable's host serves /page from page/index.html (canary checked 2026-10-11).
+  if (!value) return 'dir';
   if (value === 'file' || value === 'dir' || value === 'both') return value;
-  log.warn(`[seo] unknown PRERENDER_LAYOUT "${value}"; using "file"`);
-  return 'file';
+  log.warn(`[seo] unknown PRERENDER_LAYOUT "${value}"; using "dir"`);
+  return 'dir';
 }
 
 /** Starts a Vite SSR server that cannot load vite.config.ts (so this plugin never recurses). */

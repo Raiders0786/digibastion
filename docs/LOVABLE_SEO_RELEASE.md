@@ -85,7 +85,7 @@ first, or every submission gets a 403.
 
 The build reads a few optional environment variables, and none is needed:
 `PRERENDER=0` turns per-page HTML off, `PRERENDER_DYNAMIC=0` skips the
-incident and weekly pages, `PRERENDER_LAYOUT=file|dir|both` (default `file`)
+incident and weekly pages, `PRERENDER_LAYOUT=dir|file|both` (default `dir`)
 picks the file layout, `PRERENDER_INCIDENT_LIMIT` (default 500) caps the
 incident pages, and `PRERENDER_STRICT=1` fails the build when the prerender
 fails.
@@ -341,26 +341,26 @@ curl -s "$W/does-not-exist" | grep -c 'rel="canonical"'        # 0
 curl -s "$W/threat-intel" | grep -c 'href="/threat-intel/[0-9a-f-]\{36\}"'   # up to 100 if served, 0 if not
 ```
 
-The hub check comes first for a reason. The default `file` layout writes
-`dist/threat-intel.html` next to a `dist/threat-intel/` folder of incident
-pages, and does the same for `articles`, `services` and `threat-intel/weekly`.
-Some static hosts answer `/threat-intel` with a 301 to `/threat-intel/` once
-a folder of that name exists, and some then return 403 or 404 because the
-folder has no `index.html`. Those are the site's most important URLs.
+The hub check comes first for a reason. The default `dir` layout writes
+`dist/threat-intel/index.html`, and the same for every other page. Some static
+hosts answer `/threat-intel` with a 301 to `/threat-intel/` when the page is a
+folder. Lovable's host did not on 2026-10-11: it served
+`__prerender-check/index.html` at both `/__prerender-check` and
+`/__prerender-check/` with 200. Those are the site's most important URLs, so
+check again after every Publish.
 
 What to do with the results:
 
 | Result | Action |
 | --- | --- |
-| A hub or the canary returned 301 or 308 to a trailing slash, 403 or 404 | Turn the prerender off and publish again now (below). Do not switch to `dir`; it keeps the slash redirect on every hub. |
-| `prerender-file-ok` appears and every hub returned 200 | Keep the defaults. Per-page HTML is live. |
-| Only `prerender-dir-ok` appears, every hub returned 200, and `/about` has no 301 | Switch to the `dir` layout (below) and publish again. |
+| A hub or the canary returned 301 or 308 to a trailing slash, 403 or 404 | Turn the prerender off and publish again now (below). |
+| `prerender-dir-ok` appears and every hub returned 200 | Keep the defaults. Per-page HTML is live. |
+| Only `prerender-file-ok` appears and every hub returned 200 | Switch to the `file` layout (below) and publish again. |
 | Neither appears and every hub returned 200 | Lovable serves only `index.html`. Nothing breaks, but previews and crawlers that do not run JavaScript keep seeing the generic page. The fix is the Cloudflare Worker in `edge/cloudflare-worker/`, after a DNS move. |
 
-To switch to `dir`, set the build variable `PRERENDER_LAYOUT=dir` if Lovable
-offers build variables. If it does not, change the first line of
-`parseLayout()` in `scripts/seo/prerenderCore.ts` from
-`if (!value) return 'file';` to `if (!value) return 'dir';`, merge and
+To switch to `file`, set the build variable `PRERENDER_LAYOUT=file` if Lovable
+offers build variables. If it does not, change the default in `parseLayout()`
+in `scripts/seo/prerenderCore.ts` from `'dir'` to `'file'`, merge and
 publish.
 
 ### In the admin pages over the next day
