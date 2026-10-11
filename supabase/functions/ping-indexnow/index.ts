@@ -7,10 +7,10 @@ import {
   filterSubmittableUrls,
   INDEXNOW_ENDPOINT,
   INDEXNOW_KEY,
+  indexNowResponseStatus,
   INDEXNOW_MAX_URLS_PER_RUN,
   isIndexNowKey,
-  nextCursor,
-  planIndexNowUrls,
+  planIndexNowRun,
   resolveSince,
 } from '../_shared/indexnow.ts';
 import { INDEXABLE_INCIDENT_POSTGREST_FILTER, isIndexableIncidentMetadata, SAFE_ARTICLE_ID, WEEK_START } from '../_shared/publishable.ts';
@@ -108,40 +108,42 @@ async function planRun(db: SupabaseClient): Promise<Plan> {
     .or(INDEXABLE_INCIDENT_POSTGREST_FILTER).gt('created_at', since).lte('created_at', until)
     .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(INDEXNOW_MAX_URLS_PER_RUN);
   if (freshError) throw freshError;
-  const freshRows = fresh ?? [];
-  const incidents = freshRows.filter((row) => SAFE_ARTICLE_ID.test(String(row.id)) && isIndexableIncidentMetadata(row.metadata));
-  const truncated = freshRows.length === INDEXNOW_MAX_URLS_PER_RUN;
 
-  // Status changes (confirmed, revised, retracted) logged in the window, for
-  // records that are still indexable.
-  const { data: events, error: eventsError } = await db.from('incident_status_events').select('article_id')
-    .gt('created_at', since).lte('created_at', until).not('article_id', 'is', null).limit(PAGE);
+  // Status changes (confirmed, revised, retracted) logged in the window, oldest
+  // first, for records that are still indexable.
+  const { data: events, error: eventsError } = await db.from('incident_status_events').select('article_id, created_at')
+    .gt('created_at', since).lte('created_at', until).not('article_id', 'is', null)
+    .order('created_at', { ascending: true }).limit(PAGE);
   if (eventsError) throw eventsError;
   const changedIds = [...new Set((events ?? []).map((event) => String(event.article_id)))].filter((id) => SAFE_ARTICLE_ID.test(id));
-  const statusChangedIds: string[] = [];
+  const stillIndexable = new Set<string>();
   for (const ids of chunk(changedIds, ID_CHUNK)) {
     const { data: rows, error } = await db.from('news_articles').select('id, metadata')
       .in('id', ids).or(INDEXABLE_INCIDENT_POSTGREST_FILTER);
     if (error) throw error;
-    for (const row of rows ?? []) if (isIndexableIncidentMetadata(row.metadata)) statusChangedIds.push(String(row.id));
+    for (const row of rows ?? []) if (isIndexableIncidentMetadata(row.metadata)) stillIndexable.add(String(row.id));
   }
 
   const { data: weeks, error: weeksError } = await db.from('newsletter_issues').select('period_start')
     .eq('kind', 'weekly').in('status', ['ready', 'sent']).gt('generated_at', since).lte('generated_at', until);
   if (weeksError) throw weeksError;
 
-  const urls = planIndexNowUrls({
-    incidentIds: incidents.map((row) => String(row.id)),
-    statusChangedIds,
-    weeklyStarts: (weeks ?? []).map((week) => weekOf(week.period_start)).filter((week) => WEEK_START.test(week)),
-  });
-  const cursor = nextCursor({
+  return planIndexNowRun({
     until,
-    truncated,
-    firstIncludedCreatedAt: freshRows.length > 0 ? String(freshRows[0].created_at) : null,
-    lastIncludedCreatedAt: freshRows.length > 0 ? String(freshRows[freshRows.length - 1].created_at) : null,
+    weeklyStarts: (weeks ?? []).map((week) => weekOf(week.period_start)).filter((week) => WEEK_START.test(week)),
+    fresh: (fresh ?? []).map((row) => ({
+      id: String(row.id),
+      at: String(row.created_at),
+      indexable: SAFE_ARTICLE_ID.test(String(row.id)) && isIndexableIncidentMetadata(row.metadata),
+    })),
+    freshLimit: INDEXNOW_MAX_URLS_PER_RUN,
+    statusChanges: (events ?? []).map((event) => ({
+      id: String(event.article_id),
+      at: String(event.created_at),
+      indexable: stillIndexable.has(String(event.article_id)),
+    })),
+    statusLimit: PAGE,
   });
-  return { urls, truncated, cursor };
 }
 
 async function planBackfill(db: SupabaseClient): Promise<Plan> {
@@ -284,5 +286,5 @@ Deno.serve(async (req) => {
     },
   });
 
-  return json({ success, mode, count: plan.urls.length, accepted, truncated: plan.truncated, outcomes }, success ? 200 : 502);
+  return json({ success, mode, count: plan.urls.length, accepted, truncated: plan.truncated, outcomes }, indexNowResponseStatus(outcomes));
 });

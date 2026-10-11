@@ -49,22 +49,100 @@ export function classifyIndexNowResponse(status: number): IndexNowOutcome {
   return 'unexpected';
 }
 
-export interface IndexNowCandidates { incidentIds: string[]; statusChangedIds: string[]; weeklyStarts: string[] }
+const TRANSIENT_OUTCOMES = new Set(['rate_limited', 'server_error', 'timeout', 'network_error']);
 
 /**
- * Weekly issues first, then new incidents, then status changes, then the hub
- * pages that list them. At most INDEXNOW_MAX_URLS_PER_RUN URLs; nothing at all
- * when there is nothing new.
+ * HTTP status for a ping-indexnow response. Upstream throttling and outages
+ * answer 200 (with success: false in the body): the run is already recorded
+ * as failed, the next run retries the same URLs, and a non-2xx answer would
+ * count as a failed cron run and page the admins. A bad key or request needs
+ * a person, so it stays 502.
  */
-export function planIndexNowUrls(c: IndexNowCandidates): string[] {
-  const weekly = c.weeklyStarts.filter((week) => WEEK.test(week)).map((week) => canonicalWeeklyUrl(week));
-  const incidents = [...c.incidentIds, ...c.statusChangedIds].map((id) => canonicalIncidentUrl(id));
+export function indexNowResponseStatus(outcomes: readonly string[]): 200 | 502 {
+  return outcomes.every((outcome) => outcome === 'ok' || TRANSIENT_OUTCOMES.has(outcome)) ? 200 : 502;
+}
+
+/** A candidate row: an incident id, when it was stored or changed, and whether it may be pinged. */
+export interface IndexNowRow { id: string; at: string; indexable: boolean }
+
+export interface IndexNowRunInput {
+  /** End of this run's window (ISO). */
+  until: string;
+  weeklyStarts: readonly string[];
+  /** New incidents, oldest first, exactly as the query returned them. */
+  fresh: readonly IndexNowRow[];
+  /** The fresh query's row limit; a full page means rows were left unread. */
+  freshLimit: number;
+  /** Status-change events, oldest first, one row per event. */
+  statusChanges: readonly IndexNowRow[];
+  statusLimit: number;
+}
+
+export interface IndexNowRunPlan {
+  urls: string[];
+  /** Something in the window was left for the next run. */
+  truncated: boolean;
+  /** Where the next run starts. */
+  cursor: string;
+}
+
+const HUB_URLS = 2;
+
+/**
+ * Weekly issues first, then new incidents and status changes in time order,
+ * then the hub pages that list them. At most INDEXNOW_MAX_URLS_PER_RUN URLs;
+ * nothing at all when there is nothing new.
+ *
+ * The cursor never passes a row that was not submitted. A complete run ends
+ * at `until`. Otherwise the next run resumes 1 ms before the earliest row
+ * left out (a row that did not fit, or the last row of a full query page),
+ * so rows sharing that timestamp are sent again rather than skipped; sending
+ * a URL twice is harmless. If nothing read this run is older than that row,
+ * the cursor steps 1 ms past it instead, so the pinger cannot loop on the
+ * same page.
+ */
+export function planIndexNowRun(input: IndexNowRunInput): IndexNowRunPlan {
+  const weekly = filterSubmittableUrls(input.weeklyStarts.filter((week) => WEEK.test(week)).map((week) => canonicalWeeklyUrl(week)));
+  const budget = Math.max(0, INDEXNOW_MAX_URLS_PER_RUN - HUB_URLS - weekly.length);
+  const time = (row: IndexNowRow) => Date.parse(row.at);
+  const candidates = [...input.fresh, ...input.statusChanges]
+    .filter((row) => !Number.isNaN(time(row)))
+    .sort((left, right) => time(left) - time(right));
+
+  const incidents: string[] = [];
+  const seen = new Set<string>();
+  let droppedAt: number | null = null;
+  for (const row of candidates) {
+    if (!row.indexable) continue;
+    const [url] = filterSubmittableUrls([canonicalIncidentUrl(row.id)]);
+    if (!url || seen.has(url)) continue;
+    if (incidents.length >= budget) {
+      droppedAt = time(row);
+      break;
+    }
+    seen.add(url);
+    incidents.push(url);
+  }
+
+  const lastOfFullPage = (rows: readonly IndexNowRow[], limit: number): number | null => {
+    if (rows.length < limit || rows.length === 0) return null;
+    const last = time(rows[rows.length - 1]);
+    return Number.isNaN(last) ? null : last;
+  };
+  const boundaries = [droppedAt, lastOfFullPage(input.fresh, input.freshLimit), lastOfFullPage(input.statusChanges, input.statusLimit)]
+    .filter((value): value is number => value !== null);
+
   const hubs = [
     ...(incidents.length > 0 ? [`${SITE_URL}/threat-intel`] : []),
     ...(weekly.length > 0 ? [`${SITE_URL}/threat-intel/weekly`] : []),
   ];
-  const unique = filterSubmittableUrls([...weekly, ...incidents]).slice(0, INDEXNOW_MAX_URLS_PER_RUN - hubs.length);
-  return unique.length === 0 ? [] : [...unique, ...hubs];
+  const urls = weekly.length + incidents.length === 0 ? [] : [...weekly, ...incidents, ...hubs];
+  if (boundaries.length === 0) return { urls, truncated: false, cursor: new Date(input.until).toISOString() };
+
+  const boundary = Math.min(...boundaries);
+  const earliestRead = candidates.length > 0 ? time(candidates[0]) : boundary;
+  const cursor = earliestRead < boundary ? boundary - 1 : boundary + 1;
+  return { urls, truncated: true, cursor: new Date(cursor).toISOString() };
 }
 
 /**
@@ -79,23 +157,4 @@ export function resolveSince(lastSuccess: { attempted_at: string; metadata: unkn
   const cursor = typeof meta.cursor === 'string' ? Date.parse(meta.cursor) : Date.parse(lastSuccess.attempted_at);
   const start = Number.isNaN(cursor) ? floor : Math.min(Math.max(cursor, floor), now.getTime());
   return new Date(start).toISOString();
-}
-
-/**
- * Where the next run starts. A complete run ends at `until`. A truncated run
- * (the incident query hit its limit) resumes 1 ms before its last row, so
- * rows that share that timestamp are sent again rather than skipped; sending
- * a URL twice is harmless. If every row in the page shares one timestamp the
- * cursor steps past it, so the pinger can never loop on the same page.
- */
-export function nextCursor(o: {
-  until: string;
-  truncated: boolean;
-  firstIncludedCreatedAt: string | null;
-  lastIncludedCreatedAt: string | null;
-}): string {
-  const last = o.lastIncludedCreatedAt ? Date.parse(o.lastIncludedCreatedAt) : Number.NaN;
-  if (!o.truncated || Number.isNaN(last)) return new Date(o.until).toISOString();
-  const first = o.firstIncludedCreatedAt ? Date.parse(o.firstIncludedCreatedAt) : Number.NaN;
-  return new Date(first === last ? last + 1 : last - 1).toISOString();
 }
