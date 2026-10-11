@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Plugin } from 'vite';
-import { runPrerender } from './prerenderCore';
+import { runPrerender } from './prerenderCore.ts';
 
 /**
  * After `vite build`, writes one HTML file per public route into dist/ so

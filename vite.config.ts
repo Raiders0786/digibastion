@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
-import { seoPrerender } from "./scripts/seo/prerenderPlugin";
+import { seoPrerender } from "./scripts/seo/prerenderPlugin.ts";
 
 export default defineConfig(({ mode }) => ({
   server: {

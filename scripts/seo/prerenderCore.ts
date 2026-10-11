@@ -10,7 +10,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { createServer } from 'vite';
-import type { PrerenderBody, RouteMeta } from '../../src/seo/routeTypes';
+import type { PrerenderBody, RouteMeta } from '../../src/seo/routeTypes.ts';
 
 export type PrerenderLayout = 'file' | 'dir' | 'both';
 
@@ -93,16 +93,16 @@ export async function startSsrServer(root: string) {
   });
 }
 
-/** Renders a guide's React body with Node's own React, wrapped in a router for its <Link>s. */
+/** Renders a guide body with Node's own React. StaticRouter (not MemoryRouter) avoids a layout-effect warning per guide. */
 export function guideHtmlRenderer(root: string, entry: Pick<SsrEntry, 'getArticleContent'>, log: Pick<PrerenderLogger, 'warn'>) {
   const require = createRequire(path.join(root, 'package.json'));
   const React = require('react') as { createElement: (...args: unknown[]) => unknown };
   const { renderToStaticMarkup } = require('react-dom/server') as { renderToStaticMarkup: (node: unknown) => string };
-  const { MemoryRouter } = require('react-router-dom') as { MemoryRouter: unknown };
+  const { StaticRouter } = require('react-router-dom') as { StaticRouter: unknown };
   return (slug: string): string | null => {
     try {
       const node = entry.getArticleContent(slug);
-      return node ? renderToStaticMarkup(React.createElement(MemoryRouter, null, node)) : null;
+      return node ? renderToStaticMarkup(React.createElement(StaticRouter, { location: '/' }, node)) : null;
     } catch (error) {
       log.warn(`[seo] guide ${slug} body skipped: ${message(error)}`);
       return null;
