@@ -105,4 +105,29 @@ describe('fetchDynamic', () => {
     expect(result.weekly).toEqual([]);
     expect(log.warn).toHaveBeenCalledTimes(1);
   });
+
+  it('retries a 500 answer and keeps the incidents it then gets', async () => {
+    let calls = 0;
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (!url.includes('/rest/v1/news_articles')) return json([]);
+      calls += 1;
+      return calls === 1 ? json({ message: 'boom' }, 500) : json([row('good', { provider: 'quillmonitor', is_web3_incident: true })]);
+    });
+    const result = await fetchDynamic({ ...opts, retryDelayMs: 0, fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(calls).toBe(2);
+    expect(result.incidents.map((i) => i.id)).toEqual(['good']);
+    expect(log.warn).not.toHaveBeenCalled();
+  });
+
+  it('gives up after two retries of a 5xx and does not retry a 4xx', async () => {
+    const always503 = vi.fn(async () => json({ message: 'down' }, 503));
+    const down = await fetchDynamic({ ...opts, retryDelayMs: 0, fetchImpl: always503 as unknown as typeof fetch });
+    expect(always503).toHaveBeenCalledTimes(3);
+    expect(down).toEqual({ incidents: [], weekly: [] });
+    expect(log.warn.mock.calls[0][0]).toBe('[seo] dynamic pages skipped: HTTP 503 from /rest/v1/news_articles');
+
+    const always400 = vi.fn(async () => json({ message: 'bad' }, 400));
+    await fetchDynamic({ ...opts, retryDelayMs: 0, fetchImpl: always400 as unknown as typeof fetch });
+    expect(always400).toHaveBeenCalledTimes(1);
+  });
 });

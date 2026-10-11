@@ -31,6 +31,8 @@ export interface FetchDynamicOptions {
   timeoutMs: number;
   fetchImpl: typeof fetch;
   log: DynamicLogger;
+  /** Wait before retrying a 5xx answer; the nth retry waits n times this. Default 1500. */
+  retryDelayMs?: number;
 }
 
 export interface DynamicData {
@@ -39,8 +41,13 @@ export interface DynamicData {
 }
 
 const WEEKLY_CONCURRENCY = 4;
+/** Supabase sometimes answers the first query after an idle spell with a 500. */
+const SERVER_ERROR_RETRIES = 2;
 
 class NotFoundError extends Error {}
+class ServerError extends Error {}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** Rejects after `ms` even when the fetch implementation ignores its abort signal. */
 function withDeadline<T>(work: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T> {
@@ -61,12 +68,29 @@ export async function fetchDynamic(options: FetchDynamicOptions): Promise<Dynami
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}`, Accept: 'application/json' };
   const result: DynamicData = { incidents: [], weekly: [] };
 
-  const request = (url: string, init: RequestInit = {}): Promise<unknown> => withDeadline(async (signal) => {
+  const retryDelayMs = Math.max(0, options.retryDelayMs ?? 1_500);
+
+  const attempt = (url: string, init: RequestInit): Promise<unknown> => withDeadline(async (signal) => {
     const response = await fetchImpl(url, { ...init, headers: { ...headers, ...(init.headers as Record<string, string> | undefined) }, signal });
-    if (response.status === 404) throw new NotFoundError(`404 from ${new URL(url).pathname}`);
-    if (!response.ok) throw new Error(`HTTP ${response.status} from ${new URL(url).pathname}`);
+    const path = new URL(url).pathname;
+    if (response.status === 404) throw new NotFoundError(`404 from ${path}`);
+    if (response.status >= 500) throw new ServerError(`HTTP ${response.status} from ${path}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status} from ${path}`);
     return response.json();
   }, timeoutMs);
+
+  // Only 5xx answers are retried. Timeouts and network errors are not, so a
+  // hanging or offline Supabase still costs one timeout per request.
+  const request = async (url: string, init: RequestInit = {}): Promise<unknown> => {
+    for (let retry = 0; ; retry += 1) {
+      try {
+        return await attempt(url, init);
+      } catch (error) {
+        if (!(error instanceof ServerError) || retry >= SERVER_ERROR_RETRIES) throw error;
+        await sleep(retryDelayMs * (retry + 1));
+      }
+    }
+  };
 
   const rpc = (name: string, body: Record<string, unknown>) => request(`${base}/rest/v1/rpc/${name}`, {
     method: 'POST',
