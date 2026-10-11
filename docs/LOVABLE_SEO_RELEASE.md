@@ -1,324 +1,385 @@
 # Lovable SEO release: sitemaps, IndexNow, feeds, per-page HTML and sharing
 
-This release ships the `seo-aeo-docs` branch:
+This runbook ships the `seo-aeo-docs` branch. After it, search engines and
+answer engines hear about a new incident within about 30 minutes, and a
+shared link can show the incident's own title and card instead of the
+homepage. What changes:
 
-- a dynamic sitemap of every indexable incident and weekly report, plus a
-  Google News sitemap, both listed in `robots.txt`;
-- `ping-indexnow`, which tells Bing and the other IndexNow engines about new
-  and changed pages every 30 minutes;
-- RSS, Atom and JSON feeds (`threat-intel-feed`);
-- per-page HTML written at build time, a `/faq` page and a weekly archive at
-  `/threat-intel/weekly`;
-- UTM-tagged links in Telegram posts and emails, source credits in every
-  email, a share bar and preview cards for incidents and weekly reports;
-- rewritten docs.
+- `generate-sitemap` lists every indexable incident and weekly report, plus a
+  Google News sitemap. `robots.txt` points crawlers at both.
+- `ping-indexnow` tells Bing, Yandex, Seznam and Naver about new and changed
+  pages at :22 and :52 past each hour. Bing's index also feeds ChatGPT search
+  and Copilot. Google has no ping API for normal pages, so Google finds new
+  pages through the sitemaps.
+- `threat-intel-feed` serves RSS, Atom and JSON Feed.
+- The build writes one HTML file per route, incident and weekly report, each
+  with its own title, canonical URL, preview image and JSON-LD. The release
+  also adds `/faq`, `/privacy` and a weekly archive at `/threat-intel/weekly`.
+- Telegram posts and emails credit the source by name and tag links back to
+  the site with UTM parameters. Incident and weekly pages get a share bar and
+  their own preview cards from `og-image`.
+- The docs in `docs/` and the README are rewritten.
 
-No new secrets are needed. `INDEXNOW_KEY` is optional and only for rotating
-the key; if you set it, `public/<key>.txt` with the same value must already be
-live, or IndexNow rejects every submission.
-
-Pre-release main (rollback target for functions): `<PRE_RELEASE_MAIN_SHA>`, the
-`main` commit just before the merge.
-Release commit: `<MAIN_SHA>`, the merge commit of `seo-aeo-docs` on `main`.
+Two placeholders appear below. `<MAIN_SHA>` is the merge commit of
+`seo-aeo-docs` on `main`. `<PRE_RELEASE_MAIN_SHA>` is the `main` commit just
+before that merge, and is the rollback target for functions.
 
 ## What ships
 
-**Migrations, in this order:**
+### Migrations, in this order
 
-1. `supabase/migrations/20261014090000_seo_indexing.sql`: adds `indexnow` to the
-   ingestion-run pipelines and the health panel, schedules `ping-indexnow` at
-   `22,52 * * * *`, and removes the old `fetch-web3-incidents-6h` job.
-2. `supabase/migrations/20261014100000_weekly_newsletter_list.sql`: adds the
-   public `list_weekly_newsletters(p_limit)` RPC for the weekly archive.
+1. `supabase/migrations/20261014090000_seo_indexing.sql` adds `indexnow` to the
+   pipelines `threat_intel_ingestion_runs` accepts and to the health panel,
+   schedules the cron job `ping-indexnow` at `22,52 * * * *`, and removes the
+   orphan `fetch-web3-incidents-6h` job. The real Web3 job,
+   `fetch-web3-incidents-6hourly`, stays.
+2. `supabase/migrations/20261014100000_weekly_newsletter_list.sql` adds the
+   read-only RPC `list_weekly_newsletters(p_limit integer default 52)`, which
+   anon may call. The weekly archive page and the build use it.
 
-**New functions:** `ping-indexnow`, `threat-intel-feed`.
+Both expect `20261013140000_weekly_newsletter_public.sql` to be applied
+already.
 
-**Changed functions:**
+### Edge functions
 
-| Function | What changed |
-| --- | --- |
-| `generate-sitemap` | Rebuilt: indexable incidents only, honest `lastmod`, paging, `?part=news`, `?format=txt` |
-| `og-image` | Preview cards for incidents and weekly reports |
-| `post-telegram-alerts` | Links the source record, tags our links, shared site URL, and shows the incident's preview card under each post |
-| `send-critical-alerts` | Source credits and tagged links in alerts and follow-ups |
-| `send-newsletters` | Source credits and tagged links; the daily brief links the newest weekly report, and the weekly email links its web page |
-| `send-digest-emails` | Source credits and tagged links in the legacy digest |
-| `submit-form` | "While you wait" next steps in the confirmation email, with a tagged link to the weekly reports |
-| `verify-email`, `update-subscription` | Use the shared site URL and opt-in module (no behavior change) |
-| `request-management-link`, `one-click-unsubscribe`, `cron-monitor`, `threat-intel-api`, `weekly-admin-summary` | Links point at `https://www.digibastion.com` instead of the apex domain |
-| `fetch-web3-incidents` | Names its source in plain text (no behavior change) |
-| `fetch-rss-news` | User-Agent points at the `www` host |
-| `build-daily-newsletter`, `build-weekly-newsletter` | Use the shared site URL (no behavior change) |
+Every function below has `verify_jwt = false` in `supabase/config.toml` and
+checks its callers in its own code.
 
-`fetch-quillmonitor-incidents` and `fetch-slowmist-incidents` need no redeploy:
-their only change is a type in `_shared/ingestion-health.ts`.
+| Function | Status | What changed |
+| --- | --- | --- |
+| `ping-indexnow` | New | Submits new and changed URLs to IndexNow. `CRON_SECRET` may only use mode `run`; modes `urls` and `backfill` need the service role or an admin |
+| `threat-intel-feed` | New | RSS, Atom and JSON Feed of incidents and weekly reports |
+| `generate-sitemap` | Rewritten | Indexable incidents only, real `lastmod`, paging, `?part=news`, `?format=txt` |
+| `og-image` | Changed | Preview cards for `?kind=incident&id=` and `?kind=weekly&week=`; the quiz card is unchanged |
+| `post-telegram-alerts` | Changed | Links the source, adds "Powered by QuillMonitor" where it applies, tags links, previews the incident card |
+| `send-critical-alerts` | Changed | Source credits and tagged links in alerts and follow-ups |
+| `send-newsletters` | Changed | Source credits and tagged links; the daily brief links the newest weekly report |
+| `send-digest-emails` | Changed | Source credits and tagged links in the legacy digest |
+| `submit-form` | Changed | Next steps in the confirmation email, with a link to the weekly reports |
+| `verify-email`, `update-subscription` | Changed | Shared site URL and opt-in module; no behavior change |
+| `request-management-link`, `one-click-unsubscribe`, `cron-monitor`, `threat-intel-api`, `weekly-admin-summary` | Changed | Links use `https://www.digibastion.com` instead of the apex domain |
+| `fetch-web3-incidents` | Changed | Names its source URL in plain text; it scrapes the same URL as before |
+| `fetch-rss-news` | Changed | User-Agent names the `www` host |
+| `build-daily-newsletter`, `build-weekly-newsletter` | Changed | Shared site URL; no behavior change |
 
-New or changed shared modules: `attribution.ts`, `feed-render.ts`,
-`incident-answer.ts`, `indexnow.ts`, `og-card.ts`, `publishable.ts`,
-`share-links.ts`, `site-urls.ts`, `sitemap-render.ts` and `xml.ts` (new), and
-`alert-email.ts`, `ingestion-health.ts`, `newsletter-render.ts`,
-`security-actions.ts`, `subscription-optin.ts`, `telegram-alerts.ts` and
-`weekly-render.ts` (changed).
+`fetch-quillmonitor-incidents` and `fetch-slowmist-incidents` need no
+redeploy. The only change they see is a type in `_shared/ingestion-health.ts`.
 
-**Config:** `supabase/config.toml` gains `verify_jwt = false` entries for
+`supabase/config.toml` gains four `verify_jwt = false` entries:
 `ping-indexnow`, `threat-intel-feed`, `weekly-admin-summary` and
-`threat-intel-api`. All four check callers themselves. Before this change the
-gateway rejected the `weekly-admin-summary` cron call, because the cron secret
-is not a JWT, so that job has probably been failing.
+`threat-intel-api`. Until now the gateway rejected the cron call to
+`weekly-admin-summary`, because `CRON_SECRET` is not a JWT, so that Monday job
+has probably been failing.
 
-**Frontend:** the route registry and per-page HTML, `/faq`,
-`/threat-intel/weekly`, the share bar, the IndexNow key file
-`public/5d9d2e41356f5953eedc2e72bca99b7b.txt`, the canary pages
-`public/__prerender-check.html` and `public/__prerender-check/index.html`, the
-new `robots.txt`, `sitemap.xml`, `llms.txt` and `llms-full.txt`.
+### Secrets and config
+
+No new secrets and no new non-secret config. `CRON_SECRET`,
+`SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` already exist.
+
+`INDEXNOW_KEY` is optional and exists only to rotate the key. Leave it unset.
+The function then uses the public key `5d9d2e41356f5953eedc2e72bca99b7b`,
+which the site serves at `/5d9d2e41356f5953eedc2e72bca99b7b.txt`. IndexNow
+keys are public by design: the engines fetch that file to confirm we control
+the site. If you ever set `INDEXNOW_KEY`, publish `public/<new key>.txt`
+first, or every submission gets a 403.
+
+The build reads a few optional environment variables, and none is needed:
+`PRERENDER=0` turns per-page HTML off, `PRERENDER_DYNAMIC=0` skips the
+incident and weekly pages, `PRERENDER_LAYOUT=file|dir|both` (default `file`)
+picks the file layout, `PRERENDER_INCIDENT_LIMIT` (default 500) caps the
+incident pages, and `PRERENDER_STRICT=1` fails the build when the prerender
+fails.
+
+### Frontend
+
+The route registry and per-page HTML, `/faq`, `/privacy`,
+`/threat-intel/weekly`, the share bar, the IndexNow key file, the canary page
+`/__prerender-check`, and new `robots.txt`, `sitemap.xml`,
+`sitemap-index.xml`, `llms.txt` and `llms-full.txt`.
 
 ## Order, and why
 
-1. Deploy the functions first. Nothing calls `ping-indexnow` until migration 1
-   schedules it, and the new pages point their preview images at the new
-   `og-image`.
-2. Apply the two migrations.
-3. Publish straight away. Publishing puts the IndexNow key file live; until
-   then IndexNow answers 403, the run is recorded as failed, and the next run
-   retries the same URLs. Keep this gap under about two hours: a 403 is an
-   error a person has to fix, so `ping-indexnow` answers it with HTTP 502, and
-   cron health turns critical and the admins get an email after six failed
-   cron runs (of any job) in a day. Throttling and outages on the IndexNow side (429, 5xx,
-   timeouts) answer 200 with `"success":false` instead, so they do not page
-   anyone; the next run retries them. Publishing after migration 2 also lets
-   the build write a page for each weekly report.
+1. **Deploy the functions first.** Nothing calls `ping-indexnow` until
+   migration 1 schedules it, and the new pages point their preview images at
+   the new `og-image`. The old `og-image` ignores `kind` and would draw a quiz
+   card.
+2. **Apply the two migrations.**
+3. **Publish straight away.** Publishing puts the IndexNow key file live.
+   Until then IndexNow answers 403, the function returns HTTP 502 and the run
+   is recorded as failed; the next run retries the same URLs. Keep the gap
+   between migration 1 and Publish under about two hours: after six failed
+   cron runs of any job in a day, cron health turns critical and the admins
+   get an email. Throttling or outages on the IndexNow side (429, 5xx,
+   timeouts) return 200 with `"success":false`, so they page nobody.
+   Publishing after migration 2 also lets the build write a page for each
+   weekly report.
+
+## What to expect after deploy
+
+- **A burst of Telegram edits.** `post-telegram-alerts` compares each post's
+  stored text with what it would post now. Every incident post still inside
+  the 14-day edit window now differs (source link, "Powered by QuillMonitor"
+  line, "Digibastion" spelling), so the next few runs edit those posts once
+  each, a few per run. Nothing is reposted.
+- **Build logs.** A normal build prints
+  `[seo] prerendered 100 static, 500 incident, N weekly pages (file)`. If
+  Supabase cannot be reached from the build machine, it prints one
+  `[seo] dynamic pages skipped: ...` line and still passes. A 5xx answer is
+  retried twice first. Before migration 2 the build also prints
+  `[seo] list_weekly_newsletters is not deployed yet`.
+- **Freshness.** Incident pages are written at build time. An incident added
+  after the last Publish gets the generic page head until the next Publish.
+  The sitemap and IndexNow still list it within 30 minutes.
 
 ## The prompt for Lovable
 
-Paste this into Lovable after `seo-aeo-docs` is merged:
+Paste this into Lovable after `seo-aeo-docs` is merged, with `<MAIN_SHA>`
+filled in:
 
 ```text
-Release the SEO work from main. Follow docs/LOVABLE_SEO_RELEASE.md exactly.
-Never print, log or paste any secret value; refer to secrets by name only.
+Use View Backend for the existing managed Lovable Cloud project and deploy
+from GitHub main at commit <MAIN_SHA> or later. Follow
+docs/LOVABLE_SEO_RELEASE.md. Do not rewrite application source, create another
+backend, or change any secret, flag, cron job or table this prompt does not
+name. Never print, log or paste a secret value; refer to secrets by name.
 
-1. Preflight (read-only): confirm public.get_weekly_newsletter(date) exists
-   (migration 20261013140000 is applied) and that the secrets CRON_SECRET,
+Do not invoke any function that sends email or Telegram messages:
+post-telegram-alerts, send-critical-alerts, send-newsletters,
+send-digest-emails, submit-form, verify-email, request-management-link,
+weekly-admin-summary, cron-monitor, build-daily-newsletter,
+build-weekly-newsletter. Deploying them is fine; calling them is not.
+
+Auth: "with CRON_SECRET" means the header Authorization: Bearer <value of the
+CRON_SECRET function secret>, read from secrets and never displayed. "With the
+service role" means the same with SUPABASE_SERVICE_ROLE_KEY. ping-indexnow
+refuses CRON_SECRET for its urls and backfill modes by design.
+
+Run the steps in order and STOP at the first failure. Reply with one line per
+step: "<n> PASS <short evidence>" or "<n> FAIL <what you saw>", then
+"<n> SKIPPED" for every step after a failure. If you have no tool that can
+fetch a public URL, mark steps 9 to 11 "SKIPPED no fetch tool" and continue;
+I will run the curl versions from the doc.
+
+F   = https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1
+WWW = https://www.digibastion.com
+
+1. Preflight, read-only. public.get_weekly_newsletter(date) exists
+   (migration 20261013140000 is applied), and the secrets CRON_SECRET,
    SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY exist (names only).
-   If the RPC is missing, stop and report.
-2. Deploy these edge functions from main with their _shared imports:
-   ping-indexnow, threat-intel-feed, generate-sitemap, og-image,
+2. Deploy these 20 edge functions from the commit above, with their _shared
+   imports: ping-indexnow, threat-intel-feed, generate-sitemap, og-image,
    post-telegram-alerts, send-critical-alerts, send-newsletters,
    send-digest-emails, submit-form, verify-email, update-subscription,
    request-management-link, one-click-unsubscribe, cron-monitor,
    threat-intel-api, weekly-admin-summary, fetch-web3-incidents,
    fetch-rss-news, build-daily-newsletter, build-weekly-newsletter.
-   Apply the supabase/config.toml entries (verify_jwt = false) for
-   ping-indexnow, threat-intel-feed, weekly-admin-summary and threat-intel-api.
-3. Apply these migrations byte for byte, in this order, and nothing else:
+   Report the deployed Git revision.
+3. Confirm platform JWT verification is off (verify_jwt = false, as in
+   supabase/config.toml) for all 20, including the four new entries
+   ping-indexnow, threat-intel-feed, weekly-admin-summary, threat-intel-api.
+4. Apply these migrations byte for byte, in this order, and nothing else:
    supabase/migrations/20261014090000_seo_indexing.sql
    supabase/migrations/20261014100000_weekly_newsletter_list.sql
-4. Run the "Backend checks" section and report each result.
-5. Tell me when to click Publish. Do not change any other secret, flag,
-   cron job or table.
+5. SQL checks:
+   a. SELECT jobname, schedule, active FROM cron.job WHERE jobname IN
+      ('ping-indexnow','fetch-web3-incidents-6h','fetch-web3-incidents-6hourly');
+      expect exactly two rows, both active: ping-indexnow '22,52 * * * *'
+      and fetch-web3-incidents-6hourly '30 */6 * * *'.
+   b. SELECT count(*) FROM pg_proc WHERE proname = 'list_weekly_newsletters';
+      expect 1.
+   c. SELECT has_function_privilege('anon',
+      'public.list_weekly_newsletters(integer)', 'EXECUTE'); expect true.
+   d. SELECT public.list_weekly_newsletters(3); expect week summaries with no
+      "archive" key.
+6. Function checks, GET, no auth:
+   a. F/generate-sitemap?part=dynamic returns 200 and a well-formed XML
+      urlset with about 2,000 or more <loc> entries, all starting with WWW/.
+      The gateway may label it text/plain; that is expected.
+   b. F/generate-sitemap?part=news returns 200 and well-formed XML.
+   c. F/generate-sitemap?part=dynamic&format=txt returns one URL per line.
+   d. F/generate-sitemap?part=bogus returns 400.
+   e. F/threat-intel-feed?format=rss and ?format=atom return 200 and
+      well-formed XML; ?format=json returns 200 and valid JSON with an
+      "items" array; ?format=bogus returns 400.
+   f. Take one id from: SELECT id FROM news_articles WHERE
+      metadata->>'is_web3_incident' = 'true' AND
+      metadata->>'duplicate_of_uid' IS NULL ORDER BY created_at DESC LIMIT 1;
+      F/og-image?kind=incident&id=<that id> returns 200 image/png.
+7. ping-indexnow, POST with a JSON body. Dry runs submit nothing and record
+   nothing.
+   a. With CRON_SECRET: {"mode":"run","dryRun":true} returns 200 with
+      "success":true,"dryRun":true and a count (0 is fine).
+   b. With the service role: {"mode":"backfill","dryRun":true} returns 200
+      with a count above 1,000 and a sample of 5 URLs, all under WWW/.
+   c. With no Authorization header: {} returns 401.
+8. Publish the frontend from the same commit. If you cannot publish
+   yourself, reply "8 WAITING click Publish" and continue from step 9 when I
+   reply "published".
+9. Static files:
+   a. GET WWW/5d9d2e41356f5953eedc2e72bca99b7b.txt returns exactly
+      5d9d2e41356f5953eedc2e72bca99b7b, not the HTML app shell.
+   b. GET WWW/robots.txt has three Sitemap: lines: WWW/sitemap-index.xml,
+      F/generate-sitemap?part=dynamic and F/generate-sitemap?part=news.
+   c. GET WWW/llms.txt returns plain text, not HTML.
+10. Hubs must not redirect. HEAD, without following redirects:
+    WWW/threat-intel, WWW/articles, WWW/services, WWW/threat-intel/weekly,
+    WWW/__prerender-check. Each returns 200 with no Location header. Any 301,
+    308, 403 or 404 is a FAIL: stop, and follow "Turning the prerender off"
+    in the doc.
+11. Per-page HTML, read as raw HTML without running JavaScript. This step
+    reports; it fails only if a page does not return 200.
+    a. GET WWW/__prerender-check and WWW/__prerender-check/ and report
+       which of prerender-file-ok and prerender-dir-ok appears, if either.
+    b. For WWW/threat-intel/methodology, WWW/about and
+       WWW/threat-intel/<id from 6f>, report the <title> text and the
+       rel="canonical" href. If Lovable serves the prerendered files, the
+       titles are "How Digibastion Tracks Crypto Incidents", "About
+       Digibastion: Free Web3 Security Tools and Alerts" and the incident's
+       own title, each with its own canonical. If not, all three show the
+       generic site title and no canonical. Report which.
+    c. GET WWW/does-not-exist contains no rel="canonical".
+12. IndexNow, real submission, with the service role:
+    {"mode":"urls","urls":["https://www.digibastion.com/threat-intel"]}
+    returns 200 with "success":true and "outcomes":["ok"]. The newest
+    threat_intel_ingestion_runs row with pipeline = 'indexnow' has
+    success = true and metadata.statuses [200] or [202]. A 403 means the key
+    file from 9a is not being served.
+13. Only if 12 passed, with the service role: {"mode":"backfill"} once.
+    Expect 200 and "success":true. Do not repeat it.
+14. In a browser, open WWW/threat-intel, one incident page, WWW/faq and
+    WWW/threat-intel/weekly. Each renders, the incident page shows the share
+    bar (Post on X, Telegram, LinkedIn, Copy link), and the console shows no
+    errors.
+15. Return the deployed Git revision, the cron rows from 5a, the newest
+    indexnow run row (aggregate columns only) and the step 11 results.
 ```
 
-## Backend checks (Lovable, before Publish)
+## Checks by hand
 
-```sql
--- ping-indexnow is scheduled; the old duplicate Web3 job is gone
-SELECT jobname, schedule, active FROM cron.job
-WHERE jobname IN ('ping-indexnow', 'fetch-web3-incidents-6h', 'fetch-web3-incidents-6hourly')
-ORDER BY jobname;
--- expect: fetch-web3-incidents-6hourly '30 */6 * * *' and ping-indexnow '22,52 * * * *', both active;
--- no fetch-web3-incidents-6h row
+The same checks as the prompt, for a terminal. `xmllint` ships with macOS;
+on Linux install `libxml2-utils`. `jq` ships with recent macOS or comes from
+your package manager.
 
--- one overload, callable by anon
-SELECT count(*) FROM pg_proc WHERE proname = 'list_weekly_newsletters';   -- 1
-SELECT has_function_privilege('anon', 'public.list_weekly_newsletters(integer)', 'EXECUTE');  -- true
-
--- the archive returns summary fields only (no "archive" key)
-SELECT public.list_weekly_newsletters(3);
-
--- three merged record ids, for the sitemap check below
-SELECT id FROM news_articles WHERE metadata->>'duplicate_of_uid' IS NOT NULL LIMIT 3;
-```
-
-Then two calls, authorized with `Authorization: Bearer` and the
-`SUPABASE_SERVICE_ROLE_KEY` read from the backend secrets (never displayed):
-
-1. `POST ping-indexnow {"mode":"urls","dryRun":true,"urls":["https://www.digibastion.com/threat-intel"]}`
-   returns `200` with `"success":true,"dryRun":true,"count":1`.
-2. `POST ping-indexnow {}` with no `Authorization` header returns `401`.
-
-Do not send a real (non-dry-run) IndexNow submission before Publish: the key
-file is not live yet.
-
-## Checks after Publish
-
-Run each command and record the result. `xmllint` ships with macOS; on Linux
-install `libxml2-utils`.
-
-**Key file and robots.txt**
+### Before Publish
 
 ```bash
-curl -s https://www.digibastion.com/5d9d2e41356f5953eedc2e72bca99b7b.txt
-# prints 5d9d2e41356f5953eedc2e72bca99b7b
-
-curl -s https://www.digibastion.com/robots.txt | grep Sitemap
-# three lines: sitemap-index.xml and the two generate-sitemap URLs
+F="https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1"
+curl -sI "$F/generate-sitemap?part=dynamic" | grep -iE '^(HTTP|x-robots-tag)'   # 200, noindex
+curl -s  "$F/generate-sitemap?part=dynamic" | xmllint --noout -                # no output means valid
+curl -s  "$F/generate-sitemap?part=dynamic" | grep -c '<loc>'                   # about 2,100
+curl -s  "$F/generate-sitemap?part=news"    | xmllint --noout -
+curl -s -o /dev/null -w '%{http_code}\n' "$F/generate-sitemap?part=bogus"     # 400
+curl -s "$F/threat-intel-feed?format=rss"  | xmllint --noout -
+curl -s "$F/threat-intel-feed?format=atom" | xmllint --noout -
+curl -s "$F/threat-intel-feed?format=json" | jq -e '.items | length' > /dev/null && echo ok
+curl -s -o /dev/null -w '%{http_code}\n' "$F/threat-intel-feed?format=bogus"  # 400
 ```
 
-**Sitemaps**
+The Supabase gateway may relabel XML as `text/plain`. Crawlers parse it
+anyway. If Search Console ever rejects the XML sitemap, use
+`?part=dynamic&format=txt`, a plain list of URLs that Google also accepts.
+
+The IndexNow dry runs need the `CRON_SECRET` or service-role value, so run
+them in Lovable (prompt step 7), not from a laptop.
+
+### After Publish
 
 ```bash
-SM="https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/generate-sitemap"
-curl -sI "$SM?part=dynamic" | head -1                 # HTTP/2 200
-curl -s "$SM?part=dynamic" | xmllint --noout -        # no output means valid
-curl -s "$SM?part=dynamic" | grep -c "<loc>"          # about 2,100 or more
-curl -s "$SM?part=news" | xmllint --noout -           # valid (may list few or no URLs)
-curl -s "$SM?part=dynamic" | grep -c "<merged id from the SQL above>"   # 0 for each of the three ids
-```
+W="https://www.digibastion.com"
+curl -s "$W/5d9d2e41356f5953eedc2e72bca99b7b.txt"            # prints the key, not HTML
+curl -s "$W/robots.txt" | grep Sitemap                         # three lines
 
-**Feeds**
-
-```bash
-FEED="https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed"
-curl -s "$FEED?format=rss" | xmllint --noout -
-curl -s "$FEED?format=atom" | xmllint --noout -
-curl -s "$FEED?format=json" | uv run python3 -m json.tool > /dev/null && echo ok
-```
-
-**Hubs and canary: no redirects**
-
-The default `file` layout writes `dist/threat-intel.html` next to a
-`dist/threat-intel/` folder of incident pages. The same happens for
-`articles`, `services` and `threat-intel/weekly`. Before this release none of
-those folders existed. Some static hosts answer `/threat-intel` with a 301 to
-`/threat-intel/` when a folder of that name exists, and some then return 403
-or 404 because the folder has no `index.html`. Check this first: these are the
-site's most important URLs.
-
-```bash
+# Hubs: every line must show 200 and no location header
 for p in /threat-intel /articles /services /threat-intel/weekly /__prerender-check; do
-  printf '%s  ' "$p"; curl -sI "https://www.digibastion.com$p" | grep -iE '^(HTTP|location)' | tr '\r\n' '  '; echo
+  printf '%s  ' "$p"; curl -sI "$W$p" | grep -iE '^(HTTP|location)' | tr '\r\n' '  '; echo
 done
-# expect: every line shows 200 and no location: header
+
+# Canary: which layout does Lovable serve?
+curl -s "$W/__prerender-check"  | grep -o 'prerender-[a-z]*-ok'
+curl -s "$W/__prerender-check/" | grep -o 'prerender-[a-z]*-ok'
+
+# Per-page head on three routes (put a real incident id in the third)
+for p in /threat-intel/methodology /about /threat-intel/<incident id>; do
+  echo "== $p"; curl -s "$W$p" | grep -oE '<title>[^<]*|rel="canonical" href="[^"]*"'
+done
+curl -s "$W/does-not-exist" | grep -c 'rel="canonical"'        # 0
+
+# The prerendered hub links the newest incidents for crawlers without JavaScript
+curl -s "$W/threat-intel" | grep -c 'href="/threat-intel/[0-9a-f-]\{36\}"'   # up to 100 if served, 0 if not
 ```
 
-If any of them shows 301, 308, 403 or 404, roll the prerender back at once
-(see "Turning the prerender off" below). Do not switch to the `dir` layout:
-it writes `threat-intel/index.html` and keeps the slash redirect on every hub.
+The hub check comes first for a reason. The default `file` layout writes
+`dist/threat-intel.html` next to a `dist/threat-intel/` folder of incident
+pages, and does the same for `articles`, `services` and `threat-intel/weekly`.
+Some static hosts answer `/threat-intel` with a 301 to `/threat-intel/` once
+a folder of that name exists, and some then return 403 or 404 because the
+folder has no `index.html`. Those are the site's most important URLs.
 
-**Prerender canary: which layout does Lovable serve?**
+What to do with the results:
 
-```bash
-curl -s https://www.digibastion.com/__prerender-check  | grep -o 'prerender-[a-z]*-ok'
-curl -s https://www.digibastion.com/__prerender-check/ | grep -o 'prerender-[a-z]*-ok'
-curl -sI https://www.digibastion.com/articles/seed-phrase-security-guide | head -1
-# expect 200, not a 301 to a URL ending in /
-curl -s https://www.digibastion.com/articles/seed-phrase-security-guide | grep -o '<title>[^<]*'
-# the guide's own title if the prerender is served; the generic site title if not
-curl -s https://www.digibastion.com/does-not-exist | grep -c 'rel="canonical"'
-# 0: the fallback page has no canonical
-```
-
-Record which of `prerender-file-ok` and `prerender-dir-ok` appeared, then:
-
-| Result | What to do |
+| Result | Action |
 | --- | --- |
-| Any hub or the canary answered 301 or 308 to a trailing slash, 403 or 404 in the check above | Turn the prerender off and publish again at once (see below). Do not switch to `dir`. |
-| `prerender-file-ok` appears and every hub answered 200 | Keep the defaults. Per-page HTML is live. |
-| Only `prerender-dir-ok` appears, every hub answered 200, and the guide URL has no 301 to a trailing slash | Switch to the `dir` layout (see below) and publish again. Otherwise leave it. |
-| Neither appears, and every hub answered 200 | Lovable serves only `index.html`. Nothing breaks, but link previews and non-JS crawlers keep seeing the fallback page. The fix is the Worker in `edge/cloudflare-worker/` after a DNS move. |
+| A hub or the canary returned 301 or 308 to a trailing slash, 403 or 404 | Turn the prerender off and publish again now (below). Do not switch to `dir`; it keeps the slash redirect on every hub. |
+| `prerender-file-ok` appears and every hub returned 200 | Keep the defaults. Per-page HTML is live. |
+| Only `prerender-dir-ok` appears, every hub returned 200, and `/about` has no 301 | Switch to the `dir` layout (below) and publish again. |
+| Neither appears and every hub returned 200 | Lovable serves only `index.html`. Nothing breaks, but previews and crawlers that do not run JavaScript keep seeing the generic page. The fix is the Cloudflare Worker in `edge/cloudflare-worker/`, after a DNS move. |
 
-To switch to the `dir` layout, set the build environment variable
-`PRERENDER_LAYOUT=dir` if Lovable offers build variables. If it does not,
-change the first line of `parseLayout()` in `scripts/seo/prerenderCore.ts`
-from `if (!value) return 'file';` to `if (!value) return 'dir';`, merge, and
+To switch to `dir`, set the build variable `PRERENDER_LAYOUT=dir` if Lovable
+offers build variables. If it does not, change the first line of
+`parseLayout()` in `scripts/seo/prerenderCore.ts` from
+`if (!value) return 'file';` to `if (!value) return 'dir';`, merge and
 publish.
 
-Also check that the prerendered `/threat-intel` links the newest incidents,
-so crawlers that do not run JavaScript can reach them:
+### In the admin pages over the next day
 
-```bash
-curl -s https://www.digibastion.com/threat-intel | grep -c 'href="/threat-intel/[0-9a-f-]\{36\}"'
-# up to 100 when the prerender is served; 0 when Lovable serves only index.html
-```
-
-Also open one incident page and one weekly report and check the raw HTML title
-the same way: an incident added before this Publish should have its own title
-when the file layout is served.
-
-**IndexNow, for real**
-
-Authorized with the service-role key, as above:
-
-1. `POST ping-indexnow {"mode":"urls","urls":["https://www.digibastion.com/threat-intel"]}`
-   returns `200` with `"success":true` and `"outcomes":["ok"]`. The newest
-   `threat_intel_ingestion_runs` row with `pipeline = 'indexnow'` has
-   `success = true` and `metadata.statuses` of `[200]` or `[202]`.
-   A `403` there means the key file is not live; check the first command above.
-2. Once that works, run `POST ping-indexnow {"mode":"backfill"}` one time. It
-   submits every indexable incident and weekly report (about 2,100 URLs).
-   Do not repeat it; the cron covers everything new from here on.
-
-**Cron and health, in `/admin/cron` and the admin health panel**
-
-- `ping-indexnow` shows runs at :22 and :52 with HTTP 200.
-- `fetch-web3-incidents-6h` no longer appears.
+- `/admin/cron`: `ping-indexnow` runs at :22 and :52 with HTTP 200, and
+  `fetch-web3-incidents-6h` is gone.
+- The health panel shows the `indexnow` pipeline as healthy after the first
+  scheduled run.
 - `weekly-admin-summary` succeeds on its next Monday run at 07:05 UTC.
-- The `indexnow` pipeline shows as healthy after the first scheduled run.
 
-**Pages**
-
-- `/faq`, `/threat-intel/weekly` and one `/threat-intel/weekly/<YYYY-MM-DD>`
-  load, and the weekly page shows the share bar.
-- An incident page shows the share bar. "Copy link" copies the URL with no
-  `?utm_` tags.
-- `/threat-intel/<id>` for a merged record redirects to the surviving record.
-
-**Previews (user)**
+### Previews (user)
 
 Paste one incident URL and one weekly URL into the X post composer, a private
-Telegram chat and the [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/).
-Record what each shows: the incident's own title and card, or the generic
-homepage card. Generic cards everywhere usually mean the canary showed neither
-layout.
+Telegram chat and the
+[LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/). Note
+whether each shows the page's own title and card or the generic homepage
+card. Generic cards everywhere usually mean the canary showed neither layout.
 
 ## After the release (user)
 
-1. In Google Search Console for `https://www.digibastion.com`, submit only
-   `https://www.digibastion.com/sitemap-index.xml`. The Sitemaps report
-   accepts sitemap URLs inside the verified property only, and the two
-   function sitemaps live on `sdszjqltoheqhfkeprrd.supabase.co`, which cannot
-   be verified, so submitting them fails. Google still reads them, because
-   `robots.txt` lists them on `Sitemap:` lines, but they will not appear in
-   the Sitemaps report. To confirm they work, use URL Inspection on `/`, one
-   guide, a few incidents and one weekly report, and watch the Pages report
-   over the following weeks.
-2. In Bing Webmaster Tools, import the site from Search Console and submit
-   `sitemap-index.xml`. Bing may also refuse a sitemap on another host;
-   IndexNow is the main path to Bing, so watch its IndexNow report after the
-   backfill.
+1. **Google Search Console**, property `https://www.digibastion.com`: submit
+   only `https://www.digibastion.com/sitemap-index.xml`. The Sitemaps report
+   accepts sitemaps inside the verified property only. The two function
+   sitemaps live on `sdszjqltoheqhfkeprrd.supabase.co`, which you cannot
+   verify, so submitting them fails. Google still reads them through the
+   `Sitemap:` lines in `robots.txt`; they just do not show in that report. To
+   confirm, use URL Inspection on `/`, one guide, a few incidents and one
+   weekly report, then watch the Pages report over the following weeks.
+2. **Bing Webmaster Tools**: import the site from Search Console and submit
+   `sitemap-index.xml`. IndexNow is the main path into Bing, so check the
+   IndexNow report there after the backfill.
 
 ## Rollback
 
 | Problem | Action |
 | --- | --- |
 | IndexNow misbehaves | `SELECT cron.unschedule('ping-indexnow');` Nothing else depends on it. |
-| The build fails, a page renders wrong, or a hub redirects or stops loading | Turn the prerender off (below) and publish again; the site falls back to the single `index.html`. |
-| The dynamic sitemap is wrong | Remove its two `Sitemap:` lines from `public/robots.txt` and publish. Nothing else reads the old sitemap behavior. |
-| A changed email or Telegram function fails | Redeploy that function from `<PRE_RELEASE_MAIN_SHA>`. The changes are links and copy only, with no schema dependency. |
+| The build fails, a page renders wrong, or a hub redirects or stops loading | Turn the prerender off (below) and publish again. The site falls back to the single `index.html`. |
+| The dynamic sitemap is wrong | Remove its two `Sitemap:` lines from `public/robots.txt` and publish. |
+| The feed is wrong | Remove the three feed `<link rel="alternate">` tags from `index.html` and publish, then fix and redeploy `threat-intel-feed`. The app never calls the feed; `llms.txt` also lists it, and that file is generated by `npm run seo:generate`. |
+| A changed email or Telegram function fails | Redeploy that function from `<PRE_RELEASE_MAIN_SHA>`. The changes are links and copy, with no schema dependency. |
 
 ### Turning the prerender off
 
-There are two ways. The first needs a host feature nobody has confirmed
-Lovable has; the second always works.
-
 1. If Lovable offers build environment variables, set `PRERENDER=0` and
    publish.
-2. Otherwise, change one line in `vite.config.ts`: delete `seoPrerender(),`
-   from the `plugins` list (the line under the "Per-route HTML for crawlers"
-   comment), merge, and publish. The build then writes only the single
-   `index.html`, as it did before this release. `public/robots.txt`, the
-   sitemaps, `llms.txt` and the key file are plain files in `public/` and keep
-   working.
+2. Otherwise, delete the `seoPrerender(),` line from the `plugins` list in
+   `vite.config.ts` (under the "Per-route HTML for crawlers" comment), merge
+   and publish. The build then writes only `index.html`, as before this
+   release. `robots.txt`, the sitemaps, `llms.txt` and the key file are plain
+   files in `public/` and keep working.
 
-Do not reverse the migrations. Migration 1 only widens a check constraint,
-replaces the health function with the same signature and changes cron jobs;
-migration 2 adds a read-only RPC.
+Do not reverse the migrations. Migration 1 widens a check constraint,
+replaces the health function with the same signature and changes cron jobs.
+Migration 2 adds a read-only RPC.
