@@ -33,9 +33,8 @@ Release the digest delivery fix from main at <EXACT_SHA>. Never print secret val
 3. Deploy edge functions send-digest-emails and cron-monitor (keep verify_jwt=false as in supabase/config.toml). PASS/FAIL.
 4. Read-only SQL, report the numbers only:
    a) SELECT count(*) FROM public.subscriptions WHERE is_verified AND verification_token IS NULL;  -- expect 0
-   b) SELECT public.get_delivery_health() - 'overdue';  -- report rss_last_inserted_at, active_digest_subscriptions, overdue_count
-   c) SELECT count(*) FROM public.delivery_health_alerts;  -- table exists
-   PASS if a) is 0 and b) and c) run.
+   b) SELECT count(*) FROM public.delivery_health_alerts;  -- table exists
+   PASS if a) is 0 and b) runs. (get_delivery_health is service-role only; we check it through cron-monitor afterwards.)
 5. Confirm the secret NEWSLETTER_POSTAL_ADDRESS is NOT set (say only "set" or "not set"). PASS if not set.
 6. Return a table of steps 1-5 with PASS/FAIL and the numbers from step 4.
 ```
