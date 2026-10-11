@@ -4,40 +4,44 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     
-    <!-- Primary Meta Tags -->
-    <title>Digibastion — Web3 Security Against Phishing & Drains</title>
-    <meta name="title" content="Digibastion — Web3 Security Against Phishing & Drains" />
-    <meta name="description" content="Free, community-built Web3 security: real-time threat alerts, OpSec checklists, and wallet protection. Supported by Ethereum Foundation ESP." />
-    <meta name="keywords" content="web3 security, crypto security, blockchain security, defi security, wallet security, phishing protection, crypto scams, opsec, threat intelligence, security checklist, ethereum, bitcoin, nft security, smart contract security" />
-    <meta name="author" content="Digibastion" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="googlebot" content="index, follow" />
-    <meta name="theme-color" content="#8b5cf6" />
-    
-    <!-- Google Search Console verification -->
-    <meta name="google-site-verification" content="9IWbSpTQpqTk5jx_hNIyFTxuf9rZBAFEAo_0Gk9kIKs" />
-    
-    <!-- Open Graph / Facebook -->
+    <!-- Per-route tags. The build-time prerender (scripts/seo) replaces everything
+         between the seo:head markers on each page; this copy is the fallback shell
+         served for /, unknown routes and records newer than the last build. -->
+    <!--seo:head-->
+    <title>Digibastion: Web3 Security Alerts, Checklists and Guides</title>
+    <meta name="description" content="Free Web3 security help: a crypto hack tracker with email and Telegram alerts, security checklists, an OpSec self-check and practical guides." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.digibastion.com/" />
-    <meta property="og:title" content="Digibastion — Web3 Security Against Phishing & Drains" />
-    <meta property="og:description" content="Free, community-built Web3 security: real-time threat alerts, OpSec checklists, and wallet protection." />
+    <meta property="og:title" content="Digibastion: Web3 Security Alerts, Checklists and Guides" />
+    <meta property="og:description" content="Free Web3 security help: a crypto hack tracker with email and Telegram alerts, security checklists, an OpSec self-check and practical guides." />
     <meta property="og:image" content="https://www.digibastion.com/og-image.png" />
     <meta property="og:image:width" content="1920" />
     <meta property="og:image:height" content="1060" />
-    <meta property="og:image:alt" content="Digibastion community-built Web3 security platform" />
+    <meta property="og:image:alt" content="Digibastion: Web3 security alerts, checklists and guides" />
+    <meta name="twitter:title" content="Digibastion: Web3 Security Alerts, Checklists and Guides" />
+    <meta name="twitter:description" content="Free Web3 security help: a crypto hack tracker with email and Telegram alerts, security checklists, an OpSec self-check and practical guides." />
+    <meta name="twitter:image" content="https://www.digibastion.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Digibastion: Web3 security alerts, checklists and guides" />
+    <!--/seo:head-->
+
+    <meta name="author" content="Digibastion" />
+    <meta name="theme-color" content="#8b5cf6" />
+
+    <!-- Google Search Console verification -->
+    <meta name="google-site-verification" content="9IWbSpTQpqTk5jx_hNIyFTxuf9rZBAFEAo_0Gk9kIKs" />
+
+    <!-- Open Graph and X tags that are the same on every page -->
     <meta property="og:site_name" content="Digibastion" />
     <meta property="og:locale" content="en_US" />
-    
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@digibastion" />
     <meta name="twitter:creator" content="@__Raiders" />
-    <meta name="twitter:url" content="https://www.digibastion.com/" />
-    <meta name="twitter:title" content="Digibastion — Web3 Security Against Phishing & Drains" />
-    <meta name="twitter:description" content="Free, community-built Web3 security: real-time threat alerts, OpSec checklists, and wallet protection." />
-    <meta name="twitter:image" content="https://www.digibastion.com/og-image.png" />
-    
+
+    <!-- Threat Intel feeds -->
+    <link rel="alternate" type="application/rss+xml" title="Digibastion Threat Intel (RSS)" href="https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=rss" />
+    <link rel="alternate" type="application/atom+xml" title="Digibastion Threat Intel (Atom)" href="https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom" />
+    <link rel="alternate" type="application/feed+json" title="Digibastion Threat Intel (JSON Feed)" href="https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=json" />
+
     <!-- Mobile & PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -45,9 +49,6 @@
     <meta name="application-name" content="Digibastion" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://www.digibastion.com/" />
     
     <!-- Favicon & Icons -->
     <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" />
@@ -67,7 +68,7 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--seo:body--></div>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Structured data for Organization -->
@@ -79,6 +80,7 @@
         "name": "Digibastion",
         "alternateName": "Digibastion — Secure the Stack",
         "url": "https://www.digibastion.com",
+        "logo": "https://www.digibastion.com/favicon-512x512.png",
         "description": "Community-built Web3 security platform providing threat intelligence, OpSec assessments, security resources, and practical checklists to protect crypto users from phishing, hacks, and scams.",
         "foundingDate": "2024",
         "sameAs": [
@@ -123,30 +125,6 @@
       }
     </script>
     
-    <!-- Structured data for SoftwareApplication -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Digibastion",
-        "applicationCategory": "SecurityApplication",
-        "operatingSystem": "Web",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "Community-built Web3 security platform with threat intelligence, OpSec assessments, practical guides, and security checklists.",
-        "featureList": [
-          "Real-time Threat Intelligence Feed",
-          "OpSec Assessment Quiz",
-          "Security Checklists for 11 Categories",
-          "Email Security Alerts",
-          "Web3 Security Tools Database"
-        ],
-        "screenshot": "https://www.digibastion.com/og-image.png"
-      }
-    </script>
     
   </body>
 </html>

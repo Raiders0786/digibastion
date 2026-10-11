@@ -15,9 +15,10 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seo:generate": "node scripts/seo/generate.mjs"
   },
   "dependencies": {
     "@babel/runtime": "^7.26.10",

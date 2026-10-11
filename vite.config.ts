@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
+import { seoPrerender } from "./scripts/seo/prerenderPlugin";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -12,9 +13,11 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    // Add bundle analyzer in build mode
-    mode === 'production' && visualizer({
-      filename: 'dist/stats.html',
+    // Per-route HTML for crawlers and link previews; fails soft (see scripts/seo).
+    seoPrerender(),
+    // Bundle analyzer on request only (ANALYZE=1), written outside dist so it is never published.
+    process.env.ANALYZE === '1' && visualizer({
+      filename: 'stats.html',
       open: false,
       gzipSize: true,
       brotliSize: true,

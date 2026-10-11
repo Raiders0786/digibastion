@@ -6,6 +6,11 @@ import './index.css';
 // Performance measurement
 const startTime = performance.now();
 
+// The prerendered page ships its own JSON-LD; React renders a fresh copy, so
+// drop these first and Google never reads two. createRoot replaces the
+// prerendered #root body (no hydration, so no hydration warnings).
+document.querySelectorAll('script[data-prerender]').forEach((node) => node.remove());
+
 // Initialize app
 const root = createRoot(document.getElementById("root")!);
 root.render(<App />);

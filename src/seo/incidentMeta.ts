@@ -97,6 +97,12 @@ export function incidentSeoInputFromArticle(a: NewsArticle): IncidentSeoInput {
   };
 }
 
+/** "decrypt.co" from "https://www.decrypt.co/71458/..." */
+function hostOf(url: string): string {
+  const authority = url.replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
+  return authority.slice(authority.lastIndexOf('@') + 1).split(':')[0].toLowerCase().replace(/^www\./, '');
+}
+
 const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
 function incidentDescription(i: IncidentSeoInput): string {
@@ -124,7 +130,7 @@ export function incidentRouteMeta(i: IncidentSeoInput): RouteMeta {
   const intro = i.isWeb3Incident ? buildIncidentAnswer(i) : description;
   const source = sourceLabelFor(i);
   const links: PrerenderLink[] = [
-    ...(i.sourceUrl ? [{ href: i.sourceUrl, label: `Original report (${source})` }] : []),
+    ...(i.sourceUrl ? [{ href: i.sourceUrl, label: `Original report (${hostOf(i.sourceUrl)})` }] : []),
     ...(isQuillMonitorOnly(i.providers) ? [{ href: QUILLMONITOR_DATABASE_URL, label: 'Powered by QuillMonitor' }] : []),
     { href: METHODOLOGY_PATH, label: 'How we track incidents' },
   ];

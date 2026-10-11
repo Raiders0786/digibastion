@@ -28,3 +28,6 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Bundle report from ANALYZE=1 builds
+stats.html

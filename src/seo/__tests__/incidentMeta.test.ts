@@ -92,6 +92,7 @@ describe('incident route meta', () => {
       'Attack type: Bridge Exploit',
       'Source: QuillMonitor (confirmed)',
     ]));
+    expect(meta.body.links[0]).toEqual({ href: 'https://www.quillaudits.com/web3-hacks-database/example', label: 'Original report (quillaudits.com)' });
     const hrefs = meta.body.links.map((l) => l.href);
     expect(hrefs).toEqual(expect.arrayContaining([
       'https://www.quillaudits.com/web3-hacks-database/example',
