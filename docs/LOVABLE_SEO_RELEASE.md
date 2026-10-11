@@ -174,9 +174,21 @@ WWW = https://www.digibastion.com
    threat-intel-api, weekly-admin-summary, fetch-web3-incidents,
    fetch-rss-news, build-daily-newsletter, build-weekly-newsletter.
    Report the deployed Git revision.
-3. Confirm platform JWT verification is off (verify_jwt = false, as in
-   supabase/config.toml) for all 20, including the four new entries
-   ping-indexnow, threat-intel-feed, weekly-admin-summary, threat-intel-api.
+3. Prove platform JWT verification is off for the four functions that are
+   new in supabase/config.toml. Call each one with no Authorization and no
+   apikey header and read the body. If the gateway still verifies JWTs it
+   answers 401 before the function runs, with a body that has no "error"
+   key and mentions a missing authorization header or an invalid JWT; that
+   is a FAIL. Expect the function's own answers:
+   a. GET F/threat-intel-feed?format=json returns 200 with an "items" array.
+   b. GET F/ping-indexnow returns 405 {"error":"Method not allowed"}.
+   c. GET F/threat-intel-api returns 401 {"error":"Missing x-api-key header"}.
+   d. POST F/weekly-admin-summary with body {} returns 401
+      {"error":"Unauthorized"}. This is the one allowed call to
+      weekly-admin-summary: it is rejected before any work, so nothing is
+      sent.
+   The other 16 functions keep the verify_jwt settings they already had;
+   config.toml did not change for them.
 4. Apply these migrations byte for byte, in this order, and nothing else:
    supabase/migrations/20261014090000_seo_indexing.sql
    supabase/migrations/20261014100000_weekly_newsletter_list.sql
@@ -250,8 +262,29 @@ WWW = https://www.digibastion.com
     WWW/threat-intel/weekly. Each renders, the incident page shows the share
     bar (Post on X, Telegram, LinkedIn, Copy link), and the console shows no
     errors.
-15. Return the deployed Git revision, the cron rows from 5a, the newest
-    indexnow run row (aggregate columns only) and the step 11 results.
+15. Google Search Console, through the connected integration. Only do what
+    is listed here: do not add or remove users, change settings, remove URLs
+    or delete any existing sitemap.
+    a. Report which property you use (https://www.digibastion.com/ or
+       sc-domain:digibastion.com) and that it is verified. If neither is
+       verified, mark 15 FAIL and stop.
+    b. Submit the sitemap https://www.digibastion.com/sitemap-index.xml.
+       Do NOT submit the two F/generate-sitemap URLs: they are on another
+       host, Search Console rejects them, and Google finds them through
+       robots.txt. Report the sitemap status and discovered URL count (a
+       "Couldn't fetch" or pending status right after submission is fine;
+       report it as is).
+    c. URL Inspection, live test, for WWW/, WWW/threat-intel,
+       WWW/threat-intel/methodology, WWW/faq, WWW/about and
+       WWW/threat-intel/<id from 6f>. For each report: whether the URL is
+       available to Google, the Google-selected canonical and the
+       user-declared canonical. Then click Request indexing for each (6
+       requests, inside the daily quota).
+    d. Read-only: from the Page indexing report, list the top 5 reasons for
+       non-indexed pages with their counts.
+16. Return the deployed Git revision, the cron rows from 5a, the newest
+    indexnow run row (aggregate columns only), the step 11 results and the
+    step 15 results.
 ```
 
 ## Checks by hand
@@ -348,7 +381,9 @@ card. Generic cards everywhere usually mean the canary showed neither layout.
 
 ## After the release (user)
 
-1. **Google Search Console**, property `https://www.digibastion.com`: submit
+1. **Google Search Console**, property `https://www.digibastion.com`. Prompt
+   step 15 does this when Lovable is connected to Search Console; do it by
+   hand only if that step was skipped. Submit
    only `https://www.digibastion.com/sitemap-index.xml`. The Sitemaps report
    accepts sitemaps inside the verified property only. The two function
    sitemaps live on `sdszjqltoheqhfkeprrd.supabase.co`, which you cannot
