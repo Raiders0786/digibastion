@@ -1030,6 +1030,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      list_weekly_newsletters: { Args: { p_limit?: number }; Returns: Json }
       news_articles_search_vector: {
         Args: {
           affected_technologies: string[]
