@@ -1,0 +1,26 @@
+# Optional edge Worker for www.digibastion.com. Nothing here runs until DNS
+# moves to Cloudflare and the routes are added; see README.md.
+# No secrets belong in this file: every value below is already public.
+name = "digibastion-edge"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+tsconfig = "./tsconfig.json"
+workers_dev = false
+# Routes (www.digibastion.com/* and digibastion.com/*) are added in the
+# Cloudflare dashboard after the DNS move; see README.md.
+
+[vars]
+# Empty: pages come from the DNS record's origin (Lovable, 185.158.133.1),
+# exactly as without the Worker. Set a host here only if it serves the site
+# without redirecting to www. digibastion.lovable.app does redirect (302 to
+# www.digibastion.com, checked 2026-10-11), so it cannot be used today.
+ORIGIN_URL = ""
+SUPABASE_URL = "https://sdszjqltoheqhfkeprrd.supabase.co"
+# The public anon key, the same value as DEFAULT_SUPABASE_PUBLISHABLE_KEY in
+# src/integrations/supabase/publicDefaults.ts. It can only read what the
+# browser app can read.
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc3pqcWx0b2hlcWhma2VwcnJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNjk3MjUsImV4cCI6MjA4MDg0NTcyNX0.Zve0FNpRWwi64dFy188gvWdmCjDYUb5-KcNcyCryA-o"
+# "true": send the Content-Security-Policy as report-only, so a blocked
+# script shows up in the browser console instead of breaking the page.
+# Set to "false" once a few days pass with no CSP warnings.
+CSP_REPORT_ONLY = "true"
