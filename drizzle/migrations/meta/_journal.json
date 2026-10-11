@@ -78,6 +78,13 @@
       "when": 1791726722290,
       "tag": "0010_digest_delivery_health",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791733752771,
+      "tag": "0011_weekly_day_default_monday",
+      "breakpoints": true
     }
   ]
 }
