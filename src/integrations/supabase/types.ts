@@ -284,6 +284,153 @@ export type Database = {
           },
         ]
       }
+      email_sends: {
+        Row: {
+          article_id: string | null
+          article_uid: string | null
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          issue_id: string | null
+          item_key: string
+          kind: string
+          last_event: string | null
+          resend_id: string | null
+          sent_at: string | null
+          snapshot: Json | null
+          status: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          article_id?: string | null
+          article_uid?: string | null
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          issue_id?: string | null
+          item_key: string
+          kind: string
+          last_event?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          snapshot?: Json | null
+          status: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          article_id?: string | null
+          article_uid?: string | null
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          issue_id?: string | null
+          item_key?: string
+          kind?: string
+          last_event?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          snapshot?: Json | null
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sends_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sends_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sends_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_suppressions: {
+        Row: {
+          created_at: string
+          email_hash: string
+          reason: string
+          source_event_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          reason: string
+          source_event_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          reason?: string
+          source_event_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      incident_status_events: {
+        Row: {
+          amount_usd: number | null
+          article_id: string | null
+          article_uid: string
+          created_at: string
+          id: number
+          kind: string
+          previous_amount_usd: number | null
+          snapshot: Json
+        }
+        Insert: {
+          amount_usd?: number | null
+          article_id?: string | null
+          article_uid: string
+          created_at?: string
+          id?: never
+          kind: string
+          previous_amount_usd?: number | null
+          snapshot: Json
+        }
+        Update: {
+          amount_usd?: number | null
+          article_id?: string | null
+          article_uid?: string
+          created_at?: string
+          id?: never
+          kind?: string
+          previous_amount_usd?: number | null
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_status_events_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_articles: {
         Row: {
           affected_technologies: string[] | null
@@ -352,6 +499,45 @@ export type Database = {
           tags?: string[] | null
           title?: string
           uid?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_issues: {
+        Row: {
+          content: Json
+          created_at: string
+          error: string | null
+          generated_at: string | null
+          id: string
+          kind: string
+          period_end: string
+          period_start: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          error?: string | null
+          generated_at?: string | null
+          id?: string
+          kind: string
+          period_end: string
+          period_start: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          error?: string | null
+          generated_at?: string | null
+          id?: string
+          kind?: string
+          period_end?: string
+          period_start?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -557,63 +743,102 @@ export type Database = {
       subscriptions: {
         Row: {
           categories: string[]
+          chains: string[]
+          consent_ip_hash: string | null
+          consent_source: string | null
+          consented_at: string | null
           content_scope: string
           created_at: string
           email: string
           frequency: string
           id: string
+          include_preliminary: boolean
           is_active: boolean
           is_verified: boolean
           last_notified_at: string | null
           name: string | null
+          optin_pending: Json | null
+          optin_token: string | null
+          optin_token_expires_at: string | null
           preferred_day: number | null
           preferred_hour: number | null
           severity_threshold: string
           technologies: string[] | null
+          timezone: string | null
           timezone_offset: number | null
+          unsubscribed_at: string | null
           updated_at: string
           verification_token: string | null
           verification_token_expires_at: string | null
+          wants_daily: boolean
+          wants_realtime: boolean
+          wants_weekly: boolean
         }
         Insert: {
           categories?: string[]
+          chains?: string[]
+          consent_ip_hash?: string | null
+          consent_source?: string | null
+          consented_at?: string | null
           content_scope?: string
           created_at?: string
           email: string
           frequency?: string
           id?: string
+          include_preliminary?: boolean
           is_active?: boolean
           is_verified?: boolean
           last_notified_at?: string | null
           name?: string | null
+          optin_pending?: Json | null
+          optin_token?: string | null
+          optin_token_expires_at?: string | null
           preferred_day?: number | null
           preferred_hour?: number | null
           severity_threshold?: string
           technologies?: string[] | null
+          timezone?: string | null
           timezone_offset?: number | null
+          unsubscribed_at?: string | null
           updated_at?: string
           verification_token?: string | null
           verification_token_expires_at?: string | null
+          wants_daily?: boolean
+          wants_realtime?: boolean
+          wants_weekly?: boolean
         }
         Update: {
           categories?: string[]
+          chains?: string[]
+          consent_ip_hash?: string | null
+          consent_source?: string | null
+          consented_at?: string | null
           content_scope?: string
           created_at?: string
           email?: string
           frequency?: string
           id?: string
+          include_preliminary?: boolean
           is_active?: boolean
           is_verified?: boolean
           last_notified_at?: string | null
           name?: string | null
+          optin_pending?: Json | null
+          optin_token?: string | null
+          optin_token_expires_at?: string | null
           preferred_day?: number | null
           preferred_hour?: number | null
           severity_threshold?: string
           technologies?: string[] | null
+          timezone?: string | null
           timezone_offset?: number | null
+          unsubscribed_at?: string | null
           updated_at?: string
           verification_token?: string | null
           verification_token_expires_at?: string | null
+          wants_daily?: boolean
+          wants_realtime?: boolean
+          wants_weekly?: boolean
         }
         Relationships: []
       }
@@ -796,6 +1021,7 @@ export type Database = {
       get_subscriber_count: { Args: never; Returns: Json }
       get_threat_intel_health: { Args: never; Returns: Json }
       get_top_leaderboard_ids: { Args: never; Returns: string[] }
+      get_weekly_newsletter: { Args: { p_week_start: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
