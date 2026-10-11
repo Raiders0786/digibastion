@@ -96,3 +96,15 @@ verify_jwt = false
 
 [functions.send-newsletters]
 verify_jwt = false
+
+[functions.ping-indexnow]
+verify_jwt = false
+
+[functions.threat-intel-feed]
+verify_jwt = false
+
+[functions.weekly-admin-summary]
+verify_jwt = false
+
+[functions.threat-intel-api]
+verify_jwt = false

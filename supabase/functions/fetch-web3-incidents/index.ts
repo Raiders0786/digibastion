@@ -18,8 +18,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Obfuscated internal source identifiers (base64 encoded for privacy in open source)
-const _s1 = atob('d2ViM2lzZ29pbmdncmVhdC5jb20='); // Primary source
+// Primary source: Web3 Is Going Just Great, named on the site and the
+// methodology page.
+const WEB3_SOURCE_URL = 'https://www.web3isgoinggreat.com/';
 // The secondary page scrape (feed-2) was retired: the QuillMonitor partner API
 // returns the same incidents with stable IDs and verification status.
 
@@ -336,7 +337,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: `https://www.${_s1}/`,
+          url: WEB3_SOURCE_URL,
           formats: ['markdown'],
           onlyMainContent: true,
           waitFor: 3000,
