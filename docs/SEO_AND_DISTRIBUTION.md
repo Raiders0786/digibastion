@@ -9,8 +9,8 @@ does, what it does not do, and how to check it with `curl`.
 
 The site's canonical address is `https://www.digibastion.com` plus a path, with
 no query string, no fragment and no trailing slash (except `/` itself). Every
-canonical tag, sitemap entry, feed id, JSON-LD URL and IndexNow submission uses
-that form. UTM tags never appear in any of them.
+canonical tag, sitemap entry, feed entry id, JSON-LD URL and IndexNow submission
+uses that form. UTM tags never appear in any of them.
 
 ## What gets indexed
 
@@ -52,8 +52,8 @@ the app uses.
 Google has no "ping" for ordinary pages. The sitemap ping endpoint was retired
 in 2023, and the Indexing API only accepts job postings and livestream events.
 Neither is built here, on purpose. Google learns about new pages from sitemaps
-(the ones listed in `robots.txt` and the ones submitted in Search Console) and
-from links. IndexNow is the fast path for every engine that supports it; Bing
+(`sitemap-index.xml`, submitted in Search Console, and the two function
+sitemaps, which Google finds through `robots.txt`) and from links. IndexNow is the fast path for every engine that supports it; Bing
 is the largest, and its index also feeds Microsoft Copilot.
 
 ## Sitemaps
@@ -61,13 +61,20 @@ is the largest, and its index also feeds Microsoft Copilot.
 | URL | What it lists | Made by |
 | --- | --- | --- |
 | `https://www.digibastion.com/sitemap-index.xml` | Points to `sitemap.xml` | `npm run seo:generate` |
-| `https://www.digibastion.com/sitemap.xml` | 100 static pages: hubs, guides, checklists, services | `npm run seo:generate` |
+| `https://www.digibastion.com/sitemap.xml` | Every static page, checklist and guide (101 URLs on 2026-10-11) | `npm run seo:generate` |
 | `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/generate-sitemap?part=dynamic` | Every indexable incident and weekly report, 45,000 per page (`&page=N`) | `generate-sitemap` |
 | `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/generate-sitemap?part=news` | Google News sitemap: incidents stored in the last 48 hours, at most 1,000 | `generate-sitemap` |
 
-All four are listed on `Sitemap:` lines in `public/robots.txt`. A sitemap on
-another host is accepted for this site only when this site's `robots.txt` lists
-it, which is why the function URLs are there.
+`public/robots.txt` lists `sitemap-index.xml` (which points to `sitemap.xml`)
+and the two function sitemaps on `Sitemap:` lines. A sitemap on another host is
+accepted for this site only when this site's `robots.txt` lists it, which is
+why the function URLs are there.
+
+Search Console's Sitemaps report only accepts sitemap URLs inside the verified
+property, and the function host cannot be verified. Submit
+`sitemap-index.xml` there and nothing else. Google reads the function sitemaps
+through `robots.txt`, but they never show in that report; check them with URL
+Inspection on a few incident URLs and in the Pages report instead.
 
 **lastmod.** An incident's `lastmod` is the latest of three dates: when we
 stored it (`created_at`), when the source last changed it
@@ -79,10 +86,10 @@ changed every 30 minutes. A weekly report's `lastmod` is when it was built.
 **Content type.** On GET, the Supabase gateway rewrites XML and HTML responses
 to `text/plain` and adds `content-security-policy: default-src 'none'; sandbox`.
 JSON and PNG pass through, and a HEAD request shows the type the function set.
-Google normally reads a sitemap whatever its content type, but if Search
-Console rejects the XML one, submit
-`generate-sitemap?part=dynamic&format=txt` instead: the same URLs, one per
-line, which is a sitemap format Google accepts.
+Google normally reads a sitemap whatever its content type. If URL Inspection
+or the Pages report ever shows Google failing to fetch the XML sitemap, list
+`generate-sitemap?part=dynamic&format=txt` in `robots.txt` instead: the same
+URLs, one per line, which is a sitemap format Google accepts.
 
 ## Feeds
 
@@ -109,14 +116,22 @@ readers refuse. The JSON feed is not affected.
   each QuillMonitor sync.
 - **What it sends:** new weekly reports, then incidents stored since the last
   successful run, then incidents with a logged status change, then
-  `/threat-intel` and `/threat-intel/weekly` when anything above changed. At
-  most 1,000 URLs a run, and nothing when nothing is new.
+  `/threat-intel` and `/threat-intel/weekly` when anything above changed.
+  Incidents and status changes go in the order they happened. At most 1,000
+  URLs a run, and nothing when nothing is new.
 - **Cursor:** where the next run starts is stored in
   `threat_intel_ingestion_runs.metadata.cursor` of the last successful run
   (pipeline `indexnow`). The first run looks back two hours, and no run looks
-  back more than seven days. A failed submission (including a 403 for a bad key
-  or a 429 rate limit) leaves the cursor where it was, so the next run sends the
+  back more than seven days. When a run has more than fits, the cursor stops
+  just before the first incident it left out, so nothing between the old and
+  new cursor is skipped. A failed submission (including a 403 for a bad key or
+  a 429 rate limit) leaves the cursor where it was, so the next run sends the
   same URLs again. A dry run records nothing.
+- **HTTP status:** IndexNow throttling and outages (429, 5xx, timeouts,
+  network errors) answer 200 with `"success":false`, because the next run
+  retries them and a non-2xx answer would count as a failed cron run in
+  `/admin/cron`. A bad key (403), a bad request (400 or 422) or an unexpected
+  answer return 502, because a person has to fix them.
 - **Other modes:** an admin or the service role can POST
   `{"mode":"urls","urls":[...]}` to submit specific URLs on our host, or
   `{"mode":"backfill"}` to submit every indexable incident and weekly report
@@ -135,9 +150,20 @@ description, canonical, Open Graph and X tags, JSON-LD and a plain-text version
 of the page's main content. It covers:
 
 - every static page in the route registry (`src/seo/routeMeta.ts`), including
-  the 11 checklists and the 71 guides (99 pages in the build on 2026-10-11);
+  the 11 checklists and the 71 guides (100 pages in the build on 2026-10-11;
+  the home page is the fallback shell, not a separate file);
 - the 500 newest indexable incidents (`PRERENDER_INCIDENT_LIMIT` changes this);
 - the 26 newest weekly reports.
+
+The prerendered `/threat-intel` page links the 100 newest of those incidents,
+each with its answer sentence, and adds an `ItemList` of them to its JSON-LD.
+AI crawlers such as GPTBot, ClaudeBot and PerplexityBot do not run JavaScript
+and find pages mostly by following links, so without this list the incident
+pages would be orphans for them.
+
+Titles are at most 60 characters. A page keeps the " | Digibastion" suffix only
+when the whole title fits; otherwise the page's own title stands alone, and it
+is cut at a word only when it is longer than 60 characters by itself.
 
 When the app loads, `src/main.tsx` removes the prerendered JSON-LD and React
 draws the page fresh (there is no hydration), so search engines never see two
@@ -159,7 +185,12 @@ Build settings, all optional:
 The step never fails the build unless `PRERENDER_STRICT=1`. If Supabase is down,
 slow or unreachable, the incident and weekly pages are skipped with one warning.
 The default layout is `file` because a `dir` layout risks the host redirecting
-`/page` to `/page/`, which would contradict the canonical.
+`/page` to `/page/`, which would contradict the canonical. The `file` layout has
+its own risk: it writes `threat-intel.html` next to a `threat-intel/` folder of
+incident pages (and the same for `articles`, `services` and
+`threat-intel/weekly`), and some hosts redirect a URL to the folder of the same
+name. The release check tests every hub for that, and says to turn the
+prerender off if it happens.
 
 **Unverified:** whether Lovable serves these files before its fallback. The
 canary pages `public/__prerender-check.html` (prints `prerender-file-ok`) and
@@ -198,6 +229,9 @@ so the intent is explicit.
   `_shared/incident-answer.ts`: what happened, when, the reported loss, and who
   reported it. That is the sentence an answer engine is most likely to quote,
   so it always names the source and never claims Digibastion verified anything.
+  It leaves out placeholder chains such as "Other" and "Centralized", and it
+  drops the "($0 loss)" some importers add to titles, since the sentence
+  already says when no loss figure has been reported.
 
 ## Links we send out
 
@@ -241,8 +275,15 @@ link, and QuillMonitor-only items keep "Powered by QuillMonitor".
 A missing, merged, retracted or non-Web3 record redirects to the generic Threat
 Intel image, so a preview never shows a record we would not list. The images are
 cached for a day. Incident and weekly pages point their `og:image` and
-`twitter:image` at these cards. X, Telegram, LinkedIn and Slack only see them
-when they get the prerendered page, or the Worker's page.
+`twitter:image` at these cards, and the incident's `NewsArticle` JSON-LD uses
+the same image. X, Telegram, LinkedIn and Slack only see them when they get the
+prerendered page, or the Worker's page.
+
+Telegram incident posts are the exception: each post asks Telegram to preview
+the incident's card directly (`link_preview_options.url`). A post goes out a
+few minutes after the incident is stored, before any Publish could prerender
+its page, and the card is drawn when Telegram asks for it. A retraction edit
+turns the preview off.
 
 ## The optional Cloudflare Worker
 

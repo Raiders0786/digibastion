@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **Worktree.** Work only in `/Users/chirag/Documents/digibastion_web-seo` (branch `seo-aeo-docs`). Use absolute paths or `cd` into it in every shell command; the shell cwd resets between calls. Never touch `/Users/chirag/Documents/digibastion_web`.
+- **Branch.** Work on branch `seo-aeo-docs`, in a separate worktree so `main` stays untouched. Run every command from the repository root.
 - **Public repo.** Never write secrets, tokens, `CRON_SECRET`/Resend/Telegram/service-role values, personal emails, phone numbers, home addresses or internal-only notes into any file. Allowed: the Supabase project ref `sdszjqltoheqhfkeprrd`, the anon key already in `src/integrations/supabase/publicConfig.ts`, the channel name `@digibastion`, role addresses on `@digibastion.com`, and the IndexNow key (public by design).
 - **Do not edit by hand:** `src/integrations/supabase/types.ts` (Lovable regenerates it), `drizzle/`, `.lovable/`, `roadmap.md` (lowercase; Lovable's task log), any applied migration.
 - **Pure shared modules.** Anything under `supabase/functions/_shared/` that vitest or `src/` imports has no `https://` imports, no `npm:` specifiers, no `Deno` references and no `String.prototype.replaceAll` (tsconfig lib is ES2020). Shared modules import each other with the `.ts` extension (`import { x } from './y.ts'`); `src/` imports them with a relative path and no extension (`'../../supabase/functions/_shared/site-urls'`). Tests for shared modules sit next to them as `<name>.test.ts`.
@@ -21,7 +21,7 @@
 - **Attribution.** Never claim an incident is "verified by Digibastion". Name the source on every incident in every surface. Keep "Powered by QuillMonitor" wherever a QuillMonitor-only record is shown. Status words come only from the source: confirmed, unconfirmed. Losses read "about $X" or "~$X reported". SlowMist is not a live source (no cron); never list it as one.
 - **Canonical URLs.** `https://www.digibastion.com` plus a path, no query string, no fragment, no trailing slash except `/`. UTM tags never appear in a canonical, sitemap, feed GUID, JSON-LD URL or IndexNow URL.
 - **Copy.** Brand is "Digibastion" (never "DigiBastion"). The pipeline runs every 30 minutes: never write "real-time", "instantly" or "as they happen" about it, except "Real-time alerts" as the email channel name next to a "checked every 30 minutes" hint. Apply the humanize-output skill as the final pass on docs, site copy and the release doc: plain, concrete, no AI-slop vocabulary, few em-dashes.
-- **Commands.** One test file: `rtk proxy npx vitest run <file>`. Full suite: `rtk proxy npx vitest run` (baseline: 72 files, 814 tests pass). Typecheck: `npx tsc --noEmit -p tsconfig.app.json`. Lint: `npx eslint <files>`. Deno entry files: `bun build supabase/functions/<fn>/index.ts --no-bundle > /dev/null` (Deno is not installed). Site build: `node node_modules/vite/bin/vite.js build`. Python, if ever needed: `uv run python3`. Plain `npx vitest` output is swallowed by a shell hook; always use `rtk proxy`.
+- **Commands.** One test file: `npx vitest run <file>`. Full suite: `npx vitest run` (baseline: 72 files, 814 tests pass). Typecheck: `npx tsc --noEmit -p tsconfig.app.json`. Lint: `npx eslint <files>`. Deno entry files: `bun build supabase/functions/<fn>/index.ts --no-bundle > /dev/null` (when Deno is not installed). Site build: `npx vite build`.
 - **Git.** Stage files by path; never `git add -A`, `git add .` or anything under `.audit/`. Conventional commit messages, no AI attribution, no `Co-Authored-By` trailer.
 - **New edge functions** get a `[functions.<name>]` entry in `supabase/config.toml` with `verify_jwt = false` only when the function authenticates callers itself or is a public read-only GET.
 
@@ -185,7 +185,7 @@ describe('site-urls', () => {
 });
 ```
 
-- [ ] **Step 2: Run it and watch it fail.** `rtk proxy npx vitest run supabase/functions/_shared/site-urls.test.ts` fails with "Failed to resolve import './site-urls'".
+- [ ] **Step 2: Run it and watch it fail.** `npx vitest run supabase/functions/_shared/site-urls.test.ts` fails with "Failed to resolve import './site-urls'".
 
 - [ ] **Step 3: Implement**
 
@@ -1171,18 +1171,18 @@ describe('public files carry no secrets', () => {
 
 `re_test_secret_key` in an existing test fixture does not match (`re_` plus 20 alphanumerics). If any pattern hits an existing file, read the hit, confirm it is a fixture or a false positive, and narrow the pattern rather than skipping the file.
 
-- [ ] **Step 2: Run it; it passes.** `rtk proxy npx vitest run src/utils/__tests__/publicFilesNoSecrets.test.ts`
+- [ ] **Step 2: Run it; it passes.** `npx vitest run src/utils/__tests__/publicFilesNoSecrets.test.ts`
 - [ ] **Step 3: Commit.** `git commit -m "test: scan public and function files for secrets"`
 
 ### S1 verification
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
-rtk proxy npx vitest run supabase/functions/_shared src/utils/__tests__/publishableParity.test.ts src/utils/__tests__/publicFilesNoSecrets.test.ts
+cd "$(git rev-parse --show-toplevel)"
+npx vitest run supabase/functions/_shared src/utils/__tests__/publishableParity.test.ts src/utils/__tests__/publicFilesNoSecrets.test.ts
 for f in generate-sitemap ping-indexnow threat-intel-feed fetch-web3-incidents; do bun build supabase/functions/$f/index.ts --no-bundle > /dev/null || echo "FAIL $f"; done
 npx eslint supabase/functions/_shared/{site-urls,xml,publishable,attribution,incident-answer,sitemap-render,indexnow,feed-render}.ts
 ls supabase/migrations | tail -3   # the two new files sort last
-rtk proxy npx vitest run           # full suite still green
+npx vitest run           # full suite still green
 ```
 
 ---
@@ -1321,7 +1321,7 @@ export const SITE_DEFINITION =
   'or try Vantage (beta) to check their domain\'s security.';
 ```
 
-Check `officialLinks.ts` imports nothing via `@/` before importing it here (it currently has no imports). `faqEntries({ newslettersLive = NEWSLETTERS_LIVE })` returns these entries in this order. Before writing answer 3, confirm the RSS publisher names with `rtk proxy grep -rniE "thehackernews|bleepingcomputer|cisa" supabase/migrations | head` and name only publishers that appear.
+Check `officialLinks.ts` imports nothing via `@/` before importing it here (it currently has no imports). `faqEntries({ newslettersLive = NEWSLETTERS_LIVE })` returns these entries in this order. Before writing answer 3, confirm the RSS publisher names with `grep -rniE "thehackernews|bleepingcomputer|cisa" supabase/migrations | head` and name only publishers that appear.
 
 | id | Question | Answer |
 |---|---|---|
@@ -1625,7 +1625,7 @@ export function seoPrerender(): Plugin {
 - [ ] **Step 9: Build three ways and inspect.**
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
+cd "$(git rev-parse --show-toplevel)"
 PRERENDER_DYNAMIC=0 node node_modules/vite/bin/vite.js build 2>&1 | tail -5
 VITE_SUPABASE_URL=http://127.0.0.1:9 node node_modules/vite/bin/vite.js build 2>&1 | grep '\[seo\]'   # warns, still exits 0
 node node_modules/vite/bin/vite.js build 2>&1 | grep '\[seo\]'                                       # online: incident and weekly counts > 0
@@ -1637,7 +1637,7 @@ grep -c 'rel="canonical"' dist/about.html                       # 1
 
 Each build must exit 0. If the Lovable build image blocks network, the second command is what it sees.
 
-- [ ] **Step 10: Run `rtk proxy npx vitest run src/seo`; it passes.**
+- [ ] **Step 10: Run `npx vitest run src/seo`; it passes.**
 - [ ] **Step 11: Commit.** `git commit -m "feat(seo): prerender per-route HTML inside vite build"`
 
 ### Task S2.7: Generated sitemap, llms.txt and llms-full.txt
@@ -1699,8 +1699,8 @@ If this file needs jsdom for the guide components, add `// @vitest-environment j
 ### S2 verification
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
-rtk proxy npx vitest run
+cd "$(git rev-parse --show-toplevel)"
+npx vitest run
 npx tsc --noEmit -p tsconfig.app.json && npx tsc --noEmit -p tsconfig.node.json
 npx eslint src/seo scripts/seo src/components/MetaTags.tsx src/pages/Faq.tsx src/pages/WeeklyArchive.tsx src/main.tsx vite.config.ts
 VITE_SUPABASE_URL=http://127.0.0.1:9 node node_modules/vite/bin/vite.js build   # exits 0 offline
@@ -1873,11 +1873,11 @@ Rules (from the distribution audit's UTM table):
 ### S3 verification
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
-rtk proxy npx vitest run
+cd "$(git rev-parse --show-toplevel)"
+npx vitest run
 for f in post-telegram-alerts send-critical-alerts send-newsletters build-daily-newsletter build-weekly-newsletter send-digest-emails submit-form request-management-link verify-email weekly-admin-summary threat-intel-api og-image; do bun build supabase/functions/$f/index.ts --no-bundle > /dev/null || echo "FAIL $f"; done
-rtk proxy grep -rn "https://digibastion.com" supabase/functions src --include='*.ts' --include='*.tsx'   # no hits outside tests asserting absence
-rtk proxy grep -rn "DigiBastion" supabase/functions/_shared supabase/functions/post-telegram-alerts  # no hits
+grep -rn "https://digibastion.com" supabase/functions src --include='*.ts' --include='*.tsx'   # no hits outside tests asserting absence
+grep -rn "DigiBastion" supabase/functions/_shared supabase/functions/post-telegram-alerts  # no hits
 npx tsc --noEmit -p tsconfig.app.json
 ```
 
@@ -1912,7 +1912,7 @@ Rules: only `GET`/`HEAD` with `Accept` including `text/html` (or no Accept) are 
 `index.ts`: fetch the origin (`env.ORIGIN_URL`, default `https://digibastion.lovable.app`) with the same path; for `incident`, read `${SUPABASE_URL}/rest/v1/news_articles?select=...&id=eq.<id>&or=(${INDEXABLE_INCIDENT_POSTGREST_FILTER})` with the anon key; if no row, look the id up without the filter: a row with `duplicate_of_uid` 301s to the primary record's page when it resolves, anything else returns `notFoundHtml` with status 404. Weekly uses `get_weekly_newsletter`; null is a 404. Cache Supabase reads in `caches.default` for 300 seconds. On any Supabase error, pass the origin response through unchanged (fail open). Add `SECURITY_HEADERS` to every HTML response.
 
 - [ ] **Step 1: Write failing tests** in `plan.test.ts` for each classification rule above, for `rewriteHtml` producing exactly one canonical, for a missing marker returning null, for the apex redirect keeping path and query, and for `SECURITY_HEADERS` containing `Content-Security-Policy`, `X-Frame-Options` and `Permissions-Policy` equal to the values in `vercel.json` (read the file in the test and compare).
-- [ ] **Step 2: Run** `rtk proxy npx vitest run edge/cloudflare-worker/src/plan.test.ts`; it fails.
+- [ ] **Step 2: Run** `npx vitest run edge/cloudflare-worker/src/plan.test.ts`; it fails.
 - [ ] **Step 3: Implement `plan.ts` and `index.ts`.** `env.d.ts` declares the minimal `Env`, `ExecutionContext` and `caches.default` types used, so no `@cloudflare/workers-types` dependency is needed. `tsconfig.json`: `"compilerOptions": { "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "strict": true, "noEmit": true, "lib": ["ES2022", "WebWorker"], "allowImportingTsExtensions": true, "skipLibCheck": true, "baseUrl": ".", "paths": { "@/*": ["../../src/*"] } }`, `"include": ["src", "../../src/seo", "../../supabase/functions/_shared"]`.
 - [ ] **Step 4: `wrangler.toml`** (no secrets; the anon key is public and goes in `[vars]`):
 
@@ -1955,7 +1955,7 @@ Paste the actual anon key value (it is already public in the repo). Before writi
 - [ ] **Step 1: Move the public roadmap without touching Lovable's `roadmap.md`.** On macOS (`core.ignorecase=true`) only `roadmap.md` exists on disk.
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
+cd "$(git rev-parse --show-toplevel)"
 git ls-files -s roadmap.md ROADMAP.md          # note both blob ids
 git show HEAD:ROADMAP.md > docs/ROADMAP.md
 git rm --cached ROADMAP.md
@@ -1965,7 +1965,7 @@ git diff --cached --stat                         # roadmap.md must not appear
 git mv security_best_practices_report.md docs/security/2026-09-27-source-review.md
 ```
 
-- [ ] **Step 2: Fix every reference.** `README.md`, `CONTRIBUTING.md`, `docs/IMPLEMENTATION_HISTORY.md:8` (`../ROADMAP.md` becomes `ROADMAP.md`), `docs/archive/LOVABLE_PLAN_HISTORY.md:22`, `.github/ISSUE_TEMPLATE/roadmap_contribution.md:9,13`, and inside the moved file (`docs/IMPLEMENTATION_HISTORY.md` becomes `IMPLEMENTATION_HISTORY.md`, `CONTRIBUTING.md` becomes `../CONTRIBUTING.md`, `SECURITY.md` becomes `../SECURITY.md`). S2 already pointed `Index.tsx` and `public/llms.txt` at `docs/ROADMAP.md`, and S6 does `Footer.tsx`. Then check: `rtk proxy grep -rn "ROADMAP.md" --include='*.md' --include='*.ts' --include='*.tsx' --include='*.txt' . | grep -v node_modules | grep -v "docs/ROADMAP.md"` returns only intended hits.
+- [ ] **Step 2: Fix every reference.** `README.md`, `CONTRIBUTING.md`, `docs/IMPLEMENTATION_HISTORY.md:8` (`../ROADMAP.md` becomes `ROADMAP.md`), `docs/archive/LOVABLE_PLAN_HISTORY.md:22`, `.github/ISSUE_TEMPLATE/roadmap_contribution.md:9,13`, and inside the moved file (`docs/IMPLEMENTATION_HISTORY.md` becomes `IMPLEMENTATION_HISTORY.md`, `CONTRIBUTING.md` becomes `../CONTRIBUTING.md`, `SECURITY.md` becomes `../SECURITY.md`). S2 already pointed `Index.tsx` and `public/llms.txt` at `docs/ROADMAP.md`, and S6 does `Footer.tsx`. Then check: `grep -rn "ROADMAP.md" --include='*.md' --include='*.ts' --include='*.tsx' --include='*.txt' . | grep -v node_modules | grep -v "docs/ROADMAP.md"` returns only intended hits.
 - [ ] **Step 3: Add a dated status note** at the top of `docs/security/2026-09-27-source-review.md`: as of 2026-10-11, the SEC-003 header controls (CSP, `frame-ancestors`, X-Frame-Options, Permissions-Policy) live only in `vercel.json`, which the current host (Lovable) does not apply, so production does not send them; the Worker in `edge/cloudflare-worker/` sends them if DNS moves to Cloudflare; test counts and line numbers in the body are from 2026-09-27. Change SEC-003's status from "Fixed" to "Open in production".
 - [ ] **Step 4: Commit.** `git commit -m "docs: move roadmap and security review under docs/"`
 
@@ -1992,7 +1992,7 @@ flowchart LR
 
 **docs/PRODUCT_AND_ARCHITECTURE.md**, end to end, each section from code: hosting and runtime (Lovable static hosting, GoDaddy DNS, Supabase on Lovable Cloud, operators use "View Backend" in Lovable; the response headers production actually sends); sources (each with cadence, auth env var name, and permission status); ingestion and normalization (`news_articles` fields, the `metadata` keys, AI summaries labelled as such); severity rubric; dedup rules (from `_shared/incident-dedup.ts`, including the no-fuzzy-names reason); verification status and `incident_status_events`; the feed and RPCs; delivery (Telegram rules and env flags by name, alert emails, daily and weekly builds, the sender gate, legacy digest stand-down, compliance: double opt-in, RFC 8058 one-click, suppressions, consent audit, email tracking); SEO and indexing (link to the new doc); the route table from `src/App.tsx` including `/faq`, `/privacy`, `/threat-intel/weekly`; the edge function table (all functions, grouped, with auth model); the cron table (final state after `20261014090000`, all UTC, including `ping-indexnow 22,52`); data model; security model (RLS on every table, service-role-only ops tables, public RPCs, cron auth, no secrets in the repo, the header gap); release validation (Lovable publish, the curl checks from the release doc); access required (Lovable project, GoDaddy DNS, Search Console, Bing Webmaster Tools). Replace "Last verified" with 2026-10-11.
 
-- [ ] **Step 1: Write both files.** Verify each count with a command, for example `rtk proxy grep -c "verify_jwt" supabase/config.toml` and `ls supabase/functions | grep -v _shared | wc -l`.
+- [ ] **Step 1: Write both files.** Verify each count with a command, for example `grep -c "verify_jwt" supabase/config.toml` and `ls supabase/functions | grep -v _shared | wc -l`.
 - [ ] **Step 2: Run humanize-output on both.**
 - [ ] **Step 3: Commit.** `git commit -m "docs: rewrite README and the product and architecture guide"`
 
@@ -2010,9 +2010,9 @@ flowchart LR
 - `docs/ROADMAP.md`: "Last reviewed: 2026-10-11"; a Shipped table that adds Telegram, dedup and severity, methodology, the Phase 2 feed UX, Phase 3 (built, sending gated), the weekly page, and this branch (sitemaps, IndexNow, feeds, prerender, FAQ, share bar); SlowMist state; Now: newsletter launch (set the postal address, flip `NEWSLETTERS_LIVE`, retire `send-digest-emails`), privacy review, security headers (Worker or host support), analytics with UTM support; Later: "open a stable public API beyond the current key-gated partner endpoint"; owner decisions mention Lovable hosting and GoDaddy DNS; tool count from data.
 
 - [ ] **Step 1: Write the files.**
-- [ ] **Step 2: Check links:** `rtk proxy grep -rnoE "\]\((\.\./|\./)?[A-Za-z0-9_./-]+\.md[^)]*\)" README.md CONTRIBUTING.md SECURITY.md THREAT_INTEL_FEEDS.md AGENTS.md docs/*.md` and confirm each relative target exists with `ls`.
+- [ ] **Step 2: Check links:** `grep -rnoE "\]\((\.\./|\./)?[A-Za-z0-9_./-]+\.md[^)]*\)" README.md CONTRIBUTING.md SECURITY.md THREAT_INTEL_FEEDS.md AGENTS.md docs/*.md` and confirm each relative target exists with `ls`.
 - [ ] **Step 3: Run humanize-output on every changed file.**
-- [ ] **Step 4: Run the secret test** `rtk proxy npx vitest run src/utils/__tests__/publicFilesNoSecrets.test.ts` and `rtk proxy grep -rniE "gmail|re_[A-Za-z0-9]{20}|whsec_|service_role\"" README.md CONTRIBUTING.md SECURITY.md THREAT_INTEL_FEEDS.md docs/*.md` (no hits).
+- [ ] **Step 4: Run the secret test** `npx vitest run src/utils/__tests__/publicFilesNoSecrets.test.ts` and `grep -rniE "gmail|re_[A-Za-z0-9]{20}|whsec_|service_role\"" README.md CONTRIBUTING.md SECURITY.md THREAT_INTEL_FEEDS.md docs/*.md` (no hits).
 - [ ] **Step 5: Commit.** `git commit -m "docs: document sources, delivery, SEO and contribution rules end to end"`
 
 ### Task S5.4: Release runbook `docs/LOVABLE_SEO_RELEASE.md`
@@ -2065,16 +2065,16 @@ Use the copy audit's replacement text where it gives one; the tasks below name t
 
 - [ ] **Step 1: Implement the rest of the copy audit:** section 5 page copy that is not in the registry; section 9 names everywhere (Digibastion, Threat Intel, OpSec self-check, Guides, Tools, Get alerts, OpSec tip, the unsubscribe confirmation); section 12 smaller fixes (Tools intro and badges, Tools CTA, NotFound text and links, Leaderboard, Quiz stat "8 of 20 scenarios", AlertsPanel rubric lines, VerifyEmail subtitle); Share page Telegram option (section 8); Contact "Incident correction" topic pointing at `CORRECTIONS_EMAIL`; methodology "Alerts and newsletters" section (section 8 text, with the Telegram clause written without a severity claim, and the newsletter clause conditional on `NEWSLETTERS_LIVE`) and an "Official channels" list that includes the three feed URLs; `ArticleDetail.tsx` adds `InlineSubscribeCard` after the sources block; `CategoryDetail.tsx` loses the `console.log` at line 90; `site.webmanifest` description "Free Web3 security help: crypto hack alerts, security checklists and guides."; `index.html` default strings and JSON-LD descriptions from `SITE_FALLBACK_META` and `SITE_DEFINITION`, Organization `alternateName` removed, and a `<noscript>` block with the definition paragraph and plain links to `/threat-intel`, `/threat-intel/methodology`, `/articles`, `/quiz`, `/faq`, `/about` and `https://t.me/digibastion`.
 - [ ] **Step 2: Privacy page.** `src/pages/Privacy.tsx` at `/privacy` (add the route line in `App.tsx` and the entry in `routeMeta.ts`: title "Privacy at Digibastion" plus suffix, a description of what is collected). Content from code only: email subscriptions store the email address, chosen filters, timezone and a hash of the IP address at consent (`subscriptions.consent_ip_hash`); email opens and clicks are recorded with a hashed IP, country, device and email client (`email-tracking`, `email_events`) for the legacy digest and alerts; the new newsletters carry no tracking pixel; bounces and complaints go to a suppression list; quiz scores store the chosen display name and score; checklist progress stays in the browser's local storage; no account is needed for anything public; how to unsubscribe (link in every email, one-click header) and how to ask for deletion (`support@digibastion.com`). Verify each claim against the named file before writing it. Add a line at the top: "Last updated: <date>". Owner review is a user action before newsletters launch.
-- [ ] **Step 3: Regenerate and test.** `npm run seo:generate`, then `rtk proxy npx vitest run`, typecheck and eslint on touched files.
+- [ ] **Step 3: Regenerate and test.** `npm run seo:generate`, then `npx vitest run`, typecheck and eslint on touched files.
 - [ ] **Step 4: Run humanize-output over the new and changed copy** (read the diff of `src/` text, not the code).
 - [ ] **Step 5: Commit.** `git commit -m "feat(copy): consistent names, honest tool and quiz copy, privacy page"`
 
 ### S6 verification
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
-rtk proxy grep -rn "DigiBastion\|Security Security\|as they happen\|Live Feed Active\|Vetted by\|community-built\|Satoshi-level" src index.html public/llms.txt public/site.webmanifest   # no hits
-rtk proxy npx vitest run
+cd "$(git rev-parse --show-toplevel)"
+grep -rn "DigiBastion\|Security Security\|as they happen\|Live Feed Active\|Vetted by\|community-built\|Satoshi-level" src index.html public/llms.txt public/site.webmanifest   # no hits
+npx vitest run
 npx tsc --noEmit -p tsconfig.app.json && npx tsc --noEmit -p tsconfig.node.json
 node node_modules/vite/bin/vite.js build
 ```
@@ -2084,8 +2084,8 @@ node node_modules/vite/bin/vite.js build
 ## Final gate (after S6)
 
 ```bash
-cd /Users/chirag/Documents/digibastion_web-seo
-rtk proxy npx vitest run                                                    # all green; count above 814
+cd "$(git rev-parse --show-toplevel)"
+npx vitest run                                                    # all green; count above 814
 npm run typecheck
 npx eslint src scripts edge supabase/functions/_shared
 for f in $(ls supabase/functions | grep -v _shared); do bun build supabase/functions/$f/index.ts --no-bundle > /dev/null || echo "FAIL $f"; done

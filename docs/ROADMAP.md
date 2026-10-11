@@ -56,13 +56,16 @@ time, with a working one-click unsubscribe, and nobody gets a legacy digest too.
 - Find out whether Lovable serves the per-page HTML files (the canary check).
   If it does not, decide whether to move DNS to Cloudflare for the Worker in
   `edge/cloudflare-worker/`.
-- Submit the sitemaps in Google Search Console and Bing Webmaster Tools, run the
-  one-time IndexNow backfill, and watch coverage for a month.
+- Submit `sitemap-index.xml` in Google Search Console and Bing Webmaster Tools
+  (the two function sitemaps are found through `robots.txt` and cannot be
+  submitted there), run the one-time IndexNow backfill, and watch coverage for
+  a month.
 - Make the apex redirect (`digibastion.com` to `www`) a 301 instead of a 302.
 
 Success: a sample incident, weekly report and guide each show their own title in
-the raw HTML and in a Telegram or X preview, and both search consoles report the
-sitemaps as read.
+the raw HTML and in a Telegram or X preview, Search Console shows the sample
+incident URLs as indexed or discovered, and Bing's IndexNow report shows the
+backfill as received.
 
 ### 3. Security headers
 

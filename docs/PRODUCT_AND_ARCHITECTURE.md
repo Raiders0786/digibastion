@@ -91,7 +91,7 @@ The `metadata` keys that matter:
 
 | Key | Meaning |
 | --- | --- |
-| `provider` | `quillmonitor`, `web3-incidents` (older rows: `web3`), `slowmist`, or empty for RSS |
+| `provider` | `quillmonitor`, `web3-incidents` (older rows: `web3`), `slowmist`, or `rss` (older RSS rows: empty) |
 | `is_web3_incident` | true for a Web3 incident, including unconfirmed ones |
 | `security_domain`, `taxonomy_version`, `classification_reasons` | How the classifier filed the record, so a classifier change can be reviewed |
 | `classification_relevant` | false hides a rejected RSS record from the feed and from email, while keeping it for audit |

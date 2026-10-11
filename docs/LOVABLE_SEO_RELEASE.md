@@ -39,7 +39,7 @@ Release commit: `<MAIN_SHA>`, the merge commit of `seo-aeo-docs` on `main`.
 | --- | --- |
 | `generate-sitemap` | Rebuilt: indexable incidents only, honest `lastmod`, paging, `?part=news`, `?format=txt` |
 | `og-image` | Preview cards for incidents and weekly reports |
-| `post-telegram-alerts` | Links the source record, tags our links, shared site URL |
+| `post-telegram-alerts` | Links the source record, tags our links, shared site URL, and shows the incident's preview card under each post |
 | `send-critical-alerts` | Source credits and tagged links in alerts and follow-ups |
 | `send-newsletters` | Source credits and tagged links; the daily brief links the newest weekly report, and the weekly email links its web page |
 | `send-digest-emails` | Source credits and tagged links in the legacy digest |
@@ -80,8 +80,13 @@ new `robots.txt`, `sitemap.xml`, `llms.txt` and `llms-full.txt`.
 2. Apply the two migrations.
 3. Publish straight away. Publishing puts the IndexNow key file live; until
    then IndexNow answers 403, the run is recorded as failed, and the next run
-   retries the same URLs, so a gap of an hour or two does no harm. Publishing
-   after migration 2 also lets the build write a page for each weekly report.
+   retries the same URLs. Keep this gap under about two hours: a 403 is an
+   error a person has to fix, so `ping-indexnow` answers it with HTTP 502, and
+   cron health turns critical and the admins get an email after six failed
+   cron runs (of any job) in a day. Throttling and outages on the IndexNow side (429, 5xx,
+   timeouts) answer 200 with `"success":false` instead, so they do not page
+   anyone; the next run retries them. Publishing after migration 2 also lets
+   the build write a page for each weekly report.
 
 ## The prompt for Lovable
 
@@ -178,6 +183,27 @@ curl -s "$FEED?format=atom" | xmllint --noout -
 curl -s "$FEED?format=json" | uv run python3 -m json.tool > /dev/null && echo ok
 ```
 
+**Hubs and canary: no redirects**
+
+The default `file` layout writes `dist/threat-intel.html` next to a
+`dist/threat-intel/` folder of incident pages. The same happens for
+`articles`, `services` and `threat-intel/weekly`. Before this release none of
+those folders existed. Some static hosts answer `/threat-intel` with a 301 to
+`/threat-intel/` when a folder of that name exists, and some then return 403
+or 404 because the folder has no `index.html`. Check this first: these are the
+site's most important URLs.
+
+```bash
+for p in /threat-intel /articles /services /threat-intel/weekly /__prerender-check; do
+  printf '%s  ' "$p"; curl -sI "https://www.digibastion.com$p" | grep -iE '^(HTTP|location)' | tr '\r\n' '  '; echo
+done
+# expect: every line shows 200 and no location: header
+```
+
+If any of them shows 301, 308, 403 or 404, roll the prerender back at once
+(see "Turning the prerender off" below). Do not switch to the `dir` layout:
+it writes `threat-intel/index.html` and keeps the slash redirect on every hub.
+
 **Prerender canary: which layout does Lovable serve?**
 
 ```bash
@@ -195,9 +221,24 @@ Record which of `prerender-file-ok` and `prerender-dir-ok` appeared, then:
 
 | Result | What to do |
 | --- | --- |
-| `prerender-file-ok` appears | Keep the defaults. Per-page HTML is live. |
-| Only `prerender-dir-ok` appears, and the guide URL has no 301 to a trailing slash | Set `PRERENDER_LAYOUT=dir` as a build environment variable if Lovable supports one, and publish again. Otherwise leave it. |
-| Neither appears | Lovable serves only `index.html`. Nothing breaks, but link previews and non-JS crawlers keep seeing the fallback page. The fix is the Worker in `edge/cloudflare-worker/` after a DNS move. |
+| Any hub or the canary answered 301 or 308 to a trailing slash, 403 or 404 in the check above | Turn the prerender off and publish again at once (see below). Do not switch to `dir`. |
+| `prerender-file-ok` appears and every hub answered 200 | Keep the defaults. Per-page HTML is live. |
+| Only `prerender-dir-ok` appears, every hub answered 200, and the guide URL has no 301 to a trailing slash | Switch to the `dir` layout (see below) and publish again. Otherwise leave it. |
+| Neither appears, and every hub answered 200 | Lovable serves only `index.html`. Nothing breaks, but link previews and non-JS crawlers keep seeing the fallback page. The fix is the Worker in `edge/cloudflare-worker/` after a DNS move. |
+
+To switch to the `dir` layout, set the build environment variable
+`PRERENDER_LAYOUT=dir` if Lovable offers build variables. If it does not,
+change the first line of `parseLayout()` in `scripts/seo/prerenderCore.ts`
+from `if (!value) return 'file';` to `if (!value) return 'dir';`, merge, and
+publish.
+
+Also check that the prerendered `/threat-intel` links the newest incidents,
+so crawlers that do not run JavaScript can reach them:
+
+```bash
+curl -s https://www.digibastion.com/threat-intel | grep -c 'href="/threat-intel/[0-9a-f-]\{36\}"'
+# up to 100 when the prerender is served; 0 when Lovable serves only index.html
+```
 
 Also open one incident page and one weekly report and check the raw HTML title
 the same way: an incident added before this Publish should have its own title
@@ -241,23 +282,42 @@ layout.
 
 ## After the release (user)
 
-1. In Google Search Console for `https://www.digibastion.com`, submit
-   `https://www.digibastion.com/sitemap-index.xml` and both function sitemap
-   URLs (`generate-sitemap?part=dynamic` and `?part=news`). If Google rejects
-   the dynamic one because of its `text/plain` type, submit
-   `generate-sitemap?part=dynamic&format=txt` instead. Use URL Inspection on
-   `/`, one guide, one incident and one weekly report.
-2. In Bing Webmaster Tools, import the site from Search Console, submit the
-   same sitemaps, and watch the IndexNow report after the backfill.
+1. In Google Search Console for `https://www.digibastion.com`, submit only
+   `https://www.digibastion.com/sitemap-index.xml`. The Sitemaps report
+   accepts sitemap URLs inside the verified property only, and the two
+   function sitemaps live on `sdszjqltoheqhfkeprrd.supabase.co`, which cannot
+   be verified, so submitting them fails. Google still reads them, because
+   `robots.txt` lists them on `Sitemap:` lines, but they will not appear in
+   the Sitemaps report. To confirm they work, use URL Inspection on `/`, one
+   guide, a few incidents and one weekly report, and watch the Pages report
+   over the following weeks.
+2. In Bing Webmaster Tools, import the site from Search Console and submit
+   `sitemap-index.xml`. Bing may also refuse a sitemap on another host;
+   IndexNow is the main path to Bing, so watch its IndexNow report after the
+   backfill.
 
 ## Rollback
 
 | Problem | Action |
 | --- | --- |
 | IndexNow misbehaves | `SELECT cron.unschedule('ping-indexnow');` Nothing else depends on it. |
-| The build fails or a page renders wrong | Set the build environment variable `PRERENDER=0` and publish again; the site falls back to the single `index.html`. |
+| The build fails, a page renders wrong, or a hub redirects or stops loading | Turn the prerender off (below) and publish again; the site falls back to the single `index.html`. |
 | The dynamic sitemap is wrong | Remove its two `Sitemap:` lines from `public/robots.txt` and publish. Nothing else reads the old sitemap behavior. |
 | A changed email or Telegram function fails | Redeploy that function from `<PRE_RELEASE_MAIN_SHA>`. The changes are links and copy only, with no schema dependency. |
+
+### Turning the prerender off
+
+There are two ways. The first needs a host feature nobody has confirmed
+Lovable has; the second always works.
+
+1. If Lovable offers build environment variables, set `PRERENDER=0` and
+   publish.
+2. Otherwise, change one line in `vite.config.ts`: delete `seoPrerender(),`
+   from the `plugins` list (the line under the "Per-route HTML for crawlers"
+   comment), merge, and publish. The build then writes only the single
+   `index.html`, as it did before this release. `public/robots.txt`, the
+   sitemaps, `llms.txt` and the key file are plain files in `public/` and keep
+   working.
 
 Do not reverse the migrations. Migration 1 only widens a check constraint,
 replaces the health function with the same signature and changes cron jobs;
