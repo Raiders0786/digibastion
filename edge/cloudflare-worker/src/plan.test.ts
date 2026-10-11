@@ -10,6 +10,7 @@ import {
   incidentOutcome,
   LEGACY_REDIRECTS,
   notFoundHtml,
+  originTarget,
   primaryRedirectLocation,
   rewriteHtml,
   rewriteOriginLocation,
@@ -322,5 +323,27 @@ describe('rewriteOriginLocation', () => {
 
   it('leaves other hosts alone', () => {
     expect(rewriteOriginLocation('https://example.com/a', origin, site)).toBe('https://example.com/a');
+  });
+});
+
+describe('originTarget', () => {
+  const base = 'https://origin.example';
+
+  it('keeps the path and query on the origin host', () => {
+    expect(originTarget(base, '/threat-intel', '?scope=all')).toBe('https://origin.example/threat-intel?scope=all');
+  });
+
+  it('never leaves the origin host for a protocol-relative path', () => {
+    expect(originTarget(base, '//evil.example/x', '?a=1')).toBe('https://origin.example/evil.example/x?a=1');
+    expect(originTarget(base, '///evil.example', '')).toBe('https://origin.example/evil.example');
+  });
+
+  it('keeps a base path prefix and treats backslashes as path text', () => {
+    expect(originTarget('https://origin.example/app/', '/about', '')).toBe('https://origin.example/app/about');
+    expect(new URL(originTarget(base, '/\\evil.example', '')).origin).toBe(base);
+  });
+
+  it('returns null for an unusable base', () => {
+    expect(originTarget('not a url', '/about', '')).toBeNull();
   });
 });

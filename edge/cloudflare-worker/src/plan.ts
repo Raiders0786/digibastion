@@ -286,6 +286,27 @@ export function weeklyOutcome(payload: unknown, weekStart: string): WeeklyOutcom
 }
 
 /** A Location from the origin host, moved onto the site host so visitors never land on the origin. */
+/**
+ * The origin URL for a request path. The path is set on a copy of the base
+ * rather than resolved against it, so a path like `//evil.example/x` cannot
+ * move the request to another host. Returns null when the base is unusable
+ * or the result would leave the origin.
+ */
+export function originTarget(originBase: string, pathname: string, search: string): string | null {
+  let origin: URL;
+  try {
+    origin = new URL(originBase);
+  } catch {
+    return null;
+  }
+  const target = new URL(origin.href);
+  const prefix = origin.pathname.replace(/\/+$/, '');
+  target.pathname = `${prefix}/${pathname.replace(/^\/+/, '')}`;
+  target.search = search;
+  target.hash = '';
+  return target.origin === origin.origin ? target.href : null;
+}
+
 export function rewriteOriginLocation(location: string, originBase: string, siteOrigin: string): string {
   let resolved: URL;
   let origin: URL;

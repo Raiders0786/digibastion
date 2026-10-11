@@ -13,6 +13,7 @@ import {
   INCIDENT_COLUMNS,
   incidentOutcome,
   notFoundHtml,
+  originTarget,
   primaryRedirectLocation,
   rewriteHtml,
   rewriteOriginLocation,
@@ -86,7 +87,8 @@ async function fetchOrigin({ request, url, env }: Context, forRewrite: boolean):
   const method = forRewrite ? 'GET' : request.method;
   const hasBody = method !== 'GET' && method !== 'HEAD';
   // A Worker's fetch to its own route's URL skips the Worker and reaches the DNS origin.
-  const target = base ? new URL(`${url.pathname}${url.search}`, base).toString() : request.url;
+  const target = base ? originTarget(base, url.pathname, url.search) : request.url;
+  if (!target) return new Response('Bad origin configuration', { status: 502 });
   return fetch(target, { method, headers, body: hasBody ? request.body : null, redirect: 'manual' });
 }
 
