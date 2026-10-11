@@ -1,6 +1,6 @@
 # Current tasks
 
-- [ ] Complete Phase 3 release checklist: preflight, five exact migrations, 19 deployments, flags and A1–A9 passed; publication requested, live page checks pending. Newsletters remain gated and Telegram settings unchanged.
+- [x] Complete Phase 3 release checklist: preflight, five exact migrations, 19 deployments, flags, A1–A9 and published W1–W2 passed. Newsletters remain gated; user-only email/webhook and launch checks are not run. Telegram settings unchanged.
 
 - [x] Fix Meter matching conservatively and verify regression safeguards.
 - [x] Review and apply duplicate cleanup; verify an idempotent dry run (15 marks, 15 source updates, 0 errors; repeat has 0 pending changes).
