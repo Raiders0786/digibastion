@@ -1,142 +1,203 @@
 # Digibastion
 
-Digibastion helps people and teams reduce practical security risk before an
-incident. The public site combines guided security checklists, an OpSec quiz,
-threat intelligence, security guides, curated tools, and professional review
-services. VANTAGE extends that work with external domain trust evidence for
-Web3 and Web2 teams.
+Digibastion is a free Web3 security site. It tracks crypto hacks, exploits and
+phishing from QuillMonitor and other public trackers, links every record to its
+source, and sends alerts by email and on Telegram. It also has security
+checklists, a two-minute OpSec self-check and practical guides. Teams that need
+more can hire Digibastion for OpSec consulting or a full-stack security review,
+or try Vantage (beta) to check their domain's security.
 
-Supported by the [Ethereum Foundation Ecosystem Support Program in
-2025](https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal).
+The site is https://www.digibastion.com. Digibastion was supported by the
+[Ethereum Foundation Ecosystem Support Program in 2025](https://blog.ethereum.org/2025/12/02/allocation-q3-25#:~:text=Community%20%26%20education-,Digibastion,-Chirag%20Agrawal).
 
-## Use the products
+## Where to start
 
-| Product | Best for | Start here |
-| --- | --- | --- |
-| Digibastion | Individuals, builders, security teams, and anyone learning practical digital security | [Security checklist](https://www.digibastion.com/), [OpSec quiz](https://www.digibastion.com/quiz), [threat intelligence](https://www.digibastion.com/threat-intel), [guides](https://www.digibastion.com/articles) |
-| VANTAGE by Digibastion | Teams that need evidence about DNS, email, TLS, web, frontend, phishing, breach, and Web3 trust paths | [Public overview and score lookup](https://vantage.digibastion.com/), [security checks](https://vantage.digibastion.com/checks/), [use cases](https://vantage.digibastion.com/use-cases/) |
-| Security services | Founders and teams that want hands-on OpSec or full-stack security review | [Services](https://www.digibastion.com/services) |
+| You want to | Go to |
+| --- | --- |
+| Hear about new Web3 hacks and exploits | The [Threat Intel feed](https://www.digibastion.com/threat-intel), the Telegram channel [@digibastion](https://t.me/digibastion), or email alerts from the feed's Subscribe tab |
+| Find your weak spots | The [OpSec self-check](https://www.digibastion.com/quiz), then the [security checklists](https://www.digibastion.com/) |
+| Learn one topic properly | [Guides](https://www.digibastion.com/articles) and [tools](https://www.digibastion.com/tools) |
+| See how incidents are tracked | The [methodology page](https://www.digibastion.com/threat-intel/methodology) and the [FAQ](https://www.digibastion.com/faq) |
+| Get a team reviewed | [Services](https://www.digibastion.com/services) |
+| Check a domain's DNS, email, TLS and Web3 trust setup | [Vantage](https://vantage.digibastion.com/) (beta; a separate app, not in this repo) |
 
-If you are unsure where to begin, take the quiz, complete the essential
-checklist items it recommends, and use the threat feed to keep those controls
-current. Organizations evaluating a domain should start with VANTAGE.
+## What is live
 
-## What is shipped
+Threat Intel, at `/threat-intel`:
 
-The repository currently contains:
+- A feed of Web3 incidents from QuillMonitor (checked every 30 minutes) and Web3
+  Is Going Just Great (every 6 hours), plus security news from RSS feeds
+  (hourly). Every record names and links its source.
+- One record per incident. When two trackers report the same hack, Digibastion
+  keeps one record and lists both sources. The matching rules are strict on
+  purpose; [THREAT_INTEL_FEEDS.md](THREAT_INTEL_FEEDS.md) explains them.
+- Severity from one rubric, mostly by reported loss: $50M or more is critical,
+  $10M or more is high.
+- Confirmed and unconfirmed status, shown exactly as QuillMonitor gives it.
+  Digibastion does not verify incidents itself.
+- A public [methodology page](https://www.digibastion.com/threat-intel/methodology)
+  that explains all of the above.
+- Email alerts for critical and high incidents that match your filters, checked
+  every 30 minutes.
+- The Telegram channel [@digibastion](https://t.me/digibastion). It posts new
+  Web3 incidents from QuillMonitor, and a link to the weekly report every Monday.
+- A weekly report page every Monday at `/threat-intel/weekly/<YYYY-MM-DD>`, with
+  an archive at `/threat-intel/weekly`.
+- A daily brief email and a weekly email. Both are built and tested but do not
+  send yet. Sending starts once a postal address for the email footer is set
+  (`NEWSLETTER_POSTAL_ADDRESS`), because anti-spam law (CAN-SPAM) requires one.
+- RSS, Atom and JSON feeds of the newest incidents and weekly reports.
 
-- 274 checklist items across 11 security categories, with local progress and
-  threat-profile guidance.
-- An eight-question OpSec assessment with server-validated scoring,
-  shareable results, and a leaderboard.
-- A unified threat-intelligence experience for RSS advisories, Web3 incidents,
-  and provider-attributed incident records, plus optional email alerts and
-  digests.
-- 71 published security guides covering wallet safety, phishing, DeFi, smart contracts,
-  privacy, incident response, and developer security.
-- 28 curated security-tool entries and a broader resources directory.
-- OpSec consulting and full-stack review service pages.
-- Private administration surfaces for analytics, ingestion health, scheduled
-  operations, and API-key management.
-- VANTAGE, live at `vantage.digibastion.com`, with public score previews,
-  private evidence workflows, and research, knowledge, checks, use-case, and
-  incident-note libraries.
+The rest of the site:
 
-These counts describe the current source tree, not usage or performance
-claims. Live application routes and the VANTAGE pages above were checked on
-2026-09-27. This project's backend is managed by Lovable Cloud: database,
-functions, users, logs, and secrets are inspected through **View Backend** in
-the owning Lovable project, not through a separately accessible Supabase
-dashboard or separate Supabase credentials. VANTAGE private workflows require
-access to that product's own environment.
+- 11 security checklists with 263 items. Progress is saved in your browser only.
+- The OpSec self-check: eight questions drawn from 20 scenarios, scored on the
+  server, with a leaderboard.
+- 71 guides on wallets, phishing, DeFi, smart contracts, privacy, incident
+  response and developer security.
+- A tools directory with 27 entries in 9 categories, and a links directory.
+- A FAQ page, service pages and a contact form.
+- Private admin pages for analytics, scheduled jobs, ingestion health and API
+  keys.
 
-See [Product and architecture](docs/PRODUCT_AND_ARCHITECTURE.md) for route,
-system, data-flow, and deployment details. See [Roadmap](docs/ROADMAP.md) for the
-small set of prioritized next outcomes; completed production work is recorded
-in [Implementation history](docs/IMPLEMENTATION_HISTORY.md).
+## How an incident reaches you
 
-## Local development
+At 17 and 47 minutes past each hour (UTC), `fetch-quillmonitor-incidents` asks
+QuillMonitor for new and changed incidents and stores them in the
+`news_articles` table. The other importers do the same for their sources on
+their own schedules. Each importer sets the severity, checks whether the
+incident is already stored from another source, and on a strong match keeps one
+record that lists both sources. The site reads that table directly, so the
+incident page exists as soon as the row does. Within the next ten minutes,
+`post-telegram-alerts` posts new QuillMonitor incidents to @digibastion,
+`ping-indexnow` tells Bing and the other IndexNow search engines about the new
+page, and `send-critical-alerts` emails subscribers whose filters match. The
+feeds include it within 15 minutes and the sitemap within an hour, which is how
+long each may be cached. On Monday the
+weekly report gathers the week's incidents into one page.
+[docs/PRODUCT_AND_ARCHITECTURE.md](docs/PRODUCT_AND_ARCHITECTURE.md) covers
+every function and scheduled job.
 
-Requirements:
+```mermaid
+flowchart LR
+  QM["QuillMonitor API<br/>every 30 min"] --> ING
+  W3["Web3 Is Going Just Great<br/>via Firecrawl, every 6 h"] --> ING
+  RSS["Security news RSS<br/>hourly"] --> ING
+  SM["SlowMist Hacked<br/>built, switched off"] -.-> ING
+  ING["Ingestion functions<br/>normalize, severity, dedup"] --> DB[("news_articles<br/>+ status events")]
+  DB --> RPC["Public RPCs<br/>search, stats, facets, weekly"]
+  RPC --> SPA["React app on Lovable hosting<br/>www.digibastion.com"]
+  DB --> TG["post-telegram-alerts<br/>@digibastion"]
+  DB --> AL["send-critical-alerts<br/>email every 30 min"]
+  DB --> NB["daily and weekly builders"] --> NL["send-newsletters<br/>waits for postal address"]
+  NB --> WK["/threat-intel/weekly pages"]
+  DB --> SEO["generate-sitemap, threat-intel-feed,<br/>ping-indexnow every 30 min"]
+  SEO --> SE["Google, Bing, IndexNow engines,<br/>feed readers, AI crawlers"]
+```
 
-- Node.js 22.12 or later
-- npm
-- Lovable-provided public browser configuration, or your own external backend
-  project when testing data-backed changes in isolation
+## Run it locally
+
+You need Node.js 22.12 or later and npm.
 
 ```bash
 git clone https://github.com/Raiders0786/digibastion.git
 cd digibastion
-cp .env.example .env
-# Add public VITE_SUPABASE_* browser values only when overriding the defaults.
 npm ci
-npm run dev
+npm run dev          # http://127.0.0.1:8080
 ```
 
-The development server is available at `http://localhost:8080`. Run the full
-release gate before opening a pull request:
+The app talks to the production backend by default, using the public anon key
+in `src/integrations/supabase/publicDefaults.ts`. Reading is fine. Do not test
+forms that write data (subscribe, contact, quiz scores) against production.
+Copy `.env.example` to `.env` and point `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY` at your own Supabase project instead. Only
+public browser values belong in `.env`.
 
-```bash
-npm run check
-```
+| Command | What it does |
+| --- | --- |
+| `npm test` | Runs the Vitest suite once. |
+| `npm run typecheck` | Type-checks the app (`tsconfig.app.json`) and the build scripts (`tsconfig.node.json`). |
+| `npm run lint` | Runs ESLint. |
+| `npm run build` | Builds the site into `dist/` and writes one HTML file per public page (see below). |
+| `npm run check` | Typecheck, lint, tests and build, in that order. Run it before a pull request. |
+| `npm run seo:generate` | Rewrites `public/sitemap.xml`, `public/sitemap-index.xml`, `public/llms.txt` and `public/llms-full.txt`. Run it after changing a route, guide or checklist; a test fails until you do. |
 
-`npm run check` runs TypeScript, lint, unit tests, and a production build.
-Only browser/publishable values belong in `.env`; they do not grant backend
-ownership or dashboard access. For the deployed project, maintainers manage
-service-role keys, cron secrets, feed credentials, and email credentials via
-**View Backend** in Lovable. Moving backend ownership outside Lovable requires
-migration to a separately owned external backend project.
+The build fetches the newest incidents and weekly reports from Supabase so it
+can write a page for each. If Supabase cannot be reached, it skips those pages
+with one warning and still succeeds. To build with no network at all, run
+`PRERENDER_DYNAMIC=0 npm run build`. `PRERENDER=0` turns the per-page step off
+entirely.
+
+Edge functions are Deno code in `supabase/functions/`. You do not need Deno to
+run the tests: the shared logic lives in plain TypeScript modules under
+`supabase/functions/_shared/`, and Vitest tests them directly.
+
+## How releases work
+
+1. Changes land on `main` through pull requests.
+2. The owner opens the Lovable project and runs the release prompt for that
+   change, kept in `docs/LOVABLE_*_RELEASE.md`. Lovable applies the listed
+   migrations, deploys the listed edge functions and runs the checks.
+3. The owner clicks Publish in Lovable, which builds the site from `main` and
+   puts it live.
+
+Lovable sometimes commits to `main` itself, so pull before you branch. The
+frontend is on Lovable static hosting with DNS at GoDaddy. The backend is
+Supabase on Lovable Cloud; operators reach the database, functions, logs and
+secrets through **View Backend** in Lovable, and there is no separate Supabase
+dashboard login. `vercel.json` and `api/og-tags.ts` are left over from an
+earlier Vercel setup and do nothing on the current host.
 
 ## Repository map
 
 ```text
-api/                         Vercel request handlers
-public/                      Static metadata, PWA, crawler, and image assets
-src/components/              Shared React UI
-src/data/                    Checklist, article, tool, and resource content
-src/pages/                   Public, service, subscription, and admin routes
-src/integrations/supabase/   Generated database types and browser client
-src/utils/                   Shared client utilities
-supabase/functions/          Deno Edge Functions
-supabase/migrations/         Database schema, policies, functions, and jobs
-docs/                        Current architecture and historical operations
+src/pages/                  One file per route; src/App.tsx holds the route list
+src/components/             Shared UI: navigation, checklist, quiz, news, share bar
+src/lib/threatIntel/        Feed queries, incident display rules, official links
+src/seo/                    Route metadata registry, site facts, FAQ, prerender
+src/data/                   Checklists, guides, tools and links (plain data files)
+src/integrations/supabase/  Browser client and generated database types
+scripts/seo/                Build-time prerender and the seo:generate script
+supabase/functions/         Deno edge functions, one folder each
+supabase/functions/_shared/ Pure TypeScript shared by functions, app and tests
+supabase/migrations/        Database schema, policies, RPCs and cron jobs
+supabase/config.toml        Per-function gateway settings
+edge/cloudflare-worker/     Optional Worker for per-URL HTML; inactive until DNS moves
+public/                     Static files served as-is: robots.txt, sitemaps, llms.txt
+docs/                       Architecture, release runbooks, roadmap, history
 ```
 
-External threat providers are ingested independently on the server and
-normalized into `news_articles`. Provider-specific incident details stay in
-`news_articles.metadata`, while sanitized aggregate run outcomes are recorded
-in `threat_intel_ingestion_runs`. This keeps credentials and raw provider
-payloads out of the public client.
+[docs/README.md](docs/README.md) lists every document.
 
 ## Contribute
 
-Useful contributions include correcting a security recommendation, reviewing
-an article against primary sources, improving mobile or accessible behavior,
-adding tests, proposing a reputable threat source, or reproducing a bug.
-Start with [CONTRIBUTING.md](CONTRIBUTING.md) and open an issue before a large
-or architecture-changing implementation. Product ideas and field reports are
-welcome in [GitHub Discussions](https://github.com/Raiders0786/digibastion/discussions).
+Useful contributions include fixing a security recommendation, checking a guide
+against primary sources, improving mobile or accessibility behavior, adding
+tests, proposing a reputable threat source, or reproducing a bug. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md), and open an issue before any large or
+architecture-changing work. The priorities are in
+[docs/ROADMAP.md](docs/ROADMAP.md). Ideas and field reports are welcome in
+[GitHub Discussions](https://github.com/Raiders0786/digibastion/discussions).
 
-Please report security vulnerabilities privately as described in
+Report security vulnerabilities privately, as described in
 [SECURITY.md](SECURITY.md).
 
 ## Community and support
 
 - [GitHub issues](https://github.com/Raiders0786/digibastion/issues)
 - [GitHub discussions](https://github.com/Raiders0786/digibastion/discussions)
-- [Telegram](https://t.me/digibastion)
-- [X / Twitter](https://x.com/__Raiders)
+- [Telegram alerts channel](https://t.me/digibastion)
+- [Telegram community chat](https://t.me/digibastion_chat)
+- [Maintainer on X](https://x.com/__Raiders)
 - [Support the project](https://www.digibastion.com/support)
 
 ## License
 
-This repository is **source-available**, not OSI-approved open source. The
-[LICENSE](LICENSE) contains the MIT text plus a Commons Clause restriction that
-prohibits selling, leasing, or providing paid services based on the software
-without prior permission. Non-commercial use, modification, and sharing are
-allowed subject to the full license terms. Contact `raiders@digibastion.com`
-for commercial licensing.
+This repository is source-available, not OSI-approved open source. The
+[LICENSE](LICENSE) is the MIT text plus a Commons Clause restriction: you may
+not sell the software, or paid services based on it, without permission.
+Non-commercial use, changes and sharing are allowed under the full terms. For
+commercial licensing, email `raiders@digibastion.com`.
 
-The project owner still needs to decide whether the long-term model should
-remain Commons Clause source-available or move to an unmodified open-source
-license. Until that decision is made, the LICENSE file controls.
+The owner has not yet decided whether to keep Commons Clause or move to a
+standard open-source license. Until then, the LICENSE file is what applies.
