@@ -4,3 +4,4 @@
 - Provider-specific incident fields live in `news_articles.metadata`; this keeps the public feed schema stable while supporting rich source-aware UI and emails.
 - Ingestion functions record sanitized aggregate outcomes in `threat_intel_ingestion_runs`; this provides private operational health without storing provider payloads or credentials.
 - Cross-name incident matches require an identical dated social-post reference, exact incident date and equal positive plausible loss; this catches differently titled reports without broad fuzzy merges.
+- Pending weekly-newsletter RPC types extend the existing client locally without editing generated types; this lets the preview compile while the gated database release remains paused.

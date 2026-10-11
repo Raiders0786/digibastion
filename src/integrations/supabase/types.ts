@@ -796,7 +796,6 @@ export type Database = {
       get_subscriber_count: { Args: never; Returns: Json }
       get_threat_intel_health: { Args: never; Returns: Json }
       get_top_leaderboard_ids: { Args: never; Returns: string[] }
-      get_weekly_newsletter: { Args: { p_week_start: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

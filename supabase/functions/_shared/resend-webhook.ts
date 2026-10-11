@@ -53,7 +53,7 @@ export async function verifyResendSignature(o: {
   const keyBytes = base64ToBytes(o.secret.startsWith(SECRET_PREFIX) ? o.secret.slice(SECRET_PREFIX.length) : o.secret);
   if (!keyBytes || keyBytes.length === 0) return false;
 
-  const key = await globalThis.crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const key = await globalThis.crypto.subtle.importKey('raw', new Uint8Array(keyBytes).buffer, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const signed = await globalThis.crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${o.id}.${o.timestamp}.${o.body}`));
   const expected = bytesToBase64(new Uint8Array(signed));
 

@@ -5,7 +5,9 @@ import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database, Json } from '@/integrations/supabase/types';
 import { METHODOLOGY_PATH, SITE_URL } from '@/lib/threatIntel/officialLinks';
 import {
   formatReportedUsd,
@@ -25,6 +27,14 @@ import {
 
 const AI_NOTE = 'Written by AI from the data above';
 const TOP_LIMIT = 5;
+type WeeklyDatabase = Omit<Database, 'public'> & {
+  public: Omit<Database['public'], 'Functions'> & {
+    Functions: Database['public']['Functions'] & {
+      get_weekly_newsletter: { Args: { p_week_start: string }; Returns: Json };
+    };
+  };
+};
+const weeklyClient = supabase as unknown as SupabaseClient<WeeklyDatabase>;
 const SEVERITY_CLASSES: Record<string, string> = {
   critical: 'text-red-400',
   high: 'text-orange-400',
@@ -305,7 +315,7 @@ const WeeklyNewsletter = () => {
     }
     let cancelled = false;
     setState({ status: 'loading' });
-    supabase.rpc('get_weekly_newsletter', { p_week_start: weekStart }).then(
+    weeklyClient.rpc('get_weekly_newsletter', { p_week_start: weekStart }).then(
       ({ data, error }) => {
         if (cancelled) return;
         if (error) {
