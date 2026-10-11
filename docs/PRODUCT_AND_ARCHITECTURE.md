@@ -227,7 +227,20 @@ Follow-up emails go out for retractions and upgrades to critical.
   `NEWSLETTER_POSTAL_ADDRESS` is set. Setting that address is the launch switch.
 - The legacy `send-digest-emails` also runs every 15 minutes and keeps sending
   the old digests until the postal address is set. Then it stands down on its
-  own (`skipped: newsletters_live`).
+  own (`skipped: newsletters_live`). It picks articles by when we ingested
+  them (with a 7-day publish-date floor), so reports that arrive late after a
+  feed outage still go out once. When nothing matches a subscriber's filters
+  it still sends a short "quiet day" email with the top 3 other updates, so a
+  quiet day never looks like a broken service.
+- Do not set the postal address yet. `send-newsletters` does not cover
+  everything the legacy digest sends: its daily brief leaves out general news,
+  and in October 2026 the switch left high-threshold subscribers with nothing.
+  Deleting the secret is the rollback.
+- `cron-monitor` also checks delivery every hour (`get_delivery_health`). It
+  emails the admins when RSS inserts nothing for 8 hours on a weekday (30 on a
+  weekend), or when an active subscriber has had no digest for 36 hours (8 days
+  for weekly). Each problem is emailed at most every 12 hours. The RSS job can
+  succeed every hour and still insert nothing, so job health alone misses it.
 
 ### Subscriptions and compliance
 
@@ -320,7 +333,7 @@ user's token.
 | | `ping-indexnow` | cron, service role, admin | IndexNow submissions |
 | | `og-image` | public GET | Preview images for incidents, weekly reports and quiz results |
 | Admin | `admin-analytics`, `admin-api-keys` | admin | Admin pages |
-| | `cron-monitor` | cron, admin | Hourly job health check; emails `app_config.ADMIN_ALERT_EMAILS` on failure |
+| | `cron-monitor` | cron, admin | Hourly job and delivery health check; emails `app_config.ADMIN_ALERT_EMAILS` on failure, stale RSS or overdue digests |
 | | `weekly-admin-summary` | cron | Monday summary email to admins |
 | Partner | `threat-intel-api` | `x-api-key` | Key-gated partner API |
 

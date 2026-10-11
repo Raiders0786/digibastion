@@ -66,3 +66,47 @@ export function shouldSendToSubscriber(
   const subscriberLocalDay = ((currentUtcDay + dayDelta) % 7 + 7) % 7;
   return subscriberLocalDay === preferredDay;
 }
+
+const DAY_MS = 86_400_000;
+
+/** How many other updates a quiet-day digest shows. */
+export const QUIET_DAY_HIGHLIGHTS = 3;
+
+/**
+ * Earliest published_at a digest accepts. Articles are picked by when we
+ * ingested them, so a report that arrives late (after a feed outage, say)
+ * still goes out once; this floor only keeps very old backfills out.
+ */
+export function digestPublishedFloor(now: Date, frequency: string): Date {
+  return new Date(now.getTime() - (frequency === 'weekly' ? 14 : 7) * DAY_MS);
+}
+
+const SEVERITY_FILTER_LABELS: Record<string, string> = {
+  critical: 'critical severity only',
+  high: 'high severity and above',
+  medium: 'medium severity and above',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  'web3-security': 'Web3 security',
+  'defi-exploits': 'DeFi exploits',
+  'operational-security': 'OpSec',
+  'supply-chain': 'supply chain',
+  'personal-protection': 'personal security',
+  'vulnerability-disclosure': 'vulnerabilities',
+  'tools-reviews': 'tools',
+};
+
+/** "high severity and above in DeFi exploits, Web3 security and vulnerabilities", for the quiet-day note. */
+export function describeDigestFilters(sub: {
+  severity_threshold?: string | null;
+  categories?: string[] | null;
+  content_scope?: string | null;
+}): string {
+  const severity = SEVERITY_FILTER_LABELS[sub.severity_threshold || 'medium'] ?? 'all severities';
+  if (sub.content_scope === 'web3-incidents') return `${severity}, Web3 incidents only`;
+  const labels = [...new Set((sub.categories || []).map((category) => CATEGORY_LABELS[category] ?? category))];
+  if (labels.length === 0) return `${severity} in every category`;
+  const list = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  return `${severity} in ${list}`;
+}

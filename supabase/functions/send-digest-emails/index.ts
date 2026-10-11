@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
-import { normalizeUtcMinuteToQuarterHour, prepareDigestArticles, severityRank, shouldSendToSubscriber } from "../_shared/digest-logic.ts";
+import {
+  describeDigestFilters,
+  digestPublishedFloor,
+  normalizeUtcMinuteToQuarterHour,
+  prepareDigestArticles,
+  QUIET_DAY_HIGHLIGHTS,
+  severityRank,
+  shouldSendToSubscriber,
+} from "../_shared/digest-logic.ts";
 import { buildUnsubscribeLinks, listUnsubscribeHeaders, readPostalAddress } from "../_shared/email-compliance.ts";
 import {
   escapeHtml,
@@ -49,7 +57,11 @@ interface Subscription {
   timezone_offset: number;
   preferred_day: number;
   content_scope: ContentScope;
+  include_preliminary?: boolean | null;
+  chains?: string[] | null;
 }
+
+const ARTICLE_COLUMNS = 'id, title, summary, severity, category, link, published_at, cve_id, tags, affected_technologies, source_name, metadata, created_at';
 
 function getSeverityColor(severity: string): string {
   switch (severity) {
@@ -108,6 +120,19 @@ function digestSourceLink(article: NewsArticle): string | null {
   return sourceLinkFor({ sourceUrl: safeHttpUrl(article.link) || null, incidentUrl: absoluteSiteUrl(incidentPath(article.id)) });
 }
 
+/** A digest with no matching articles: say so, and show a few other updates from the same period. */
+interface QuietDay {
+  filterSummary: string;
+  highlights: NewsArticle[];
+}
+
+function quietDayIntro(quiet: QuietDay, frequency: string): string {
+  const period = frequency === 'weekly' ? 'this week' : 'since your last briefing';
+  const nothing = `Nothing new matched your filters (${quiet.filterSummary}) ${period}.`;
+  if (quiet.highlights.length === 0) return `${nothing} No other security updates came in either.`;
+  return `${nothing} Here ${quiet.highlights.length === 1 ? 'is the top other update' : `are the top ${quiet.highlights.length} other updates`} from the same period.`;
+}
+
 function generateDigestEmailText(
   articles: NewsArticle[],
   subscriberName: string | null,
@@ -115,9 +140,11 @@ function generateDigestEmailText(
   periodStart: Date,
   periodEnd: Date,
   manageUrl: string,
+  quiet: QuietDay | null = null,
 ): string {
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
-  const displayedArticles = articles.slice(0, 20);
+  const shown = quiet ? quiet.highlights : articles;
+  const displayedArticles = shown.slice(0, 20);
   const lines = displayedArticles.map((article) => {
     // The source line ends the block when there is one; our page always follows.
     const block = formatDeliveryArticleText({ ...article, link: digestSourceLink(article) ?? '' }).replace(/\n+$/, '');
@@ -129,8 +156,8 @@ function generateDigestEmailText(
     `${formatDate(periodStart.toISOString())} – ${formatDate(periodEnd.toISOString())}`,
     '',
     `Hi ${subscriberName || 'Security Professional'},`,
-    `${articles.length} security update${articles.length === 1 ? '' : 's'} matched your preferences.`,
-    ...(articles.length > displayedArticles.length ? [`Showing the top ${displayedArticles.length}; ${articles.length - displayedArticles.length} more are available online.`] : []),
+    quiet ? quietDayIntro(quiet, frequency) : `${articles.length} security update${articles.length === 1 ? '' : 's'} matched your preferences.`,
+    ...(!quiet && articles.length > displayedArticles.length ? [`Showing the top ${displayedArticles.length}; ${articles.length - displayedArticles.length} more are available online.`] : []),
     '',
     ...lines,
     '',
@@ -147,7 +174,8 @@ function generateDigestEmailHtml(
   frequency: string,
   periodStart: Date,
   periodEnd: Date,
-  trackingId: string
+  trackingId: string,
+  quiet: QuietDay | null = null,
 ): string {
   const greeting = subscriberName ? `Hi ${escapeHtml(subscriberName)},` : 'Hi there,';
   const periodLabel = frequency === 'weekly' ? 'Weekly' : 'Daily';
@@ -160,6 +188,7 @@ function generateDigestEmailHtml(
   // The full unique count remains visible, while rendering is capped to keep
   // Gmail from clipping the footer and unsubscribe controls.
   const displayedArticles = articles.slice(0, 20);
+  const quietArticles = quiet ? quiet.highlights.slice(0, QUIET_DAY_HIGHLIGHTS) : [];
   const criticalArticles = displayedArticles.filter(a => a.severity === 'critical');
   const highArticles = displayedArticles.filter(a => a.severity === 'high');
   const otherArticles = displayedArticles.filter(a => !['critical', 'high'].includes(a.severity));
@@ -240,7 +269,7 @@ function generateDigestEmailHtml(
   </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${criticalCount > 0 ? `${criticalCount} critical · ` : ''}${totalCount} security updates matched your preferences.</div>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${quiet ? escapeHtml(quietDayIntro(quiet, frequency)) : `${criticalCount > 0 ? `${criticalCount} critical · ` : ''}${totalCount} security updates matched your preferences.`}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#111827;">
     <tr><td class="email-shell" align="center" style="padding:24px 12px;">
   <table role="presentation" width="640" cellpadding="0" cellspacing="0" class="email-card" style="width:100%;max-width:640px;margin:0 auto;background-color:#1f2937;border-radius:10px;overflow:hidden;">
@@ -256,7 +285,7 @@ function generateDigestEmailHtml(
     </tr>
     
     <!-- Summary Stats -->
-    <tr>
+    ${quiet ? '' : `<tr>
       <td class="email-pad" style="padding:22px 28px 18px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
@@ -277,13 +306,13 @@ function generateDigestEmailHtml(
           </tr>
         </table>
       </td>
-    </tr>
+    </tr>`}
 
     <!-- Greeting -->
     <tr>
       <td class="email-pad" style="padding:0 28px 18px;">
-        <p style="color:#e2e8f0;margin:0;font-size:15px;line-height:23px;">
-          ${greeting} here are ${totalCount} security update${totalCount !== 1 ? 's' : ''} matching your preferences.
+        <p style="color:#e2e8f0;margin:0;font-size:15px;line-height:23px;${quiet ? 'padding-top:22px;' : ''}">
+          ${quiet ? `${greeting}<br>${escapeHtml(quietDayIntro(quiet, frequency))}` : `${greeting} here are ${totalCount} security update${totalCount !== 1 ? 's' : ''} matching your preferences.`}
         </p>
       </td>
     </tr>
@@ -292,6 +321,7 @@ function generateDigestEmailHtml(
     <tr>
       <td class="email-pad" style="padding:0 28px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${renderSection('Other updates', quietArticles, '#cbd5e1')}
           ${renderSection('🚨 Critical Threats', criticalArticles, '#f87171')}
           ${renderSection('⚠️ High Severity', highArticles, '#fb923c')}
           ${renderSection('📋 Other Alerts', otherArticles.slice(0, 10), '#cbd5e1')}
@@ -416,6 +446,7 @@ serve(async (req) => {
     let targetMinute: number | null = null;
     let targetFrequency: 'daily' | 'weekly' | 'both' = 'both';
     let testEmail: string | null = null;
+    let testQuiet = false;
     
     try {
       const body = await req.json();
@@ -430,6 +461,10 @@ serve(async (req) => {
       }
       if (typeof body.test_email === 'string' && body.test_email.includes('@')) {
         testEmail = body.test_email.toLowerCase().trim();
+      }
+      if (body.quiet === true) {
+        // Admin preview of the quiet-day email: the test articles become its highlights.
+        testQuiet = true;
       }
     } catch {
       // No body or invalid JSON - will run for all matching subscribers
@@ -510,8 +545,10 @@ serve(async (req) => {
         );
       }
       
+      // A quiet-day preview shows what the highlights would be: any severity or category.
+      const testPreferences = testQuiet ? { severity_threshold: 'info', content_scope: mockSubscription.content_scope } : mockSubscription;
       const testArticles = prepareDigestArticles(
-        articles.filter((article) => matchesDeliveryPreferences(article as NewsArticle, mockSubscription)) as NewsArticle[],
+        articles.filter((article) => matchesDeliveryPreferences(article as NewsArticle, testPreferences)) as NewsArticle[],
         Number.POSITIVE_INFINITY,
       );
       if (testArticles.length === 0) {
@@ -524,15 +561,19 @@ serve(async (req) => {
       
       // Generate and send test email
       const trackingId = crypto.randomUUID();
+      const testQuietDay: QuietDay | null = testQuiet
+        ? { filterSummary: describeDigestFilters(mockSubscription), highlights: testArticles.slice(0, QUIET_DAY_HIGHLIGHTS) }
+        : null;
       const emailHtml = generateDigestEmailHtml(
-        testArticles,
+        testQuietDay ? [] : testArticles,
         mockSubscription.name,
         testEmail,
         mockSubscription.verification_token,
         mockSubscription.frequency,
         testPeriodStart,
         now,
-        trackingId
+        trackingId,
+        testQuietDay,
       );
       
       if (!resendApiKey) {
@@ -550,7 +591,7 @@ serve(async (req) => {
         token: mockSubscription.verification_token || '00000000-0000-0000-0000-000000000000',
       });
       const testManageUrl = `${SITE_URL}/manage-subscription`;
-      const emailText = generateDigestEmailText(testArticles, mockSubscription.name, mockSubscription.frequency, testPeriodStart, now, testManageUrl);
+      const emailText = generateDigestEmailText(testQuietDay ? [] : testArticles, mockSubscription.name, mockSubscription.frequency, testPeriodStart, now, testManageUrl, testQuietDay);
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -560,7 +601,9 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'Digibastion Alerts <alerts@digibastion.com>',
           to: [testEmail],
-          subject: `[TEST] ${testArticles.length} security update${testArticles.length === 1 ? '' : 's'}`,
+          subject: testQuietDay
+            ? '[TEST] Daily security briefing · quiet day, nothing matched your filters'
+            : `[TEST] ${testArticles.length} security update${testArticles.length === 1 ? '' : 's'}`,
           html: emailHtml,
           text: emailText,
           reply_to: 'support@digibastion.com',
@@ -682,42 +725,60 @@ serve(async (req) => {
       // busy unrelated category cannot crowd out this subscriber's matches.
       const thresholdRank = severityRank[sub.severity_threshold] ?? 2;
       const allowedSeverities = Object.keys(severityRank).filter((severity) => severityRank[severity] <= thresholdRank);
-      const articlesQuery = supabase
-        .from('news_articles')
-        .select('id, title, summary, severity, category, link, published_at, cve_id, tags, affected_technologies, source_name, metadata, created_at')
-        .gte('created_at', effectivePeriodStart.toISOString())
-        .lte('created_at', now.toISOString())
-        .gte('published_at', periodStart.toISOString())
-        .lte('published_at', now.toISOString())
-        .in('severity', allowedSeverities)
-        .order('created_at', { ascending: false })
-        .limit(200);
-      const { data: articles, error: articlesError } = await articlesQuery;
+      // Articles are picked by when we ingested them, so reports that arrive
+      // late (after a feed outage) still go out once. The publish-date floor
+      // only keeps very old backfills out.
+      const publishedFloor = digestPublishedFloor(now, sub.frequency).toISOString();
+      const periodArticles = (severities: string[] | null) => {
+        let query = supabase
+          .from('news_articles')
+          .select(ARTICLE_COLUMNS)
+          .gte('created_at', effectivePeriodStart.toISOString())
+          .lte('created_at', now.toISOString())
+          .gte('published_at', publishedFloor)
+          .lte('published_at', now.toISOString());
+        if (severities) query = query.in('severity', severities);
+        return query.order('created_at', { ascending: false }).limit(200);
+      };
+      const { data: articles, error: articlesError } = await periodArticles(allowedSeverities);
 
       if (articlesError) {
         console.error(`[send-digest-emails] Error fetching articles for subscription ${sub.id}:`, articlesError);
+        errors.push(`${sub.id}: articles could not be read`);
+        failed++;
         continue;
       }
-
-      if (!articles || articles.length === 0) {
-        console.log(`[send-digest-emails] No articles in period for subscription ${sub.id}`);
-        continue;
-      }
-
-      console.log(`[send-digest-emails] Found ${articles.length} articles for subscription ${sub.id}`);
 
       // Filter articles based on subscriber preferences
       const matchingArticles = prepareDigestArticles(
-        articles.filter(a => matchesDeliveryPreferences(a as NewsArticle, sub)) as NewsArticle[],
+        ((articles ?? []) as NewsArticle[]).filter(a => matchesDeliveryPreferences(a, sub)),
         Number.POSITIVE_INFINITY,
       );
 
+      // A quiet day still gets an email, so subscribers can tell a quiet day
+      // from a broken service. It shows the top other updates of the period,
+      // keeping only the subscriber's scope, chain and preliminary choices.
+      let quiet: QuietDay | null = null;
       if (matchingArticles.length === 0) {
-        console.log(`[send-digest-emails] No matching articles for subscription ${sub.id}`);
-        continue;
+        const { data: others, error: othersError } = await periodArticles(null);
+        if (othersError) console.warn(`[send-digest-emails] Quiet-day highlights unavailable for subscription ${sub.id}`);
+        const highlightPreferences = {
+          severity_threshold: 'info',
+          content_scope: sub.content_scope,
+          chains: sub.chains,
+          include_preliminary: sub.include_preliminary,
+        };
+        quiet = {
+          filterSummary: describeDigestFilters(sub),
+          highlights: prepareDigestArticles(
+            ((others ?? []) as NewsArticle[]).filter(a => matchesDeliveryPreferences(a, highlightPreferences)),
+            QUIET_DAY_HIGHLIGHTS,
+          ),
+        };
+        console.log(`[send-digest-emails] Quiet day for subscription ${sub.id}: ${quiet.highlights.length} highlights`);
+      } else {
+        console.log(`[send-digest-emails] Sending ${matchingArticles.length} articles for subscription ${sub.id}`);
       }
-
-      console.log(`[send-digest-emails] Sending ${matchingArticles.length} articles for subscription ${sub.id}`);
 
       // Generate unique tracking ID for this email
       const trackingId = crypto.randomUUID();
@@ -731,12 +792,15 @@ serve(async (req) => {
           sub.frequency,
           effectivePeriodStart,
           now,
-          trackingId
+          trackingId,
+          quiet,
         );
         
         const periodLabel = sub.frequency === 'weekly' ? 'Weekly' : 'Daily';
         const criticalCount = matchingArticles.filter(a => a.severity === 'critical').length;
-        const subject = criticalCount > 0
+        const subject = quiet
+          ? `${periodLabel} security briefing · quiet ${sub.frequency === 'weekly' ? 'week' : 'day'}, nothing matched your filters`
+          : criticalCount > 0
           ? `${periodLabel} security briefing · ${criticalCount} critical · ${matchingArticles.length} updates`
           : `${periodLabel} security briefing · ${matchingArticles.length} update${matchingArticles.length === 1 ? '' : 's'}`;
         
@@ -745,7 +809,7 @@ serve(async (req) => {
         const encodedEmail = encodeURIComponent(sub.email);
         const oneClickUnsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/one-click-unsubscribe?token=${encodedToken}&email=${encodedEmail}`;
         const manageUrl = `${SITE_URL}/manage-subscription?email=${encodedEmail}&token=${encodedToken}`;
-        const emailText = generateDigestEmailText(matchingArticles, sub.name, sub.frequency, effectivePeriodStart, now, manageUrl);
+        const emailText = generateDigestEmailText(matchingArticles, sub.name, sub.frequency, effectivePeriodStart, now, manageUrl, quiet);
         
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',

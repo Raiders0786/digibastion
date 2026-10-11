@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_DIGEST_ARTICLES, normalizeUtcMinuteToQuarterHour, prepareDigestArticles, shouldSendToSubscriber } from '../../../supabase/functions/_shared/digest-logic';
+import { describeDigestFilters, digestPublishedFloor, MAX_DIGEST_ARTICLES, normalizeUtcMinuteToQuarterHour, prepareDigestArticles, shouldSendToSubscriber } from '../../../supabase/functions/_shared/digest-logic';
 
 const baseSchedule = {
   frequency: 'daily',
@@ -51,5 +51,34 @@ describe('digest preparation', () => {
     ]);
     expect(result).toHaveLength(MAX_DIGEST_ARTICLES);
     expect(result[0].severity).toBe('critical');
+  });
+});
+
+describe('digestPublishedFloor', () => {
+  const now = new Date('2026-10-11T09:00:00Z');
+
+  it('accepts a week of publish dates for daily and two weeks for weekly digests', () => {
+    expect(digestPublishedFloor(now, 'daily').toISOString()).toBe('2026-10-04T09:00:00.000Z');
+    expect(digestPublishedFloor(now, 'weekly').toISOString()).toBe('2026-09-27T09:00:00.000Z');
+  });
+
+  it('keeps reports that were published two days before we ingested them', () => {
+    const lateReport = new Date('2026-10-09T08:00:00Z');
+    expect(lateReport >= digestPublishedFloor(now, 'daily')).toBe(true);
+  });
+});
+
+describe('describeDigestFilters', () => {
+  it('names the threshold and the chosen categories', () => {
+    expect(describeDigestFilters({ severity_threshold: 'high', categories: ['defi-exploits', 'web3-security', 'vulnerability-disclosure'] }))
+      .toBe('high severity and above in DeFi exploits, Web3 security and vulnerabilities');
+  });
+
+  it('handles one category, no categories, low thresholds and the Web3-only scope', () => {
+    expect(describeDigestFilters({ severity_threshold: 'critical', categories: ['tools-reviews'] })).toBe('critical severity only in tools');
+    expect(describeDigestFilters({ severity_threshold: 'medium', categories: [] })).toBe('medium severity and above in every category');
+    expect(describeDigestFilters({ severity_threshold: 'low', categories: null })).toBe('all severities in every category');
+    expect(describeDigestFilters({ severity_threshold: 'high', content_scope: 'web3-incidents', categories: ['defi-exploits'] }))
+      .toBe('high severity and above, Web3 incidents only');
   });
 });

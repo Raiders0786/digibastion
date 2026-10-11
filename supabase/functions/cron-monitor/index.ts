@@ -1,5 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import { Resend } from 'npm:resend@4.0.0';
+import { alertIsDue, deliveryAlerts, type DeliveryAlert, type DeliveryHealth } from '../_shared/delivery-health.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,6 +51,72 @@ interface ThreatIntelHealth {
   quality: { future_dated: number; missing_required: number; duplicate_uid_groups: number };
   active_alerts: { total: number; critical: number; high: number; latest_at?: string };
   generated_at: string;
+}
+
+type Db = SupabaseClient;
+
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] as string));
+
+async function adminRecipients(supabase: Db, fallbackEmail: string | null): Promise<string[]> {
+  const { data } = await supabase.from('app_config').select('value').eq('key', 'ADMIN_ALERT_EMAILS').maybeSingle();
+  const configured = typeof data?.value === 'string'
+    ? data.value.split(',').map((email: string) => email.trim()).filter(Boolean)
+    : [];
+  return configured.length > 0 ? configured : (fallbackEmail ? [fallbackEmail] : []);
+}
+
+/**
+ * RSS freshness and overdue digests (see _shared/delivery-health.ts). Emails
+ * the admins once per problem every 12 hours; never throws.
+ */
+async function checkDeliveryHealth(supabase: Db, resendApiKey: string | undefined, fallbackEmail: string | null) {
+  const { data, error } = await supabase.rpc('get_delivery_health');
+  if (error || !data) {
+    console.warn('[cron-monitor] Delivery health unavailable:', error?.message ?? 'no data');
+    return null;
+  }
+  const health = data as DeliveryHealth;
+  const now = new Date();
+  const alerts = deliveryAlerts(health, now);
+  const emailed: string[] = [];
+  if (alerts.length > 0 && resendApiKey) {
+    const { data: sentRows } = await supabase.from('delivery_health_alerts').select('kind, last_sent_at');
+    const lastSent = new Map((sentRows ?? []).map((row: { kind: string; last_sent_at: string }) => [row.kind, row.last_sent_at]));
+    const due = alerts.filter((alert) => alertIsDue(lastSent.get(alert.kind), now));
+    if (due.length > 0) {
+      try {
+        const recipients = await adminRecipients(supabase, fallbackEmail);
+        if (recipients.length === 0) throw new Error('No administrator alert recipients configured');
+        await new Resend(resendApiKey).emails.send({
+          from: 'DigiBastion Alerts <alerts@digibastion.com>',
+          to: recipients,
+          subject: `Delivery alert: ${due.map((alert) => alert.summary).join(' ')}`.slice(0, 180),
+          html: renderDeliveryAlert(due),
+        });
+        for (const alert of due) {
+          await supabase.from('delivery_health_alerts').upsert({ kind: alert.kind, last_sent_at: now.toISOString(), detail: alert.summary.slice(0, 300) });
+          emailed.push(alert.kind);
+        }
+        console.log(`[cron-monitor] Delivery alert sent: ${emailed.join(', ')}`);
+      } catch (emailError) {
+        console.error('[cron-monitor] Failed to send delivery alert:', emailError instanceof Error ? emailError.message : emailError);
+      }
+    }
+  }
+  return { ...health, alerts: alerts.map((alert) => ({ kind: alert.kind, summary: alert.summary })), emailed };
+}
+
+function renderDeliveryAlert(alerts: DeliveryAlert[]): string {
+  const sections = alerts.map((alert) => `
+    <h2 style="color: #374151; font-size: 17px;">${escapeHtml(alert.summary)}</h2>
+    <ul style="color: #4b5563;">${alert.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`).join('');
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #b45309;">Email delivery needs a look</h1>
+      ${sections}
+      <p style="font-size: 14px; color: #6b7280;">Dashboard: <a href="https://www.digibastion.com/admin/cron">Cron Monitor</a></p>
+      <p style="font-size: 12px; color: #9ca3af;">Automated alert from DigiBastion. Each problem repeats at most every 12 hours while it lasts.</p>
+    </div>`;
 }
 
 Deno.serve(async (req) => {
@@ -158,8 +225,7 @@ Deno.serve(async (req) => {
         // Send critical alert email
         try {
           const resend = new Resend(resendApiKey);
-          const { data: recipientConfig } = await supabase.from('app_config').select('value').eq('key', 'ADMIN_ALERT_EMAILS').maybeSingle();
-          const recipients = recipientConfig?.value?.split(',').map((email: string) => email.trim()).filter(Boolean) || (requestingUserEmail ? [requestingUserEmail] : []);
+          const recipients = await adminRecipients(supabase, requestingUserEmail);
           if (recipients.length === 0) throw new Error('No administrator alert recipients configured');
           await resend.emails.send({
             from: 'DigiBastion Alerts <alerts@digibastion.com>',
@@ -207,6 +273,8 @@ Deno.serve(async (req) => {
         }
       }
     }
+
+    const delivery = await checkDeliveryHealth(supabase, resendApiKey, requestingUserEmail);
 
     // Get 7-day health history for chart
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -273,6 +341,7 @@ Deno.serve(async (req) => {
       },
       history: historyData,
       threat_intel: threatIntelError ? null : threatIntelData as ThreatIntelHealth,
+      delivery,
     };
 
     console.log(`[cron-monitor] ${response.health.status} - ${response.summary.success_rate} success rate`);
