@@ -145,4 +145,14 @@ describe('WeeklyNewsletter page', () => {
     // A transient error must not deindex the page.
     expect(metaTags).toHaveBeenLastCalledWith(expect.objectContaining({ robots: 'index' }));
   });
+
+  it('shows a share bar under the header and again above the subscribe card', async () => {
+    renderAt('/threat-intel/weekly/2026-10-05');
+
+    await screen.findByRole('heading', { level: 1, name: 'Web3 security week of Oct 5, 2026' });
+    const bars = screen.getAllByRole('navigation', { name: 'Share' });
+    expect(bars).toHaveLength(2);
+    expect(within(bars[0]).getByRole('button', { name: 'Share on X' })).not.toBeNull();
+    expect(within(bars[0]).getByRole('button', { name: 'Copy link' })).not.toBeNull();
+  });
 });

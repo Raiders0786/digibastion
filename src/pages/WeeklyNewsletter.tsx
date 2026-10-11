@@ -7,6 +7,8 @@ import { toMetaTagsProps, weeklyRouteMeta } from '@/seo/routeMeta';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
+import { ShareBar } from '@/components/share/ShareBar';
+import { shareTextForWeekly } from '../../supabase/functions/_shared/share-links';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database, Json } from '@/integrations/supabase/types';
@@ -62,7 +64,7 @@ function SmartLink({ href, children, className }: { href: string; children: Reac
   const safe = safeHttpUrl(href);
   if (!safe) return <span className={className}>{children}</span>;
   return (
-    <a href={safe} target="_blank" rel="noopener noreferrer" className={className}>
+    <a href={safe} target="_blank" rel="noopener" className={className}>
       {children}
     </a>
   );
@@ -115,7 +117,7 @@ function ItemLinks({ item }: { item: NewsletterItem }) {
         <span>
           Source:{' '}
           {sourceUrl ? (
-            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
+            <a href={sourceUrl} target="_blank" rel="noopener" className="font-medium text-primary underline-offset-2 hover:underline">
               {item.sourceName}
             </a>
           ) : item.sourceName}
@@ -194,6 +196,12 @@ function WeeklyIssue({ page }: { page: WeeklyNewsletterPage }) {
   const { content } = page;
   const top = content.top.slice(0, TOP_LIMIT);
   const tipUrl = content.opsecTip.url;
+  const share = {
+    url: `${SITE_URL}${weeklyPagePath(content.weekStart)}`,
+    title: weeklyPageTitle(content),
+    text: shareTextForWeekly(content),
+    campaign: 'share_weekly' as const,
+  };
   return (
     <div className="mx-auto max-w-3xl space-y-12">
       <header className="space-y-4">
@@ -208,6 +216,7 @@ function WeeklyIssue({ page }: { page: WeeklyNewsletterPage }) {
           Figures are computed from the source data, and each item names its source. Statuses are the sources&apos; own.{' '}
           <Link to={METHODOLOGY_PATH} className="font-medium text-primary underline-offset-2 hover:underline">How we track incidents</Link>
         </p>
+        <ShareBar {...share} />
       </header>
 
       <Totals content={content} />
@@ -272,6 +281,11 @@ function WeeklyIssue({ page }: { page: WeeklyNewsletterPage }) {
           </ul>
         </Section>
       )}
+
+      <section aria-label="Share this report" className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">Share this report</h2>
+        <ShareBar {...share} />
+      </section>
 
       <Card className="space-y-3 p-5">
         <h2 className="text-xl font-semibold text-foreground">Get the weekly deep-dive by email</h2>

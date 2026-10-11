@@ -1,6 +1,6 @@
 import { Fragment, useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { NewsCard } from '@/components/news/NewsCard';
 import { NewsFilters } from '@/components/news/NewsFilters';
 import { SubscriptionForm } from '@/components/news/SubscriptionForm';
@@ -61,6 +61,13 @@ const INLINE_SUBSCRIBE_AFTER = 5;
 
 const News = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Read by the merged-record redirect, so campaign tags and filters survive it
+  // without re-running the deep-link effect on every query change.
+  const locationSearch = useRef(location.search);
+  useEffect(() => {
+    locationSearch.current = location.search;
+  }, [location.search]);
   const { articleId: routeArticleId } = useParams<{ articleId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   // Every shareable filter comes from the URL through one parser. No ?scope
@@ -341,7 +348,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         // (A -> B -> A) can never send the browser round in a loop.
         if (primary?.id && primary.id !== article.id && !getDuplicateOfUid(primary.metadata)) {
           deepLinkLoaded.current = '';
-          navigate(`/threat-intel/${encodeURIComponent(primary.id)}`, { replace: true });
+          navigate(`/threat-intel/${encodeURIComponent(primary.id)}${locationSearch.current}`, { replace: true });
           return;
         }
         setDeepLinkState('not-found');

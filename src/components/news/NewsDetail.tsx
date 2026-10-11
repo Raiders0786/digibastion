@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Share, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower, LifeBuoy, History, BellRing, Send, Undo2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, AlertTriangle, Bookmark, Home, Newspaper, ChevronRight, Loader2, RadioTower, LifeBuoy, History, BellRing, Send, Undo2 } from 'lucide-react';
 import { getCategoryConfig, getSeverityStyle } from '@/lib/threatIntel/taxonomy';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -32,7 +32,12 @@ import {
 } from '@/lib/threatIntel/officialLinks';
 import { VerificationBadge } from '@/components/news/VerificationBadge';
 import { buildIncidentAnswer } from '../../../supabase/functions/_shared/incident-answer';
+import { sourceLabelFor } from '../../../supabase/functions/_shared/attribution';
+import { shareTextForIncident, SHARE_TEXT_LIMIT } from '../../../supabase/functions/_shared/share-links';
+import { canonicalIncidentUrl } from '../../../supabase/functions/_shared/site-urls';
+import { truncateAtWord } from '../../../supabase/functions/_shared/summary-text';
 import { incidentSeoInputFromArticle } from '@/seo/incidentMeta';
+import { ShareBar } from '@/components/share/ShareBar';
 
 interface StoredBookmark {
   id: string;
@@ -64,7 +69,13 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   const duplicateProviderAuthor = isSlowMist && article.author?.toLowerCase().includes('slowmist');
   const showWeb3Actions = web3Incident || isWeb3SecurityDomain(article);
   // The same answer-first sentence the meta description and prerender use.
-  const incidentAnswer = web3Incident ? buildIncidentAnswer(incidentSeoInputFromArticle(article)) : null;
+  const seoInput = incidentSeoInputFromArticle(article);
+  const incidentAnswer = web3Incident ? buildIncidentAnswer(seoInput) : null;
+  const shareUrl = canonicalIncidentUrl(article.id);
+  const shareSource = `Source: ${sourceLabelFor(seoInput)}.`;
+  const shareText = web3Incident
+    ? shareTextForIncident(seoInput)
+    : `${truncateAtWord(article.title, SHARE_TEXT_LIMIT - shareSource.length - 1)} ${shareSource}`;
   const showVulnerabilityActions = Boolean(article.cveId) || article.category === 'vulnerability-disclosure';
   const subscribeHref = buildSubscribeHref({
     categories: [article.category],
@@ -79,31 +90,6 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
     limit: 4
   });
   
-  const handleShare = async () => {
-    const shareUrl = `https://www.digibastion.com/threat-intel/${encodeURIComponent(article.id)}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: article.title,
-          text: article.summary,
-          url: shareUrl,
-        });
-      } catch (err) {
-        navigator.clipboard.writeText(shareUrl);
-        toast({
-          title: "Link copied!",
-          description: "Article link copied to clipboard",
-        });
-      }
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Link copied!",
-        description: "Article link copied to clipboard",
-      });
-    }
-  };
-
   const handleBookmark = () => {
     try {
       const parsed: unknown = JSON.parse(localStorage.getItem('newsBookmarks') || '[]');
@@ -155,11 +141,8 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           <ArrowLeft className="w-4 h-4" />
           Back to News Feed
         </Button>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button variant="outline" size="sm" onClick={handleShare}>
-            <Share className="w-4 h-4 mr-1" />
-            Share
-          </Button>
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          <ShareBar compact url={shareUrl} title={article.title} text={shareText} campaign="share_incident" />
           <Button variant="outline" size="sm" onClick={handleBookmark}>
             <Bookmark className="w-4 h-4 mr-1" />
             Bookmark
@@ -272,7 +255,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               <a
                 href={safeExternalUrl(article.metadata?.attribution_url) || 'https://www.quillaudits.com/web3-hacks-database'}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
                 aria-label="Powered by QuillMonitor; view this incident in the QuillMonitor database"
                 className="inline-flex rounded bg-card p-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
@@ -287,7 +270,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               <a
                 href={slowMistAttributionUrl}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
                 className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Badge variant="outline" className="border-sky-500/30 bg-sky-500/5 text-sky-300">
@@ -424,6 +407,11 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               </div>
             </div>
           )}
+
+          <div className="pt-4 border-t">
+            <h3 className="font-semibold mb-3">Share this {web3Incident ? 'incident' : 'report'}</h3>
+            <ShareBar url={shareUrl} title={article.title} text={shareText} campaign="share_incident" />
+          </div>
         </CardContent>
       </Card>
 

@@ -237,6 +237,33 @@ describe('threat-intel article navigation', () => {
     expect(deepLink.from).toHaveBeenCalledWith('news_articles');
   });
 
+  it('keeps campaign tags when it forwards a merged duplicate', async () => {
+    deepLink.rows['id:dup-2'] = {
+      id: 'dup-2',
+      title: 'Duplicate report',
+      summary: 'Summary',
+      content: 'Body',
+      category: 'web3-security',
+      severity: 'critical',
+      tags: [],
+      affected_technologies: [],
+      link: null,
+      source_url: null,
+      source_name: 'SlowMist Hacked',
+      author: null,
+      cve_id: null,
+      published_at: '2026-09-27T08:00:00Z',
+      is_processed: false,
+      metadata: { duplicate_of_uid: 'quillmonitor:42' },
+    };
+    deepLink.rows['uid:quillmonitor:42'] = { id: 'article-1' };
+
+    const router = renderAt('/threat-intel/dup-2?utm_source=telegram&utm_medium=social&utm_campaign=incident_alerts');
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/threat-intel/article-1'));
+    expect(router.state.location.search).toBe('?utm_source=telegram&utm_medium=social&utm_campaign=incident_alerts');
+  });
+
   it('does not follow a merged duplicate whose primary is itself a duplicate', async () => {
     deepLink.rows['id:dup-2'] = {
       id: 'dup-2',

@@ -7,6 +7,7 @@ import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
+import { CopyLinkButton } from '@/components/share/ShareBar';
 import {
   ALERTS_SENDER_EMAIL,
   CHAINABUSE_URL,
@@ -26,7 +27,7 @@ import { SLOWMIST_ATTRIBUTION_URL } from '@/utils/newsIncident';
 const pageMeta = staticRouteMeta('/threat-intel/methodology');
 
 const ExternalAnchor = ({ href, children }: { href: string; children: ReactNode }) => (
-  <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
+  <a href={href} target="_blank" rel="noopener" className="font-medium text-primary underline-offset-2 hover:underline">
     {children}
   </a>
 );
@@ -90,6 +91,7 @@ const ThreatIntelMethodology = () => {
             <p className="leading-7 text-muted-foreground">
               Digibastion collects security incidents and news from the sources below, merges reports of the same incident into one record, and shows the status each source gives. We do not investigate or verify incidents ourselves, so every record links back to where it came from.
             </p>
+            <CopyLinkButton url={pageMeta.canonical ?? `${SITE_URL}/threat-intel/methodology`} />
           </header>
 
           <Section id="sources" title="Sources">
@@ -226,7 +228,7 @@ const ThreatIntelMethodology = () => {
                   <a
                     href={reference.href}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                     className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
                   >
                     {reference.name}

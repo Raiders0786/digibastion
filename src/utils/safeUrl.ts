@@ -15,6 +15,8 @@ export const safeExternalUrl = (value: unknown): string | null => {
 export const openExternalUrl = (value: unknown): boolean => {
   const url = safeExternalUrl(value);
   if (!url) return false;
-  window.open(url, '_blank', 'noopener,noreferrer');
+  // noopener blocks window.opener; without noreferrer the site's
+  // strict-origin-when-cross-origin policy sends only our origin, so sources see the visit.
+  window.open(url, '_blank', 'noopener');
   return true;
 };

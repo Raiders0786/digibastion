@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Loader2, Send, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetaTags } from "@/components/MetaTags";
+import { TELEGRAM_CHANNEL_HANDLE, TELEGRAM_CHANNEL_URL } from "@/lib/threatIntel/officialLinks";
+
+/**
+ * The management link from verify-email is absolute (www). Keep only the path
+ * and query so the router navigates in place on any host (preview, apex).
+ */
+export function manageLinkPath(manageUrl: string | undefined): string {
+  if (!manageUrl) return "/manage-subscription";
+  try {
+    const url = new URL(manageUrl);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return "/manage-subscription";
+  }
+}
 
 type VerificationStatus = "loading" | "success" | "error" | "invalid";
 
@@ -133,7 +148,7 @@ const VerifyEmail = () => {
               <>
                 {result.manageUrl && (
                   <Button asChild className="w-full">
-                    <Link to={result.manageUrl.replace("https://digibastion.com", "")}>
+                    <Link to={manageLinkPath(result.manageUrl)}>
                       Manage Preferences
                     </Link>
                   </Button>
@@ -141,6 +156,23 @@ const VerifyEmail = () => {
                 <Button variant="outline" asChild className="w-full">
                   <Link to="/threat-intel">View Threat Intel</Link>
                 </Button>
+                <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
+                  <p className="mb-2">While you wait for your first email:</p>
+                  <ul className="space-y-2">
+                    <li>
+                      <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
+                        <Send className="h-4 w-4" aria-hidden="true" />
+                        Join {TELEGRAM_CHANNEL_HANDLE} on Telegram for new Web3 incidents
+                      </a>
+                    </li>
+                    <li>
+                      <Link to="/threat-intel/weekly" className="inline-flex items-center gap-2 text-primary hover:underline">
+                        <Newspaper className="h-4 w-4" aria-hidden="true" />
+                        Read the latest weekly report
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               </>
             )}
 
@@ -163,7 +195,7 @@ const VerifyEmail = () => {
                 You'll now receive security alerts based on your preferences.
                 <br />
                 Check your{' '}
-                <Link to={result.manageUrl?.replace("https://digibastion.com", "") || "/manage-subscription"} className="text-primary hover:underline">
+                <Link to={manageLinkPath(result.manageUrl)} className="text-primary hover:underline">
                   preferences
                 </Link>{' '}
                 to see your delivery schedule.

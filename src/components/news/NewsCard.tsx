@@ -33,7 +33,7 @@ const renderSourceLink = (source: IncidentSourceLink) => (
     key={source.url}
     href={source.url ?? undefined}
     target="_blank"
-    rel="noopener noreferrer"
+    rel="noopener"
     className="pointer-events-auto relative z-10 inline-flex items-center gap-1 rounded-sm underline decoration-primary/50 underline-offset-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
   >
     {source.label}
