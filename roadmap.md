@@ -1,5 +1,7 @@
 # Current tasks
 
+- [ ] Complete Phase 3 release checklist in order; stop at the first failed check, keep newsletters gated and Telegram settings unchanged.
+
 - [x] Fix Meter matching conservatively and verify regression safeguards.
 - [x] Review and apply duplicate cleanup; verify an idempotent dry run (15 marks, 15 source updates, 0 errors; repeat has 0 pending changes).
 - [ ] Both release migrations applied byte-for-byte; database/API checks passed. Preview release check blocked: two same-provider NEAR Intents records remain by the matcher's intentional QuillMonitor exclusion.
