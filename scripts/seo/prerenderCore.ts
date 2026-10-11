@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { createServer } from 'vite';
 import type { PrerenderBody, RouteMeta } from '../../src/seo/routeTypes.ts';
+import { mirrorDynamicSitemap } from './sitemapMirror.ts';
 
 export type PrerenderLayout = 'file' | 'dir' | 'both';
 
@@ -173,10 +174,11 @@ export async function runPrerender({ root, outDir, env, fetchImpl, log }: Preren
     // Fetch incidents first: /threat-intel links the newest ones, so crawlers
     // that skip JavaScript can reach every incident page.
     let dynamic = { incidents: [] as unknown[], weekly: [] as WeeklyPage[] };
+    const supabaseUrl = (env.VITE_SUPABASE_URL?.trim() || entry.DEFAULT_SUPABASE_URL).replace(/\/+$/, '');
     if (env.PRERENDER_DYNAMIC !== '0') {
       dynamic = await withDeadline(
         entry.fetchDynamic({
-          baseUrl: env.VITE_SUPABASE_URL?.trim() || entry.DEFAULT_SUPABASE_URL,
+          baseUrl: supabaseUrl,
           anonKey: env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || entry.DEFAULT_SUPABASE_PUBLISHABLE_KEY,
           incidentLimit: Number(env.PRERENDER_INCIDENT_LIMIT) || DEFAULT_INCIDENT_LIMIT,
           weeklyLimit: WEEKLY_LIMIT,
@@ -235,6 +237,10 @@ export async function runPrerender({ root, outDir, env, fetchImpl, log }: Preren
       } catch (error) {
         log.warn(`[seo] weekly page skipped: ${message(error)}`);
       }
+    }
+
+    if (env.PRERENDER_DYNAMIC !== '0') {
+      await mirrorDynamicSitemap({ outDir, functionsBase: `${supabaseUrl}/functions/v1`, fetchImpl, timeoutMs: REQUEST_TIMEOUT_MS, log });
     }
 
     // Last, so every page above was built from the untouched template.

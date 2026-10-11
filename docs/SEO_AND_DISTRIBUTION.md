@@ -60,8 +60,9 @@ is the largest, and its index also feeds Microsoft Copilot.
 
 | URL | What it lists | Made by |
 | --- | --- | --- |
-| `https://www.digibastion.com/sitemap-index.xml` | Points to `sitemap.xml` | `npm run seo:generate` |
+| `https://www.digibastion.com/sitemap-index.xml` | Points to `sitemap.xml`, and to `sitemap-incidents.xml` when the build could fetch it | `npm run seo:generate`, then the build adds the second entry |
 | `https://www.digibastion.com/sitemap.xml` | Every static page, checklist and guide (101 URLs on 2026-10-11) | `npm run seo:generate` |
+| `https://www.digibastion.com/sitemap-incidents.xml` | A copy of the dynamic function sitemap taken at build time (2,097 URLs on 2026-10-11); as fresh as the last Publish | The build (`scripts/seo/sitemapMirror.ts`) |
 | `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/generate-sitemap?part=dynamic` | Every indexable incident and weekly report, 45,000 per page (`&page=N`) | `generate-sitemap` |
 | `https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/generate-sitemap?part=news` | Google News sitemap: incidents stored in the last 48 hours, at most 1,000 | `generate-sitemap` |
 
@@ -71,10 +72,14 @@ accepted for this site only when this site's `robots.txt` lists it, which is
 why the function URLs are there.
 
 Search Console's Sitemaps report only accepts sitemap URLs inside the verified
-property, and the function host cannot be verified. Submit
-`sitemap-index.xml` there and nothing else. Google reads the function sitemaps
-through `robots.txt`, but they never show in that report; check them with URL
-Inspection on a few incident URLs and in the Pages report instead.
+property, and the function host cannot be verified. A sitemap index cannot
+point at another host either. So the build copies the dynamic sitemap into
+`dist/sitemap-incidents.xml` and adds it to `sitemap-index.xml`: Search Console
+then shows every incident and weekly URL under the one sitemap you submit.
+Submit `sitemap-index.xml` and nothing else. The copy is only as fresh as the
+last Publish; the function sitemaps in `robots.txt` and IndexNow cover what
+appears in between. If the build cannot fetch the function, it writes no copy
+and the index lists only `sitemap.xml`.
 
 **lastmod.** An incident's `lastmod` is the latest of three dates: when we
 stored it (`created_at`), when the source last changed it
