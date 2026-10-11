@@ -71,6 +71,13 @@
       "when": 1791708183804,
       "tag": "0009_weekly_newsletter_list",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791726722290,
+      "tag": "0010_digest_delivery_health",
+      "breakpoints": true
     }
   ]
 }

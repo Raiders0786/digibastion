@@ -225,6 +225,24 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_health_alerts: {
+        Row: {
+          detail: string | null
+          kind: string
+          last_sent_at: string
+        }
+        Insert: {
+          detail?: string | null
+          kind: string
+          last_sent_at: string
+        }
+        Update: {
+          detail?: string | null
+          kind?: string
+          last_sent_at?: string
+        }
+        Relationships: []
+      }
       email_events: {
         Row: {
           country_code: string | null
@@ -1018,6 +1036,7 @@ export type Database = {
       }
       get_cron_auth_headers: { Args: never; Returns: Json }
       get_cron_monitor_data: { Args: { hours_back?: number }; Returns: Json }
+      get_delivery_health: { Args: never; Returns: Json }
       get_subscriber_count: { Args: never; Returns: Json }
       get_threat_intel_health: { Args: never; Returns: Json }
       get_top_leaderboard_ids: { Args: never; Returns: string[] }
