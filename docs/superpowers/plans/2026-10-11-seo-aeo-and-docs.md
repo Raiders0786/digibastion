@@ -1933,7 +1933,7 @@ SUPABASE_ANON_KEY = "<copy DEFAULT_SUPABASE_PUBLISHABLE_KEY from src/integration
 Paste the actual anon key value (it is already public in the repo). Before writing `ORIGIN_URL`, confirm the Lovable preview host from `supabase/functions/email-tracking/index.ts` (its allowlist names `digibastion.lovable.app`).
 
 - [ ] **Step 5: README.md** for the user, in plain steps: what the Worker does and does not do; how to add the site to Cloudflare (free plan), copy every DNS record from GoDaddy (including email MX, SPF, DKIM and DMARC records for Resend so mail keeps working), change nameservers at GoDaddy, deploy with `npx wrangler deploy` from this folder, add the route `www.digibastion.com/*` and `digibastion.com/*`, and how to check it (`curl -sI https://www.digibastion.com/threat-intel/<id>` shows the title and `content-security-policy`); how to roll back (remove the route; DNS can stay on Cloudflare). Warn that Lovable's custom-domain check may need the domain re-verified after the move, and that the origin must be the `*.lovable.app` host to avoid a proxy loop.
-- [ ] **Step 6: Check it bundles.** `bun build edge/cloudflare-worker/src/index.ts --target=browser --outdir /private/tmp/claude-501/worker-check > /dev/null` exits 0, and `npx tsc --noEmit -p edge/cloudflare-worker/tsconfig.json` passes.
+- [ ] **Step 6: Check it bundles.** `bun build edge/cloudflare-worker/src/index.ts --target=browser --outdir "$(mktemp -d)" > /dev/null` exits 0, and `npx tsc --noEmit -p edge/cloudflare-worker/tsconfig.json` passes.
 - [ ] **Step 7: Commit.** `git commit -m "feat(edge): add optional Cloudflare Worker for per-URL meta, redirects and headers"`
 
 ---

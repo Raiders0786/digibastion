@@ -115,7 +115,7 @@ The fastest way back is in the Cloudflare DNS page: switch `digibastion.com` and
 ## Developing
 
 ```sh
-rtk proxy npx vitest run edge/cloudflare-worker/src/plan.test.ts
+npx vitest run edge/cloudflare-worker/src/plan.test.ts
 npx tsc --noEmit -p edge/cloudflare-worker/tsconfig.json
 bun build edge/cloudflare-worker/src/index.ts --target=browser --outdir /tmp/worker-check
 ```
