@@ -39,6 +39,11 @@ systems. In particular, do not:
 - perform denial-of-service, high-volume automation, or actions that create
   material infrastructure or provider cost;
 - send unsolicited email or trigger alerts/digests to other people;
+- make `post-telegram-alerts`, `send-newsletters`, `send-critical-alerts`,
+  `send-digest-emails`, `ping-indexnow` or `resend-webhook` do real work: post
+  to the public Telegram channel, email subscribers, submit URLs to search
+  engines or change the email suppression list. If you find a way past their
+  authorization, stop at the first sign it works and report it;
 - modify production records, scheduled jobs, configuration, or integrations;
 - scan or attack third-party sources linked by Digibastion or customer domains
   shown by VANTAGE;

@@ -64,8 +64,10 @@ forward with `advance_quillmonitor_sync_cursor` only after a successful write.
 An admin can request a full sync, which reads up to 100 pages. Unverified
 QuillMonitor incidents are included and shown as unconfirmed.
 
-`summarize-article` runs at 00:45, 06:45, 12:45 and 18:45 and writes summaries
-for up to 20 records per run with the model `google/gemini-2.5-flash-lite`.
+`summarize-article` runs at 00:45, 06:45, 12:45 and 18:45. Each run summarizes
+up to 20 records not yet processed, plus up to five Web3 incidents from the last
+14 days that still have no summary, with the model
+`google/gemini-2.5-flash-lite`.
 These summaries are labelled "AI summary" on cards and in Telegram posts, so a
 reader can tell them apart from the source's own text.
 

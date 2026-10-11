@@ -27,6 +27,8 @@ element or technology.
 - [ ] Checklist or security plan
 - [ ] OpSec quiz
 - [ ] Threat intelligence or subscriptions
+- [ ] Telegram or newsletters
+- [ ] SEO and sharing
 - [ ] Guides, tools, or resources
 - [ ] VANTAGE connection
 - [ ] Security services

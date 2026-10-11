@@ -1,15 +1,17 @@
 # Archived Lovable plan history
 
-This is a compact record of one-time Lovable plans from September 2026. The
-original plan files were removed from `.lovable/plan/` after their useful
-outcomes were either implemented, superseded, or moved into the current
-roadmap. Their full text remains available in Git history.
+This is a short record of the one-time Lovable plans from September 2026,
+up to 2026-09-26. Those plan files were removed from `.lovable/plan/` once
+their outcomes were built, replaced or moved into the roadmap; their full text
+is in Git history. Newer Lovable plans (from 2026-09-27 on) live in
+`.lovable/plan/` again, and the plans written for this repo's own branches are
+in `docs/superpowers/plans/`.
 
-These entries are historical context, not evidence that a production system is
-currently healthy. Revalidate private infrastructure through **View Backend**
-in the owning Lovable project, plus Vercel, Search Console, the email provider,
-and VANTAGE, before relying on an old completion statement. The managed backend
-does not have a separate Supabase dashboard login.
+These entries are history, not evidence that anything in production is healthy
+today. Before relying on an old completion note, check it again: the backend
+through **View Backend** in the Lovable project, the site in Lovable hosting and
+GoDaddy DNS, then Search Console, the email provider and Vantage. The managed
+backend has no separate Supabase dashboard login.
 
 ## Search and production domain
 

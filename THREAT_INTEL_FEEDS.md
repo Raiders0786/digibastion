@@ -1,122 +1,221 @@
-# Threat-intelligence sources
+# Threat Intel sources
 
-The live public feed is at
-[`/threat-intel`](https://www.digibastion.com/threat-intel). The historical
-`/news` route redirects there.
+Last reviewed: 2026-10-11
 
-This document describes source policy and architecture. It intentionally does
-not label a static list of URLs “active”: source enablement, failures, and
-freshness are runtime facts held in the database and private operations view.
-For this Lovable Cloud managed backend, authorized maintainers inspect those
-facts through **View Backend** in Lovable; there is no separate Supabase
-dashboard login. The previous hand-maintained list had already diverged from
-migrations and production operations.
+The public feed is at [`/threat-intel`](https://www.digibastion.com/threat-intel),
+and the old `/news` route redirects there. The reader-facing version of this
+document is the [methodology page](https://www.digibastion.com/threat-intel/methodology).
+This file is for contributors: it names every source, its terms and schedule,
+and the rules the code applies to what comes in.
 
-## Source model
+Whether a source is healthy right now is a runtime fact, not something a file
+can promise. Check it in `/admin/cron`, in the admin health panel, or through
+**View Backend** in Lovable.
 
-Digibastion currently supports four source families in code:
+## Sources
 
-- RSS or structured advisory/news feeds configured in `rss_feeds`;
-- a protected Web3 incident collector;
-- a protected QuillMonitor integration;
-- a protected SlowMist Hacked latest-page integration, which remains disabled
-  until written reuse permission is recorded by the project owner.
+### QuillMonitor
 
-Each provider is fetched independently by a server-side Edge Function and
-normalized into `news_articles`. Provider-specific incident fields belong in
-`news_articles.metadata`; they do not change the stable public feed schema.
-Sanitized aggregate outcomes are recorded in
-`threat_intel_ingestion_runs` for private operational health.
+- **What:** QuillAudits' database of Web3 hacks and exploits, read through its
+  partner API.
+- **How:** `fetch-quillmonitor-incidents`, at :17 and :47 every hour (UTC). Each
+  run asks for incidents changed since a stored cursor
+  (`app_config.QUILLMONITOR_SYNC_SINCE`), so a status change on an old incident
+  is picked up too. Credential: `QUILLMONITOR_API_KEY`.
+- **Status:** each incident is `verified` or `unverified`, shown on the site as
+  Confirmed or Unconfirmed. Unverified incidents are included.
+- **Attribution:** every QuillMonitor record links its source, and a record
+  whose only source is QuillMonitor shows "Powered by QuillMonitor" with a link
+  to the [QuillMonitor database](https://www.quillaudits.com/web3-hacks-database).
+  Keep that line wherever such a record appears: cards, the incident page,
+  emails and Telegram posts.
 
-The public feed can filter on normalized meaning, including Web3 incidents and
-active alerts, without making any one provider its own product area. Provider
-attribution remains visible on records where it is required or useful.
-SlowMist records use only normalized public facts (target, incident date,
-reported loss, attack method, and reference URL); provider prose and images are
-not stored. Cards carry a compact source badge, and detail views link the
-provider database and original incident reference.
+### Web3 Is Going Just Great
 
-## Canonical taxonomy
+- **What:** [Molly White's timeline](https://www.web3isgoinggreat.com/) of
+  crypto hacks, scams and failures.
+- **How:** `fetch-web3-incidents` scrapes the home page through Firecrawl at
+  00:30, 06:30, 12:30 and 18:30 UTC. Credential: `FIRECRAWL_API_KEY`. The site
+  has no verification status, so these records carry no Confirmed or
+  Unconfirmed label.
+- **Terms:** the site's [attribution page](https://www.web3isgoinggreat.com/attribution)
+  says, as of 2026-10-11: "Text is licensed under the Creative Commons
+  Attribution 3.0 Unported License" and "Feel free to reuse posts on this site
+  under those terms." It also says: "under no circumstance do I wish for my
+  work to be used in NFTs, or in any other crypto projects." Every record links
+  back to the original entry and names the site. Whether a Web3 security site
+  counts as a "crypto project" under that request is for the owner to decide;
+  see [docs/ROADMAP.md](docs/ROADMAP.md).
 
-`news_articles.category` is the record's most specific primary topic. Web3 is
-also a cross-category security domain, and a published incident record is an
-independent content scope:
+### Security news (RSS)
 
-- `metadata.security_domain = "web3"` makes a record discoverable through the
-  Web3 Security umbrella even when its primary category is DeFi, operational
-  security, supply chain, or vulnerability disclosure;
-- `metadata.is_web3_incident = true` marks a Web3 incident, including records
-  explicitly labelled preliminary while provider verification is pending;
-- `metadata.taxonomy_version` and sanitized `classification_reasons` make
-  classifier changes reviewable without storing provider payloads;
-- `metadata.classification_relevant = false` retains a rejected historical RSS
-  record for audit while excluding it from the public feed and email delivery.
+- **What:** RSS feeds from security publishers, listed in the `rss_feeds`
+  table. The methodology page names The Hacker News, BleepingComputer,
+  SecurityWeek, CISA Alerts, Dark Reading and Krebs on Security among them.
+- **How:** `fetch-rss-news` at :15 every hour. A classifier
+  (`_shared/rss-classifier.ts`) files each item by topic and severity and marks
+  items about something else as not relevant. No credential.
+- **On the site:** these records are relays: a title, a short excerpt and a
+  link to the publisher's article. Their pages are readable but carry
+  `noindex, follow`, and they stay out of the sitemaps, feeds and IndexNow
+  pings, because the original article is the page that deserves to rank.
 
-The public `All Intelligence | Web3 Incidents` selector and subscription
-`content_scope` use the same `all` and `web3-incidents` semantics. Category,
-scope, severity, and technology preferences are combined; technology matching
-uses both normalized tags and `affected_technologies`.
+### SlowMist Hacked (built, switched off)
 
-RSS history is repaired through the protected `fetch-rss-news` reclassification
-mode. It is bounded, defaults to a dry run, reuses the production classifier,
-and records aggregate results in `threat_intel_ingestion_runs`. Operators must
-review a complete dry run before setting `dryRun` to `false`; backfills must not
-invoke email senders.
+`fetch-slowmist-incidents` can read the latest entries from SlowMist Hacked
+(`hacked.slowmist.io`). It stores only normalized facts: the target, date,
+reported loss, attack method and reference link, never SlowMist's text or
+images. It has no schedule, and it returns a permission notice unless
+`SLOWMIST_INGESTION_ENABLED=true`. That flag waits on written reuse permission
+from SlowMist. Until then, do not describe SlowMist as a live source anywhere.
 
-## What production operators must verify
+### AI summaries
 
-Lovable **View Backend** and the private admin view, not this file, are
-authoritative for:
+`summarize-article` runs at 00:45, 06:45, 12:45 and 18:45 UTC. Each run
+summarizes up to 20 records not yet processed, plus up to five Web3 incidents
+from the last 14 days that still have no summary. It uses the Lovable AI gateway
+(`LOVABLE_API_KEY`) with `google/gemini-2.5-flash-lite`. These summaries are
+labelled "AI summary" on cards and in Telegram posts. The weekly report can also
+use an AI pass (`WEEKLY_AI_ENABLED`); a validator rejects any name, number or
+claim in its output that is not in the week's data.
 
-- enabled and disabled RSS records;
-- current feed URLs and parser behavior;
-- last attempt and last successful ingestion;
-- records added or refreshed;
-- provider timeouts, rate limits, and partial failures;
-- data-quality warnings and latest record time;
-- scheduled-job outcomes;
-- email alert and digest health.
+## What happens to a record
 
-A migration shows intended configuration at a point in time but does not prove
-that the production database, schedule, or credential is healthy.
+Every importer writes into `news_articles`. Source-specific fields go into
+`news_articles.metadata`, so the public schema does not change when a source is
+added. Each run also writes one summary row to `threat_intel_ingestion_runs`:
+counts, timing and a short error message, never the raw payload or a
+credential.
+
+### Topic and scope
+
+- `category` is the record's most specific topic.
+- `metadata.security_domain = "web3"` puts a record under Web3 Security even
+  when its category is DeFi, supply chain or a vulnerability disclosure.
+- `metadata.is_web3_incident = true` marks a Web3 incident, unconfirmed ones
+  included. The feed's default view, "Web3 Incidents", shows only these; "All
+  Intelligence" adds the security news. Subscriptions use the same two scopes
+  (`content_scope` of `web3-incidents` or `all`).
+- `metadata.classification_relevant = false` hides a rejected RSS record from
+  the feed and from email but keeps it for audit. `taxonomy_version` and
+  `classification_reasons` record why.
+
+`fetch-rss-news` has a `reclassify` mode for re-filing history after a
+classifier change. It is bounded, runs as a dry run unless `dryRun` is `false`,
+and never sends email. Review a full dry run before applying one.
+
+### Severity
+
+One rubric for every incident importer
+(`supabase/functions/_shared/incident-severity.ts`):
+
+| Rule | Severity |
+| --- | --- |
+| Reported loss of $50M or more | critical |
+| Reported loss of $10M or more | high |
+| Attack method is private-key compromise, access control, oracle manipulation, reentrancy or flash loan, even with no disclosed loss | high |
+| Any other disclosed loss above $0 | medium |
+| Everything else | low |
+
+RSS items keep the classifier's severity, which can also be `info`. Losses are
+written as "about $X" or "~$X reported", because the figure is the source's
+estimate.
+
+### One record per incident
+
+`supabase/functions/_shared/incident-dedup.ts` decides when two records describe
+the same incident. Every importer runs it on write; `dedupe-incidents` runs it
+over history when an admin asks, as a dry run by default.
+
+1. Records from different sources match when the normalized project name is the
+   same and either the incident date is the same, or the dates are within two
+   days and one more fact matches: the same positive loss, the same attack
+   method or the same reference link. A loss of zero is not evidence.
+2. Records with different names match only on an identical dated social-post
+   reference, the same incident date and the same positive loss.
+3. Two QuillMonitor records merge only on the same name, date and loss. The
+   verified one survives, then the one with the smaller `uid`.
+4. When sources compete, QuillMonitor's record survives, then Web3 Is Going
+   Just Great, then SlowMist.
+5. The losing record is kept, gets `metadata.duplicate_of_uid`, and adds its
+   link to the survivor's `metadata.sources`. Its URL redirects to the survivor.
+
+There is no fuzzy name matching. A wrong merge hides a real incident, which is
+worse than showing the same incident twice.
+
+### Status changes
+
+When QuillMonitor confirms, revises or retracts an incident, the importer logs
+it in `incident_status_events`. The Telegram post is edited in place, and email
+subscribers who got the alert receive a follow-up for a retraction or an
+upgrade to critical. Subscribers can turn off unconfirmed incidents with
+`include_preliminary` (on by default).
+
+### Attribution rules
+
+- Name the source on every incident, on every surface. If the source is
+  unknown, say "Source not given"; never fill in Digibastion.
+- Never write that Digibastion verified an incident. Status words come only from
+  the source: confirmed, unconfirmed.
+- Keep "Powered by QuillMonitor" on every record whose only source is
+  QuillMonitor.
+- Link the original report. Links to sources never carry UTM tags.
+
+## Where records go
+
+| Channel | What goes out | When |
+| --- | --- | --- |
+| The feed and incident pages | Every publishable record | As soon as it is stored |
+| Telegram `@digibastion` | New QuillMonitor Web3 incidents, and the weekly report link on Mondays | :20 and :50; Mondays 01:00 UTC |
+| Email alerts | Critical and high records that match a subscriber's filters | Checked at :25 and :55 |
+| Daily brief and weekly email | The day's or week's incidents | Built daily at 00:05 and Mondays at 00:10 UTC; sending waits for `NEWSLETTER_POSTAL_ADDRESS` |
+| Weekly report page | The week's incidents, at `/threat-intel/weekly/<YYYY-MM-DD>` | Mondays from 00:10 UTC |
+| Sitemaps, feeds and IndexNow | Web3 incidents and weekly reports only | IndexNow at :22 and :52 |
+
+[docs/SEO_AND_DISTRIBUTION.md](docs/SEO_AND_DISTRIBUTION.md) covers the
+sitemaps, feeds and IndexNow, and
+[docs/PRODUCT_AND_ARCHITECTURE.md](docs/PRODUCT_AND_ARCHITECTURE.md) covers
+delivery in full.
 
 ## Proposing a source
 
-Open a focused GitHub issue with:
+Open a GitHub issue with:
 
-1. Source name, owner, homepage, and machine-readable endpoint.
-2. The gap it fills in the existing feed.
-3. Publication cadence, geographic or ecosystem coverage, and expected volume.
-4. Stable identifiers and a deduplication strategy.
-5. Licensing, attribution, redistribution, and retention terms.
-6. Authentication, rate limits, timeout behavior, and expected operating cost.
-7. Sample records with sensitive data removed.
-8. Proposed category, severity, incident fields, and failure behavior.
+1. The source's name, owner, homepage and machine-readable endpoint.
+2. The gap it fills in the current feed.
+3. How often it publishes, what it covers and how many records to expect.
+4. Stable identifiers, and how its records would match ones we already have.
+5. Its license, attribution and reuse terms, quoted from the source.
+6. Authentication, rate limits, timeouts and running cost.
+7. A few sample records with anything sensitive removed.
+8. The category, severity and incident fields you would map, and what should
+   happen when it fails.
 
-Prefer primary advisories, public incident disclosures, and reputable sources
-with stable structured output. Do not propose scraped paywalled material,
-credentialed sources without permission, marketing feeds disguised as news, or
-sources that cannot be attributed and verified.
+Primary advisories, public incident disclosures and reputable sources with
+stable structured output are the best fit. Paywalled material, sources used
+without permission, marketing feeds dressed as news, and anything that cannot
+be attributed are not.
 
-## Integration requirements
+## Building a new importer
 
-New providers must:
+A new importer must:
 
-- keep credentials server-only;
-- use an isolated ingestion function so one provider cannot block others;
-- validate response shape, URLs, dates, pagination, and numeric fields;
-- bound pages, concurrency, response size, and execution time;
-- generate deterministic identifiers and avoid duplicate public records;
-- sanitize logs and errors;
-- store only normalized public content and approved metadata;
-- write aggregate operational outcomes without raw payloads or secrets;
-- preserve public-write restrictions and administrator/cron authorization;
-- include tests for malformed input, timeouts, duplicates, partial failure, and
-  denied authorization;
-- state the required public attribution.
+- keep its credential on the server, in Lovable Cloud secrets;
+- run as its own function, so it cannot block the others;
+- validate the response shape, URLs, dates, pages and numbers;
+- cap pages, concurrency, response size and run time;
+- build a stable `uid` and run the shared duplicate matcher;
+- use the shared severity rubric;
+- store only normalized public content and the agreed metadata;
+- write one `threat_intel_ingestion_runs` row per run, with no payloads or
+  secrets;
+- authenticate callers with a timing-safe `CRON_SECRET` compare, the
+  service-role key or an admin token (copy `authorize()` from
+  `supabase/functions/send-newsletters/index.ts`);
+- have tests for bad input, timeouts, duplicates, partial failure and refused
+  authorization;
+- state the attribution the source requires.
 
-Changes to feed documentation alone do not activate a source. Activation also
-requires reviewed server code or database configuration, protected credentials
-managed in Lovable, deployment, and a successful production health check by an
-authorized owner. Direct ownership outside Lovable would require migration to
-a separately owned external backend project.
+Merging the code does not switch a source on. That also takes the credential in
+Lovable Cloud, a deployed function, a cron migration and a healthy first run,
+checked by the owner.
