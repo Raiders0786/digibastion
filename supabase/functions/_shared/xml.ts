@@ -11,7 +11,7 @@ export function escapeXml(value: string): string {
 
 // XML 1.0 forbids most C0 control characters even when escaped. Scraped
 // titles occasionally carry them, and one would break the whole document.
-const INVALID_XML_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g;
+const INVALID_XML_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
 
 /** escapeXml after dropping characters XML 1.0 cannot carry at all. */
 export function xmlText(value: string): string {
