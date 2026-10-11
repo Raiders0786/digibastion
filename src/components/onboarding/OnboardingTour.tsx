@@ -20,14 +20,14 @@ const tourSteps: TourStep[] = [
   },
   {
     id: 'alerts',
-    title: 'Live Threat Alerts',
-    description: 'Get real-time notifications about phishing sites, wallet drainers, and exploits. Subscribe to stay protected.',
+    title: 'Threat Intel alerts',
+    description: 'Follow crypto hacks, exploits and phishing, each linked to its source. Get alerts by email or on Telegram.',
     icon: <Bell className="w-6 h-6 text-destructive" />,
   },
   {
     id: 'quiz',
-    title: 'OpSec Quiz',
-    description: 'Test your security knowledge in 2 minutes. Get a crypto character ranking and share your score!',
+    title: 'OpSec self-check',
+    description: 'Check your security habits in two minutes, then share your score if you like.',
     icon: <Shield className="w-6 h-6 text-primary" />,
   },
   {

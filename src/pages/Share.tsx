@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Copy, ExternalLink, Github, Radar, Share2, ShieldCheck } from 'lucide-react';
+import { Check, Copy, ExternalLink, Github, Radar, Send, Share2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Footer } from '@/components/Footer';
@@ -11,6 +11,8 @@ import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { openExternalUrl } from '@/utils/safeUrl';
+import { TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
+import { GITHUB_ISSUES_URL, VANTAGE_URL } from '@/seo/siteFacts';
 
 const pageMeta = staticRouteMeta('/share');
 
@@ -19,22 +21,29 @@ const shareOptions = [
     id: 'personal',
     icon: ShieldCheck,
     title: 'For a friend securing their accounts',
-    text: 'This free Digibastion checkup turns wallet, account and device security into practical next steps.',
+    text: 'This free two-minute OpSec self-check from Digibastion turns wallet, account and device security into practical next steps.',
     url: 'https://www.digibastion.com/quiz',
   },
   {
     id: 'alerts',
     icon: Share2,
     title: 'For a team following active threats',
-    text: 'Digibastion collects sourced Web3 security incidents and offers alert subscriptions in one place.',
+    text: 'Digibastion tracks crypto hacks and exploits from public trackers, one record per incident with its source, with free email and Telegram alerts.',
     url: 'https://www.digibastion.com/threat-intel',
+  },
+  {
+    id: 'telegram',
+    icon: Send,
+    title: 'For someone who wants hack alerts on their phone',
+    text: 'Digibastion\'s Telegram channel posts new crypto hacks and exploits, each with its source and a link to the full record.',
+    url: TELEGRAM_CHANNEL_URL,
   },
   {
     id: 'vantage',
     icon: Radar,
     title: 'For a team responsible for domains',
-    text: 'Vantage by Digibastion connects DNS, TLS, email, frontend and Web3 trust evidence to an ownership workflow.',
-    url: 'https://vantage.digibastion.com/',
+    text: 'Vantage by Digibastion (beta) checks a domain\'s DNS, TLS, email, frontend and Web3 trust signals and tracks who owns each fix.',
+    url: `${VANTAGE_URL}/`,
   },
 ];
 
@@ -78,11 +87,11 @@ const Share = () => {
             <p className="text-sm font-semibold text-primary">Share something useful</p>
             <h1 className="mt-2 text-4xl sm:text-5xl font-bold tracking-tight">Send the right resource, not a generic pitch.</h1>
             <p className="mt-5 text-lg leading-8 text-muted-foreground">
-              Choose the message that fits the person receiving it. Edit the text in your own voice before posting—context is more useful than promotion.
+              Choose the message that fits the person receiving it, and edit it into your own words before you post. Context helps more than promotion.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
             {shareOptions.map((option) => {
               const Icon = option.icon;
               const isCopied = copiedId === option.id;
@@ -117,7 +126,7 @@ const Share = () => {
               </div>
               <div className="flex flex-col sm:flex-row md:flex-col gap-3">
                 <Button asChild>
-                  <a href="https://github.com/Raiders0786/digibastion/issues" target="_blank" rel="noopener noreferrer">
+                  <a href={GITHUB_ISSUES_URL} target="_blank" rel="noopener noreferrer">
                     <Github className="mr-2 h-4 w-4" /> Open an issue
                   </a>
                 </Button>

@@ -125,7 +125,8 @@ const FullStackReview = () => {
     serviceType: 'Security Review',
     provider: {
       '@type': 'Organization',
-      name: 'DigiBastion',
+      '@id': 'https://www.digibastion.com/#organization',
+      name: 'Digibastion',
       url: 'https://www.digibastion.com',
     },
     areaServed: 'Worldwide',
@@ -343,7 +344,7 @@ const FullStackReview = () => {
                 {
                   initials: 'R',
                   name: 'Raiders',
-                  role: 'Founder, DigiBastion. Review lead.',
+                  role: 'Founder, Digibastion. Review lead.',
                   bio:
                     'Security researcher and blockchain engineer. Reads Solidity for a living and has spent years on the wrong end of incident calls. Runs scoping and the final readout on every engagement.',
                   links: [

@@ -227,7 +227,7 @@ export function AlertsPanel({
                   Critical Alerts ({criticalCount ?? criticalAlerts.length})
                 </CardTitle>
                 <CardDescription>
-                  Critical-severity threats and published incident reports requiring prompt review
+                  Incidents with a reported loss of $50M or more, and news the publisher rated critical
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -253,7 +253,7 @@ export function AlertsPanel({
                   <Shield className="w-5 h-5 text-orange-500" aria-hidden="true" />
                   High Priority Alerts ({highCount ?? highAlerts.length})
                 </CardTitle>
-                <CardDescription>Important security alerts requiring attention</CardDescription>
+                <CardDescription>Incidents with a reported loss of $10M or more or an attack type such as a private-key compromise, and news the publisher rated high</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {highAlerts.map((alert) => (

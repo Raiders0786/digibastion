@@ -50,8 +50,8 @@ const services: Service[] = [
   {
     slug: 'vantage-domain-intelligence',
     eyebrow: '03',
-    title: 'Vantage — Domain Security Intelligence',
-    status: 'Live beta',
+    title: 'Vantage: domain security checks',
+    status: 'Beta',
     summary:
       'External trust evidence for the domains your users and partners rely on: DNS, email, TLS, web headers, infrastructure, frontend supply chain, phishing, breach, and Web3 trust paths.',
     bullets: ['Public domain score', 'Private evidence and remediation workflow', 'Monitoring, history, and exports'],
@@ -74,7 +74,7 @@ const services: Service[] = [
 
 const credentials = [
   ['ESP 2025', 'Funded by the Ethereum Foundation'],
-  ['Vantage live', 'Domain intelligence running in public beta'],
+  ['Vantage beta', 'Domain security checks, open to try'],
   ['Source available', 'Read the code before you trust it'],
 ];
 

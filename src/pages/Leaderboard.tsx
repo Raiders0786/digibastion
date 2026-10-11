@@ -84,12 +84,12 @@ const Leaderboard = () => {
                 OpSec Hall of Fame
               </h1>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                A light-hearted view of the highest verified quiz scores. It is not a credential, audit, or measure of how much value someone holds.
+                A light-hearted list of the top 50 verified self-check scores. It is not a credential, audit, or measure of how much value someone holds.
               </p>
               {/* Privacy Notice */}
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50 text-xs text-muted-foreground">
                 <span>🔒</span>
-                <span>Verified non-anonymous submissions appear automatically. Use “anon” in the quiz to stay off this list.</span>
+                <span>Verified non-anonymous submissions appear automatically. Use “anon” as your name in the self-check to stay off this list.</span>
               </div>
             </div>
 
@@ -110,7 +110,7 @@ const Leaderboard = () => {
                 <Users className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No scores yet</h3>
                 <p className="text-muted-foreground">
-                  Complete the quiz with a public display name to add the first verified score.
+                  Finish the self-check with a public display name to add the first verified score.
                 </p>
                 <Button asChild className="mt-6"><Link to="/quiz">Take the self-check</Link></Button>
               </div>

@@ -8,6 +8,8 @@ import { ArticleHeader } from '@/components/article/ArticleHeader';
 import { NotFoundView } from '@/components/article/NotFoundView';
 import { MetaTags } from '../components/MetaTags';
 import { RelatedArticles } from '@/components/article/RelatedArticles';
+import { InlineSubscribeCard } from '@/components/news/InlineSubscribeCard';
+import { buildSubscribeHref } from '@/lib/threatIntel/officialLinks';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import { guideRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { retiredArticleRedirects } from '@/data/articleRedirects';
@@ -103,6 +105,13 @@ const ArticleDetail = () => {
               </ul>
             </section>
           )}
+
+          <div className="mt-10">
+            <InlineSubscribeCard
+              subscribeHref={buildSubscribeHref({ scope: 'web3-incidents' })}
+              title="Get alerts about new crypto hacks"
+            />
+          </div>
 
           <Link
             to="/articles"

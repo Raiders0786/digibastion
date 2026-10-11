@@ -34,7 +34,7 @@ export const OpsecBanner = () => {
             <div className="min-w-0 flex-1">
               <p className="text-sm sm:text-base font-medium text-foreground">
                 <span className="badge-primary mr-2 hidden sm:inline-flex">New</span>
-                <span className="hidden md:inline">Take the OpSec Assessment Quiz and </span>
+                <span className="hidden md:inline">Take the OpSec self-check and </span>
                 <span className="md:hidden">Test your </span>
                 <span className="font-semibold text-primary">discover your security level</span>
               </p>

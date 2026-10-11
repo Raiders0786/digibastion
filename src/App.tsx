@@ -30,6 +30,7 @@ const ThreatIntelMethodology = React.lazy(() => import("./pages/ThreatIntelMetho
 const WeeklyNewsletter = React.lazy(() => import("./pages/WeeklyNewsletter"));
 const WeeklyArchive = React.lazy(() => import("./pages/WeeklyArchive"));
 const Faq = React.lazy(() => import("./pages/Faq"));
+const Privacy = React.lazy(() => import("./pages/Privacy"));
 const QuizResult = React.lazy(() => import("./pages/QuizResult"));
 const Quiz = React.lazy(() => import("./pages/Quiz"));
 const Leaderboard = React.lazy(() => import("./pages/Leaderboard"));
@@ -95,6 +96,7 @@ const App = () => {
                     <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/faq" element={<Faq />} />
+                    <Route path="/privacy" element={<Privacy />} />
                     <Route path="/license" element={<License />} />
                     <Route path="/tools" element={<Tools />} />
                     <Route path="/articles" element={<Articles />} />

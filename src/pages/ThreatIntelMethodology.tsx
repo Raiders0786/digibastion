@@ -23,6 +23,8 @@ import {
   WEB3_IS_GOING_GREAT_URL,
 } from '@/lib/threatIntel/officialLinks';
 import { SLOWMIST_ATTRIBUTION_URL } from '@/utils/newsIncident';
+import { NEWSLETTERS_LIVE } from '@/seo/siteFacts';
+import { FEED_URLS } from '../../supabase/functions/_shared/site-urls';
 
 const pageMeta = staticRouteMeta('/threat-intel/methodology');
 
@@ -185,6 +187,23 @@ const ThreatIntelMethodology = () => {
             </p>
           </Section>
 
+          <Section id="alerts-and-newsletters" title="Alerts and newsletters">
+            <p className="leading-7 text-muted-foreground">
+              Email alerts go out every 30 minutes for new critical and high incidents that match your filters. The{' '}
+              <ExternalAnchor href={TELEGRAM_CHANNEL_URL}>Telegram channel</ExternalAnchor>{' '}
+              posts new incidents from QuillMonitor, plus a link to the weekly report every Monday.
+            </p>
+            <p className="leading-7 text-muted-foreground">
+              The{' '}
+              <Link to="/threat-intel/weekly" className="font-medium text-primary underline-offset-2 hover:underline">weekly report</Link>{' '}
+              covers the Web3 incidents added from Monday to Sunday (UTC) and is published on this site every Monday. Its loss
+              totals count confirmed figures only; unconfirmed losses are shown separately.{' '}
+              {NEWSLETTERS_LIVE
+                ? 'The daily brief and the weekly deep-dive email go out at the hour each subscriber picks.'
+                : 'The daily brief and weekly deep-dive emails start soon.'}
+            </p>
+          </Section>
+
           <Section id="corrections" title="Corrections">
             <p className="leading-7 text-muted-foreground">
               If something is wrong, email{' '}
@@ -210,6 +229,14 @@ const ThreatIntelMethodology = () => {
               <div>
                 <dt className="text-sm text-muted-foreground">Email alerts are sent from</dt>
                 <dd className="font-medium text-foreground">{ALERTS_SENDER_EMAIL}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Web3 incident feeds</dt>
+                <dd className="flex flex-wrap gap-x-4 gap-y-1">
+                  <ExternalAnchor href={FEED_URLS.rss}>RSS</ExternalAnchor>
+                  <ExternalAnchor href={FEED_URLS.atom}>Atom</ExternalAnchor>
+                  <ExternalAnchor href={FEED_URLS.json}>JSON Feed</ExternalAnchor>
+                </dd>
               </div>
             </dl>
             <Card className="flex gap-3 border-amber-500/30 bg-amber-500/5 p-4">

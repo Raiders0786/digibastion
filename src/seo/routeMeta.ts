@@ -326,6 +326,13 @@ const routes: RouteMeta[] = [
     h1: 'License',
     links: [{ href: '/about', label: 'About' }],
   }),
+  page({
+    path: '/privacy',
+    title: 'Privacy: What Digibastion Collects | Digibastion',
+    description: 'What Digibastion stores when you subscribe, take the self-check or use the contact form, what stays in your browser, and how to unsubscribe or ask for deletion.',
+    h1: 'Privacy at Digibastion',
+    links: [{ href: '/contact', label: 'Contact' }, { href: '/license', label: 'License' }],
+  }),
 ];
 
 /** Static routes keyed by canonical path. /tools is built by toolsRouteMeta because its count comes from data. */

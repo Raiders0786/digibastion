@@ -101,7 +101,7 @@ const Quiz = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-warning" />
-                  <span>20 scenarios</span>
+                  <span>8 of 20 scenarios</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-accent" />

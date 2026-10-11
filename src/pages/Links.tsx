@@ -72,7 +72,7 @@ const Links = () => {
           <div className="text-center mb-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-foreground mb-4">Security Resources</h1>
             <p className="text-lg text-foreground-secondary max-w-2xl mx-auto mb-6">
-              A curated collection of security tools, guides, and resources for Web3 developers and users.
+              Links to security guides, tools and references for Web3 users and developers, grouped by topic.
             </p>
             <Button asChild variant="outline" className="hover:bg-primary hover:text-white transition-all duration-300">
               <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">

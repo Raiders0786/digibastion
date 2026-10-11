@@ -59,7 +59,7 @@ export default function Unsubscribe() {
               {status === 'done' && (
                 <div className="flex flex-col items-center gap-4">
                   <CheckCircle className="w-14 h-14 text-green-500" aria-hidden="true" />
-                  <h1 className="text-2xl font-bold">You're unsubscribed from all DigiBastion emails.</h1>
+                  <h1 className="text-2xl font-bold">You're unsubscribed from all Digibastion emails.</h1>
                   <p className="text-muted-foreground">
                     You will not get real-time alerts, the daily brief or the weekly deep-dive at this address.
                   </p>
@@ -86,7 +86,7 @@ export default function Unsubscribe() {
                   <Mail className="w-14 h-14 text-primary" aria-hidden="true" />
                   <h1 className="text-2xl font-bold">Unsubscribe</h1>
                   <p className="text-muted-foreground">
-                    Use the unsubscribe link in any DigiBastion email, or request a secure link from the management page.
+                    Use the unsubscribe link in any Digibastion email, or request a secure link from the management page.
                   </p>
                   <Link to={manageUrl} className={linkClass}>Go to subscription management</Link>
                 </div>

@@ -1,11 +1,17 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { BookOpen, Home, Newspaper, Zap } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Button } from '../components/ui/button';
 import { MetaTags } from '../components/MetaTags';
-import { Github, Home } from 'lucide-react';
+
+const destinations = [
+  { to: '/', label: 'Home', icon: Home },
+  { to: '/threat-intel', label: 'Threat Intel', icon: Newspaper },
+  { to: '/articles', label: 'Security guides', icon: BookOpen },
+  { to: '/quiz', label: 'OpSec self-check', icon: Zap },
+];
 
 const NotFound = () => {
   const location = useLocation();
@@ -19,46 +25,32 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags 
-        title="404 - Page Not Found | Digibastion"
-        description="The page you're looking for doesn't exist. Return home to explore Web3 security checklists, threat intelligence, and OpSec tools."
+      <MetaTags
+        title="Page not found | Digibastion"
+        description="This page does not exist or has moved. Try Threat Intel, the security guides or the OpSec self-check."
         robots="noindex,follow"
       />
       <Navbar />
-      <main className="flex-grow flex items-center justify-center p-4">
+      <main className="flex-grow flex items-center justify-center p-4 pt-24">
         <div className="max-w-md w-full text-center space-y-6">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-primary">404</h1>
-            <h2 className="text-2xl font-semibold">Page Not Found</h2>
+            <p className="text-4xl font-bold text-primary">404</p>
+            <h1 className="text-2xl font-semibold">Page not found</h1>
             <p className="text-foreground-secondary">
-              Oops! The page you're looking for doesn't exist. It might have been moved or removed.
+              This page does not exist or has moved.
             </p>
           </div>
-          
-          <div className="space-y-4">
-            <Button asChild variant="outline" className="w-full sm:w-auto hover:bg-primary hover:text-white transition-all duration-300">
-              <Link to="/">
-                <Home className="w-4 h-4 mr-2" />
-                Return Home
-              </Link>
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/10" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-foreground-secondary">or</span>
-              </div>
-            </div>
 
-            <Button asChild variant="outline" className="w-full sm:w-auto hover:bg-primary hover:text-white transition-all duration-300">
-              <a href="https://github.com/Raiders0786/digibastion/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
-                <Github className="w-4 h-4 mr-2" />
-                Contribute on GitHub
-              </a>
-            </Button>
-          </div>
+          <nav aria-label="Popular pages" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {destinations.map((destination) => (
+              <Button key={destination.to} asChild variant="outline" className="w-full">
+                <Link to={destination.to}>
+                  <destination.icon className="w-4 h-4 mr-2" aria-hidden="true" />
+                  {destination.label}
+                </Link>
+              </Button>
+            ))}
+          </nav>
         </div>
       </main>
       <Footer />

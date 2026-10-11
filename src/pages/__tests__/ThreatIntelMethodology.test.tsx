@@ -28,6 +28,7 @@ describe('ThreatIntelMethodology', () => {
       'Confirmed and unconfirmed',
       'How duplicates are merged',
       'Dates',
+      'Alerts and newsletters',
       'Corrections',
       'Official channels',
       'References',
@@ -78,6 +79,9 @@ describe('ThreatIntelMethodology', () => {
     expect(screen.getByRole('link', { name: 't.me/digibastion' }).getAttribute('href')).toBe('https://t.me/digibastion');
     expect(screen.getByText('alerts@digibastion.com')).not.toBeNull();
     expect(screen.getByText(/never ask you to connect a wallet/)).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'RSS' }).getAttribute('href')).toContain('threat-intel-feed?format=rss');
+    expect(screen.getByRole('link', { name: 'Atom' }).getAttribute('href')).toContain('threat-intel-feed?format=atom');
+    expect(screen.getByRole('link', { name: 'JSON Feed' }).getAttribute('href')).toContain('threat-intel-feed?format=json');
   });
 
   it('links the reference sources', () => {
@@ -89,5 +93,17 @@ describe('ThreatIntelMethodology', () => {
     expect(screen.getByRole('link', { name: 'CISA Known Exploited Vulnerabilities catalog' }).getAttribute('href'))
       .toBe('https://www.cisa.gov/known-exploited-vulnerabilities-catalog');
     expect(screen.getByRole('link', { name: 'ScamSniffer' }).getAttribute('href')).toBe('https://drops.scamsniffer.io/');
+  });
+});
+
+describe('ThreatIntelMethodology alerts section', () => {
+  it('describes alerts, Telegram and the weekly report without a severity claim for Telegram', () => {
+    renderPage();
+
+    const section = screen.getByRole('region', { name: 'Alerts and newsletters' });
+    expect(section.textContent).toMatch(/Email alerts go out every 30 minutes for new critical and high incidents/);
+    expect(section.textContent).toMatch(/posts new incidents from QuillMonitor, plus a link to the weekly report every Monday/);
+    expect(section.textContent).toMatch(/The daily brief and weekly deep-dive emails start soon\./);
+    expect(section.textContent).not.toMatch(/high and critical/);
   });
 });

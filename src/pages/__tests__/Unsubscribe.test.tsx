@@ -36,7 +36,7 @@ describe('Unsubscribe page', () => {
   it('unsubscribes exactly once with the email and token', async () => {
     renderAt(`/unsubscribe?email=${encodeURIComponent(EMAIL)}&token=${TOKEN}`);
 
-    expect(await screen.findByText("You're unsubscribed from all DigiBastion emails.")).not.toBeNull();
+    expect(await screen.findByText("You're unsubscribed from all Digibastion emails.")).not.toBeNull();
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(invoke).toHaveBeenCalledWith('unsubscribe', { body: { email: EMAIL, token: TOKEN } });
   });

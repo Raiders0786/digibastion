@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, ExternalLink, Mail } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { toMetaTagsProps, weeklyRouteMeta } from '@/seo/routeMeta';
+import { NEWSLETTERS_LIVE } from '@/seo/siteFacts';
 import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
@@ -260,7 +261,7 @@ function WeeklyIssue({ page }: { page: WeeklyNewsletterPage }) {
         )}
       </Section>
 
-      <Section id="opsec" title="Opsec tip">
+      <Section id="opsec" title="OpSec tip">
         <Card className="space-y-2 p-4">
           <p className="leading-7 text-foreground/90">{content.opsecTip.text}</p>
           {content.opsecTip.guideTitle && (
@@ -290,7 +291,9 @@ function WeeklyIssue({ page }: { page: WeeklyNewsletterPage }) {
       <Card className="space-y-3 p-5">
         <h2 className="text-xl font-semibold text-foreground">Get the weekly deep-dive by email</h2>
         <p className="text-sm leading-6 text-muted-foreground">
-          One email each Monday at your local hour, with the same figures and sources as this page.
+          {NEWSLETTERS_LIVE
+            ? 'One email each Monday at your local hour, with the same figures and sources as this page.'
+            : 'The email version starts soon. Sign up now and it will arrive each Monday at your local hour, with the same figures and sources as this page. Until then, a new report goes up here every Monday.'}
         </p>
         <Link
           to={weeklySubscribeHref()}

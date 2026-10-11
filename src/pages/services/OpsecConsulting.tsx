@@ -93,7 +93,8 @@ const OpsecConsulting = () => {
     serviceType: 'Operational Security Consulting',
     provider: {
       '@type': 'Organization',
-      name: 'DigiBastion',
+      '@id': 'https://www.digibastion.com/#organization',
+      name: 'Digibastion',
       url: 'https://www.digibastion.com',
     },
     areaServed: 'Worldwide',
@@ -306,9 +307,9 @@ const OpsecConsulting = () => {
                 {
                   initials: 'R',
                   name: 'Raiders',
-                  role: 'Founder, DigiBastion. OpSec lead.',
+                  role: 'Founder, Digibastion. OpSec lead.',
                   bio:
-                    'Security researcher and blockchain engineer. Built DigiBastion from scratch and runs every engagement end to end, from the first review of your wallets to the late-night call when something is wrong.',
+                    'Security researcher and blockchain engineer. Built Digibastion from scratch and runs every engagement end to end, from the first review of your wallets to the late-night call when something is wrong.',
                   links: [
                     { Icon: Twitter, href: 'https://x.com/__Raiders' },
                     { Icon: Github, href: 'https://github.com/Raiders0786' },

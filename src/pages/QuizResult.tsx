@@ -165,7 +165,7 @@ const QuizResult = () => {
                 )}
                 <div>
                   <p className="font-bold text-xl text-foreground">@{username}</p>
-                  <p className="text-sm text-foreground-secondary">OpSec Assessment</p>
+                  <p className="text-sm text-foreground-secondary">OpSec self-check</p>
                 </div>
               </div>
 

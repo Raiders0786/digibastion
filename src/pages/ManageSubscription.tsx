@@ -338,9 +338,9 @@ export default function ManageSubscription() {
             <Card className="glass-card">
               <CardContent className="p-12 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold mb-2">You've Been Unsubscribed</h2>
+                <h2 className="text-2xl font-bold mb-2">You're unsubscribed from all Digibastion emails.</h2>
                 <p className="text-muted-foreground mb-6">
-                  You will no longer receive security alerts at this email address.
+                  You will not get real-time alerts, the daily brief or the weekly deep-dive at this address.
                 </p>
                 <Button variant="outline" onClick={() => window.location.href = '/threat-intel'}>
                   Back to Threat Intel

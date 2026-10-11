@@ -63,7 +63,7 @@ const products = [
 const principles = [
   {
     title: 'Show the source',
-    description: 'Threat reports, recommendations and educational material should be traceable to evidence—not anonymous certainty.',
+    description: 'Every threat report, recommendation and guide should point to its evidence, so you can check it yourself.',
   },
   {
     title: 'Give a next action',
@@ -184,7 +184,7 @@ const About = () => (
               </div>
               <h2 id="proof-and-participation" className="mt-5 text-2xl sm:text-3xl font-bold">Built in public, improved by practitioners.</h2>
               <p className="mt-4 text-muted-foreground leading-7">
-                Security researchers, writers, designers and engineers can propose corrections, add sources, improve a checklist or build a feature. A useful contribution can be one precise paragraph—not only a large pull request.
+                Security researchers, writers, designers and engineers can propose corrections, add sources, improve a checklist or build a feature. One precise paragraph is as welcome as a large pull request.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild>

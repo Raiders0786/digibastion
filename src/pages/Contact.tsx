@@ -7,6 +7,7 @@ import { serializeJsonLd } from '@/utils/jsonLd';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Bug, Mail, MessageSquare, ShieldCheck, Twitter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CORRECTIONS_EMAIL, METHODOLOGY_PATH } from '@/lib/threatIntel/officialLinks';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from 'zod';
@@ -25,7 +26,8 @@ const INQUIRY_TYPES = [
   { value: 'vantage', label: 'Vantage product or beta access' },
   { value: 'partnership', label: 'Partnership or sponsorship' },
   { value: 'contribution', label: 'Contribution or research idea' },
-  { value: 'content', label: 'Correction to published content' },
+  { value: 'incident-correction', label: 'Incident correction' },
+  { value: 'content', label: 'Correction to a guide or checklist' },
   { value: 'other', label: 'Something else' },
 ];
 
@@ -220,6 +222,15 @@ const Contact = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {inquiryType === 'incident-correction' && (
+                    <p className="mt-2 text-sm text-muted-foreground" data-testid="incident-correction-note">
+                      Fastest route: email{' '}
+                      <a href={`mailto:${CORRECTIONS_EMAIL}`} className="font-medium text-primary hover:underline">{CORRECTIONS_EMAIL}</a>{' '}
+                      with the incident link, what is wrong and a public source for the right information. The{' '}
+                      <Link to={`${METHODOLOGY_PATH}#corrections`} className="font-medium text-primary hover:underline">methodology page</Link>{' '}
+                      explains how corrections work.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="contact-social" className="block text-sm font-medium mb-2">Social Handle (Optional)</label>
