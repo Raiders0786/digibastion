@@ -8,6 +8,7 @@ import { shortIssueDate } from './daily-brief.ts';
 import { renderComplianceFooterHtml, renderComplianceFooterText, renderEmailDocument } from './email-compliance.ts';
 import {
   formatLossReported,
+  newsletterItemToDeliverable,
   type NewsletterItem,
   type WeeklyBreakdown,
   type WeeklyIssueContent,
@@ -18,9 +19,11 @@ import type { RenderContext, RenderedEmail } from './newsletter-render.ts';
 import { WEEK_START } from './publishable.ts';
 import { sourceCredit, trackEmailLink } from './share-links.ts';
 import { weeklyPath } from './site-urls.ts';
-import { escapeHtml } from './subscription-delivery.ts';
+import { escapeHtml, matchesDeliveryPreferences, type DeliveryPreferences } from './subscription-delivery.ts';
 
 const WEEKLY_REASON = 'You get this email because you subscribed to the Digibastion weekly deep-dive.';
+/** "More this week" shows up to this many; the rest are a link away. */
+export const WEEKLY_MORE_SHOWN = 20;
 export const AI_NOTE = 'Written by AI from the data above';
 const HYPE = /\b(immediate action required|urgent|massive|devastating)\b/gi;
 const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
@@ -45,6 +48,18 @@ export function toPublicWeekly(c: WeeklyIssueContent | WeeklyPublicContent): Wee
   const copy: Partial<WeeklyIssueContent> = { ...c };
   delete copy.archive;
   return copy as WeeklyPublicContent;
+}
+
+/**
+ * One subscriber's weekly email: the shared deep-dive plus "More this week",
+ * the week's other records that match their filters (the same rule as the
+ * legacy weekly digest). Records already in the deep-dive are left out.
+ */
+export function personalizeWeekly(c: WeeklyIssueContent | WeeklyPublicContent, prefs: DeliveryPreferences): WeeklyPublicContent {
+  const updates = 'archive' in c && c.archive && Array.isArray(c.archive.updates) ? c.archive.updates : [];
+  const shown = new Set([...c.top.map((entry) => entry.item.uid), ...c.vulnerabilities.items.map((entry) => entry.uid)]);
+  const more = updates.filter((entry) => !shown.has(entry.uid) && matchesDeliveryPreferences(newsletterItemToDeliverable(entry), prefs));
+  return { ...toPublicWeekly(c), more };
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -212,6 +227,25 @@ function vulnerabilitiesHtml(c: WeeklyPublicContent, track: Track): string {
   return sectionTitleHtml('Vulnerabilities and supply-chain') + row(paragraphHtml(c.vulnerabilities.summary) + items, '0 28px 12px');
 }
 
+function moreThisWeek(c: WeeklyPublicContent, track: Track): { html: string; text: string } | null {
+  const more = c.more ?? [];
+  if (more.length === 0) return null;
+  const shown = more.slice(0, WEEKLY_MORE_SHOWN);
+  const hidden = more.length - shown.length;
+  const moreUrl = track('/threat-intel', 'more');
+  const hiddenLabel = `${hidden} more update${hidden === 1 ? '' : 's'} on Digibastion`;
+  const html = sectionTitleHtml('More this week') + row(
+    shown.map((entry) => `<div style="margin:10px 0 0;">${itemHeadHtml(entry, track)}${linksHtml(entry, track)}</div>`).join('') +
+    (hidden > 0 ? `<p style="margin:12px 0 0;${MUTED}"><a href="${escapeHtml(moreUrl)}" style="${LINK}">${escapeHtml(hiddenLabel)}</a></p>` : ''),
+    '0 28px 12px',
+  );
+  const text = sectionText('More this week', [
+    ...shown.map((entry) => itemText(entry, track)),
+    ...(hidden > 0 ? [`${hiddenLabel}: ${moreUrl}`] : []),
+  ].join('\n\n'));
+  return { html, text };
+}
+
 function headerHtml(c: WeeklyPublicContent, webVersion: string | null): string {
   return row(
     `<p style="margin:0;color:#93c5fd;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Digibastion Threat Intel</p>` +
@@ -254,6 +288,7 @@ export function renderWeeklyEmail(c: WeeklyPublicContent, ctx: RenderContext): R
   const track = trackerFor(ctx);
   const webVersion = webVersionUrl(c, track);
   const tipUrl = track(c.opsecTip.url, 'tip');
+  const more = moreThisWeek(c, track);
 
   const html = renderEmailDocument({
     title: subject,
@@ -264,6 +299,7 @@ export function renderWeeklyEmail(c: WeeklyPublicContent, ctx: RenderContext): R
       topHtml(c, track),
       sectionTitleHtml('Trends') + row(paragraphHtml(c.trends), '0 28px 12px'),
       vulnerabilitiesHtml(c, track),
+      more?.html ?? '',
       sectionTitleHtml('Opsec tip') + row(
         `<p style="margin:0;${BODY}">${escapeHtml(c.opsecTip.text)}</p>` +
         `<p style="margin:6px 0 0;${MUTED}"><a href="${escapeHtml(tipUrl)}" style="${LINK}">${escapeHtml(c.opsecTip.guideTitle)}</a></p>`,
@@ -300,6 +336,7 @@ export function renderWeeklyEmail(c: WeeklyPublicContent, ctx: RenderContext): R
     '',
     sectionText('Vulnerabilities and supply-chain', [paragraphText(c.vulnerabilities.summary), ...c.vulnerabilities.items.map((entry) => itemText(entry, track))].join('\n\n')),
     '',
+    ...(more ? [more.text, ''] : []),
     sectionText('Opsec tip', `${c.opsecTip.text}\n${c.opsecTip.guideTitle}: ${tipUrl}`),
     '',
     ...(sources.length > 0 ? [sectionText('Sources this week', sources.join(', ')), ''] : []),

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildUnsubscribeLinks } from './email-compliance.ts';
 import type { RenderContext } from './newsletter-render.ts';
 import type { NewsletterItem, WeeklyIssueContent } from './newsletter-content.ts';
-import { assembleWeeklyContent } from './weekly-content.ts';
-import { buildWeeklySubject, isWeeklyPublicContent, renderWeeklyEmail, toPublicWeekly } from './weekly-render.ts';
+import { assembleWeeklyContent, selectWeeklyUpdates } from './weekly-content.ts';
+import { buildWeeklySubject, isWeeklyPublicContent, personalizeWeekly, renderWeeklyEmail, toPublicWeekly, WEEKLY_MORE_SHOWN } from './weekly-render.ts';
 import { computeWeeklyTotals, selectTopIncidents } from './weekly-stats.ts';
 import { SITE, WEEK_START, weeklyItem as item, weeklyVulnerability as vuln } from './weekly-test-fixtures.ts';
 
@@ -162,5 +162,50 @@ describe('isWeeklyPublicContent and toPublicWeekly', () => {
     expect(isWeeklyPublicContent(toPublicWeekly(content))).toBe(true);
     expect(isWeeklyPublicContent({ kind: 'weekly', version: 1 })).toBe(false);
     expect(isWeeklyPublicContent({ ...content, version: 2 })).toBe(false);
+  });
+});
+
+describe('More this week', () => {
+  const news = (uid: string, overrides: Partial<NewsletterItem> = {}) => item({
+    uid, title: `News ${uid}`, isWeb3Incident: false, status: null, category: 'operational-security',
+    severity: 'medium', projectName: null, chain: null, attackType: null, amountUsd: null, amountDisplay: null, ...overrides,
+  });
+
+  it('stores the week records outside the deep-dive, most important first', () => {
+    const c = build(week);
+    const updates = selectWeeklyUpdates([...week, news('n1'), news('n2', { severity: 'high' }), news('n1')], c);
+    expect(updates.map((entry) => entry.uid)).toEqual(['n2', 'n1']);
+  });
+
+  it("adds the subscriber's matches, keeps them off the public page, and renders them", () => {
+    const c = build(week);
+    c.archive.updates = selectWeeklyUpdates([...week, news('n1'), news('n2', { category: 'tools-reviews' })], c);
+    expect('updates' in toPublicWeekly(c)).toBe(false);
+    expect(JSON.stringify(toPublicWeekly(c))).not.toContain('News n1');
+
+    const opsec = personalizeWeekly(c, { severity_threshold: 'medium', categories: ['operational-security'] });
+    expect(opsec.more?.map((entry) => entry.uid)).toEqual(['n1']);
+    expect('archive' in opsec).toBe(false);
+    const { html, text } = renderWeeklyEmail(opsec, ctx);
+    expect(text).toContain('More this week');
+    expect(html).toContain('News n1');
+    expect(html).not.toContain('News n2');
+
+    const none = personalizeWeekly(c, { severity_threshold: 'critical' });
+    expect(none.more).toEqual([]);
+    expect(renderWeeklyEmail(none, ctx).text).not.toContain('More this week');
+  });
+
+  it('works on issues built before archive.updates existed', () => {
+    expect(personalizeWeekly(build(week), { severity_threshold: 'info' }).more).toEqual([]);
+  });
+
+  it('shows the first 20 and links the rest, under 90 KB', () => {
+    const c = build(week);
+    const long = 'A long summary sentence about a phishing campaign aimed at wallet users that keeps going. '.repeat(4).slice(0, 280);
+    c.archive.updates = selectWeeklyUpdates(Array.from({ length: 200 }, (_, index) => news(`n${index}-${'z'.repeat(40)}`, { summary: long, title: `${'Long news title '.repeat(8)}${index}` })), c);
+    const { html, text } = renderWeeklyEmail(personalizeWeekly(c, { severity_threshold: 'info' }), ctx);
+    expect(text).toContain(`${200 - WEEKLY_MORE_SHOWN} more updates on Digibastion`);
+    expect(new TextEncoder().encode(html).length).toBeLessThan(90 * 1024);
   });
 });

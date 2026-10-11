@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
-import { dailyBriefItemCount, filterDailyBriefForSubscriber, isDailyBriefContent } from '../_shared/daily-brief.ts';
+import { dailyBriefItemCount, filterDailyBriefForSubscriber, isDailyBriefContent, quietDailyBrief } from '../_shared/daily-brief.ts';
 import {
   buildUnsubscribeLinks,
   emailHash,
@@ -21,12 +21,15 @@ import {
   dailyIssueDateFor,
   isNewsletterDue,
   localClock,
+  recentlyNotified,
   resolveZone,
   weeklyDayOf,
   weeklyIssueDateFor,
   type Zone,
 } from '../_shared/send-window.ts';
 import type { DeliveryPreferences } from '../_shared/subscription-delivery.ts';
+import { isWeeklyPublicContent, personalizeWeekly } from '../_shared/weekly-render.ts';
+import type { WeeklyIssueContent } from '../_shared/newsletter-content.ts';
 import { SITE_URL } from '../_shared/site-urls.ts';
 
 // Daily briefs and weekly deep-dives, sent at each subscriber's local hour.
@@ -50,7 +53,7 @@ const DEFAULT_PREFERRED_HOUR = 9;
 // Any well-formed token works in a test email's links: it matches no row.
 const PLACEHOLDER_TOKEN = '00000000-0000-0000-0000-000000000000';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SUBSCRIPTION_COLUMNS = 'id, email, verification_token, categories, technologies, severity_threshold, content_scope, include_preliminary, chains, wants_daily, wants_weekly, timezone, timezone_offset, preferred_hour, preferred_day';
+const SUBSCRIPTION_COLUMNS = 'id, email, verification_token, categories, technologies, severity_threshold, content_scope, include_preliminary, chains, wants_daily, wants_weekly, timezone, timezone_offset, preferred_hour, preferred_day, last_notified_at';
 const ISSUE_COLUMNS = 'id, kind, period_start, period_end, status, content, generated_at';
 const EVENT_TYPES: Record<Kind, string> = { daily: 'daily_brief', weekly: 'weekly_deep_dive' };
 
@@ -68,6 +71,7 @@ interface Subscriber extends DeliveryPreferences {
   timezone_offset: number | string | null;
   preferred_hour: number | null;
   preferred_day: number | null;
+  last_notified_at: string | null;
 }
 
 interface Issue {
@@ -267,7 +271,8 @@ function planTasks(subscribers: Subscriber[], issues: Map<string, Issue>, existi
     const preferredHour = preferredHourOf(sub);
     const localDate = localClock(now, zone).date;
     const wanted: { kind: Kind; issueDate: string | null }[] = [];
-    if (sub.wants_daily) wanted.push({ kind: 'daily', issueDate: dailyIssueDateFor(now, zone) });
+    // Someone who got a digest in the last 12 hours (the legacy one, on cut-over day) waits for tomorrow.
+    if (sub.wants_daily && !recentlyNotified(sub.last_notified_at, now)) wanted.push({ kind: 'daily', issueDate: dailyIssueDateFor(now, zone) });
     // The weekly goes out on the subscriber's weekly day (Monday when unset).
     if (sub.wants_weekly) wanted.push({ kind: 'weekly', issueDate: weeklyIssueDateFor(now, zone, weeklyDayOf(sub.preferred_day)) });
     for (const { kind, issueDate } of wanted) {
@@ -285,10 +290,18 @@ function planTasks(subscribers: Subscriber[], issues: Map<string, Issue>, existi
 
 /** What this subscriber should get from the issue: the filtered daily (a quiet-day brief when nothing matches) or the shared weekly. */
 function contentFor(task: Task): unknown {
-  if (task.kind === 'weekly') return task.issue.content; // one shared edition, as on the public page
-  if (!isDailyBriefContent(task.issue.content)) return undefined;
-  return filterDailyBriefForSubscriber(task.issue.content, task.sub);
+  return personalContent(task.kind, task.issue.content, task.sub);
 }
+
+/** The shared weekly plus this subscriber's "More this week", or their filtered daily; undefined when unrenderable. */
+function personalContent(kind: Kind, content: unknown, prefs: DeliveryPreferences): unknown {
+  if (kind === 'weekly') return isWeeklyPublicContent(content) ? personalizeWeekly(content as WeeklyIssueContent, prefs) : undefined;
+  if (!isDailyBriefContent(content)) return undefined;
+  return filterDailyBriefForSubscriber(content, prefs);
+}
+
+const hasWeeklyUpdates = (content: unknown): boolean =>
+  isWeeklyPublicContent(content) && Array.isArray((content as WeeklyIssueContent).archive?.updates);
 
 interface RunContext {
   db: Db;
@@ -380,7 +393,15 @@ async function runTask(ctx: RunContext, task: Task, suppressed: boolean, counter
   return true;
 }
 
-async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail: string, kind: Kind, issueId: string | null): Promise<Response> {
+type TestView = 'edition' | 'subscriber' | 'quiet';
+
+/**
+ * Sends one issue to the signed-in admin. view 'edition' (default) is the
+ * whole issue, unfiltered; 'subscriber' is what the admin's own subscription
+ * would get (daily filtered or quiet, weekly with "More this week"); 'quiet'
+ * previews the daily quiet-day brief.
+ */
+async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail: string, kind: Kind, issueId: string | null, view: TestView): Promise<Response> {
   let query = db.from('newsletter_issues').select(ISSUE_COLUMNS).eq('kind', kind).in('status', ['ready', 'sent']);
   if (issueId) query = query.eq('id', issueId);
   const { data: issue, error } = await query.order('period_end', { ascending: false }).limit(1).maybeSingle();
@@ -389,14 +410,22 @@ async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail:
 
   const { data: own } = await db
     .from('subscriptions')
-    .select('verification_token')
+    .select(SUBSCRIPTION_COLUMNS)
     .eq('email', normalizeEmail(adminEmail))
     .maybeSingle();
+  if (view !== 'edition' && !own) return json({ success: false, error: 'The admin address has no subscription to preview' }, 404);
+  const prefs = (own ?? {}) as DeliveryPreferences;
+  const content = (issue as Issue).content;
+  let body: unknown = content;
+  if (view === 'subscriber') body = personalContent(kind, content, prefs);
+  if (view === 'quiet') {
+    if (kind !== 'daily' || !isDailyBriefContent(content)) return json({ success: false, error: 'quiet previews the daily brief only' }, 400);
+    body = quietDailyBrief(content, prefs);
+  }
   const token = typeof own?.verification_token === 'string' ? own.verification_token : PLACEHOLDER_TOKEN;
   const links = linksFor(adminEmail, token, supabaseUrl);
   const postalAddress = readPostalAddress(Deno.env.get('NEWSLETTER_POSTAL_ADDRESS'));
-  // The whole edition, unfiltered, so the admin can review every section.
-  const rendered = renderNewsletterEmail(kind, (issue as Issue).content, {
+  const rendered = renderNewsletterEmail(kind, body, {
     links,
     postalAddress,
     testWarning: postalAddress === null,
@@ -412,7 +441,7 @@ async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail:
     email: {
       from: FROM,
       to: [adminEmail],
-      subject: `[Test] ${rendered.subject}`,
+      subject: `[Test${view === 'edition' ? '' : `, ${view}`}] ${rendered.subject}`,
       html: rendered.html,
       text: rendered.text,
       reply_to: REPLY_TO,
@@ -421,7 +450,7 @@ async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail:
     },
   });
   return json(
-    { success: outcome.status === 'sent', test: true, kind, issueId: (issue as Issue).id, outcome: outcome.status },
+    { success: outcome.status === 'sent', test: true, kind, view, issueId: (issue as Issue).id, outcome: outcome.status },
     outcome.status === 'sent' ? 200 : 502,
   );
 }
@@ -503,6 +532,14 @@ async function parityReport(db: Db, supabaseUrl: string): Promise<Response> {
     if (sub.wants_weekly) {
       row.weekly_day = weeklyDayOf(sub.preferred_day);
       if (!weekly) reasons.push('no_weekly_issue');
+      else {
+        // Issues built before the parity change have no archive.updates, so no "More this week".
+        if (!hasWeeklyUpdates(weekly.content)) reasons.push('weekly_issue_built_before_parity');
+        const links = linksFor(sub.email, sub.verification_token ?? PLACEHOLDER_TOKEN, supabaseUrl);
+        if (!renderNewsletterEmail('weekly', personalContent('weekly', weekly.content, sub), { links, postalAddress: null, testWarning: true, siteUrl: SITE_URL })) {
+          reasons.push('weekly_unrenderable');
+        }
+      }
     }
     row.status = reasons.length === 0 ? 'would_send' : 'blocked';
     return row;
@@ -517,7 +554,7 @@ async function parityReport(db: Db, supabaseUrl: string): Promise<Response> {
     would_send: wouldSend,
     blocked: rows.length - wouldSend,
     daily_issue: daily ? { id: daily.id, period_end: daily.period_end, has_updates: dailyHasUpdates } : null,
-    weekly_issue: weekly ? { id: weekly.id, period_end: weekly.period_end } : null,
+    weekly_issue: weekly ? { id: weekly.id, period_end: weekly.period_end, has_updates: hasWeeklyUpdates(weekly.content) } : null,
     rows,
   });
 }
@@ -559,9 +596,13 @@ Deno.serve(async (req) => {
     if (body.issueId !== undefined && (typeof body.issueId !== 'string' || !UUID.test(body.issueId))) {
       return json({ error: 'issueId must be a uuid' }, 400);
     }
+    if (body.view !== undefined && body.view !== 'edition' && body.view !== 'subscriber' && body.view !== 'quiet') {
+      return json({ error: "view must be 'edition', 'subscriber' or 'quiet'" }, 400);
+    }
     if (!apiKey) return json({ error: 'RESEND_API_KEY is not configured' }, 500);
     try {
-      return await sendTest(db, apiKey, supabaseUrl, principal.email, body.kind, typeof body.issueId === 'string' ? body.issueId : null);
+      const view: TestView = body.view === 'subscriber' || body.view === 'quiet' ? body.view : 'edition';
+      return await sendTest(db, apiKey, supabaseUrl, principal.email, body.kind, typeof body.issueId === 'string' ? body.issueId : null, view);
     } catch (error) {
       console.error('[send-newsletters] test send failed:', error instanceof Error ? error.message : 'unknown');
       return json({ success: false, error: 'Test send failed' }, 500);

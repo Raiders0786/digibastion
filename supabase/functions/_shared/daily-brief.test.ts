@@ -6,6 +6,7 @@ import {
   dailyIssuePeriod,
   filterDailyBriefForSubscriber,
   isDailyBriefContent,
+  quietDailyBrief,
   type DailyBriefInput,
 } from './daily-brief.ts';
 import {
@@ -235,6 +236,13 @@ describe('filterDailyBriefForSubscriber', () => {
 
     const web3Only = filterDailyBriefForSubscriber(content, { chains: ['base'], content_scope: 'web3-incidents' });
     expect(web3Only.quiet?.highlights).toEqual([]);
+  });
+
+  it('previews a quiet day for any subscriber', () => {
+    const preview = quietDailyBrief(content, { severity_threshold: 'high', categories: ['defi-exploits'] });
+    expect(dailyBriefItemCount(preview)).toBe(0);
+    expect(preview.quiet?.filterSummary).toBe('high severity and above in DeFi exploits');
+    expect(preview.quiet?.highlights.length).toBe(3);
   });
 
   it('never carries a stored quiet field into a matching view', () => {

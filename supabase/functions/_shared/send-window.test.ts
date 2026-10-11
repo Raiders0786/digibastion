@@ -4,6 +4,7 @@ import {
   dailyIssueDateFor,
   isNewsletterDue,
   localClock,
+  recentlyNotified,
   resolveZone,
   weeklyDayOf,
   weeklyIssueDateFor,
@@ -173,5 +174,18 @@ describe('isNewsletterDue', () => {
     const base = { zone, preferredHour: 9, issueDate: '2026-10-12', issueReadyAt: at('2026-10-12T00:05:00Z') };
     expect(isNewsletterDue({ ...base, now: at('2026-10-12T03:15:00Z') })).toBe(true);
     expect(isNewsletterDue({ ...base, now: at('2026-10-12T03:00:00Z') })).toBe(false);
+  });
+});
+
+describe('recentlyNotified', () => {
+  const now = at('2026-10-12T09:00:00Z');
+  it('holds a daily brief for 12 hours after any digest', () => {
+    expect(recentlyNotified('2026-10-12T05:00:00Z', now)).toBe(true);
+    expect(recentlyNotified('2026-10-11T21:00:01Z', now)).toBe(true);
+    expect(recentlyNotified('2026-10-11T21:00:00Z', now)).toBe(false);
+    expect(recentlyNotified('2026-10-11T09:00:00Z', now)).toBe(false);
+  });
+  it('ignores missing, malformed and future timestamps', () => {
+    for (const value of [null, undefined, '', 'not a date', '2026-10-13T00:00:00Z']) expect(recentlyNotified(value, now)).toBe(false);
   });
 });

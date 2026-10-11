@@ -9,7 +9,7 @@ import {
   requestWeeklyCompletion,
   resolveWeeklyModel,
 } from '../_shared/weekly-ai.ts';
-import { assembleWeeklyContent } from '../_shared/weekly-content.ts';
+import { assembleWeeklyContent, selectWeeklyUpdates } from '../_shared/weekly-content.ts';
 import {
   computeWeeklyTotals,
   selectTopIncidents,
@@ -34,6 +34,7 @@ const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 const INCIDENT_LIMIT = 1000;
 const VULNERABILITY_QUERY_LIMIT = 500;
+const WEEK_RECORDS_LIMIT = 1000;
 const KNOWN_PROJECTS_LIMIT = 5000;
 const KNOWN_PROJECTS_LOOKBACK_MS = 365 * DAY_MS;
 const ARTICLE_COLUMNS = 'id, uid, title, summary, severity, category, link, source_name, cve_id, tags, affected_technologies, created_at, metadata';
@@ -125,6 +126,19 @@ async function loadVulnerabilities(db: Db, start: string, end: string): Promise<
     .limit(VULNERABILITY_QUERY_LIMIT);
   if (error) throw new Error('Weekly vulnerabilities could not be read');
   return selectWeeklyVulnerabilities(toItems((data ?? []) as NewsletterSourceRow[]));
+}
+
+/** Every deliverable record of the week, for each subscriber's "More this week". */
+async function loadWeekRecords(db: Db, start: string, end: string): Promise<NewsletterItem[]> {
+  const { data, error } = await db
+    .from('news_articles')
+    .select(ARTICLE_COLUMNS)
+    .gte('created_at', start)
+    .lt('created_at', end)
+    .order('created_at', { ascending: false })
+    .limit(WEEK_RECORDS_LIMIT);
+  if (error) throw new Error('Weekly records could not be read');
+  return toItems((data ?? []) as NewsletterSourceRow[]);
 }
 
 async function loadKnownProjectNames(db: Db, now: Date): Promise<string[]> {
@@ -259,11 +273,12 @@ Deno.serve(async (req) => {
     }
 
     const previousStart = new Date(Date.parse(period.periodStart) - WEEK_MS).toISOString();
-    const [thisWeek, previousWeek, vulnerabilities, knownProjectNames] = await Promise.all([
+    const [thisWeek, previousWeek, vulnerabilities, knownProjectNames, weekRecords] = await Promise.all([
       loadIncidents(db, period.periodStart, period.periodEnd),
       loadIncidents(db, previousStart, period.periodStart),
       loadVulnerabilities(db, period.periodStart, period.periodEnd),
       loadKnownProjectNames(db, now),
+      loadWeekRecords(db, period.periodStart, period.periodEnd),
     ]);
     recordsFound = thisWeek.length + previousWeek.length + vulnerabilities.length;
 
@@ -305,6 +320,7 @@ Deno.serve(async (req) => {
       error: aiError,
       knownProjectNames,
     });
+    content.archive.updates = selectWeeklyUpdates(weekRecords, content);
     const counts = paragraphCounts(content);
     const summary = {
       week_start: weekStart,
@@ -312,6 +328,7 @@ Deno.serve(async (req) => {
       unconfirmed: totals.unconfirmedCount,
       top: content.top.length,
       vulnerabilities: vulnerabilities.length,
+      updates: content.archive.updates.length,
       ai_used: rawOutput !== null,
       ...counts,
       ...(model ? { model } : {}),

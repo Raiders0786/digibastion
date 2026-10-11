@@ -166,8 +166,15 @@ export function filterDailyBriefForSubscriber(c: DailyBriefContent, prefs: Deliv
     updates: (c.updates ?? []).filter(keep),
   };
   delete filtered.quiet;
-  if (dailyBriefItemCount(filtered) > 0) return filtered;
+  return dailyBriefItemCount(filtered) > 0 ? filtered : quietDailyBrief(c, prefs);
+}
 
+/**
+ * The quiet-day view of an issue: no sections, plus the top other records
+ * that fit the subscriber's scope, chain and preliminary choices. Admin test
+ * sends use it to preview the quiet-day email.
+ */
+export function quietDailyBrief(c: DailyBriefContent, prefs: DeliveryPreferences): DailyBriefContent {
   const relaxed = matches({
     severity_threshold: 'info',
     content_scope: prefs.content_scope,
@@ -179,7 +186,7 @@ export function filterDailyBriefForSubscriber(c: DailyBriefContent, prefs: Deliv
     filterSummary: describeDigestFilters(prefs),
     highlights: sortAndCap(everything.filter(relaxed), QUIET_DAY_HIGHLIGHTS),
   };
-  return { ...filtered, quiet };
+  return { ...c, incidents: [], unconfirmed: [], statusChanges: [], vulnerabilities: [], updates: [], quiet };
 }
 
 function countPart(count: number, singular: string, plural: string): string | null {

@@ -114,6 +114,11 @@ export interface WeeklyPublicContent {
   vulnerabilities: { items: NewsletterItem[]; summary: WeeklyParagraph };
   opsecTip: SecurityAction;
   sources: string[];
+  /**
+   * "More this week": the subscriber's matches from archive.updates. Set by
+   * the sender for one email, never stored or shown on the public page.
+   */
+  more?: NewsletterItem[];
 }
 
 export interface WeeklyArchive {
@@ -124,9 +129,18 @@ export interface WeeklyArchive {
   rawOutput: string | null;
   validation: { paragraphId: string; accepted: boolean; reasons: string[] }[];
   error: string | null;
+  /**
+   * Every other deliverable record of the week (cap WEEKLY_UPDATES_CAP), for
+   * each subscriber's "More this week". Kept in the archive because the
+   * archive never reaches the public page. Missing on issues built before
+   * 2026-10-12.
+   */
+  updates?: NewsletterItem[];
 }
 
 export interface WeeklyIssueContent extends WeeklyPublicContent { archive: WeeklyArchive }
+
+export const WEEKLY_UPDATES_CAP = 200;
 
 export const DAILY_CAPS = { incidents: 15, unconfirmed: 10, statusChanges: 15, vulnerabilities: 10, updates: 200 } as const;
 

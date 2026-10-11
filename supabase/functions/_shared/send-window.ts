@@ -17,6 +17,8 @@ export type Zone = { kind: 'iana'; timeZone: string } | { kind: 'offset'; offset
 export interface LocalClock { date: string; weekday: number; minutes: number } // date YYYY-MM-DD, 0=Sunday
 
 export const NEWSLETTER_GRACE_MINUTES = 180;
+/** A daily brief is skipped when any digest went out this recently (the legacy one on cut-over day, say). */
+export const DAILY_RESEND_GUARD_HOURS = 12;
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
@@ -102,6 +104,12 @@ export function zonedInstant(localDate: string, hour: number, zone: Zone): Date 
     else low = mid;
   }
   return new Date(wallClockMs(low, zone) >= target ? low : high);
+}
+
+/** True when the subscriber got a digest within DAILY_RESEND_GUARD_HOURS; daily briefs are about 24 hours apart. */
+export function recentlyNotified(lastNotifiedAt: string | null | undefined, now: Date): boolean {
+  const at = lastNotifiedAt ? Date.parse(lastNotifiedAt) : Number.NaN;
+  return Number.isFinite(at) && at <= now.getTime() && now.getTime() - at < DAILY_RESEND_GUARD_HOURS * 3_600_000;
 }
 
 /** The subscriber's local date: the daily issue whose period_end is this date. */

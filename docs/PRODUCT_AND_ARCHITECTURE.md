@@ -241,7 +241,16 @@ Follow-up emails go out for retractions and upgrades to critical.
   One email shows at most 50 records (Gmail clips at 102 KB); the rest are a
   link away.
 - The weekly email goes out on each subscriber's `preferred_day` (Monday when
-  unset), with the issue of the Monday on or before that day.
+  unset), with the issue of the Monday on or before that day. Besides the
+  shared deep-dive it has "More this week": the week's other records that
+  match the subscriber's filters, as the legacy weekly digest sent. The
+  records live in `content.archive.updates`, so the public weekly page never
+  gets them.
+- A daily brief is skipped when the subscriber got any digest in the last 12
+  hours, so switching senders mid-morning does not send two emails.
+- Admin test sends (`send-newsletters` with `test_email`) take `view`:
+  `edition` (whole issue), `subscriber` (what the admin's own subscription
+  gets) or `quiet` (the quiet-day brief).
 - Before setting the postal address, run `send-newsletters {"parity": true}`
   from an admin session. It lists every subscriber the legacy digest serves as
   `would_send` or `blocked` with reasons, and works while the address is unset.

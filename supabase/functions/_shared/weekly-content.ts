@@ -3,7 +3,15 @@
 // decision, with its reasons, goes into archive.validation so any complaint
 // can be traced back to the input, the prompt and the raw output.
 // Pure module: no Deno or URL imports, so vitest can import it.
-import type { NewsletterItem, WeeklyArchive, WeeklyIssueContent, WeeklyParagraph, WeeklyTotals } from './newsletter-content.ts';
+import {
+  compareItems,
+  WEEKLY_UPDATES_CAP,
+  type NewsletterItem,
+  type WeeklyArchive,
+  type WeeklyIssueContent,
+  type WeeklyParagraph,
+  type WeeklyTotals,
+} from './newsletter-content.ts';
 import { pickSecurityAction } from './security-actions.ts';
 import { buildWeeklyGroundedInput, type WeeklyModelOutput } from './weekly-ai.ts';
 import { weeklyPeriod } from './weekly-stats.ts';
@@ -20,6 +28,21 @@ import {
 import { STATIC_ALLOWED_TERMS, validateAndFill, type ValidationContext } from './weekly-validator.ts';
 
 const MAX_RAW_OUTPUT = 50_000;
+
+/**
+ * The week's records outside the deep-dive (top incidents and
+ * vulnerabilities), most important first, for archive.updates.
+ */
+export function selectWeeklyUpdates(records: NewsletterItem[], content: Pick<WeeklyIssueContent, 'top' | 'vulnerabilities'>): NewsletterItem[] {
+  const seen = new Set([...content.top.map((entry) => entry.item.uid), ...content.vulnerabilities.items.map((entry) => entry.uid)]);
+  const out: NewsletterItem[] = [];
+  for (const entry of [...records].sort(compareItems)) {
+    if (seen.has(entry.uid)) continue;
+    seen.add(entry.uid);
+    out.push(entry);
+  }
+  return out.slice(0, WEEKLY_UPDATES_CAP);
+}
 
 export interface AssembleWeeklyInput {
   weekStart: string;
