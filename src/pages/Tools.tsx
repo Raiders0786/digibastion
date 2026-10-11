@@ -2,6 +2,7 @@ import { Shield, Github } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { toMetaTagsProps, toolsRouteMeta } from '@/seo/routeMeta';
 import { CategorySection } from '@/components/tools/CategorySection';
 import { toolCategories } from '@/data/tools/categories';
 import { Badge } from '@/components/ui/badge';
@@ -9,15 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { serializeJsonLd } from '@/utils/jsonLd';
 
+const toolCount = toolCategories.reduce((sum, category) => sum + category.tools.length, 0);
+const toolsMeta = toolsRouteMeta(toolCount);
+
 const Tools = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Best Web3 Security Tools 2026 | Digibastion"
-        description="Curated 30+ Web3 security tools: smart-contract auditors, wallet analyzers, transaction simulators, and blockchain scanners. Vetted by security researchers."
-        keywords="web3 security tools, smart contract auditing tools, wallet security tools, blockchain security scanner, defi security tools, crypto security software, transaction simulator"
-        image="https://www.digibastion.com/og-tools.png"
-      />
+      <MetaTags {...toMetaTagsProps(toolsMeta)} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -26,15 +25,12 @@ const Tools = () => {
             "@type": "CollectionPage",
             "name": "Web3 Security Tools Directory",
             "description":
-              "Curated collection of Web3 security tools across smart contracts, wallets, monitoring, and analysis.",
+              toolsMeta.description,
             "url": "https://www.digibastion.com/tools",
             "mainEntity": {
               "@type": "ItemList",
               "name": "Web3 Security Tools",
-              "numberOfItems": toolCategories.reduce(
-                (sum, c) => sum + (c.tools?.length || 0),
-                0,
-              ),
+              "numberOfItems": toolCount,
               "itemListElement": toolCategories.flatMap((cat, ci) =>
                 (cat.tools || []).map((t, ti) => ({
                   "@type": "ListItem",

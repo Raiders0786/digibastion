@@ -156,3 +156,27 @@ describe('NewsDetail status and alerts', () => {
       .toBe('https://t.me/digibastion');
   });
 });
+
+describe('NewsDetail answer line and headings', () => {
+  it('opens a Web3 incident with the answer sentence', () => {
+    renderDetail({ ...quillArticle, metadata: { ...quillArticle.metadata, project_name: 'NEAR Intents' } });
+    const answer = screen.getByTestId('incident-answer');
+    expect(answer.textContent).toBe(
+      'NEAR Intents lost about $3.8M on 30 Sep 2026, according to QuillMonitor (unconfirmed).',
+    );
+    // It sits directly under the title.
+    expect(answer.previousElementSibling?.tagName).toBe('H1');
+  });
+
+  it('does not add an answer sentence to a news item', () => {
+    renderDetail(vulnerabilityArticle);
+    expect(screen.queryByTestId('incident-answer')).toBeNull();
+  });
+
+  it('uses stable h2 headings for the summary, details and source', () => {
+    renderDetail(vulnerabilityArticle);
+    expect(document.getElementById('what-happened')?.tagName).toBe('H2');
+    expect(document.getElementById('details')?.tagName).toBe('H2');
+    expect(document.getElementById('source')).not.toBeNull();
+  });
+});

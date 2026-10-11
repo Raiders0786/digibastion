@@ -3,9 +3,13 @@ import { ArrowRight, BookOpen, ExternalLink, Github, Heart, MessageSquareText, S
 
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+
+const pageMeta = staticRouteMeta('/support');
 
 const contributionPaths = [
   {
@@ -33,11 +37,8 @@ const contributionPaths = [
 
 const Support = () => (
   <div className="min-h-screen bg-background flex flex-col">
-    <MetaTags
-      title="Support Digibastion — Contribute, Sponsor or Work With Us"
-      description="Support Digibastion by improving security guidance, contributing code, sponsoring public resources, or hiring the team for security work."
-      keywords="support Digibastion, contribute Web3 security, sponsor security research, Digibastion services"
-    />
+    <MetaTags {...toMetaTagsProps(pageMeta)} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
     <Navbar />
 
     <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">

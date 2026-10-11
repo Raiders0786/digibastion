@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { Book, Shield, Clock, ArrowRight, Search, Filter, ChevronDown, TrendingUp, Users, Flame, Award, Siren, Code2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { articlesMeta, getCategories } from '@/data/articlesData';
@@ -16,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { serializeJsonLd } from '@/utils/jsonLd';
 import { buildArticleCollectionSchema } from '@/utils/seo';
+
+const pageMeta = staticRouteMeta('/articles');
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty) {
@@ -80,11 +83,7 @@ const Articles = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Cybersecurity & Crypto Security Guides | Digibastion"
-        description={`${articlesMeta.length} practical guides and source-backed incident analyses covering phishing, account security, crypto safety, DeFi, software supply chains, and incident response.`}
-        keywords="cybersecurity guides, crypto security, threat intelligence, phishing prevention, wallet security, incident response, web3 security, software supply chain security"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
       
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionSchema) }} />
       

@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, ShieldAlert } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import {
@@ -20,6 +22,8 @@ import {
   WEB3_IS_GOING_GREAT_URL,
 } from '@/lib/threatIntel/officialLinks';
 import { SLOWMIST_ATTRIBUTION_URL } from '@/utils/newsIncident';
+
+const pageMeta = staticRouteMeta('/threat-intel/methodology');
 
 const ExternalAnchor = ({ href, children }: { href: string; children: ReactNode }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
@@ -71,11 +75,8 @@ const ThreatIntelMethodology = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Threat Intel Methodology: Sources, Severity and Corrections | Digibastion"
-        description="Where Digibastion's security incident records come from, how severity is set, what confirmed and unconfirmed mean, how duplicates are merged and how to report a mistake."
-        keywords="threat intelligence methodology, crypto incident sources, QuillMonitor, severity rubric, confirmed incidents"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
       <Navbar />
 
       <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">

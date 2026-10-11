@@ -22,8 +22,7 @@ const NotFound = () => {
       <MetaTags 
         title="404 - Page Not Found | Digibastion"
         description="The page you're looking for doesn't exist. Return home to explore Web3 security checklists, threat intelligence, and OpSec tools."
-        keywords="404, page not found, digibastion, web3 security"
-        noindex={true}
+        robots="noindex,follow"
       />
       <Navbar />
       <main className="flex-grow flex items-center justify-center p-4">

@@ -19,7 +19,11 @@ import { Search, Tag, ExternalLink, Filter, Github } from 'lucide-react';
 // Update import path to use the new structure
 import { securityResources, getAllTags } from '../data/links';
 import { MetaTags } from '../components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { openExternalUrl } from '../utils/safeUrl';
+
+const pageMeta = staticRouteMeta('/links');
 
 const Links = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,11 +64,8 @@ const Links = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Web3 Security Resources & Learning Materials — Guides, Tutorials | Digibastion"
-        description="Comprehensive collection of Web3 security resources. Find guides on wallet security, smart contract auditing, DeFi safety, and blockchain OpSec. Curated by security researchers."
-        keywords="web3 security resources, blockchain security guides, crypto security tutorials, defi security learning, wallet security guide, smart contract security resources"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Bug, Mail, MessageSquare, ShieldCheck, Twitter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const pageMeta = staticRouteMeta('/contact');
 
 const INQUIRY_TYPES = [
   { value: 'services', label: 'Security service or assessment' },
@@ -107,11 +111,8 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Contact Digibastion — Services, Vantage, Research & Contributions"
-        description="Contact Digibastion about security services, Vantage, partnerships, research corrections, responsible disclosure, or contributions."
-        keywords="contact Digibastion, Vantage security, Web3 security services, responsible disclosure, security collaboration"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">

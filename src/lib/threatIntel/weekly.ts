@@ -126,6 +126,49 @@ export function weeklyDescription(c: WeeklyPublicContent): string {
   return `Web3 incidents added ${range}: ${summary}. Each item names its source.`;
 }
 
+/**
+ * Search and share title with the numbers people look for:
+ * "Web3 hacks, week of Oct 5, 2026: ~$18.4M across 7 incidents".
+ */
+export function weeklySeoTitle(c: WeeklyPublicContent): string {
+  const week = formatWeekDay(c.weekStart, true);
+  const loss = formatCompactUsd(c.totals.lossUsd);
+  if (!loss) return `Web3 hacks and exploits, week of ${week}`;
+  return `Web3 hacks, week of ${week}: ~${loss} across ${plural(c.totals.incidentCount, 'incident', 'incidents')}`;
+}
+
+export interface WeeklyArchiveEntry {
+  weekStart: string;
+  weekEnd: string | null;
+  generatedAt: string | null;
+  incidentCount: number;
+  lossUsd: number;
+}
+
+const nonNegative = (value: unknown): number => {
+  const number = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN;
+  return Number.isFinite(number) && number > 0 ? number : 0;
+};
+
+/** The list_weekly_newsletters payload: valid Monday weeks only, counts coerced to numbers. */
+export function parseWeeklyArchiveResponse(value: unknown): WeeklyArchiveEntry[] {
+  if (!Array.isArray(value)) return [];
+  const entries: WeeklyArchiveEntry[] = [];
+  for (const row of value) {
+    if (!isRecord(row)) continue;
+    const weekStart = typeof row.week_start === 'string' ? parseWeekStart(row.week_start) : null;
+    if (!weekStart) continue;
+    entries.push({
+      weekStart,
+      weekEnd: typeof row.week_end === 'string' && utcDate(row.week_end) ? row.week_end : null,
+      generatedAt: typeof row.generated_at === 'string' && row.generated_at ? row.generated_at : null,
+      incidentCount: Math.floor(nonNegative(row.incident_count)),
+      lossUsd: nonNegative(row.loss_usd),
+    });
+  }
+  return entries;
+}
+
 export function weeklyPagePath(weekStart: string): string {
   return `/threat-intel/weekly/${weekStart}`;
 }

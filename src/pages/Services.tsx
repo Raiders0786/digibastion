@@ -1,10 +1,13 @@
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MetaTags } from '../components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { Button } from '@/components/ui/button';
 import { Calendar, ArrowRight, ArrowUpRight, Radar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { serializeJsonLd } from '@/utils/jsonLd';
+
+const pageMeta = staticRouteMeta('/services');
 
 const CAL_URL = 'https://cal.com/raiders';
 const VANTAGE_URL = 'https://vantage.digibastion.com';
@@ -94,11 +97,7 @@ const Services = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Security Services: Web3 OpSec, Full-Stack Reviews & Vantage | Digibastion"
-        description="Work with Digibastion on Web3 OpSec and full-stack security reviews, or use Vantage for domain security intelligence and external trust evidence."
-        keywords="web3 security services, opsec consulting, dns monitoring, threat intelligence, crypto security audit, digibastion services"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-20 px-5 sm:px-8 lg:px-10">

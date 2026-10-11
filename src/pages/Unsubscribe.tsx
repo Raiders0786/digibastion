@@ -40,7 +40,7 @@ export default function Unsubscribe() {
   return (
     <>
       <MetaTags
-        title="Unsubscribe - Digibastion"
+        title="Unsubscribe | Digibastion"
         description="Unsubscribe from Digibastion emails."
         noindex={true}
       />

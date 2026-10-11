@@ -43,11 +43,11 @@ import {
   mapNewsArticleRow,
   NEWS_ARTICLE_COLUMNS,
 } from '@/lib/threatIntel/articleRow';
-import {
-  buildNewsArticleSchema,
-  buildNewsBreadcrumbSchema,
-  buildThreatIntelCollectionSchema,
-} from '@/utils/seo';
+import { buildItemListSchema } from '@/utils/seo';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { incidentRouteMeta, incidentSeoInputFromArticle } from '@/seo/incidentMeta';
+import { isWeb3Incident } from '@/utils/newsIncident';
+import { canonicalIncidentUrl } from '../../supabase/functions/_shared/site-urls';
 import { 
   Newspaper, Shield, AlertTriangle, Bell, BellRing, Send,
   Clock, ChevronRight, RefreshCw, Loader2, Database, Sparkles, Home, ArrowLeft, Flame, RadioTower
@@ -527,7 +527,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         <MetaTags
           title="Threat-intelligence article not found | Digibastion"
           description="This threat-intelligence article is unavailable or the link is invalid."
-          noindex
+          robots="noindex,follow"
         />
         <Navbar />
         <main className="flex-grow pt-28 pb-12 px-4">
@@ -544,35 +544,12 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // If an article is selected, show the detail view
   if (selectedArticle) {
-    const articleStructuredData = [
-      buildNewsArticleSchema({
-        id: selectedArticle.id,
-        title: selectedArticle.title,
-        description: selectedArticle.summary,
-        category: selectedArticle.category,
-        publishedAt: selectedArticle.publishedAt,
-        author: selectedArticle.author,
-        tags: selectedArticle.tags,
-        sourceUrl: selectedArticle.link,
-      }),
-      buildNewsBreadcrumbSchema(selectedArticle),
-    ];
+    const incidentMeta = incidentRouteMeta(incidentSeoInputFromArticle(selectedArticle));
 
     return (
       <div className="min-h-screen bg-background">
-        <MetaTags 
-          title={`${selectedArticle.title} | Digibastion Threat Intel`}
-          description={selectedArticle.summary}
-          canonical={`https://www.digibastion.com/threat-intel/${encodeURIComponent(selectedArticle.id)}`}
-          image="https://www.digibastion.com/og-threat-intel.png"
-          imageAlt={`${selectedArticle.title} — Digibastion threat intelligence`}
-          type="article"
-          publishedTime={selectedArticle.publishedAt.toISOString()}
-          author={selectedArticle.author || selectedArticle.sourceName || 'Digibastion'}
-          section={selectedArticle.category}
-          tags={selectedArticle.tags}
-        />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleStructuredData) }} />
+        <MetaTags {...toMetaTagsProps(incidentMeta)} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(incidentMeta.jsonLd) }} />
         <Navbar />
         <main className="pt-20 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -588,6 +565,15 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
     );
   }
 
+  const threatIntelMeta = staticRouteMeta('/threat-intel');
+  const listedIncidents = filteredArticles.filter(isWeb3Incident).slice(0, 20);
+  const threatIntelJsonLd = listedIncidents.length > 0
+    ? [...threatIntelMeta.jsonLd, buildItemListSchema(
+      'Latest Web3 incidents',
+      listedIncidents.map((article) => ({ url: canonicalIncidentUrl(article.id), name: article.title })),
+    )]
+    : threatIntelMeta.jsonLd;
+
   return (
     <PullToRefresh onRefresh={handlePullToRefresh} isRefreshing={isLoading}>
       <div className="min-h-screen bg-background">
@@ -597,13 +583,11 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
         enabled={true} 
       />
 
-      <MetaTags
-        title="Crypto and Web3 Security Incidents, As They Happen | Digibastion"
-        description="Crypto and Web3 hacks, exploits, phishing and supply-chain attacks from QuillMonitor and other trackers, one record per incident, labelled confirmed or unconfirmed. Free alerts on Telegram and email."
-        keywords="crypto hacks, web3 security incidents, defi exploits, crypto phishing, supply chain attacks, crypto security alerts, telegram security alerts"
-        image="https://www.digibastion.com/og-threat-intel.png"
-      />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildThreatIntelCollectionSchema()) }} />
+      {/* While a deep-linked record loads, the canonical follows the URL rather than pointing at the feed. */}
+      <MetaTags {...toMetaTagsProps(threatIntelMeta)} {...(requestedArticleId ? { canonical: undefined } : {})} />
+      {!requestedArticleId && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(threatIntelJsonLd) }} />
+      )}
       
       <Navbar />
       

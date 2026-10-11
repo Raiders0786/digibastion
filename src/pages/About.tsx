@@ -13,10 +13,13 @@ import {
 
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { serializeJsonLd } from '@/utils/jsonLd';
+
+const pageMeta = staticRouteMeta('/about');
 
 const products = [
   {
@@ -72,33 +75,12 @@ const principles = [
   },
 ];
 
-const organizationLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'Digibastion',
-  url: 'https://www.digibastion.com/about',
-  description: 'Security intelligence, practical guidance, domain monitoring and expert review for people and teams working in Web3.',
-  sameAs: [
-    'https://github.com/Raiders0786/digibastion',
-    'https://x.com/__Raiders',
-  ],
-  knowsAbout: [
-    'Web3 security',
-    'Operational security',
-    'Threat intelligence',
-    'Domain security monitoring',
-    'Frontend supply-chain security',
-  ],
-};
 
 const About = () => (
   <div className="min-h-screen bg-background flex flex-col">
-    <MetaTags
-      title="About Digibastion — Practical Security for Web3"
-      description="Digibastion helps people and teams understand threats, improve operational security, monitor domain risk with Vantage, and get expert help when the stakes are higher."
-      keywords="Digibastion, Web3 security, operational security, threat intelligence, domain security monitoring, Vantage"
-    />
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationLd) }} />
+    <MetaTags {...toMetaTagsProps(pageMeta)} />
+    {/* AboutPage pointing at the one Organization node declared in index.html. */}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
     <Navbar />
 
     <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">

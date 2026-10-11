@@ -328,7 +328,7 @@ export default function ManageSubscription() {
     return (
       <>
         <MetaTags 
-          title="Unsubscribed - Digibastion" 
+          title="Unsubscribed | Digibastion" 
           description="You have been unsubscribed from Digibastion security alerts."
           noindex={true}
         />
@@ -359,7 +359,7 @@ export default function ManageSubscription() {
     return (
       <>
         <MetaTags 
-          title="Manage Subscription - Digibastion" 
+          title="Manage Subscription | Digibastion" 
           description="Manage your Digibastion security alert subscription preferences."
           noindex={true}
         />
@@ -454,7 +454,7 @@ export default function ManageSubscription() {
   return (
     <>
         <MetaTags 
-          title="Manage Subscription - Digibastion" 
+          title="Manage Subscription | Digibastion" 
           description="Manage your Digibastion security alert subscription preferences."
           noindex={true}
         />

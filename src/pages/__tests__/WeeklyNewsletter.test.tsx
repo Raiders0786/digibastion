@@ -102,8 +102,9 @@ describe('WeeklyNewsletter page', () => {
     expect(screen.getByRole('link', { name: /Get the weekly deep-dive/ }).getAttribute('href'))
       .toBe('/threat-intel?tab=subscribe&scope=web3-incidents&weekly=1');
     expect(metaTags).toHaveBeenLastCalledWith(expect.objectContaining({
-      title: 'Web3 security week of Oct 5, 2026 | Digibastion',
+      title: 'Web3 hacks, week of Oct 5, 2026: ~$12.3M across 9 incidents',
       canonical: 'https://www.digibastion.com/threat-intel/weekly/2026-10-05',
+      robots: 'index',
     }));
   });
 
@@ -119,7 +120,7 @@ describe('WeeklyNewsletter page', () => {
     renderAt('/threat-intel/weekly/2026-10-05');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Weekly issue not found' })).not.toBeNull();
-    expect(metaTags).toHaveBeenLastCalledWith(expect.objectContaining({ noindex: true }));
+    expect(metaTags).toHaveBeenLastCalledWith(expect.objectContaining({ robots: 'noindex,follow' }));
   });
 
   it('shows the not-found state for invalid content', async () => {
@@ -141,5 +142,7 @@ describe('WeeklyNewsletter page', () => {
     renderAt('/threat-intel/weekly/2026-10-05');
 
     expect(await screen.findByText(/could not load this weekly issue/i)).not.toBeNull();
+    // A transient error must not deindex the page.
+    expect(metaTags).toHaveBeenLastCalledWith(expect.objectContaining({ robots: 'index' }));
   });
 });

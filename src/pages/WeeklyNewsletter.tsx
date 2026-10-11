@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ExternalLink, Mail } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { toMetaTagsProps, weeklyRouteMeta } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -335,9 +337,25 @@ const WeeklyNewsletter = () => {
   }, [weekStart]);
 
   const canonical = weekStart ? `${SITE_URL}${weeklyPagePath(weekStart)}` : undefined;
-  const meta = state.status === 'ready'
-    ? <MetaTags title={`${weeklyPageTitle(state.page.content)} | Digibastion`} description={weeklyDescription(state.page.content)} canonical={canonical} type="article" />
-    : <MetaTags title="Weekly deep-dive | Digibastion" canonical={canonical} noindex={state.status !== 'loading'} />;
+  const weeklyMeta = state.status === 'ready'
+    ? weeklyRouteMeta(state.page.content, state.page.generatedAt ?? state.page.content.issueDate)
+    : null;
+  // Only a missing issue is noindex. A transient load error must not tell crawlers to drop the page.
+  const meta = weeklyMeta
+    ? (
+      <>
+        <MetaTags {...toMetaTagsProps(weeklyMeta)} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(weeklyMeta.jsonLd) }} />
+      </>
+    )
+    : (
+      <MetaTags
+        title="Weekly Web3 security report | Digibastion"
+        description="Digibastion's weekly report on Web3 hacks and exploits: reported losses, incident counts and the top incidents of the week, each linked to its source."
+        canonical={canonical}
+        robots={state.status === 'not-found' ? 'noindex,follow' : 'index'}
+      />
+    );
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">

@@ -5,10 +5,14 @@ import { toast } from 'sonner';
 
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { openExternalUrl } from '@/utils/safeUrl';
+
+const pageMeta = staticRouteMeta('/share');
 
 const shareOptions = [
   {
@@ -64,11 +68,8 @@ const Share = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Share Digibastion — Practical Web3 Security Resources"
-        description="Share a relevant Digibastion security checkup, threat-intelligence feed, or Vantage domain-security resource with your community or team."
-        type="website"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
       <Navbar />
 
       <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">

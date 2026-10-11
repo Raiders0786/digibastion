@@ -1,11 +1,14 @@
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { MetaTags } from '../../components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Calendar, ArrowRight, Twitter, Github, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { serializeJsonLd } from '@/utils/jsonLd';
+
+const pageMeta = staticRouteMeta('/services/opsec-consulting');
 
 const CAL_URL = 'https://cal.com/raiders';
 
@@ -119,11 +122,7 @@ const OpsecConsulting = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Web3 OpSec Consulting: Threat Modeling & Qubes Hardening | DigiBastion"
-        description="Hands-on OpSec for founders, funds, and people sitting on size. We review your wallets, your devices, and the way you actually work, and tell you what to change first. Book a free call."
-        keywords="web3 opsec, opsec consulting, crypto security audit, qubes os, threat modeling, wallet hardening, web3 security consultant"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }} />

@@ -3,9 +3,13 @@ import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal, Award, Crown, Loader2, Users } from 'lucide-react';
+
+const pageMeta = staticRouteMeta('/leaderboard');
 
 interface QuizScore {
   id: string;
@@ -63,11 +67,8 @@ const Leaderboard = () => {
 
   return (
     <>
-      <MetaTags 
-        title="OpSec Leaderboard — Top Crypto Security Scores | Digibastion"
-        description="See the top OpSec quiz scores from the crypto community. Compare your security knowledge against other crypto users. Take the quiz and join the leaderboard!"
-        keywords="crypto security leaderboard, opsec quiz scores, web3 security ranking, blockchain security competition"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         

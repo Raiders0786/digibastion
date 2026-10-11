@@ -1,11 +1,14 @@
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { MetaTags } from '../../components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Calendar, ArrowRight, Twitter, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { serializeJsonLd } from '@/utils/jsonLd';
+
+const pageMeta = staticRouteMeta('/services/full-stack-review');
 
 const CAL_URL = 'https://cal.com/raiders';
 
@@ -156,11 +159,7 @@ const FullStackReview = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Full-Stack Web3 Security Review: Contracts, APIs, Cloud, Compliance | DigiBastion"
-        description="A senior review across your crypto product: smart contracts, offchain services, dApp, cloud, identity, and compliance readiness. Flat fee, named team, honest report."
-        keywords="web3 security review, smart contract audit, dapp security, crypto cloud security, web3 compliance, soc 2 crypto, mica readiness, full stack security review"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }} />

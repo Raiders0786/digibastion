@@ -9,6 +9,9 @@ import { CategoryFilters } from '../components/category-detail/CategoryFilters';
 import { CategoryItem } from '../components/category-detail/CategoryItem';
 import { ThreatLevelSelector } from '../components/ThreatLevelSelector';
 import { MetaTags } from '../components/MetaTags';
+import { categoryRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { initialSecurityData } from '@/data/securityData';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { Loader2, ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -87,9 +90,15 @@ const CategoryDetail = () => {
   });
   
   const handleToggleItem = (itemId: string) => {
-    console.log('Toggling item:', itemId);
     toggleItem(category.id, itemId);
   };
+
+  // Metadata comes from the published checklist, not the threat-level view of it.
+  const categoryMeta = categoryRouteMeta(
+    initialSecurityData.find((entry) => entry.id === category.id) ?? category,
+    0,
+    initialSecurityData,
+  );
 
   const essentialItems = category.items.filter(item => item.level === 'essential');
   const essentialCompleted = essentialItems.filter(item => item.completed).length;
@@ -97,11 +106,8 @@ const CategoryDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title={`${category.title} Security Checklist — Best Practices & Tips | Digibastion`}
-        description={`Complete ${category.title.toLowerCase()} security checklist with ${category.items.length} actionable items. ${category.description} Track your progress and improve your crypto security.`}
-        keywords={`${category.title.toLowerCase()} security, ${category.title.toLowerCase()} checklist, crypto ${category.title.toLowerCase()}, web3 ${category.title.toLowerCase()} security, ${category.title.toLowerCase()} best practices`}
-      />
+      <MetaTags {...toMetaTagsProps(categoryMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(categoryMeta.jsonLd) }} />
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8 animate-fade-in">
         <div className="max-w-4xl mx-auto">

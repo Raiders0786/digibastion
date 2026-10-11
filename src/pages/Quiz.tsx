@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { serializeJsonLd } from '@/utils/jsonLd';
 import { OpsecQuiz } from '@/components/opsec/OpsecQuiz';
 import { Button } from '@/components/ui/button';
 import { ChallengeButton } from '@/components/quiz/ChallengeButton';
 import { Shield, Zap, Trophy, Share2, ArrowRight, Sparkles, Target, Award, Medal } from 'lucide-react';
+
+const pageMeta = staticRouteMeta('/quiz');
 
 const Quiz = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
@@ -32,12 +36,8 @@ const Quiz = () => {
 
   return (
     <>
-      <MetaTags 
-        title="Free Crypto OpSec Quiz — Test Your Web3 Security Knowledge | Digibastion"
-        description="Take an eight-question crypto OpSec self-check. Review practical scenarios, see category-level gaps, and get clear next steps without connecting a wallet."
-        keywords="crypto security quiz, opsec assessment, web3 security test, blockchain security quiz, wallet security test, crypto safety quiz"
-        image="https://www.digibastion.com/og-quiz.png"
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pageMeta.jsonLd) }} />
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         

@@ -9,7 +9,7 @@ import { NotFoundView } from '@/components/article/NotFoundView';
 import { MetaTags } from '../components/MetaTags';
 import { RelatedArticles } from '@/components/article/RelatedArticles';
 import { serializeJsonLd } from '@/utils/jsonLd';
-import { buildArticleBreadcrumbSchema, buildArticleSchema } from '@/utils/seo';
+import { guideRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
 import { retiredArticleRedirects } from '@/data/articleRedirects';
 
 const ArticleDetail = () => {
@@ -26,25 +26,10 @@ const ArticleDetail = () => {
     return <NotFoundView />;
   }
 
-  const articleUrl = `https://www.digibastion.com/articles/${slug}`;
+  const guideMeta = guideRouteMeta(article);
   const { title, description, category, readTime, author, tags } = article;
   const publishedDate = article.publishedAt;
   const modifiedDate = article.modifiedAt;
-  const schemaArticle = {
-    slug: slug || '',
-    title,
-    description,
-    category,
-    publishedAt: publishedDate,
-    modifiedAt: modifiedDate,
-    author,
-    tags,
-    sources: article.sources,
-  };
-  const structuredData = [
-    buildArticleSchema(schemaArticle),
-    buildArticleBreadcrumbSchema(schemaArticle),
-  ];
 
   const content = getArticleContent(slug || '');
   if (!content) {
@@ -53,22 +38,9 @@ const ArticleDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title={`${title} | Digibastion`}
-        description={description}
-        image="https://www.digibastion.com/og-image.png"
-        type="article"
-        canonical={articleUrl}
-        keywords={tags.join(', ')}
-        publishedTime={publishedDate}
-        modifiedTime={modifiedDate}
-        author={author}
-        section={category}
-        tags={tags}
-        imageAlt={`${title} — Digibastion security guide`}
-      />
+      <MetaTags {...toMetaTagsProps(guideMeta)} author={author} />
       
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(guideMeta.jsonLd) }} />
       
       <Navbar />
       <main className="flex-grow pt-28 pb-12 px-4 sm:px-6 lg:px-8">

@@ -9,6 +9,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
+import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { GITHUB_ROADMAP_URL } from '@/seo/siteFacts';
 import { Navbar } from '@/components/Navbar';
 import { QuickSubscribeCard } from '@/components/newsletter/QuickSubscribeCard';
 import { SecurityCard } from '@/components/SecurityCard';
@@ -19,6 +21,8 @@ import { useSecurityState } from '@/hooks/useSecurityState';
 import { supabase } from '@/integrations/supabase/client';
 import { CLASSIFICATION_RELEVANCE_POSTGREST_FILTER } from '@/utils/newsIncident';
 import espLogo from '@/assets/esp-logo-white.svg';
+
+const pageMeta = staticRouteMeta('/');
 
 interface RecentAlert {
   id: string;
@@ -121,10 +125,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MetaTags
-        title="Digibastion — Practical Security for People, Crypto and Web3 Teams"
-        description="Assess your OpSec, follow practical security checklists, monitor current threats, and review domain risk with Vantage — practical tools from Digibastion."
-      />
+      <MetaTags {...toMetaTagsProps(pageMeta)} />
       <Navbar />
 
       <main className="flex-grow pt-16">
@@ -348,7 +349,7 @@ const Index = () => {
                 <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">What is live, and what we are improving.</h2>
                 <p className="mt-4 leading-relaxed text-muted-foreground">No stale launch promises. This is the product as it stands today, followed by the work where community feedback can make it better.</p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-                  <Button asChild variant="outline" className="w-full gap-2 sm:w-auto lg:w-full xl:w-auto"><a href="https://github.com/Raiders0786/digibastion/blob/main/ROADMAP.md" target="_blank" rel="noopener noreferrer">Read the roadmap <ExternalLink className="h-4 w-4" /></a></Button>
+                  <Button asChild variant="outline" className="w-full gap-2 sm:w-auto lg:w-full xl:w-auto"><a href={GITHUB_ROADMAP_URL} target="_blank" rel="noopener noreferrer">Read the roadmap <ExternalLink className="h-4 w-4" /></a></Button>
                   <Button asChild variant="outline" className="w-full gap-2 sm:w-auto lg:w-full xl:w-auto"><a href="https://github.com/Raiders0786/digibastion/issues" target="_blank" rel="noopener noreferrer">Suggest an idea <MessageCircle className="h-4 w-4" /></a></Button>
                 </div>
               </div>

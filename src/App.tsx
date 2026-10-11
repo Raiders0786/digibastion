@@ -28,6 +28,8 @@ const Support = React.lazy(() => import("./pages/Support"));
 const News = React.lazy(() => import("./pages/News"));
 const ThreatIntelMethodology = React.lazy(() => import("./pages/ThreatIntelMethodology"));
 const WeeklyNewsletter = React.lazy(() => import("./pages/WeeklyNewsletter"));
+const WeeklyArchive = React.lazy(() => import("./pages/WeeklyArchive"));
+const Faq = React.lazy(() => import("./pages/Faq"));
 const QuizResult = React.lazy(() => import("./pages/QuizResult"));
 const Quiz = React.lazy(() => import("./pages/Quiz"));
 const Leaderboard = React.lazy(() => import("./pages/Leaderboard"));
@@ -50,6 +52,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Admin pages render no MetaTags of their own; keep them out of every index.
+const AdminMeta = () => <MetaTags robots="noindex,nofollow" title="Admin | Digibastion" />;
 
 const LegacyNewsRedirect = () => {
   const location = useLocation();
@@ -74,40 +79,43 @@ const App = () => {
                 <PageTransition>
                   <React.Suspense fallback={<main className="min-h-screen grid place-items-center" aria-busy="true"><span className="text-muted-foreground">Loading…</span></main>}>
                     <Routes>
-                    <Route path="/" element={<><MetaTags /><Index /></>} />
-                    <Route path="/category/:categoryId" element={<><MetaTags /><CategoryDetail /></>} />
-                    <Route path="/threat-intel" element={<><MetaTags /><News /></>} />
+                    <Route path="/" element={<Index />} />
+                    <Route path="/category/:categoryId" element={<CategoryDetail />} />
+                    <Route path="/threat-intel" element={<News />} />
                     {/* Keep before :articleId so "methodology" is never read as an article id. */}
-                    <Route path="/threat-intel/methodology" element={<><MetaTags /><ThreatIntelMethodology /></>} />
+                    <Route path="/threat-intel/methodology" element={<ThreatIntelMethodology />} />
+                    {/* Keep the archive before :weekStart and :articleId so "weekly" is never read as an id. */}
+                    <Route path="/threat-intel/weekly" element={<WeeklyArchive />} />
                     <Route path="/threat-intel/weekly/:weekStart" element={<WeeklyNewsletter />} />
-                    <Route path="/threat-intel/:articleId" element={<><MetaTags /><News /></>} />
+                    <Route path="/threat-intel/:articleId" element={<News />} />
                     <Route path="/news" element={<LegacyNewsRedirect />} />
-                    <Route path="/share" element={<><MetaTags /><Share /></>} />
+                    <Route path="/share" element={<Share />} />
                     <Route path="/quiz" element={<Quiz />} />
                     <Route path="/quiz-result" element={<QuizResult />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
-                    <Route path="/about" element={<><MetaTags /><About /></>} />
-                    <Route path="/license" element={<><MetaTags /><License /></>} />
-                    <Route path="/tools" element={<><MetaTags /><Tools /></>} />
-                    <Route path="/articles" element={<><MetaTags /><Articles /></>} />
-                    <Route path="/articles/:slug" element={<><MetaTags /><ArticleDetail /></>} />
-                    <Route path="/links" element={<><MetaTags /><Links /></>} />
-                    <Route path="/contact" element={<><MetaTags /><Contact /></>} />
-                    <Route path="/support" element={<><MetaTags /><Support /></>} />
-                    <Route path="/services" element={<><MetaTags /><Services /></>} />
-                    <Route path="/services/opsec-consulting" element={<><MetaTags /><OpsecConsulting /></>} />
-                    <Route path="/services/full-stack-review" element={<><MetaTags /><FullStackReview /></>} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/faq" element={<Faq />} />
+                    <Route path="/license" element={<License />} />
+                    <Route path="/tools" element={<Tools />} />
+                    <Route path="/articles" element={<Articles />} />
+                    <Route path="/articles/:slug" element={<ArticleDetail />} />
+                    <Route path="/links" element={<Links />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/support" element={<Support />} />
+                    <Route path="/services" element={<Services />} />
+                    <Route path="/services/opsec-consulting" element={<OpsecConsulting />} />
+                    <Route path="/services/full-stack-review" element={<FullStackReview />} />
                     <Route path="/manage-subscription" element={<ManageSubscription />} />
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
                     {/* Retired 2025 pitch deck: preserve old links without serving stale claims. */}
                     <Route path="/present" element={<Navigate to="/about" replace />} />
                     {/* Admin routes - private, not in navigation */}
-                    <Route path="/admin" element={<AdminLogin />} />
-                    <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                    <Route path="/admin/cron" element={<CronMonitor />} />
-                    <Route path="/admin/api-keys" element={<AdminApiKeys />} />
-                    <Route path="*" element={<><MetaTags /><NotFound /></>} />
+                    <Route path="/admin" element={<><AdminMeta /><AdminLogin /></>} />
+                    <Route path="/admin/analytics" element={<><AdminMeta /><AdminAnalytics /></>} />
+                    <Route path="/admin/cron" element={<><AdminMeta /><CronMonitor /></>} />
+                    <Route path="/admin/api-keys" element={<><AdminMeta /><AdminApiKeys /></>} />
+                    <Route path="*" element={<NotFound />} />
                     </Routes>
                   </React.Suspense>
                 </PageTransition>

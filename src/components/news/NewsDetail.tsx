@@ -31,6 +31,8 @@ import {
   TELEGRAM_CHANNEL_URL,
 } from '@/lib/threatIntel/officialLinks';
 import { VerificationBadge } from '@/components/news/VerificationBadge';
+import { buildIncidentAnswer } from '../../../supabase/functions/_shared/incident-answer';
+import { incidentSeoInputFromArticle } from '@/seo/incidentMeta';
 
 interface StoredBookmark {
   id: string;
@@ -61,6 +63,8 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
   const originalSources = getNewsSourceLinks(article, slowMistAttributionUrl);
   const duplicateProviderAuthor = isSlowMist && article.author?.toLowerCase().includes('slowmist');
   const showWeb3Actions = web3Incident || isWeb3SecurityDomain(article);
+  // The same answer-first sentence the meta description and prerender use.
+  const incidentAnswer = web3Incident ? buildIncidentAnswer(incidentSeoInputFromArticle(article)) : null;
   const showVulnerabilityActions = Boolean(article.cveId) || article.category === 'vulnerability-disclosure';
   const subscribeHref = buildSubscribeHref({
     categories: [article.category],
@@ -201,6 +205,11 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           <h1 className="text-2xl md:text-3xl font-semibold leading-tight tracking-tight mb-4">
             {article.title}
           </h1>
+          {incidentAnswer && (
+            <p data-testid="incident-answer" className="mb-4 text-base leading-relaxed text-foreground/90">
+              {incidentAnswer}
+            </p>
+          )}
 
           {/* Meta Information */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -239,7 +248,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
         <CardContent className="space-y-6">
           {/* Summary */}
           <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
-            <h3 className="font-semibold mb-2">{display.summaryLabel ?? 'Summary'}</h3>
+            <h2 id="what-happened" className="font-semibold mb-2">{display.summaryLabel ?? 'Summary'}</h2>
             <p className="text-foreground/80 leading-relaxed">
               {article.summary}
             </p>
@@ -307,7 +316,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
 
           {/* Full Content */}
           <div className="prose prose-gray max-w-none dark:prose-invert">
-            <h3 className="font-semibold mb-3">Full Report</h3>
+            <h2 id="details" className="font-semibold mb-3">Full Report</h2>
             <div className="text-foreground/80 leading-relaxed whitespace-pre-line">
               {article.content}
             </div>
@@ -395,7 +404,7 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
           {/* Source Links - use article.link as the primary source */}
           {originalSources.length > 0 && (
             <div className="pt-4 border-t">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <h3 id="source" className="font-semibold mb-3 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-primary" />
                 Original {originalSources.length === 1 ? 'Source' : 'Sources'}
               </h3>

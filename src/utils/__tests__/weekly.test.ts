@@ -3,11 +3,13 @@ import {
   formatReportedUsd,
   isWeeklyPublicContent,
   parseWeekStart,
+  parseWeeklyArchiveResponse,
   parseWeeklyNewsletterResponse,
   safeHttpUrl,
   weeklyDescription,
   weeklyPagePath,
   weeklyPageTitle,
+  weeklySeoTitle,
   weeklySubscribeHref,
 } from '@/lib/threatIntel/weekly';
 import { weeklyPublicContent } from '../../../supabase/functions/_shared/weekly-test-fixtures';
@@ -102,5 +104,48 @@ describe('weekly page helpers', () => {
     expect(safeHttpUrl('https://source.example/1')).toBe('https://source.example/1');
     expect(safeHttpUrl('javascript:alert(1)')).toBeNull();
     expect(safeHttpUrl(null)).toBeNull();
+  });
+});
+
+describe('weeklySeoTitle', () => {
+  it('puts the loss and the incident count in the title', () => {
+    const title = weeklySeoTitle(weeklyPublicContent());
+    expect(title).toBe('Web3 hacks, week of Oct 5, 2026: ~$12.3M across 9 incidents');
+    expect(title.length).toBeLessThanOrEqual(70);
+  });
+
+  it('falls back to a plain title when no loss was reported', () => {
+    const content = weeklyPublicContent();
+    const title = weeklySeoTitle({ ...content, totals: { ...content.totals, lossUsd: 0 } });
+    expect(title).toBe('Web3 hacks and exploits, week of Oct 5, 2026');
+    expect(title.length).toBeLessThanOrEqual(70);
+  });
+
+  it('says "1 incident" for a single incident', () => {
+    const content = weeklyPublicContent();
+    expect(weeklySeoTitle({ ...content, totals: { ...content.totals, incidentCount: 1 } })).toMatch(/across 1 incident$/);
+  });
+});
+
+describe('parseWeeklyArchiveResponse', () => {
+  it('keeps only Monday weeks and coerces counts', () => {
+    expect(parseWeeklyArchiveResponse([
+      { week_start: '2026-10-05', week_end: '2026-10-11', generated_at: '2026-10-12T00:10:00Z', incident_count: 7, loss_usd: 18_400_000 },
+      { week_start: '2026-09-28', week_end: null, generated_at: null, incident_count: '3', loss_usd: '1200.5' },
+      { week_start: '2026-10-06', incident_count: 1, loss_usd: 1 },
+      { week_start: '../x', incident_count: 1, loss_usd: 1 },
+      { week_start: '2026-09-21', incident_count: 'lots', loss_usd: -5 },
+      null,
+      'nope',
+    ])).toEqual([
+      { weekStart: '2026-10-05', weekEnd: '2026-10-11', generatedAt: '2026-10-12T00:10:00Z', incidentCount: 7, lossUsd: 18_400_000 },
+      { weekStart: '2026-09-28', weekEnd: null, generatedAt: null, incidentCount: 3, lossUsd: 1200.5 },
+      { weekStart: '2026-09-21', weekEnd: null, generatedAt: null, incidentCount: 0, lossUsd: 0 },
+    ]);
+  });
+
+  it('returns an empty list for anything that is not an array', () => {
+    expect(parseWeeklyArchiveResponse(null)).toEqual([]);
+    expect(parseWeeklyArchiveResponse({ week_start: '2026-10-05' })).toEqual([]);
   });
 });
