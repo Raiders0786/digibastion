@@ -36,6 +36,13 @@
       "when": 1791684989869,
       "tag": "0004_email_compliance_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791685013391,
+      "tag": "0005_daily_newsletter_jobs",
+      "breakpoints": true
     }
   ]
 }
