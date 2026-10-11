@@ -12,6 +12,7 @@ import {
   toNewsletterItem,
   type NewsletterSourceRow,
 } from '../../supabase/functions/_shared/newsletter-content';
+import { incidentOgImageUrl } from '../../supabase/functions/_shared/share-links';
 import { SITE_URL, canonicalIncidentUrl, incidentPath } from '../../supabase/functions/_shared/site-urls';
 import { truncateAtWord } from '../../supabase/functions/_shared/summary-text';
 import { METHODOLOGY_PATH } from '../lib/threatIntel/officialLinks';
@@ -143,7 +144,10 @@ export function incidentRouteMeta(i: IncidentSeoInput): RouteMeta {
     path,
     title: brandedTitle(i.title),
     description,
-    image: THREAT_INTEL_IMAGE,
+    // Web3 incidents get their own card; news relays keep the generic image.
+    ...(i.isWeb3Incident
+      ? { image: incidentOgImageUrl(i.id), imageWidth: 1200, imageHeight: 630 }
+      : { image: THREAT_INTEL_IMAGE }),
     imageAlt: `${truncateAtWord(i.title, 100)}: Digibastion Threat Intel`,
     type: 'article',
     robots: i.isWeb3Incident ? 'index' : 'noindex,follow',

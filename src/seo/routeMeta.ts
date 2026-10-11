@@ -4,6 +4,7 @@
 // Pure module (boundary rule): relative imports and _shared modules only, no
 // '@/' alias, no React, no window, no data modules. Builders take data as
 // arguments so pages do not pull articlesData into the main bundle.
+import { weeklyOgImageUrl } from '../../supabase/functions/_shared/share-links';
 import { SITE_URL, absoluteSiteUrl, canonicalizeUrl } from '../../supabase/functions/_shared/site-urls';
 import { truncateAtWord } from '../../supabase/functions/_shared/summary-text';
 import { METHODOLOGY_PATH, TELEGRAM_CHANNEL_URL } from '../lib/threatIntel/officialLinks';
@@ -452,7 +453,7 @@ export function weeklyRouteMeta(c: WeeklyPublicContent, generatedAt: string): Ro
     h1: seoTitle,
     intro: weeklyDescription(c),
     items,
-    image: THREAT_INTEL_IMAGE,
+    image: weeklyOgImageUrl(c.weekStart),
     imageAlt: `Digibastion weekly Web3 security report, week of ${c.weekStart}`,
     type: 'article',
     breadcrumbs: [HOME, THREAT_INTEL, { href: '/threat-intel/weekly', label: 'Weekly reports' }],
@@ -470,7 +471,7 @@ export function weeklyRouteMeta(c: WeeklyPublicContent, generatedAt: string): Ro
       buildBreadcrumbSchema([HOME, THREAT_INTEL, { href: '/threat-intel/weekly', label: 'Weekly reports' }, { href: path, label: seoTitle }]),
     ],
   });
-  return { ...meta, publishedTime: generatedAt };
+  return { ...meta, imageWidth: 1200, imageHeight: 630, publishedTime: generatedAt };
 }
 
 /** Props for <MetaTags>. The fallback shell has no canonical, so MetaTags derives one from the path. */
