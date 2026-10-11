@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS public.delivery_health_alerts (
   detail text CHECK (detail IS NULL OR length(detail) <= 300)
 );
 
+GRANT ALL ON public.delivery_health_alerts TO service_role;
+REVOKE ALL ON public.delivery_health_alerts FROM anon, authenticated;
+
 ALTER TABLE public.delivery_health_alerts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Service role manages delivery health alerts" ON public.delivery_health_alerts;
