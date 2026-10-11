@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
-import { filterDailyBriefForSubscriber, isDailyBriefContent } from '../_shared/daily-brief.ts';
+import { dailyBriefItemCount, filterDailyBriefForSubscriber, isDailyBriefContent } from '../_shared/daily-brief.ts';
 import {
   buildUnsubscribeLinks,
   emailHash,
@@ -20,7 +20,9 @@ import { createThrottle, RESEND_MIN_INTERVAL_MS, sendResendEmail, type ResendOut
 import {
   dailyIssueDateFor,
   isNewsletterDue,
+  localClock,
   resolveZone,
+  weeklyDayOf,
   weeklyIssueDateFor,
   type Zone,
 } from '../_shared/send-window.ts';
@@ -48,7 +50,7 @@ const DEFAULT_PREFERRED_HOUR = 9;
 // Any well-formed token works in a test email's links: it matches no row.
 const PLACEHOLDER_TOKEN = '00000000-0000-0000-0000-000000000000';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SUBSCRIPTION_COLUMNS = 'id, email, verification_token, categories, technologies, severity_threshold, content_scope, include_preliminary, chains, wants_daily, wants_weekly, timezone, timezone_offset, preferred_hour';
+const SUBSCRIPTION_COLUMNS = 'id, email, verification_token, categories, technologies, severity_threshold, content_scope, include_preliminary, chains, wants_daily, wants_weekly, timezone, timezone_offset, preferred_hour, preferred_day';
 const ISSUE_COLUMNS = 'id, kind, period_start, period_end, status, content, generated_at';
 const EVENT_TYPES: Record<Kind, string> = { daily: 'daily_brief', weekly: 'weekly_deep_dive' };
 
@@ -65,6 +67,7 @@ interface Subscriber extends DeliveryPreferences {
   timezone: string | null;
   timezone_offset: number | string | null;
   preferred_hour: number | null;
+  preferred_day: number | null;
 }
 
 interface Issue {
@@ -82,7 +85,8 @@ interface Task { sub: Subscriber; kind: Kind; issue: Issue }
 interface KindCounters {
   due: number;
   sent: number;
-  skipped_empty: number;
+  /** Daily briefs where nothing matched: sent as a quiet-day brief. */
+  quiet: number;
   suppressed: number;
   failed: number;
   unknown: number;
@@ -90,7 +94,10 @@ interface KindCounters {
   deferred: number;
 }
 
-const emptyCounters = (): KindCounters => ({ due: 0, sent: 0, skipped_empty: 0, suppressed: 0, failed: 0, unknown: 0, unrenderable: 0, deferred: 0 });
+const emptyCounters = (): KindCounters => ({ due: 0, sent: 0, quiet: 0, suppressed: 0, failed: 0, unknown: 0, unrenderable: 0, deferred: 0 });
+
+const isQuietBrief = (content: unknown): boolean =>
+  Boolean(content && typeof content === 'object' && (content as { quiet?: unknown }).quiet);
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -258,14 +265,16 @@ function planTasks(subscribers: Subscriber[], issues: Map<string, Issue>, existi
   for (const sub of subscribers) {
     const zone = zoneOf(sub);
     const preferredHour = preferredHourOf(sub);
+    const localDate = localClock(now, zone).date;
     const wanted: { kind: Kind; issueDate: string | null }[] = [];
     if (sub.wants_daily) wanted.push({ kind: 'daily', issueDate: dailyIssueDateFor(now, zone) });
-    if (sub.wants_weekly) wanted.push({ kind: 'weekly', issueDate: weeklyIssueDateFor(now, zone) });
+    // The weekly goes out on the subscriber's weekly day (Monday when unset).
+    if (sub.wants_weekly) wanted.push({ kind: 'weekly', issueDate: weeklyIssueDateFor(now, zone, weeklyDayOf(sub.preferred_day)) });
     for (const { kind, issueDate } of wanted) {
       if (!issueDate) continue;
       const issue = issues.get(`${kind}/${issueDate}`);
       if (!issue) continue;
-      if (!isNewsletterDue({ now, zone, preferredHour, issueDate, issueReadyAt: new Date(issue.generated_at) })) continue;
+      if (!isNewsletterDue({ now, zone, preferredHour, issueDate, sendDate: localDate, issueReadyAt: new Date(issue.generated_at) })) continue;
       const send = existing.get(`${sub.id}/${kind}/${issue.id}`) ?? null;
       if (send && planEmailClaim(send, kind, now) === 'skip') continue;
       tasks.push({ sub, kind, issue });
@@ -274,7 +283,7 @@ function planTasks(subscribers: Subscriber[], issues: Map<string, Issue>, existi
   return tasks;
 }
 
-/** What this subscriber should get from the issue; null when a daily filters down to nothing. */
+/** What this subscriber should get from the issue: the filtered daily (a quiet-day brief when nothing matches) or the shared weekly. */
 function contentFor(task: Task): unknown {
   if (task.kind === 'weekly') return task.issue.content; // one shared edition, as on the public page
   if (!isDailyBriefContent(task.issue.content)) return undefined;
@@ -311,12 +320,6 @@ async function runTask(ctx: RunContext, task: Task, suppressed: boolean, counter
   };
 
   const content = contentFor(task);
-  if (content === null) {
-    const claim = await claimEmailSend(ctx.ledger, claimRow, ctx.now);
-    if (claim) await finishEmailSend(ctx.ledger, claim.id, { status: 'skipped' });
-    counters.skipped_empty++;
-    return false;
-  }
 
   const links = linksFor(sub.email, sub.verification_token, ctx.supabaseUrl);
   const renderContext: RenderContext = { links, postalAddress: ctx.postalAddress, siteUrl: SITE_URL, latestWeekStart: ctx.latestWeekStart };
@@ -334,6 +337,7 @@ async function runTask(ctx: RunContext, task: Task, suppressed: boolean, counter
     counters.suppressed++;
     return false;
   }
+  if (isQuietBrief(content)) counters.quiet++;
 
   await ctx.throttle();
   const outcome = await sendResendEmail({
@@ -422,6 +426,102 @@ async function sendTest(db: Db, apiKey: string, supabaseUrl: string, adminEmail:
   );
 }
 
+interface ParityRow {
+  id: string;
+  frequency: string;
+  status: 'would_send' | 'blocked';
+  reasons: string[];
+  local_time: string;
+  weekly_day?: number;
+  daily?: { matched: number; quiet: boolean };
+}
+
+/**
+ * The cut-over gate, read-only: for every subscriber the legacy digest serves
+ * (active, verified, frequency daily or weekly), would send-newsletters send
+ * them the newest issue? Works before NEWSLETTER_POSTAL_ADDRESS is set. Ids
+ * are shortened and no email address leaves the function.
+ */
+async function parityReport(db: Db, supabaseUrl: string): Promise<Response> {
+  const { data, error } = await db
+    .from('subscriptions')
+    .select(`${SUBSCRIPTION_COLUMNS}, frequency`)
+    .eq('is_active', true)
+    .eq('is_verified', true)
+    .in('frequency', ['daily', 'weekly'])
+    .order('id', { ascending: true });
+  if (error) throw new Error('Subscriptions could not be read');
+  const subscribers = (data ?? []) as (Subscriber & { frequency: string; verification_token: string | null })[];
+
+  const latest = async (kind: Kind) => {
+    const { data: issue, error: issueError } = await db
+      .from('newsletter_issues')
+      .select(ISSUE_COLUMNS)
+      .eq('kind', kind)
+      .in('status', ['ready', 'sent'])
+      .not('generated_at', 'is', null)
+      .order('period_end', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (issueError) throw new Error('newsletter_issues could not be read');
+    return (issue ?? null) as Issue | null;
+  };
+  const [daily, weekly, suppressed] = await Promise.all([
+    latest('daily'),
+    latest('weekly'),
+    loadSuppressed(db, subscribers.filter((sub) => typeof sub.email === 'string') as Subscriber[]),
+  ]);
+  const dailyContent = daily && isDailyBriefContent(daily.content) ? daily.content : null;
+  const dailyHasUpdates = Boolean(dailyContent && Array.isArray(dailyContent.updates));
+
+  const rows: ParityRow[] = subscribers.map((sub) => {
+    const reasons: string[] = [];
+    if (!sub.verification_token) reasons.push('no_management_token');
+    if (sub.frequency === 'daily' && !sub.wants_daily) reasons.push('daily_channel_off');
+    if (sub.frequency === 'weekly' && !sub.wants_weekly) reasons.push('weekly_channel_off');
+    if (suppressed.has(sub.id)) reasons.push('suppressed');
+    const row: ParityRow = {
+      id: sub.id.slice(0, 8),
+      frequency: sub.frequency,
+      status: 'would_send',
+      reasons,
+      local_time: `${String(preferredHourOf(sub)).padStart(2, '0')}:00 ${sub.timezone ?? `UTC${Number(sub.timezone_offset ?? 0) >= 0 ? '+' : ''}${Number(sub.timezone_offset ?? 0)}`}`,
+    };
+    if (sub.wants_daily) {
+      if (!dailyContent) reasons.push('no_daily_issue');
+      else {
+        // Issues built before the parity change have no `updates` and can miss general news.
+        if (!dailyHasUpdates) reasons.push('daily_issue_built_before_parity');
+        const view = filterDailyBriefForSubscriber(dailyContent, sub);
+        row.daily = { matched: dailyBriefItemCount(view), quiet: Boolean(view.quiet) };
+        const links = linksFor(sub.email, sub.verification_token ?? PLACEHOLDER_TOKEN, supabaseUrl);
+        if (!renderNewsletterEmail('daily', view, { links, postalAddress: null, testWarning: true, siteUrl: SITE_URL })) {
+          reasons.push('daily_unrenderable');
+        }
+      }
+    }
+    if (sub.wants_weekly) {
+      row.weekly_day = weeklyDayOf(sub.preferred_day);
+      if (!weekly) reasons.push('no_weekly_issue');
+    }
+    row.status = reasons.length === 0 ? 'would_send' : 'blocked';
+    return row;
+  });
+
+  const wouldSend = rows.filter((row) => row.status === 'would_send').length;
+  return json({
+    success: true,
+    parity: true,
+    ready_for_cutover: rows.length > 0 && wouldSend === rows.length,
+    legacy_subscribers: rows.length,
+    would_send: wouldSend,
+    blocked: rows.length - wouldSend,
+    daily_issue: daily ? { id: daily.id, period_end: daily.period_end, has_updates: dailyHasUpdates } : null,
+    weekly_issue: weekly ? { id: weekly.id, period_end: weekly.period_end } : null,
+    rows,
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -468,6 +568,15 @@ Deno.serve(async (req) => {
     }
   }
 
+  if (body.parity === true) {
+    try {
+      return await parityReport(db, supabaseUrl);
+    } catch (error) {
+      console.error('[send-newsletters] parity report failed:', error instanceof Error ? error.message : 'unknown');
+      return json({ success: false, error: 'Parity report failed' }, 500);
+    }
+  }
+
   const dryRun = body.dryRun === true;
   const source = body.source === 'cron' ? 'cron' : 'manual';
 
@@ -503,7 +612,7 @@ Deno.serve(async (req) => {
     if (dryRun) {
       for (const task of tasks) {
         if (suppressed.has(task.sub.id)) counters[task.kind].suppressed++;
-        else if (contentFor(task) === null) counters[task.kind].skipped_empty++;
+        else if (isQuietBrief(contentFor(task))) counters[task.kind].quiet++;
       }
       return json({ success: true, dryRun: true, issues: issueCount, subscriptions: subscriberCount, daily: counters.daily, weekly: counters.weekly });
     }

@@ -2,12 +2,21 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDailyBriefContent,
   buildDailySubject,
+  dailyBriefItemCount,
   dailyIssuePeriod,
   filterDailyBriefForSubscriber,
   isDailyBriefContent,
   type DailyBriefInput,
 } from './daily-brief.ts';
-import { DAILY_CAPS, type NewsletterItem, type StatusChange } from './newsletter-content.ts';
+import {
+  DAILY_CAPS,
+  toNewsletterItem,
+  type DailyBriefContent,
+  type NewsletterItem,
+  type NewsletterSourceRow,
+  type StatusChange,
+} from './newsletter-content.ts';
+import { matchesDeliveryPreferences, type DeliveryPreferences } from './subscription-delivery.ts';
 
 const SITE = 'https://www.digibastion.com';
 
@@ -218,8 +227,103 @@ describe('filterDailyBriefForSubscriber', () => {
     expect(filtered?.statusChanges.map((entry) => entry.change)).toEqual(['confirmed']);
   });
 
-  it('returns null when the filter empties sections 1 to 4', () => {
-    expect(filterDailyBriefForSubscriber(content, { chains: ['base'], content_scope: 'web3-incidents' })).toBeNull();
+  it('sends a quiet-day brief when nothing matches, with highlights inside the subscriber scope', () => {
+    const quiet = filterDailyBriefForSubscriber(content, { severity_threshold: 'critical', categories: ['tools-reviews'] });
+    expect(dailyBriefItemCount(quiet)).toBe(0);
+    expect(quiet.quiet?.filterSummary).toBe('critical severity only in tools');
+    expect(quiet.quiet?.highlights.map((entry) => entry.uid)).toEqual(['q:eth', 'rss:cve', 'q:unc']);
+
+    const web3Only = filterDailyBriefForSubscriber(content, { chains: ['base'], content_scope: 'web3-incidents' });
+    expect(web3Only.quiet?.highlights).toEqual([]);
+  });
+
+  it('never carries a stored quiet field into a matching view', () => {
+    const stored = { ...content, quiet: { filterSummary: 'x', highlights: [] } } as DailyBriefContent;
+    expect(filterDailyBriefForSubscriber(stored, { severity_threshold: 'info' }).quiet).toBeUndefined();
+  });
+});
+
+describe('updates section', () => {
+  it('holds every record outside the featured sections, including ones the caps left out', () => {
+    const general = vuln({ uid: 'rss:opsec', category: 'operational-security', severity: 'medium', cveId: null, title: 'Phishing kit update' });
+    const many = Array.from({ length: DAILY_CAPS.incidents + 2 }, (_, index) => item({ uid: `q:${index}` }));
+    const c = buildDailyBriefContent(input({ recent: [general, ...many] }));
+    expect(c.incidents).toHaveLength(DAILY_CAPS.incidents);
+    const shown = new Set([...c.incidents, ...c.updates!].map((entry) => entry.uid));
+    for (const entry of [general, ...many]) expect(shown.has(entry.uid)).toBe(true);
+    expect(c.updates!.map((entry) => entry.uid)).toContain('rss:opsec');
+  });
+
+  it('counts updates in the subject and accepts issues built before updates existed', () => {
+    const c = buildDailyBriefContent(input({
+      recent: [item({ uid: 'a' }), vuln({ uid: 'rss:o', category: 'operational-security', severity: 'medium', cveId: null })],
+    }));
+    expect(buildDailySubject(c)).toBe('Daily brief, Oct 11: 1 incident, 1 more update');
+    expect(buildDailySubject({ ...c, incidents: [] })).toBe('Daily brief, Oct 11: 1 update');
+    const { updates: _old, ...legacy } = c;
+    expect(isDailyBriefContent(legacy)).toBe(true);
+    expect(buildDailySubject({ ...c, quiet: { filterSummary: 'x', highlights: [] } })).toBe('Daily brief, Oct 11: quiet day, nothing matched your filters');
+  });
+});
+
+// The cut-over guarantee: whatever the legacy digest (send-digest-emails)
+// would send for a day's articles, the subscriber's daily brief contains too.
+describe('parity with the legacy digest', () => {
+  let seed = 7;
+  const next = () => (seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648) / 2_147_483_648;
+  const pick = <T,>(values: readonly T[]): T => values[Math.floor(next() * values.length)];
+  const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
+  const CATEGORIES = ['web3-security', 'defi-exploits', 'operational-security', 'supply-chain', 'personal-protection', 'vulnerability-disclosure', 'tools-reviews'] as const;
+
+  const rows: NewsletterSourceRow[] = Array.from({ length: 200 }, (_, index) => {
+    const incident = next() < 0.4;
+    const metadata: Record<string, unknown> = incident
+      ? { provider: pick(['quillmonitor', 'slowmist', 'web3-incidents']), is_web3_incident: true, verification_status: pick(['verified', 'unverified', undefined]), chain: pick(['Ethereum', 'Solana', 'BSC']) }
+      : { provider: 'rss', is_web3_incident: false, security_domain: pick(['web3', 'general', undefined]) };
+    return {
+      id: `row-${index}`,
+      uid: `uid-${index}`,
+      title: `Report ${index}`,
+      summary: 'Summary.',
+      severity: pick(SEVERITIES),
+      category: incident ? pick(['defi-exploits', 'web3-security']) : pick(CATEGORIES),
+      link: `https://example.com/${index}`,
+      source_name: incident ? 'QuillMonitor' : 'The Hacker News',
+      cve_id: !incident && next() < 0.3 ? `CVE-2026-${1000 + index}` : null,
+      tags: next() < 0.5 ? ['wallet'] : ['bridge'],
+      affected_technologies: next() < 0.3 ? ['Solidity'] : [],
+      created_at: `2026-10-10T${String(index % 24).padStart(2, '0')}:00:00.000Z`,
+      metadata,
+    };
+  });
+  const brief = buildDailyBriefContent(input({ recent: rows.map((row) => toNewsletterItem(row, SITE)) }));
+
+  const preferenceSets: DeliveryPreferences[] = [];
+  for (const severity_threshold of ['critical', 'high', 'medium', 'low']) {
+    for (const categories of [[], ['web3-security'], ['defi-exploits', 'vulnerability-disclosure'], ['operational-security', 'personal-protection', 'tools-reviews']]) {
+      for (const technologies of [[], ['wallet'], ['solidity']]) {
+        for (const content_scope of ['all', 'web3-incidents']) {
+          for (const chains of [[], ['ethereum']]) {
+            for (const include_preliminary of [true, false]) {
+              preferenceSets.push({ severity_threshold, categories, technologies, content_scope, chains, include_preliminary });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  it(`covers every legacy match across ${preferenceSets.length} preference sets`, () => {
+    const total = brief.incidents.length + brief.unconfirmed.length + brief.vulnerabilities.length + (brief.updates?.length ?? 0);
+    expect(total).toBe(rows.length);
+    for (const prefs of preferenceSets) {
+      const legacy = rows.filter((row) => matchesDeliveryPreferences({ ...row, link: row.link ?? undefined, metadata: row.metadata as Record<string, unknown> }, prefs));
+      const view = filterDailyBriefForSubscriber(brief, prefs);
+      const sent = new Set([...view.incidents, ...view.unconfirmed, ...view.vulnerabilities, ...(view.updates ?? [])].map((entry) => entry.uid));
+      const missing = legacy.filter((row) => !sent.has(row.uid)).map((row) => row.uid);
+      expect({ prefs, missing }).toEqual({ prefs, missing: [] });
+      expect(Boolean(view.quiet)).toBe(legacy.length === 0 && sent.size === 0);
+    }
   });
 });
 

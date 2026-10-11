@@ -5,6 +5,7 @@ import {
   isNewsletterDue,
   localClock,
   resolveZone,
+  weeklyDayOf,
   weeklyIssueDateFor,
   zonedInstant,
   type Zone,
@@ -73,6 +74,29 @@ describe('issue dates', () => {
     expect(weeklyIssueDateFor(at('2026-10-11T20:00:00Z'), kolkata)).toBe('2026-10-12');
     expect(weeklyIssueDateFor(at('2026-10-11T20:00:00Z'), newYork)).toBeNull();
     expect(weeklyIssueDateFor(at('2026-10-12T13:00:00Z'), newYork)).toBe('2026-10-12');
+  });
+
+  it("returns that week's Monday issue on the subscriber's weekly day", () => {
+    // Sunday 2026-10-18 in New York: the issue built on Monday 2026-10-12.
+    expect(weeklyIssueDateFor(at('2026-10-18T14:00:00Z'), newYork, 0)).toBe('2026-10-12');
+    // Friday 2026-10-16.
+    expect(weeklyIssueDateFor(at('2026-10-16T14:00:00Z'), newYork, 5)).toBe('2026-10-12');
+    expect(weeklyIssueDateFor(at('2026-10-12T14:00:00Z'), newYork, 5)).toBeNull();
+  });
+
+  it('reads preferred_day, defaulting to Monday', () => {
+    expect(weeklyDayOf(0)).toBe(0);
+    expect(weeklyDayOf('6')).toBe(6);
+    for (const value of [null, undefined, '', 7, -1, 2.5, 'x']) expect(weeklyDayOf(value as number | null)).toBe(1);
+  });
+});
+
+describe('isNewsletterDue with a send date', () => {
+  it('sends a Monday issue at the preferred hour of a later send date', () => {
+    const base = { zone: newYork, preferredHour: 9, issueDate: '2026-10-12', sendDate: '2026-10-16', issueReadyAt: at('2026-10-12T00:10:00Z') };
+    expect(isNewsletterDue({ ...base, now: at('2026-10-16T12:45:00Z') })).toBe(false);
+    expect(isNewsletterDue({ ...base, now: at('2026-10-16T13:00:00Z') })).toBe(true);
+    expect(isNewsletterDue({ ...base, now: at('2026-10-12T13:00:00Z') })).toBe(false);
   });
 });
 

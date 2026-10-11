@@ -1,13 +1,21 @@
 // The daily brief: one shared edition per UTC day, built from the previous 24
 // hours of ingested records, the incidents still waiting on confirmation and
 // the day's incident status changes. The sender filters it per subscriber.
+//
+// Parity with the legacy digest (send-digest-emails): every deliverable record
+// of the day is in the issue, in a featured section or in `updates`, and the
+// filter uses the same matchesDeliveryPreferences, so a subscriber never gets
+// less than the legacy digest would have sent. When nothing matches, the
+// subscriber still gets a quiet-day brief with the top other records.
 // Pure module: no Deno or URL imports, so vitest can import it.
+import { describeDigestFilters, QUIET_DAY_HIGHLIGHTS } from './digest-logic.ts';
 import {
   compareItems,
   DAILY_CAPS,
   newsletterItemToDeliverable,
   type DailyBriefContent,
   type NewsletterItem,
+  type QuietBrief,
   type StatusChange,
 } from './newsletter-content.ts';
 import { pickSecurityAction } from './security-actions.ts';
@@ -105,6 +113,9 @@ export function buildDailyBriefContent(input: DailyBriefInput): DailyBriefConten
     DAILY_CAPS.unconfirmed,
   );
   const vulnerabilities = sortAndCap(recent.filter(isVulnerability), DAILY_CAPS.vulnerabilities);
+  // Everything else, including records the section caps left out.
+  const featuredUids = new Set([...incidents, ...unconfirmed, ...vulnerabilities].map((entry) => entry.uid));
+  const updates = sortAndCap(recent.filter((entry) => !featuredUids.has(entry.uid)), DAILY_CAPS.updates);
   const statusChanges = sortChanges(collapseStatusChanges(input.statusChanges)).slice(0, DAILY_CAPS.statusChanges);
 
   const featured = [...incidents, ...unconfirmed];
@@ -124,6 +135,7 @@ export function buildDailyBriefContent(input: DailyBriefInput): DailyBriefConten
     unconfirmed,
     statusChanges,
     vulnerabilities,
+    updates,
     action,
   };
 }
@@ -131,18 +143,43 @@ export function buildDailyBriefContent(input: DailyBriefInput): DailyBriefConten
 const matches = (prefs: DeliveryPreferences) => (entry: NewsletterItem) =>
   matchesDeliveryPreferences(newsletterItemToDeliverable(entry), prefs);
 
-/** The subscriber's view of the issue; null when sections 1 to 4 are all empty. */
-export function filterDailyBriefForSubscriber(c: DailyBriefContent, prefs: DeliveryPreferences): DailyBriefContent | null {
+/** Number of records in the featured sections and `updates`. */
+export function dailyBriefItemCount(c: DailyBriefContent): number {
+  return c.incidents.length + c.unconfirmed.length + c.statusChanges.length + c.vulnerabilities.length + (c.updates?.length ?? 0);
+}
+
+/**
+ * The subscriber's view of the issue. When nothing matches, the view is a
+ * quiet-day brief: empty sections plus `quiet`, whose highlights are the top
+ * other records, keeping only the subscriber's scope, chain and preliminary
+ * choices. Never null, so every due subscriber gets an email.
+ */
+export function filterDailyBriefForSubscriber(c: DailyBriefContent, prefs: DeliveryPreferences): DailyBriefContent {
   const keep = matches(prefs);
   const filtered: DailyBriefContent = {
     ...c,
+    quiet: undefined,
     incidents: c.incidents.filter(keep),
     unconfirmed: c.unconfirmed.filter(keep),
     statusChanges: c.statusChanges.filter((entry) => keep(entry.item)),
     vulnerabilities: c.vulnerabilities.filter(keep),
+    updates: (c.updates ?? []).filter(keep),
   };
-  const total = filtered.incidents.length + filtered.unconfirmed.length + filtered.statusChanges.length + filtered.vulnerabilities.length;
-  return total > 0 ? filtered : null;
+  delete filtered.quiet;
+  if (dailyBriefItemCount(filtered) > 0) return filtered;
+
+  const relaxed = matches({
+    severity_threshold: 'info',
+    content_scope: prefs.content_scope,
+    chains: prefs.chains,
+    include_preliminary: prefs.include_preliminary,
+  });
+  const everything = dedupeByUid([...c.incidents, ...c.unconfirmed, ...c.vulnerabilities, ...(c.updates ?? [])]);
+  const quiet: QuietBrief = {
+    filterSummary: describeDigestFilters(prefs),
+    highlights: sortAndCap(everything.filter(relaxed), QUIET_DAY_HIGHLIGHTS),
+  };
+  return { ...filtered, quiet };
 }
 
 function countPart(count: number, singular: string, plural: string): string | null {
@@ -158,15 +195,22 @@ export function shortIssueDate(issueDate: string): string {
   return month ? `${month} ${Number(match[3])}` : issueDate;
 }
 
-/** "Daily brief, Oct 11: 3 incidents, 1 unconfirmed, 2 status changes"; zero parts are left out. */
+/**
+ * "Daily brief, Oct 11: 3 incidents, 1 unconfirmed, 2 status changes, 12 more
+ * updates"; zero parts are left out. A quiet-day brief says so.
+ */
 export function buildDailySubject(c: DailyBriefContent): string {
+  const base = `Daily brief, ${shortIssueDate(c.issueDate)}`;
+  if (c.quiet) return `${base}: quiet day, nothing matched your filters`;
+  const featured = c.incidents.length + c.unconfirmed.length + c.statusChanges.length + c.vulnerabilities.length;
+  const updates = c.updates?.length ?? 0;
   const parts = [
     countPart(c.incidents.length, 'incident', 'incidents'),
     countPart(c.unconfirmed.length, 'unconfirmed', 'unconfirmed'),
     countPart(c.statusChanges.length, 'status change', 'status changes'),
     countPart(c.vulnerabilities.length, 'vulnerability', 'vulnerabilities'),
+    featured > 0 ? countPart(updates, 'more update', 'more updates') : countPart(updates, 'update', 'updates'),
   ].filter((part): part is string => part !== null);
-  const base = `Daily brief, ${shortIssueDate(c.issueDate)}`;
   return parts.length > 0 ? `${base}: ${parts.join(', ')}` : base;
 }
 
@@ -178,5 +222,6 @@ export function isDailyBriefContent(value: unknown): value is DailyBriefContent 
   return c.version === 1 && c.kind === 'daily' && typeof c.issueDate === 'string' &&
     Array.isArray(c.incidents) && Array.isArray(c.unconfirmed) &&
     Array.isArray(c.statusChanges) && Array.isArray(c.vulnerabilities) &&
+    (c.updates === undefined || Array.isArray(c.updates)) &&
     Boolean(action) && typeof action?.text === 'string' && typeof action?.url === 'string';
 }

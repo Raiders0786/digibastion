@@ -71,7 +71,14 @@ describe('toNewsletterItem', () => {
       technologies: ['Ethereum'],
       summary: 'Attackers drained the bridge contract after a signature check was skipped.',
       createdAt: '2026-10-11T08:00:00.000Z',
+      securityDomain: null,
     } satisfies NewsletterItem);
+  });
+
+  it('carries the security domain so the Web3 umbrella category matches as in the legacy digest', () => {
+    const rss = toNewsletterItem({ ...quillRow, category: 'operational-security', metadata: { provider: 'rss', is_web3_incident: false, security_domain: 'Web3' } }, SITE);
+    expect(rss.securityDomain).toBe('web3');
+    expect(newsletterItemToDeliverable(rss).metadata?.security_domain).toBe('web3');
   });
 
   it('maps verification to source status words', () => {
@@ -215,6 +222,6 @@ describe('formatLossReported and compareItems', () => {
 
   it('exposes the contract constants', () => {
     expect(NEWSLETTER_CONTENT_VERSION).toBe(1);
-    expect(DAILY_CAPS).toEqual({ incidents: 15, unconfirmed: 10, statusChanges: 15, vulnerabilities: 10 });
+    expect(DAILY_CAPS).toEqual({ incidents: 15, unconfirmed: 10, statusChanges: 15, vulnerabilities: 10, updates: 200 });
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildDailyBriefContent, buildDailySubject } from './daily-brief.ts';
 import { buildUnsubscribeLinks } from './email-compliance.ts';
 import type { DailyBriefContent, NewsletterItem, StatusChange } from './newsletter-content.ts';
-import { renderDailyBriefEmail, renderNewsletterEmail, type RenderContext } from './newsletter-render.ts';
+import { DAILY_RENDERED_ITEMS, DAILY_UPDATES_SHOWN, renderDailyBriefEmail, renderNewsletterEmail, type RenderContext } from './newsletter-render.ts';
 import { assembleWeeklyContent } from './weekly-content.ts';
 import { buildWeeklySubject } from './weekly-render.ts';
 import { computeWeeklyTotals } from './weekly-stats.ts';
@@ -186,6 +186,41 @@ describe('renderDailyBriefEmail', () => {
     });
     const { html } = renderDailyBriefEmail(c, ctx);
     expect(new TextEncoder().encode(html).length).toBeLessThan(90 * 1024);
+  });
+
+  it('stays under 90 KB when updates fill the email', () => {
+    const long = 'A long summary sentence about a phishing campaign aimed at wallet users that keeps going. '.repeat(4).slice(0, 280);
+    const news = Array.from({ length: 150 }, (_, index) => item({
+      uid: `rss:${index}-${'z'.repeat(40)}`, isWeb3Incident: false, status: null, category: 'operational-security',
+      severity: 'medium', cveId: null, summary: long, title: `${'Long news title '.repeat(8)}${index}`,
+    }));
+    const { html, text } = renderDailyBriefEmail(content({ recent: news }), ctx);
+    expect(new TextEncoder().encode(html).length).toBeLessThan(90 * 1024);
+    expect(text).toContain(`${150 - DAILY_UPDATES_SHOWN} more updates on Digibastion`);
+  });
+
+  it('shows more updates only in the room the featured sections leave', () => {
+    const incidents = Array.from({ length: 15 }, (_, index) => item({ uid: `inc:${index}` }));
+    const unconfirmed = Array.from({ length: 10 }, (_, index) => item({ uid: `unc:${index}`, status: 'unconfirmed' }));
+    const cves = Array.from({ length: 10 }, (_, index) => item({ uid: `cve:${index}`, isWeb3Incident: false, status: null, cveId: 'CVE-2026-0001', category: 'vulnerability-disclosure', severity: 'critical' }));
+    const news = Array.from({ length: 30 }, (_, index) => item({ uid: `rss:${index}`, title: `News ${index}`, isWeb3Incident: false, status: null, category: 'operational-security', severity: 'medium', cveId: null }));
+    const { text } = renderDailyBriefEmail(content({ recent: [...incidents, ...unconfirmed, ...cves, ...news], statusChanges: [] }), ctx);
+    const room = DAILY_RENDERED_ITEMS - 35;
+    expect(text).toContain('More updates');
+    expect(text).toContain(`${30 - room} more updates on Digibastion`);
+  });
+
+  it('renders a quiet-day brief with the note and the other updates', () => {
+    const base = content({ recent: [] });
+    const quiet: DailyBriefContent = {
+      ...base,
+      quiet: { filterSummary: 'high severity and above in DeFi exploits', highlights: [item({ uid: 'h1', title: 'Phishing wave hits wallets', severity: 'medium' })] },
+    };
+    const { subject, html, text } = renderDailyBriefEmail(quiet, ctx);
+    expect(subject).toBe('Daily brief, Oct 11: quiet day, nothing matched your filters');
+    expect(text).toContain('Nothing new matched your filters (high severity and above in DeFi exploits) today. Here is the top other update from the same day.');
+    expect(text).toContain('Other updates');
+    expect(html).toContain('Phishing wave hits wallets');
   });
 
   it('escapes source-provided text', () => {

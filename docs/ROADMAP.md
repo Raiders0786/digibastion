@@ -40,12 +40,12 @@ its data.
 
 - Read and approve a privacy page that says what the site collects, before any
   newsletter goes out.
-- First make `send-newsletters` cover everything the legacy digest sends: a
-  "more updates" section with every matching article, a quiet-day email,
-  each subscriber's chosen weekly day, and a test that fails if any subscriber
-  would get less than before. A dry run must show every current subscriber as
-  "would send" before the switch. (The first attempt, on 11 October 2026,
-  left high-threshold subscribers with no email and was rolled back.)
+- `send-newsletters` now covers everything the legacy digest sends ("more
+  updates", quiet-day brief, each subscriber's weekly day, a parity test).
+  Before the switch, `send-newsletters {"parity": true}` must report
+  `ready_for_cutover: true`, which needs a daily issue built by the new
+  builder. (The first attempt, on 11 October 2026, left high-threshold
+  subscribers with no email and was rolled back.)
 - Then set `NEWSLETTER_POSTAL_ADDRESS` in Lovable Cloud. That starts the daily brief
   and weekly email and makes the legacy digest stand down by itself.
 - Set `NEWSLETTERS_LIVE = true` in `src/seo/siteFacts.ts` in the same change, so

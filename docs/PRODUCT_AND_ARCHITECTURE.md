@@ -232,10 +232,22 @@ Follow-up emails go out for retractions and upgrades to critical.
   feed outage still go out once. When nothing matches a subscriber's filters
   it still sends a short "quiet day" email with the top 3 other updates, so a
   quiet day never looks like a broken service.
-- Do not set the postal address yet. `send-newsletters` does not cover
-  everything the legacy digest sends: its daily brief leaves out general news,
-  and in October 2026 the switch left high-threshold subscribers with nothing.
-  Deleting the secret is the rollback.
+- The daily brief covers everything the legacy digest sends. Besides its
+  featured sections (incidents, unconfirmed, status changes, vulnerabilities)
+  it stores every other deliverable record of the day in `updates`, and the
+  sender filters it with the same `matchesDeliveryPreferences` the legacy
+  digest uses. A test checks this across 384 preference sets. When nothing
+  matches, the subscriber gets a quiet-day brief with the top 3 other records.
+  One email shows at most 50 records (Gmail clips at 102 KB); the rest are a
+  link away.
+- The weekly email goes out on each subscriber's `preferred_day` (Monday when
+  unset), with the issue of the Monday on or before that day.
+- Before setting the postal address, run `send-newsletters {"parity": true}`
+  from an admin session. It lists every subscriber the legacy digest serves as
+  `would_send` or `blocked` with reasons, and works while the address is unset.
+  Switch only when `ready_for_cutover` is true. In October 2026 an early switch
+  left high-threshold subscribers with nothing; deleting the secret is the
+  rollback.
 - `cron-monitor` also checks delivery every hour (`get_delivery_health`). It
   emails the admins when RSS inserts nothing for 8 hours on a weekday (30 on a
   weekend), or when an active subscriber has had no digest for 36 hours (8 days

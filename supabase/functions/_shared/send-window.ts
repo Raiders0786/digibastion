@@ -8,7 +8,8 @@
 // - the weekly issue for Monday M covers [M-7d, M), period_end = M, and its
 //   public URL date is period_start.
 // A subscriber whose local date is D gets the daily issue with period_end D,
-// and on a local Monday M the weekly issue with period_end M.
+// and on their weekly day (preferred_day, Monday when unset) the weekly issue
+// of the Monday on or before that date.
 import { isValidTimeZone } from './subscription-preferences.ts';
 
 export type Zone = { kind: 'iana'; timeZone: string } | { kind: 'offset'; offsetMinutes: number };
@@ -108,20 +109,36 @@ export function dailyIssueDateFor(now: Date, zone: Zone): string {
   return localClock(now, zone).date;
 }
 
-/** The local date when it is a Monday (the weekly issue's period_end), else null. */
-export function weeklyIssueDateFor(now: Date, zone: Zone): string | null {
-  const clock = localClock(now, zone);
-  return clock.weekday === 1 ? clock.date : null;
+export const DEFAULT_WEEKLY_DAY = 1; // Monday, the day the weekly issue is built
+
+/** 0 (Sunday) to 6, as stored in subscriptions.preferred_day; Monday when unset or invalid. */
+export function weeklyDayOf(preferredDay: number | string | null | undefined): number {
+  const day = Number(preferredDay);
+  return preferredDay !== null && preferredDay !== undefined && preferredDay !== '' && Number.isInteger(day) && day >= 0 && day <= 6
+    ? day
+    : DEFAULT_WEEKLY_DAY;
 }
 
 /**
- * Due when the local date is the issue date, the preferred local hour has
- * arrived, the issue is ready, and the grace window (measured from the later
- * of the two) has not run out.
+ * On the subscriber's weekly day, the weekly issue's period_end: the Monday on
+ * or before the local date. null on any other day.
  */
-export function isNewsletterDue(o: { now: Date; zone: Zone; preferredHour: number; issueDate: string; issueReadyAt: Date }): boolean {
-  if (localClock(o.now, o.zone).date !== o.issueDate) return false;
-  const preferred = zonedInstant(o.issueDate, o.preferredHour, o.zone).getTime();
+export function weeklyIssueDateFor(now: Date, zone: Zone, weeklyDay: number = DEFAULT_WEEKLY_DAY): string | null {
+  const clock = localClock(now, zone);
+  if (clock.weekday !== weeklyDay) return null;
+  const daysSinceMonday = (clock.weekday + 6) % 7;
+  return new Date(Date.parse(`${clock.date}T00:00:00.000Z`) - daysSinceMonday * DAY_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * Due when the local date is the send date (the issue date unless given), the
+ * preferred local hour has arrived, the issue is ready, and the grace window
+ * (measured from the later of the two) has not run out.
+ */
+export function isNewsletterDue(o: { now: Date; zone: Zone; preferredHour: number; issueDate: string; issueReadyAt: Date; sendDate?: string }): boolean {
+  const sendDate = o.sendDate ?? o.issueDate;
+  if (localClock(o.now, o.zone).date !== sendDate) return false;
+  const preferred = zonedInstant(sendDate, o.preferredHour, o.zone).getTime();
   const now = o.now.getTime();
   const ready = o.issueReadyAt.getTime();
   if (now < preferred || now < ready) return false;

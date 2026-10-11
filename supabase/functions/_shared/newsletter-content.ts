@@ -46,6 +46,8 @@ export interface NewsletterItem {
   technologies: string[];
   summary: string;
   createdAt: string;
+  /** metadata.security_domain ('web3', ...) when the source set it; matches the legacy digest's category rule. */
+  securityDomain?: string | null;
 }
 
 export interface StatusChange {
@@ -68,7 +70,22 @@ export interface DailyBriefContent {
   unconfirmed: NewsletterItem[];
   statusChanges: StatusChange[];
   vulnerabilities: NewsletterItem[];
+  /**
+   * Every other deliverable record of the day, so a subscriber's brief covers
+   * at least what the legacy digest would have sent. Missing on issues built
+   * before 2026-10-15.
+   */
+  updates?: NewsletterItem[];
   action: SecurityAction;
+  /** Set by the sender, never stored: nothing matched this subscriber's filters. */
+  quiet?: QuietBrief;
+}
+
+export interface QuietBrief {
+  /** "high severity and above in DeFi exploits and Web3 security" */
+  filterSummary: string;
+  /** The top other records of the day, any severity or category. */
+  highlights: NewsletterItem[];
 }
 
 export interface WeeklyParagraph { id: string; text: string; origin: 'ai' | 'template' }
@@ -111,7 +128,7 @@ export interface WeeklyArchive {
 
 export interface WeeklyIssueContent extends WeeklyPublicContent { archive: WeeklyArchive }
 
-export const DAILY_CAPS = { incidents: 15, unconfirmed: 10, statusChanges: 15, vulnerabilities: 10 } as const;
+export const DAILY_CAPS = { incidents: 15, unconfirmed: 10, statusChanges: 15, vulnerabilities: 10, updates: 200 } as const;
 
 export interface NewsletterSourceRow {
   id: string;
@@ -226,6 +243,7 @@ function itemFromParts(row: Omit<NewsletterSourceRow, 'id'> & { id: string | nul
     technologies: stringList(row.affected_technologies),
     summary: truncateAtWord(stripHtml(row.summary), SUMMARY_LIMIT),
     createdAt: row.created_at,
+    securityDomain: text(metadata.security_domain, 40)?.toLowerCase() ?? null,
   };
 }
 
@@ -281,6 +299,7 @@ export function newsletterItemToDeliverable(item: NewsletterItem): DeliverableAr
       ...(item.attackType ? { attack_type: item.attackType } : {}),
       ...(item.projectName ? { project_name: item.projectName } : {}),
       ...(item.amountDisplay ? { amount_display: item.amountDisplay } : {}),
+      ...(item.securityDomain ? { security_domain: item.securityDomain } : {}),
     },
   };
 }

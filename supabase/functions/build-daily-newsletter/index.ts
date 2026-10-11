@@ -184,6 +184,7 @@ function summarize(content: DailyBriefContent) {
     unconfirmed: content.unconfirmed.length,
     status_changes: content.statusChanges.length,
     vulnerabilities: content.vulnerabilities.length,
+    updates: content.updates?.length ?? 0,
     action: content.action.id,
   };
 }

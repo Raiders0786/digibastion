@@ -29,6 +29,10 @@ export interface RenderContext {
 export interface RenderedEmail { subject: string; html: string; text: string }
 
 const DAILY_REASON = 'You get this email because you subscribed to the Digibastion daily brief.';
+/** "More updates" shows up to this many; the rest are a link away, as in the legacy digest. */
+export const DAILY_UPDATES_SHOWN = 20;
+/** Items rendered in one email, all sections together: keeps it under Gmail's 102 KB clipping limit. */
+export const DAILY_RENDERED_ITEMS = 50;
 const HYPE = /\b(immediate action required|urgent|massive|devastating)\b/gi;
 const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
 
@@ -152,6 +156,28 @@ function moreText(ctx: RenderContext): string {
   return `${weekly.label}: ${weekly.url}\nNew incidents on Telegram: ${TELEGRAM_CHANNEL_URL}`;
 }
 
+function quietLine(c: DailyBriefContent): string | null {
+  if (!c.quiet) return null;
+  const nothing = `Nothing new matched your filters (${c.quiet.filterSummary}) today.`;
+  const count = c.quiet.highlights.length;
+  if (count === 0) return `${nothing} No other security updates came in either.`;
+  return `${nothing} Here ${count === 1 ? 'is the top other update' : `are the top ${count} other updates`} from the same day.`;
+}
+
+function noteHtml(note: string): string {
+  return `<tr><td class="email-pad" style="padding:18px 28px 0;"><p style="margin:0;color:#d1d5db;font-size:14px;line-height:21px;">${escapeHtml(note)}</p></td></tr>`;
+}
+
+function hiddenUpdatesLine(hidden: number, ctx: RenderContext): { html: string; text: string } | null {
+  if (hidden <= 0) return null;
+  const url = track('/threat-intel', 'more', ctx);
+  const label = `${hidden} more update${hidden === 1 ? '' : 's'} on Digibastion`;
+  return {
+    html: `<tr><td class="email-pad" style="padding:12px 28px;"><p style="margin:0;${MUTED}"><a href="${escapeHtml(url)}" style="${LINK}">${escapeHtml(label)}</a></p></td></tr>`,
+    text: `${label}: ${url}`,
+  };
+}
+
 function periodLine(c: DailyBriefContent): string {
   const start = shortIssueDate(c.periodStart.slice(0, 10));
   return `Reports added from ${start} 00:00 to ${shortIssueDate(c.issueDate)} 00:00 UTC. Each item names its source.`;
@@ -185,6 +211,13 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
   const subject = buildDailySubject(c);
   const footer = { links: ctx.links, postalAddress: ctx.postalAddress, reason: DAILY_REASON, testWarning: ctx.testWarning };
 
+  const updates = c.updates ?? [];
+  const featured = c.incidents.length + c.unconfirmed.length + c.statusChanges.length + c.vulnerabilities.length;
+  const shownUpdates = updates.slice(0, Math.min(DAILY_UPDATES_SHOWN, Math.max(0, DAILY_RENDERED_ITEMS - featured)));
+  const hidden = hiddenUpdatesLine(updates.length - shownUpdates.length, ctx);
+  const highlights = c.quiet?.highlights ?? [];
+  const note = quietLine(c);
+
   const sections: { title: string; html: string[]; text: string[] }[] = [
     { title: 'Incidents', html: c.incidents.map((entry) => itemHtml(entry, ctx)), text: c.incidents.map((entry) => itemText(entry, ctx)) },
     { title: 'Still unconfirmed', html: c.unconfirmed.map((entry) => itemHtml(entry, ctx)), text: c.unconfirmed.map((entry) => itemText(entry, ctx)) },
@@ -198,13 +231,20 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
       html: c.vulnerabilities.map((entry) => itemHtml(entry, ctx)),
       text: c.vulnerabilities.map((entry) => itemText(entry, ctx)),
     },
+    {
+      title: 'More updates',
+      html: [...shownUpdates.map((entry) => itemHtml(entry, ctx)), ...(hidden ? [hidden.html] : [])],
+      text: [...shownUpdates.map((entry) => itemText(entry, ctx)), ...(hidden ? [hidden.text] : [])],
+    },
+    { title: 'Other updates', html: highlights.map((entry) => itemHtml(entry, ctx)), text: highlights.map((entry) => itemText(entry, ctx)) },
   ].filter((section) => section.html.length > 0);
 
   const html = renderEmailDocument({
     title: subject,
-    preheader: periodLine(c),
+    preheader: note ?? periodLine(c),
     bodyHtml: [
       headerHtml(c),
+      ...(note ? [noteHtml(note)] : []),
       ...sections.map((section) => sectionTitleHtml(section.title) + section.html.join('')),
       actionHtml(c, ctx),
       moreHtml(ctx),
@@ -216,6 +256,7 @@ export function renderDailyBriefEmail(c: DailyBriefContent, ctx: RenderContext):
     `Digibastion daily brief, ${shortIssueDate(c.issueDate)}`,
     periodLine(c),
     '',
+    ...(note ? [note, ''] : []),
     ...sections.map((section) => `${sectionText(section.title, section.text)}\n`),
     sectionText('One thing to do today', [`${c.action.text}\n${c.action.guideTitle}: ${track(c.action.url, 'action', ctx)}`]),
     '',
