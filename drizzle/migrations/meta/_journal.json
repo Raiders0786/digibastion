@@ -64,6 +64,13 @@
       "when": 1791708170739,
       "tag": "0008_seo_indexing",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791708183804,
+      "tag": "0009_weekly_newsletter_list",
+      "breakpoints": true
     }
   ]
 }
