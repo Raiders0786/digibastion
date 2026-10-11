@@ -50,6 +50,13 @@
       "when": 1791685021658,
       "tag": "0006_weekly_newsletter_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791685035106,
+      "tag": "0007_weekly_newsletter_public",
+      "breakpoints": true
     }
   ]
 }
