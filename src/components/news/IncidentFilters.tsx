@@ -1,6 +1,6 @@
 import type { ThreatIntelScope } from '@/types/news';
 import {
-  sourceFiltersForScope,
+  offeredSourceFilters,
   type SourceFilter,
   type ThreatIntelFacet,
   type ThreatIntelFacets,
@@ -101,7 +101,7 @@ export function IncidentFilters({
   idPrefix,
 }: IncidentFiltersProps) {
   const incidentView = scope === 'web3-incidents';
-  const sourceOptions: ThreatIntelFacet[] = sourceFiltersForScope(scope).map((source) => ({
+  const sourceOptions: ThreatIntelFacet[] = offeredSourceFilters(scope, filters.sources).map((source) => ({
     value: source,
     label: SOURCE_FILTER_LABELS[source],
     count: 0,

@@ -206,7 +206,7 @@ describe('threat-intel article navigation', () => {
     });
 
     await waitFor(() => expect(screen.queryByTestId('article-detail')).toBeNull());
-    expect(screen.getByRole('heading', { level: 1, name: 'Crypto and Web3 security incidents, as they happen' })).not.toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Crypto hacks and Web3 exploits' })).not.toBeNull();
   });
 
   it('redirects a deep link for a merged duplicate to the primary incident', async () => {
@@ -362,7 +362,7 @@ describe('threat-intel article navigation', () => {
     const router = renderAt('/threat-intel?scope=all');
 
     expect(await screen.findByRole('tablist', { name: 'Threat intelligence sections' })).not.toBeNull();
-    const feedTab = screen.getByRole('tab', { name: /News Feed/ });
+    const feedTab = screen.getByRole('tab', { name: /^Feed/ });
     expect(feedTab.getAttribute('aria-selected')).toBe('true');
     expect(feedTab.getAttribute('aria-controls')).toBe('threat-intel-panel-feed');
     expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe('threat-intel-tab-feed');
@@ -373,7 +373,7 @@ describe('threat-intel article navigation', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Threat Intel' }));
     await waitFor(() => expect(router.state.location.search).not.toContain('tab='));
-    expect(screen.getByRole('tab', { name: /News Feed/ }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: /^Feed/ }).getAttribute('aria-selected')).toBe('true');
   });
 
   it('lets the URL win after Clear-style navigation removes a committed search', async () => {
@@ -422,7 +422,7 @@ describe('threat-intel article navigation', () => {
 
   it('moves selection and focus with the arrow keys between tabs', async () => {
     renderAt('/threat-intel?scope=all');
-    const feedTab = await screen.findByRole('tab', { name: /News Feed/ });
+    const feedTab = await screen.findByRole('tab', { name: /^Feed/ });
     feedTab.focus();
 
     fireEvent.keyDown(feedTab, { key: 'ArrowRight' });

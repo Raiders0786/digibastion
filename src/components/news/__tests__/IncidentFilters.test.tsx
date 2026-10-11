@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IncidentFilters, type IncidentFilterState } from '@/components/news/IncidentFilters';
-import type { ThreatIntelFacets } from '@/lib/threatIntel/query';
+import { offeredSourceFilters, type ThreatIntelFacets } from '@/lib/threatIntel/query';
 
 const facets: ThreatIntelFacets = {
   chains: [
@@ -57,7 +57,14 @@ describe('IncidentFilters', () => {
 
     const source = screen.getByRole('group', { name: 'Source' });
     expect(within(source).getAllByRole('button').map((button) => button.textContent))
-      .toEqual(['QuillMonitor', 'Web3 Is Going Just Great', 'SlowMist Hacked']);
+      .toEqual(['QuillMonitor', 'Web3 Is Going Just Great']);
+  });
+
+  it('hides the SlowMist chip until SlowMist is a live source, but keeps it removable from a shared URL', () => {
+    renderFilters({ filters: { ...noFilters, sources: ['slowmist'] } });
+
+    const chip = within(screen.getByRole('group', { name: 'Source' })).getByRole('button', { name: 'SlowMist Hacked' });
+    expect(chip.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('reports the value the user picked', () => {
@@ -66,12 +73,12 @@ describe('IncidentFilters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Unconfirmed' }));
     fireEvent.click(screen.getByRole('button', { name: 'BSC' }));
     fireEvent.click(screen.getByRole('button', { name: 'Phishing' }));
-    fireEvent.click(screen.getByRole('button', { name: 'SlowMist Hacked' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Web3 Is Going Just Great' }));
 
     expect(handlers.onVerificationChange).toHaveBeenCalledWith('unconfirmed');
     expect(handlers.onChainToggle).toHaveBeenCalledWith('bsc');
     expect(handlers.onAttackTypeToggle).toHaveBeenCalledWith('phishing');
-    expect(handlers.onSourceToggle).toHaveBeenCalledWith('slowmist');
+    expect(handlers.onSourceToggle).toHaveBeenCalledWith('web3-incidents');
   });
 
   it('keeps a selected chain that is not in the top list, so it can be removed', () => {
@@ -97,5 +104,14 @@ describe('IncidentFilters', () => {
     expect(screen.queryByRole('group', { name: 'Chain' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'Attack type' })).toBeNull();
     expect(within(screen.getByRole('group', { name: 'Source' })).getByRole('button', { name: 'News publishers' })).not.toBeNull();
+  });
+});
+
+describe('offeredSourceFilters', () => {
+  it('offers SlowMist only when it is live or already selected', () => {
+    expect(offeredSourceFilters('web3-incidents')).toEqual(['quillmonitor', 'web3-incidents']);
+    expect(offeredSourceFilters('all')).toEqual(['quillmonitor', 'web3-incidents', 'rss']);
+    expect(offeredSourceFilters('web3-incidents', ['slowmist'])).toEqual(['quillmonitor', 'web3-incidents', 'slowmist']);
+    expect(offeredSourceFilters('web3-incidents', [], true)).toEqual(['quillmonitor', 'web3-incidents', 'slowmist']);
   });
 });

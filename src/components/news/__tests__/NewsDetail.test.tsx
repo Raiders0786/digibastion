@@ -154,6 +154,16 @@ describe('NewsDetail status and alerts', () => {
       .toBe('/threat-intel?tab=subscribe&categories=defi-exploits&scope=web3-incidents');
     expect(screen.getByRole('link', { name: 'Join @digibastion on Telegram' }).getAttribute('href'))
       .toBe('https://t.me/digibastion');
+    expect(screen.getByText(/Telegram \(@digibastion\) posts new Web3 incidents from QuillMonitor/)).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/high and critical/i);
+  });
+
+  it('does not offer Telegram on news items, which never reach the channel', () => {
+    renderDetail(vulnerabilityArticle);
+
+    expect(screen.getByRole('heading', { name: 'Get alerts like this' })).not.toBeNull();
+    expect(screen.queryByText(/Telegram \(@digibastion\) posts/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Join @digibastion on Telegram' })).toBeNull();
   });
 });
 

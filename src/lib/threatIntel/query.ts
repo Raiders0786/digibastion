@@ -162,6 +162,26 @@ export function sourceFiltersForScope(scope: ThreatIntelScope): readonly SourceF
   return scope === 'web3-incidents' ? WEB3_SCOPE_SOURCES : SOURCE_FILTERS;
 }
 
+/**
+ * SlowMist ingestion is built but has no cron job until SlowMist approves
+ * redistribution, so its chip would always return an empty feed. Flip this in
+ * the same change that schedules fetch-slowmist-incidents.
+ */
+export const SLOWMIST_LIVE = false;
+
+/**
+ * Source chips to show. A source that is not live yet stays hidden unless the
+ * URL already selects it, so a shared link can still be cleared.
+ */
+export function offeredSourceFilters(
+  scope: ThreatIntelScope,
+  selected: readonly SourceFilter[] = [],
+  slowMistLive: boolean = SLOWMIST_LIVE,
+): SourceFilter[] {
+  return sourceFiltersForScope(scope)
+    .filter((source) => source !== 'slowmist' || slowMistLive || selected.includes(source));
+}
+
 function parseSources(values: readonly string[], scope: ThreatIntelScope): SourceFilter[] {
   const allowed: readonly string[] = sourceFiltersForScope(scope);
   const result: SourceFilter[] = [];

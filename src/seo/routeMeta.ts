@@ -181,7 +181,7 @@ const routes: RouteMeta[] = [
     path: '/threat-intel',
     title: 'Crypto Hack and Web3 Exploit Tracker | Digibastion',
     description: THREAT_INTEL_DESCRIPTION,
-    h1: 'Crypto and Web3 security incidents, tracked every 30 minutes',
+    h1: 'Crypto hacks and Web3 exploits',
     image: THREAT_INTEL_IMAGE,
     imageAlt: 'Digibastion Threat Intel: crypto hacks and Web3 exploits',
     links: [

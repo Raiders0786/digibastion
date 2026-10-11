@@ -98,7 +98,7 @@ const VerifyEmail = () => {
               <Shield className="h-8 w-8 text-primary" />
               <span>Digibastion</span>
             </div>
-            <p className="text-muted-foreground text-sm mt-1">Security Threat Intelligence</p>
+            <p className="text-muted-foreground text-sm mt-1">Threat Intel alerts</p>
           </div>
 
           {/* Status Icon */}
@@ -192,13 +192,16 @@ const VerifyEmail = () => {
           {result.status === "success" && (
             <div className="mt-6 pt-4 border-t border-border">
               <p className="text-xs text-muted-foreground text-center">
-                You'll now receive security alerts based on your preferences.
-                <br />
-                Check your{' '}
-                <Link to={manageLinkPath(result.manageUrl)} className="text-primary hover:underline">
-                  preferences
-                </Link>{' '}
-                to see your delivery schedule.
+                <span className="block">
+                  You're subscribed. Real-time alerts go out within about 30 minutes of a matching critical or high incident. You can change what you get from the link in any email.
+                </span>
+                <span className="mt-1 block">
+                  Or open your{' '}
+                  <Link to={manageLinkPath(result.manageUrl)} className="text-primary hover:underline">
+                    preferences
+                  </Link>{' '}
+                  now.
+                </span>
               </p>
             </div>
           )}

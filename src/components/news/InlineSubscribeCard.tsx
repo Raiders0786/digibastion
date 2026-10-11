@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { BellRing, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { TELEGRAM_AND_EMAIL_SUMMARY } from '@/lib/threatIntel/channelCopy';
 import { TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
 
 interface InlineSubscribeCardProps {
@@ -14,10 +15,8 @@ export function InlineSubscribeCard({ subscribeHref }: InlineSubscribeCardProps)
     <Card className="glass-card border-primary/30" data-testid="inline-subscribe-card">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-semibold text-foreground">Get these alerts as they happen</p>
-          <p className="text-sm text-muted-foreground">
-            Telegram posts new high and critical Web3 incidents. Email alerts follow the filters you pick.
-          </p>
+          <p className="font-semibold text-foreground">Get alerts for incidents like these</p>
+          <p className="text-sm text-muted-foreground">{TELEGRAM_AND_EMAIL_SUMMARY}</p>
         </div>
         <div className="flex shrink-0 gap-2">
           <Button asChild size="sm" className="gap-2">

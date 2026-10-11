@@ -40,5 +40,10 @@ describe('VerifyEmail success state', () => {
     expect(manage.getAttribute('href')).toBe('/manage-subscription?email=a%40b.com&token=t');
     expect(screen.getByRole('link', { name: /Join @digibastion on Telegram/ }).getAttribute('href')).toBe('https://t.me/digibastion');
     expect(screen.getByRole('link', { name: /latest weekly report/ }).getAttribute('href')).toBe('/threat-intel/weekly');
+    expect(screen.getByText(
+      "You're subscribed. Real-time alerts go out within about 30 minutes of a matching critical or high incident. You can change what you get from the link in any email.",
+    )).not.toBeNull();
+    expect(screen.getByText('Threat Intel alerts')).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/You'll now receive/);
   });
 });

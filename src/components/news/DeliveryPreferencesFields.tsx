@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { formatUtcOffset, getBrowserTimeZone, hourOptions, timezoneOptions } from '@/lib/digestSchedule';
 import { MAX_SUBSCRIPTION_CHAINS, type SubscriptionFormState } from '@/lib/subscriptionPayload';
+import { emailChannelCopy, TELEGRAM_AND_EMAIL_SUMMARY } from '@/lib/threatIntel/channelCopy';
 import { TELEGRAM_CHANNEL_URL } from '@/lib/threatIntel/officialLinks';
+import { NEWSLETTERS_LIVE } from '@/seo/siteFacts';
 import type { ThreatIntelFacet } from '@/lib/threatIntel/query';
 
 export type DeliveryPreferencesValue = Pick<
@@ -26,11 +28,7 @@ interface DeliveryPreferencesFieldsProps {
   showTelegram?: boolean;
 }
 
-export const DELIVERY_CHANNELS = [
-  { key: 'realtime', label: 'Real-time alerts', hint: 'Critical and high incidents as they are reported' },
-  { key: 'daily', label: 'Daily brief', hint: 'One email a day at your chosen time' },
-  { key: 'weekly', label: 'Weekly deep-dive (Mondays)', hint: 'Losses, trends and the top incidents of the week' },
-] as const;
+const DELIVERY_CHANNELS = emailChannelCopy();
 
 const IANA_PREFIX = 'iana:';
 
@@ -105,7 +103,7 @@ export const DeliveryPreferencesFields = ({
         )}
         {showTelegram && (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>Prefer chat? The same alerts post to Telegram.</span>
+            <span>{TELEGRAM_AND_EMAIL_SUMMARY}</span>
             <Button asChild size="sm" variant="outline" className="h-8 gap-2">
               <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
                 <Send className="h-3.5 w-3.5" aria-hidden="true" />
@@ -210,7 +208,7 @@ export const DeliveryPreferencesFields = ({
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            {value.weekly && !value.daily ? 'The weekly arrives on Mondays' : 'Emails arrive'} at {hourOptions.find((hour) => hour.value === value.preferredHour)?.label ?? `${value.preferredHour}:00`} {timezoneLabel}.
+            {value.weekly && !value.daily ? 'The weekly arrives on Mondays' : 'Emails arrive'} at {hourOptions.find((hour) => hour.value === value.preferredHour)?.label ?? `${value.preferredHour}:00`} {timezoneLabel}{NEWSLETTERS_LIVE ? '.' : ', once the newsletter launches.'}
           </p>
         </div>
       )}

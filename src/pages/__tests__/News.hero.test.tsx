@@ -103,7 +103,9 @@ describe('threat-intel hero and mobile filters', () => {
   it('leads the default Web3 view with the incident hero and both alert channels', async () => {
     renderAt('/threat-intel?categories=web3-security&severities=critical&date=30d');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Crypto and Web3 security incidents, as they happen' })).not.toBeNull();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Crypto hacks and Web3 exploits' })).not.toBeNull();
+    expect(screen.getByText(/shows the source's confirmed or unconfirmed status when it gives one\./)).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/as they happen|labelled confirmed or unconfirmed/);
     expect(screen.getByRole('link', { name: 'Join on Telegram' }).getAttribute('href')).toBe('https://t.me/digibastion');
     const emailHref = screen.getByRole('link', { name: 'Get email alerts' }).getAttribute('href') ?? '';
     expect(emailHref).toContain('tab=subscribe');
@@ -175,7 +177,7 @@ describe('threat-intel hero and mobile filters', () => {
     feed.articles = [makeArticle(1), makeArticle(2)];
     renderAt('/threat-intel');
 
-    expect(await screen.findByRole('tab', { name: 'News Feed (2)' })).not.toBeNull();
+    expect(await screen.findByRole('tab', { name: 'Feed (2)' })).not.toBeNull();
     expect(screen.getByRole('tab', { name: 'Active Alerts (2)' })).not.toBeNull();
     expect(screen.getByRole('tab', { name: 'Subscribe' })).not.toBeNull();
   });

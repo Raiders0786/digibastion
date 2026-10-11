@@ -31,6 +31,7 @@ import {
   TELEGRAM_CHANNEL_URL,
 } from '@/lib/threatIntel/officialLinks';
 import { VerificationBadge } from '@/components/news/VerificationBadge';
+import { TELEGRAM_CHANNEL_SUMMARY } from '@/lib/threatIntel/channelCopy';
 import { buildIncidentAnswer } from '../../../supabase/functions/_shared/incident-answer';
 import { sourceLabelFor } from '../../../supabase/functions/_shared/attribution';
 import { shareTextForIncident, SHARE_TEXT_LIMIT } from '../../../supabase/functions/_shared/share-links';
@@ -423,7 +424,8 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
             Get alerts like this
           </CardTitle>
           <CardDescription>
-            Email alerts for {categoryInfo.name} {web3Incident ? 'incidents' : 'items'}, as often as you choose. The Telegram channel posts new high and critical Web3 incidents.
+            Email alerts for {categoryInfo.name} {web3Incident ? 'incidents' : 'items'} that match the filters you pick.
+            {web3Incident && ` ${TELEGRAM_CHANNEL_SUMMARY}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row">
@@ -433,12 +435,14 @@ export const NewsDetail = ({ article, onBack, onArticleClick }: NewsDetailProps)
               Get email alerts
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
-              <Send className="w-4 h-4 mr-2" aria-hidden="true" />
-              Join @digibastion on Telegram
-            </a>
-          </Button>
+          {web3Incident && (
+            <Button asChild variant="outline">
+              <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
+                <Send className="w-4 h-4 mr-2" aria-hidden="true" />
+                Join @digibastion on Telegram
+              </a>
+            </Button>
+          )}
         </CardContent>
       </Card>
 

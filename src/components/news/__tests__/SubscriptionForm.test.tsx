@@ -91,6 +91,19 @@ describe('SubscriptionForm channels and submit', () => {
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
+  it('describes each channel without promising more than the code sends', () => {
+    render(<SubscriptionForm />);
+
+    expect(screen.getByText(
+      'Telegram (@digibastion) posts new Web3 incidents from QuillMonitor, plus a link to the weekly report every Monday. Email alerts follow the filters you pick.',
+    )).not.toBeNull();
+    expect(screen.getByText('Critical and high incidents, checked every 30 minutes')).not.toBeNull();
+    expect(screen.getByText('Daily brief (starting soon)')).not.toBeNull();
+    expect(screen.getByText('Weekly deep-dive (starting soon)')).not.toBeNull();
+    expect(screen.getByText('Get Threat Intel alerts')).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/high and critical|as they are reported|same alerts post to Telegram/i);
+  });
+
   it('shows an inline error and invokes nothing when no email type is checked', async () => {
     render(<SubscriptionForm initialCategories={['defi-exploits']} />);
 

@@ -69,6 +69,29 @@ describe('QuickSubscribeCard', () => {
     expect(data).not.toHaveProperty('frequency');
   });
 
+  it('marks the newsletters as starting soon while they are gated', () => {
+    renderCard();
+
+    expect(screen.getByText('Real-time alerts')).not.toBeNull();
+    expect(screen.getByText('Daily brief (starting soon)')).not.toBeNull();
+    expect(screen.getByText('Weekly deep-dive (starting soon)')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Get alerts' })).not.toBeNull();
+  });
+
+  it('says the daily brief waits for launch and real-time alerts start now', async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { success: true, isNewSubscription: true }, error: null } as never);
+    renderCard();
+
+    fireEvent.click(document.getElementById('quick-daily')!);
+    fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'reader@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe to security alerts' }));
+
+    const line = await screen.findByTestId('quick-delivery-line');
+    expect(line.textContent).toMatch(
+      /^Your daily brief will arrive at .+ once the newsletter launches\. Real-time alerts start with the next matching incident\.$/,
+    );
+  });
+
   it('asks for an email type before sending anything', async () => {
     renderCard();
 

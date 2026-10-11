@@ -27,6 +27,7 @@ import {
   initialStateFromView,
   type SubscriptionFormState,
 } from '@/lib/subscriptionPayload';
+import { NEWSLETTERS_LIVE } from '@/seo/siteFacts';
 
 // Identity fields; the email types are checked by hasDeliveryChannel and the
 // rest of the preferences by the API (parseSubscriptionPreferences).
@@ -202,7 +203,10 @@ export const SubscriptionForm = (props: SubscriptionFormProps) => {
               {(form.daily || form.weekly) && (
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Delivery Time</span>
-                  <span className="font-medium text-right">{formatDeliveryTimeIn(form.preferredHour, form.timezoneOffset, form.timezone)}</span>
+                  <span className="font-medium text-right">
+                    {formatDeliveryTimeIn(form.preferredHour, form.timezoneOffset, form.timezone)}
+                    {!NEWSLETTERS_LIVE && <span className="block text-xs font-normal text-muted-foreground">once the newsletter launches</span>}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between gap-4">
@@ -244,11 +248,13 @@ export const SubscriptionForm = (props: SubscriptionFormProps) => {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-6 h-6 text-primary" />
-            Security Alert Subscription
+            Get Threat Intel alerts
           </CardTitle>
         </div>
         <CardDescription>
-          Real-time alerts, a daily brief or a weekly deep-dive, filtered like the Threat Intel page. No login required.
+          {NEWSLETTERS_LIVE
+            ? 'Real-time alerts, a daily brief or a weekly deep-dive, filtered like the Threat Intel page. No login required.'
+            : 'Real-time alerts on critical and high incidents, filtered like the Threat Intel page. The daily brief and weekly deep-dive emails start soon. No login required.'}
         </CardDescription>
       </CardHeader>
 

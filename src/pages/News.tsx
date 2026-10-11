@@ -461,7 +461,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   // Tab configuration with better visibility
   const tabs = [
-    { id: 'feed', label: 'News Feed', shortLabel: 'Feed', icon: Newspaper, count: stats.total },
+    { id: 'feed', label: 'Feed', shortLabel: 'Feed', icon: Newspaper, count: stats.total },
     // Feed stats share the alerts' scope and filters, so this matches the
     // Alerts tab total and is available before the tab is opened.
     { id: 'alerts', label: 'Active Alerts', shortLabel: 'Alerts', icon: AlertTriangle, count: stats.critical + stats.high },
@@ -479,10 +479,10 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
 
   const isIncidentView = feedView === 'web3-incidents';
   const heroTitle = isIncidentView
-    ? 'Crypto and Web3 security incidents, as they happen'
+    ? 'Crypto hacks and Web3 exploits'
     : 'Security news and incident alerts';
   const heroIntro = isIncidentView
-    ? 'Hacks, exploits, phishing and supply-chain attacks, collected from QuillMonitor and other incident trackers, merged into one record per incident, and labelled confirmed or unconfirmed.'
+    ? 'Hacks, exploits, phishing and supply-chain attacks from QuillMonitor and other incident trackers, merged into one record per incident. Each record links to its source and shows the source\'s confirmed or unconfirmed status when it gives one.'
     : 'Security news, vulnerability advisories and Web3 incidents from QuillMonitor, other incident trackers and security publishers, each linked to its source.';
   // The CTA buttons below say the same thing, so phones skip this sentence to
   // keep the first card above the fold.
@@ -747,7 +747,7 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
                   />
                 </div>
 
-                {/* News Feed */}
+                {/* Feed */}
                 <div className="lg:col-span-3 space-y-4">
 {/* Results count and refresh button */}
                   <div className="flex items-center justify-between flex-wrap gap-2">

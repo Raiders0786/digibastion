@@ -17,14 +17,12 @@ import {
   hasDeliveryChannel,
   type SubscriptionFormState,
 } from '@/lib/subscriptionPayload';
+import { emailChannelCopy, type EmailChannelKey } from '@/lib/threatIntel/channelCopy';
+import { NEWSLETTERS_LIVE } from '@/seo/siteFacts';
 
 const QUICK_SUBSCRIBE_CATEGORIES: NewsCategory[] = ['web3-security', 'defi-exploits', 'vulnerability-disclosure'];
 
-const QUICK_CHANNELS = [
-  { key: 'realtime', label: 'Real-time alerts' },
-  { key: 'daily', label: 'Daily brief' },
-  { key: 'weekly', label: 'Weekly deep-dive' },
-] as const;
+const QUICK_CHANNELS = emailChannelCopy();
 
 interface QuickSubscribeCardProps {
   className?: string;
@@ -58,7 +56,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
     [form.preferredHour, form.timezoneOffset, form.timezone],
   );
 
-  const toggleChannel = (key: (typeof QUICK_CHANNELS)[number]['key'], checked: boolean) => {
+  const toggleChannel = (key: EmailChannelKey, checked: boolean) => {
     const next = { ...form, [key]: checked };
     if (hasDeliveryChannel(next)) setChannelError(null);
     setForm(next);
@@ -158,8 +156,13 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
           <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground space-y-1">
             {submissionOutcome === 'new' && (form.daily || form.weekly) && (
             <p className="flex items-center justify-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>Your {form.daily ? 'daily brief' : 'weekly deep-dive'} arrives at <strong className="text-foreground">{deliveryTimeDisplay}</strong></span>
+              <Clock className="w-3 h-3 shrink-0" />
+              <span data-testid="quick-delivery-line">
+                Your {form.daily ? 'daily brief' : 'weekly deep-dive'} {NEWSLETTERS_LIVE ? 'arrives' : 'will arrive'}
+                {form.daily ? '' : ' on Mondays'} at <strong className="text-foreground">{deliveryTimeDisplay}</strong>
+                {NEWSLETTERS_LIVE ? '.' : ' once the newsletter launches.'}
+                {form.realtime ? ' Real-time alerts start with the next matching incident.' : ''}
+              </span>
             </p>
             )}
             <p>
@@ -186,7 +189,7 @@ export const QuickSubscribeCard = ({ className = '' }: QuickSubscribeCardProps) 
                   <Shield className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold text-foreground">
-                  Get Security Alerts
+                  Get alerts
                 </h3>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
