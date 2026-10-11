@@ -5,7 +5,7 @@ operator notes. It is historical, not a live status dashboard: schedules,
 email delivery, secrets, deployed function revisions, and database policies
 must still be checked in the owning platforms. For the current product map and
 priorities, see [`PRODUCT_AND_ARCHITECTURE.md`](PRODUCT_AND_ARCHITECTURE.md) and
-[`ROADMAP.md`](../ROADMAP.md).
+[`ROADMAP.md`](ROADMAP.md).
 
 - [x] Diagnose current edge function and scheduled-job failures.
 - [x] Hide privileged Threat Intel actions from public visitors.

@@ -19,7 +19,7 @@ does not have a separate Supabase dashboard login.
   making `https://www.digibastion.com` the canonical production domain.
 
 The domain migration is recorded in `docs/IMPLEMENTATION_HISTORY.md`. Current
-technical SEO priorities are in `ROADMAP.md`.
+technical SEO priorities are in `docs/ROADMAP.md`.
 
 ## Production integrity and operations
 

@@ -51,7 +51,7 @@ dashboard or separate Supabase credentials. VANTAGE private workflows require
 access to that product's own environment.
 
 See [Product and architecture](docs/PRODUCT_AND_ARCHITECTURE.md) for route,
-system, data-flow, and deployment details. See [Roadmap](ROADMAP.md) for the
+system, data-flow, and deployment details. See [Roadmap](docs/ROADMAP.md) for the
 small set of prioritized next outcomes; completed production work is recorded
 in [Implementation history](docs/IMPLEMENTATION_HISTORY.md).
 

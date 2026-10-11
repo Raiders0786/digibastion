@@ -1,12 +1,27 @@
 # Security Best-Practices Review
 
+> **Status note, 2026-10-11.** This review was moved here from the repository
+> root. Its body is unchanged except for SEC-003's status. Test counts, line
+> numbers and the Vercel references below describe the code as of 2026-09-27.
+>
+> SEC-003 is **open in production**. The header controls it describes
+> (Content-Security-Policy with `frame-ancestors`, X-Frame-Options and
+> Permissions-Policy) live only in `vercel.json`. The site runs on Lovable
+> static hosting with DNS at GoDaddy. Lovable does not apply `vercel.json`, so
+> production does not send those headers. A `curl -I` on 2026-10-11 showed
+> only Strict-Transport-Security, X-Content-Type-Options and Referrer-Policy.
+> The optional Cloudflare Worker in `edge/cloudflare-worker/` sends the full
+> set if DNS moves to Cloudflare (the CSP starts in report-only mode). Until then, anti-framing needs host support,
+> because `frame-ancestors` and X-Frame-Options only work as response headers.
+
 Review date: 2026-09-27
 Scope: React/Vite client, Vercel response configuration, server-rendered OG endpoint,
 Supabase Edge Functions, dependency and repository hygiene.
 
 ## Executive summary
 
-The review found six actionable issues. All six were remediated in this change set.
+The review found six actionable issues. All six were remediated in this change set
+(SEC-003 only in source; see the status note).
 The npm production and development trees now report zero known vulnerabilities.
 No service-role key, cron secret, provider credential, password, or other confirmed
 server secret was found in the checked-out source. The removed tracked `.env` held
@@ -52,7 +67,7 @@ project does not have a separate Supabase dashboard or separate Supabase credent
 ### SEC-003 — Unsafe third-party script, permissive policy, and public source maps
 
 - Severity: High
-- Status: Fixed with one documented hardening opportunity
+- Status: Open in production (source changes made; the headers are not served, see the status note)
 - Evidence: `index.html:69-71`, `vercel.json:8-25`, `vite.config.ts:8-18`,
   `vite.config.ts:52-74`
 - Risk: Every page loaded an unrelated third-party script; the policy allowed

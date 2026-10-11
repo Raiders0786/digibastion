@@ -6,11 +6,11 @@ labels: "roadmap, enhancement"
 assignees: ""
 ---
 
-<!-- Read ROADMAP.md and CONTRIBUTING.md first. Report vulnerabilities privately via SECURITY.md. -->
+<!-- Read docs/ROADMAP.md and CONTRIBUTING.md first. Report vulnerabilities privately via SECURITY.md. -->
 
 ## Roadmap outcome
 
-Link to the current section in `ROADMAP.md` and name the user outcome you want
+Link to the current section in `docs/ROADMAP.md` and name the user outcome you want
 to advance.
 
 ## Contribution scope

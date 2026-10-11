@@ -19,7 +19,7 @@ your contribution can be distributed under those repository terms.
 - Do not include real credentials, subscriber information, private incident
   data, raw provider payloads, or client data in an issue or pull request.
 
-The current priorities are in [`ROADMAP.md`](ROADMAP.md). Architecture and
+The current priorities are in [`docs/ROADMAP.md`](docs/ROADMAP.md). Architecture and
 product boundaries are documented in
 [`docs/PRODUCT_AND_ARCHITECTURE.md`](docs/PRODUCT_AND_ARCHITECTURE.md).
 

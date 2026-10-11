@@ -19,7 +19,7 @@ production behavior has been checked with the required platform access.
 | Operators can manage the platform | Admin analytics, scheduled-job health, ingestion health, and API-key routes | Present in source; requires authorized **View Backend** access in the owning Lovable project to validate |
 
 Completed repairs and deployment history live in
-[`docs/IMPLEMENTATION_HISTORY.md`](docs/IMPLEMENTATION_HISTORY.md). Historical
+[`IMPLEMENTATION_HISTORY.md`](IMPLEMENTATION_HISTORY.md). Historical
 implementation plans are not the current roadmap.
 
 ## Now: make the product understandable and trustworthy
@@ -116,7 +116,7 @@ provenance, an owner, a review date, and a relevant next action.
   source verification, accessibility, mobile QA, testing, and new controls.
 - Credit merged contributions accurately without promising rewards, response
   times, or placement that the maintainers cannot guarantee.
-- Keep vulnerability reports out of public issues; follow `SECURITY.md`.
+- Keep vulnerability reports out of public issues; follow [`SECURITY.md`](../SECURITY.md).
 
 ## Later: expand only after evidence supports it
 
@@ -149,5 +149,5 @@ operating cost, maintenance plan, and measurable user need.
    and recent-incident coverage.
 5. Choose the primary service conversion and community feedback channels.
 
-To propose or own an outcome, read [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+To propose or own an outcome, read [`CONTRIBUTING.md`](../CONTRIBUTING.md) and
 open a focused issue with evidence, scope, and validation steps.
