@@ -57,6 +57,13 @@
       "when": 1791685035106,
       "tag": "0007_weekly_newsletter_public",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791708170739,
+      "tag": "0008_seo_indexing",
+      "breakpoints": true
     }
   ]
 }
