@@ -1,5 +1,8 @@
+import { QUILLMONITOR_DATABASE_URL, sourceLinkFor } from './attribution.ts';
 import { shortIssueDate } from './daily-brief.ts';
 import { formatLossReported, type NewsletterItem, type WeeklyPublicContent } from './newsletter-content.ts';
+import { buildTrackedUrl, type Tracking } from './share-links.ts';
+import { absoluteSiteUrl, incidentPath, weeklyPath } from './site-urls.ts';
 
 export const TELEGRAM_MESSAGE_LIMIT = 4096;
 
@@ -13,6 +16,8 @@ export interface TelegramAlertArticle {
   severity: string;
   created_at: string;
   metadata: Record<string, unknown> | null;
+  /** The source record (news_articles.link). Linked from the source name when it is an http(s) URL. */
+  link?: string | null;
 }
 
 export interface TelegramPostedState {
@@ -39,6 +44,8 @@ const MAX_INGEST_AGE_MS = 24 * 60 * 60 * 1000;
 // incident's own date must be recent too.
 const MAX_INCIDENT_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_SUMMARY_CHARS = 400;
+// Longer source links are printed as a plain name; they would crowd out the summary.
+const MAX_SOURCE_LINK_CHARS = 1024;
 const AI_SUMMARY_LABEL = 'AI summary:';
 
 function text(value: unknown): string {
@@ -53,9 +60,23 @@ export function escapeTelegramHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+const INCIDENT_TRACKING: Tracking = { source: 'telegram', medium: 'social', campaign: 'incident_alerts' };
+const WEEKLY_TRACKING: Tracking = { source: 'telegram', medium: 'social', campaign: 'weekly_deep_dive' };
+
 export function buildIncidentUrl(siteUrl: string, articleId: string): string {
-  return `${siteUrl.replace(/\/+$/, '')}/threat-intel/${encodeURIComponent(articleId)}` +
-    '?utm_source=telegram&utm_medium=social&utm_campaign=incident_alerts';
+  return buildTrackedUrl(incidentPath(articleId), INCIDENT_TRACKING, siteUrl);
+}
+
+/** The weekly page link for the Monday post. Throws on a malformed weekStart. */
+export function buildWeeklyPostUrl(siteUrl: string, weekStart: string): string {
+  return buildTrackedUrl(weeklyPath(weekStart), WEEKLY_TRACKING, siteUrl);
+}
+
+function sourceHtml(article: TelegramAlertArticle, siteUrl: string, label: string): string {
+  const link = sourceLinkFor({ sourceUrl: text(article.link), incidentUrl: absoluteSiteUrl(incidentPath(article.id), siteUrl) });
+  return link && link.length <= MAX_SOURCE_LINK_CHARS
+    ? `<a href="${escapeTelegramHtml(link)}">${escapeTelegramHtml(label)}</a>`
+    : escapeTelegramHtml(label);
 }
 
 function isWithdrawn(article: TelegramAlertArticle | null): boolean {
@@ -120,12 +141,16 @@ export function buildTelegramIncidentMessage(
     : `<b>${escapeTelegramHtml(project)}</b>: loss not disclosed yet`;
   const details = [
     incidentDate ? `Incident date: ${escapeTelegramHtml(incidentDate)}` : '',
-    `Source: ${escapeTelegramHtml(source)}`,
     verified ? '' : '<i>Unconfirmed report. Details may change.</i>',
   ].filter(Boolean);
+  // Our page is the first link; the source record follows it.
   const footer = [
-    `<a href="${escapeTelegramHtml(buildIncidentUrl(siteUrl, article.id))}">Full details on DigiBastion</a>`,
+    `<a href="${escapeTelegramHtml(buildIncidentUrl(siteUrl, article.id))}">Full details on Digibastion</a>`,
+    `Source: ${sourceHtml(article, siteUrl, source)}`,
     'Check your token approvals: <a href="https://revoke.cash">revoke.cash</a>',
+    text(metadata.provider) === 'quillmonitor'
+      ? `Powered by <a href="${escapeTelegramHtml(QUILLMONITOR_DATABASE_URL)}">QuillMonitor</a>`
+      : '',
     note ? `<i>Updated ${formatUtcTime(now)} UTC: ${escapeTelegramHtml(note)}.</i>` : '',
   ].filter(Boolean);
 
@@ -137,18 +162,25 @@ export function buildTelegramIncidentMessage(
       escapeTelegramHtml(truncateAtWord(summary, MAX_SUMMARY_CHARS - Array.from(summaryLabel ? `${summaryLabel} ` : '').length))
     : '';
 
-  const withSummary = (body: string) => [header, loss, ...(body ? ['', body, ''] : ['']), ...details, '', ...footer].join('\n');
+  const withSummary = (body: string) => [
+    header,
+    loss,
+    ...(body ? ['', body] : []),
+    ...(details.length > 0 ? ['', ...details] : []),
+    '',
+    ...footer,
+  ].join('\n');
   const message = withSummary(summaryBody);
   return message.length <= TELEGRAM_MESSAGE_LIMIT ? message : withSummary('');
 }
 
 export function buildRetractionMessage(project: string, siteUrl: string): string {
-  const latest = `${siteUrl.replace(/\/+$/, '')}/threat-intel?scope=web3-incidents`;
+  const latest = buildTrackedUrl('/threat-intel?scope=web3-incidents', { ...INCIDENT_TRACKING, content: 'retraction' }, siteUrl);
   return [
     `⚪ <b>RETRACTED</b> · ${escapeTelegramHtml(project)}`,
     'The source withdrew this report or merged it into another one.',
     '',
-    `<a href="${escapeTelegramHtml(latest)}">Latest incidents on DigiBastion</a>`,
+    `<a href="${escapeTelegramHtml(latest)}">Latest incidents on Digibastion</a>`,
   ].join('\n');
 }
 

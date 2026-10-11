@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildIncidentUrl,
   buildRetractionMessage,
+  buildWeeklyPostUrl,
   buildTelegramIncidentMessage,
   buildWeeklyLinkMessage,
   escapeTelegramHtml,
@@ -92,7 +93,7 @@ describe('Telegram message', () => {
     expect(text).not.toContain('UNCONFIRMED');
   });
 
-  it('links to the DigiBastion incident page with campaign tags', () => {
+  it('links to the Digibastion incident page with campaign tags', () => {
     const text = buildTelegramIncidentMessage(incident(), SITE);
     expect(text).toContain(
       'href="https://www.digibastion.com/threat-intel/7f1c2a4e-1111-4222-8333-944455556666?utm_source=telegram&amp;utm_medium=social&amp;utm_campaign=incident_alerts"',
@@ -100,6 +101,33 @@ describe('Telegram message', () => {
     expect(buildIncidentUrl(SITE, 'a/b')).toBe(
       'https://www.digibastion.com/threat-intel/a%2Fb?utm_source=telegram&utm_medium=social&utm_campaign=incident_alerts',
     );
+  });
+
+  it('links the source record and credits QuillMonitor', () => {
+    const text = buildTelegramIncidentMessage(incident({ link: 'https://x.com/Phalcon_xyz/status/1?a=1&b=2' }), SITE);
+    expect(text).toContain('Source: <a href="https://x.com/Phalcon_xyz/status/1?a=1&amp;b=2">QuillMonitor</a>');
+    expect(text).toContain('Powered by <a href="https://www.quillaudits.com/web3-hacks-database">QuillMonitor</a>');
+    expect(text).toContain('>Full details on Digibastion</a>');
+    expect(text).not.toContain('DigiBastion');
+    // Our page stays the first link in the post.
+    expect(text.indexOf('www.digibastion.com/threat-intel/')).toBeLessThan(text.indexOf('x.com/Phalcon_xyz'));
+  });
+
+  it('prints the source name unlinked when the link is missing, unsafe or our own page', () => {
+    for (const link of [null, undefined, 'javascript:alert(1)', 'ftp://example.com/a', `${SITE}/threat-intel/7f1c2a4e-1111-4222-8333-944455556666`]) {
+      const text = buildTelegramIncidentMessage(incident({ link }), SITE);
+      expect(text).toContain('Source: QuillMonitor\n');
+      expect(text).not.toContain('javascript:');
+    }
+  });
+
+  it('stays within the limit with a 400-character summary and a long source URL', () => {
+    const text = buildTelegramIncidentMessage(
+      incident({ summary: 'a'.repeat(400), link: `https://example.com/${'p'.repeat(3_000)}` }, { project_name: 'P'.repeat(300) }),
+      SITE,
+    );
+    expect(text.length).toBeLessThanOrEqual(TELEGRAM_MESSAGE_LIMIT);
+    expect(text).toContain('Full details on Digibastion');
   });
 
   it('never lets provider text inject markup', () => {
@@ -209,6 +237,14 @@ describe('Telegram post updates', () => {
     if (plan.action === 'retract') expect(plan.text).toContain('RETRACTED</b> · NEAR Intents');
   });
 
+  it('links the retraction to the incident feed with a retraction tag', () => {
+    const text = buildRetractionMessage('Example Protocol', SITE);
+    expect(text).toContain(
+      'href="https://www.digibastion.com/threat-intel?scope=web3-incidents&amp;utm_source=telegram&amp;utm_medium=social&amp;utm_campaign=incident_alerts&amp;utm_content=retraction"',
+    );
+    expect(text).toContain('Latest incidents on Digibastion');
+  });
+
   it('does not retract twice', () => {
     const retracted = { posted_text: buildRetractionMessage('Example Protocol', SITE), posted_verification: 'retracted' };
     expect(planTelegramPostUpdate(retracted, null, SITE, NOW)).toEqual({ action: 'none' });
@@ -229,6 +265,13 @@ describe('buildWeeklyLinkMessage', () => {
     expect(message).toContain(`<a href="${URL}">Read the weekly deep-dive</a>`);
     expect(message).not.toMatch(/verified by digibastion|massive|devastating|urgent/i);
     expect(message).not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+
+  it('builds the weekly page URL with the existing campaign tags', () => {
+    expect(buildWeeklyPostUrl(SITE, '2026-10-05')).toBe(
+      'https://www.digibastion.com/threat-intel/weekly/2026-10-05?utm_source=telegram&utm_medium=social&utm_campaign=weekly_deep_dive',
+    );
+    expect(buildWeeklyPostUrl(`${SITE}/`, '2026-10-05')).toBe(buildWeeklyPostUrl(SITE, '2026-10-05'));
   });
 
   it('escapes HTML from titles, sources and the URL', () => {

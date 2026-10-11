@@ -4,6 +4,7 @@ import { recordIngestionRun } from '../_shared/ingestion-health.ts';
 import {
   buildTelegramIncidentMessage,
   buildWeeklyLinkMessage,
+  buildWeeklyPostUrl,
   isEligibleForTelegram,
   isIncidentPostUid,
   planTelegramPostUpdate,
@@ -11,6 +12,7 @@ import {
   type TelegramAlertArticle,
   type TelegramSeverity,
 } from '../_shared/telegram-alerts.ts';
+import { SITE_URL } from '../_shared/site-urls.ts';
 import { isWeeklyPublicContent, toPublicWeekly } from '../_shared/weekly-render.ts';
 
 const corsHeaders = {
@@ -23,7 +25,7 @@ const RequestSchema = z.object({
   limit: z.number().int().min(1).max(10).optional().default(10),
 }).strict();
 
-const ARTICLE_COLUMNS = 'id,uid,title,summary,severity,created_at,metadata';
+const ARTICLE_COLUMNS = 'id,uid,title,summary,severity,created_at,metadata,link';
 const SEND_INTERVAL_MS = 3_000;
 const MAX_RETRY_AFTER_SECONDS = 30;
 const MAX_SEND_ATTEMPTS = 3;
@@ -439,8 +441,7 @@ async function postWeeklyLink(
   const claim = await claimPost(db, chatId, { uid, articleId: null, projectName: null }, existing ?? undefined);
   if (!claim) return { skipped: 'already_posted', weekStart };
 
-  const url = `${siteUrl.replace(/\/+$/, '')}/threat-intel/weekly/${weekStart}` +
-    '?utm_source=telegram&utm_medium=social&utm_campaign=weekly_deep_dive';
+  const url = buildWeeklyPostUrl(siteUrl, weekStart);
   const text = buildWeeklyLinkMessage(toPublicWeekly(issue.content), url);
   const outcome = await deliverClaimedPost(db, token, chatId, claim, text, { posted_verification: null, posted_severity: null });
   return { outcome, weekStart };
@@ -493,7 +494,7 @@ Deno.serve(async (req) => {
   const postingSetting = Deno.env.get('TELEGRAM_POSTING_ENABLED');
   const postingEnabled = postingSetting === 'true';
   const minSeverity = resolveSeverity(Deno.env.get('TELEGRAM_MIN_SEVERITY'));
-  const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://www.digibastion.com';
+  const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || SITE_URL;
   const db = createClient(url, serviceKey);
   const { mode, limit } = request.data;
   const dryRun = request.data.dryRun || postingSetting === 'test';
