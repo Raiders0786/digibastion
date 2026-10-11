@@ -7,6 +7,7 @@ import { SubscriptionForm } from '@/components/news/SubscriptionForm';
 import { NewsDetail } from '@/components/news/NewsDetail';
 import { countActiveFilters, FeedToolbar } from '@/components/news/FeedToolbar';
 import { InlineSubscribeCard } from '@/components/news/InlineSubscribeCard';
+import { ThreatIntelAnswers } from '@/components/news/ThreatIntelAnswers';
 import { AlertsPanel } from '@/components/news/AlertsPanel';
 import { RealtimeAlertListener } from '@/components/news/RealtimeAlertListener';
 import { RealtimeStatusIndicator } from '@/components/news/RealtimeStatusIndicator';
@@ -1096,6 +1097,8 @@ const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
             </ErrorBoundary>
           )}
           </SwipeableTabs>
+
+          <ThreatIntelAnswers />
 
           <p className="mt-10 border-t border-border/60 pt-6 text-center text-sm text-muted-foreground">
             Where these records come from, how severity is set and how to report a mistake:{' '}

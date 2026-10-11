@@ -1,16 +1,31 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Bell, Home, Zap, Newspaper, Menu, Shield, ChevronRight, Sparkles, Radar } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { Map, Wrench, Book, Link, FileText, Info, Heart, Mail, Share, Briefcase } from 'lucide-react';
+import { Map, Wrench, Book, Link as LinkIcon, FileText, Info, Heart, Mail, Share, Briefcase, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { SwipeableBottomSheet, SwipeableSheetDescription, SwipeableSheetTitle } from './mobile/SwipeableBottomSheet';
 import { TouchFeedback } from './mobile/TouchFeedback';
 import { NotificationBadge } from './mobile/NotificationBadge';
 import { useMobileNotifications } from '@/hooks/useMobileNotifications';
 import { cn } from '@/lib/utils';
+import { initialSecurityData } from '@/data/securityData';
+import { VANTAGE_URL } from '@/seo/siteFacts';
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  authentication: '🔐',
+  browsing: '🌐',
+  email: '📧',
+  mobile: '📱',
+  social: '👥',
+  wallet: '💼',
+  os: '💻',
+  defi: '🔗',
+  developers: '👨‍💻',
+  jobs: '🧭',
+  opsec: '🛡️',
+};
 
 export const MobileBottomNav = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -22,37 +37,14 @@ export const MobileBottomNav = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleCategoryClick = (categoryId: string) => {
+  /** Home sections are links ("/#score"); on the home page the tap also scrolls, so a repeat tap works. */
+  const scrollToHomeSection = (id: string) => {
     setMenuOpen(false);
-    if (categoryId === 'score') {
-      if (location.pathname !== '/') {
-        navigate('/', { state: { scrollTo: 'score' } });
-      } else {
-        const element = document.getElementById(categoryId);
-        if (element) {
-          const offset = 80;
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - offset;
-          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-        }
-      }
-    } else {
-      navigate(`/category/${categoryId}`);
-    }
-  };
-
-  const handleRoadmapClick = () => {
-    setMenuOpen(false);
-    if (location.pathname !== '/') {
-      navigate('/', { state: { scrollTo: 'roadmap' } });
-    } else {
-      const element = document.getElementById('roadmap');
-      if (element) {
-        const offset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - offset;
-        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-      }
+    if (location.pathname !== '/') return;
+    const element = document.getElementById(id);
+    if (element) {
+      const offsetPosition = element.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
   };
 
@@ -63,41 +55,29 @@ export const MobileBottomNav = () => {
     } else if (route === '/quiz') {
       markQuizVisited();
     }
-    navigate(route);
   };
 
-  const categories = [
-    { id: 'authentication', title: 'Authentication', description: 'Secure account access', emoji: '🔐' },
-    { id: 'browsing', title: 'Web Browsing', description: 'Safe online browsing', emoji: '🌐' },
-    { id: 'email', title: 'Email Security', description: 'Protect communications', emoji: '📧' },
-    { id: 'mobile', title: 'Mobile Security', description: 'Device protection', emoji: '📱' },
-    { id: 'social', title: 'Social Media', description: 'Social account security', emoji: '👥' },
-    { id: 'wallet', title: 'Web3 Wallet', description: 'Crypto asset protection', emoji: '💼' },
-    { id: 'os', title: 'OS Security', description: 'System hardening', emoji: '💻' },
-    { id: 'defi', title: 'DeFi Security', description: 'Secure DeFi interactions', emoji: '🔗' },
-    { id: 'developers', title: 'Developer Security', description: 'Web3 development security', emoji: '👨‍💻' },
-    { id: 'jobs', title: 'Job Search Security', description: 'Secure job hunting', emoji: '💼' },
-    { id: 'opsec', title: 'OpSec', description: 'Operational security practices', emoji: '🛡️' }
-  ];
+  const closeMenu = () => setMenuOpen(false);
 
-  const resourceItems = [
+  const resourceItems: { route: string; icon: typeof Map; label: string; action?: () => void }[] = [
     { route: '/services', icon: Briefcase, label: 'Services' },
-    { route: null, icon: Map, label: 'Roadmap', action: handleRoadmapClick },
-    { route: '/quiz', icon: Zap, label: 'OpSec Quiz' },
+    { route: '/#roadmap', icon: Map, label: 'Roadmap', action: () => scrollToHomeSection('roadmap') },
+    { route: '/quiz', icon: Zap, label: 'OpSec self-check' },
+    { route: '/articles', icon: Book, label: 'Guides' },
     { route: '/tools', icon: Wrench, label: 'Tools' },
-    { route: '/articles', icon: Book, label: 'Articles' },
-    { route: '/links', icon: Link, label: 'Useful Links' },
-    { route: '/license', icon: FileText, label: 'License' },
-    { route: '/about', icon: Info, label: 'About Us' },
-    { route: '/support', icon: Heart, label: 'Support Us' },
+    { route: '/links', icon: LinkIcon, label: 'Useful links' },
+    { route: '/faq', icon: HelpCircle, label: 'FAQ' },
+    { route: '/about', icon: Info, label: 'About' },
+    { route: '/support', icon: Heart, label: 'Support' },
     { route: '/contact', icon: Mail, label: 'Contact' },
-    { route: '/share', icon: Share, label: 'Share' }
+    { route: '/share', icon: Share, label: 'Share' },
+    { route: '/license', icon: FileText, label: 'License' },
   ];
 
   const navItems = [
     { route: '/', icon: Home, label: 'Home', badge: undefined },
     { route: '/quiz', icon: Zap, label: 'Quiz', badge: hasNewQuiz ? 'dot' : undefined },
-    { route: '/threat-intel', icon: Newspaper, label: 'Threats', badge: alertCount > 0 ? alertCount : undefined },
+    { route: '/threat-intel', icon: Newspaper, label: 'Threat Intel', badge: alertCount > 0 ? alertCount : undefined },
   ];
 
   const isActive = (route: string) => location.pathname === route;
@@ -119,6 +99,7 @@ export const MobileBottomNav = () => {
           {navItems.map((item) => (
             <TouchFeedback
               key={item.route}
+              to={item.route}
               onClick={() => handleNavClick(item.route)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200",
@@ -160,7 +141,7 @@ export const MobileBottomNav = () => {
           ))}
 
           <TouchFeedback
-            onClick={() => window.open('https://vantage.digibastion.com', '_blank', 'noopener,noreferrer')}
+            href={VANTAGE_URL}
             className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl text-muted-foreground"
             rippleColor="bg-primary/20"
           >
@@ -200,7 +181,8 @@ export const MobileBottomNav = () => {
               <div className="p-4 space-y-6">
                 {/* Security Score - Featured Card */}
                 <TouchFeedback
-                  onClick={() => handleCategoryClick('score')}
+                  to="/#score"
+                  onClick={() => scrollToHomeSection('score')}
                   className={cn(
                     "w-full rounded-2xl overflow-hidden",
                     "bg-gradient-to-br from-primary/15 via-primary/10 to-accent/10",
@@ -225,10 +207,8 @@ export const MobileBottomNav = () => {
                 </TouchFeedback>
 
                 <TouchFeedback
-                  onClick={() => {
-                    setMenuOpen(false);
-                    navigate('/threat-intel?tab=subscribe');
-                  }}
+                  to="/threat-intel?tab=subscribe"
+                  onClick={closeMenu}
                   className="w-full rounded-2xl border border-primary/25 bg-primary/10 p-4 text-left"
                   rippleColor="bg-primary/20"
                 >
@@ -238,8 +218,8 @@ export const MobileBottomNav = () => {
                         <Bell className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-foreground">Get threat alerts</h3>
-                        <p className="text-xs text-muted-foreground">Choose the email briefings you want</p>
+                        <h3 className="text-sm font-semibold text-foreground">Get alerts</h3>
+                        <p className="text-xs text-muted-foreground">By email or on Telegram</p>
                       </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-primary" />
@@ -252,12 +232,13 @@ export const MobileBottomNav = () => {
                     Security Checklists
                   </h4>
                   <div className="space-y-1.5">
-                    {categories.map((category, idx) => {
+                    {initialSecurityData.map((category, idx) => {
                       const active = location.pathname === `/category/${category.id}`;
                       return (
                         <TouchFeedback
                           key={category.id}
-                          onClick={() => handleCategoryClick(category.id)}
+                          to={`/category/${category.id}`}
+                          onClick={closeMenu}
                           className={cn(
                             "w-full p-3.5 text-left rounded-xl transition-all duration-200",
                             "flex items-center gap-3 group animate-fade-in",
@@ -268,7 +249,7 @@ export const MobileBottomNav = () => {
                           style={{ animationDelay: `${100 + idx * 25}ms` } as React.CSSProperties}
                           rippleColor={active ? 'bg-primary/25' : 'bg-muted-foreground/15'}
                         >
-                          <span className="text-lg">{category.emoji}</span>
+                          <span className="text-lg" aria-hidden="true">{CATEGORY_EMOJI[category.id] ?? '🔒'}</span>
                           <div className="flex-1 min-w-0">
                             <div className={cn(
                               "text-sm font-medium transition-colors truncate",
@@ -300,18 +281,12 @@ export const MobileBottomNav = () => {
                   </h4>
                   <div className="grid grid-cols-3 gap-2">
                     {resourceItems.map((item, idx) => {
-                      const active = item.route && location.pathname === item.route;
+                      const active = location.pathname === item.route;
                       return (
                         <TouchFeedback
                           key={item.label}
-                          onClick={() => {
-                            if (item.action) {
-                              item.action();
-                            } else {
-                              setMenuOpen(false);
-                              navigate(item.route!);
-                            }
-                          }}
+                          to={item.route}
+                          onClick={item.action ?? closeMenu}
                           className={cn(
                             "flex flex-col items-center gap-2 p-3 rounded-xl",
                             "transition-all duration-200 animate-fade-in",

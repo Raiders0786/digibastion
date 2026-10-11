@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface RippleEffect {
@@ -18,6 +19,10 @@ interface TouchFeedbackProps {
   scaleOnPress?: boolean;
   style?: React.CSSProperties;
   as?: 'button' | 'div';
+  /** Internal route: renders a crawlable <Link> instead of a button. */
+  to?: string;
+  /** External URL: renders an <a> that opens in a new tab. */
+  href?: string;
 }
 
 export const TouchFeedback = ({
@@ -31,10 +36,12 @@ export const TouchFeedback = ({
   scaleOnPress = true,
   style,
   as: Component = 'button',
+  to,
+  href,
 }: TouchFeedbackProps) => {
   const [ripples, setRipples] = useState<RippleEffect[]>([]);
   const [isPressed, setIsPressed] = useState(false);
-  const elementRef = useRef<HTMLButtonElement | HTMLDivElement>(null);
+  const elementRef = useRef<HTMLButtonElement | HTMLDivElement | HTMLAnchorElement>(null);
 
   const createRipple = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (disabled) return;
@@ -129,6 +136,8 @@ export const TouchFeedback = ({
     </>
   );
 
+  if (to) return <Link to={to} {...commonProps}>{content}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" {...commonProps}>{content}</a>;
   return Component === 'button'
     ? <button type="button" {...commonProps} disabled={disabled}>{content}</button>
     : <div {...commonProps}>{content}</div>;

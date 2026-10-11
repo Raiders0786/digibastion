@@ -106,6 +106,7 @@ describe('threat-intel hero and mobile filters', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Crypto hacks and Web3 exploits' })).not.toBeNull();
     expect(screen.getByText(/shows the source's confirmed or unconfirmed status when it gives one\./)).not.toBeNull();
     expect(document.body.textContent).not.toMatch(/as they happen|labelled confirmed or unconfirmed/);
+    expect(screen.getByRole('region', { name: 'Questions about Threat Intel' })).not.toBeNull();
     expect(screen.getByRole('link', { name: 'Join on Telegram' }).getAttribute('href')).toBe('https://t.me/digibastion');
     const emailHref = screen.getByRole('link', { name: 'Get email alerts' }).getAttribute('href') ?? '';
     expect(emailHref).toContain('tab=subscribe');

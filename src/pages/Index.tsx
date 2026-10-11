@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   AlertTriangle, ArrowRight, Bell, BookOpen, Check, CheckCircle2, ExternalLink,
   Github, Globe2, GraduationCap, Loader2, Lock, MessageCircle, Newspaper,
@@ -10,7 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
-import { GITHUB_ROADMAP_URL } from '@/seo/siteFacts';
+import { GITHUB_ISSUES_URL, GITHUB_REPO_URL, GITHUB_ROADMAP_URL, NEWSLETTERS_LIVE, SITE_DEFINITION, VANTAGE_URL } from '@/seo/siteFacts';
+import { TELEGRAM_CHANNEL_HANDLE } from '@/lib/threatIntel/officialLinks';
+import { getProviderLabel } from '@/lib/threatIntel/incidentDisplay';
+import { isQuillMonitorArticle } from '@/utils/newsIncident';
+import type { NewsArticle } from '@/types/news';
 import { Navbar } from '@/components/Navbar';
 import { QuickSubscribeCard } from '@/components/newsletter/QuickSubscribeCard';
 import { SecurityCard } from '@/components/SecurityCard';
@@ -29,17 +33,28 @@ interface RecentAlert {
   title: string;
   severity: string;
   published_at: string;
+  source_name: string | null;
+  metadata: NewsArticle['metadata'] | null;
 }
 
-const VANTAGE_URL = 'https://vantage.digibastion.com';
+/** Published guides; Index.test.tsx pins it to articlesMeta.length so it cannot drift. */
+const GUIDE_COUNT = 71;
+
+/** "Powered by QuillMonitor" for QuillMonitor records, "Source: <name>" otherwise. */
+function alertSourceLabel(alert: RecentAlert): string | null {
+  const article = { sourceName: alert.source_name ?? '', metadata: alert.metadata ?? undefined } as NewsArticle;
+  if (isQuillMonitorArticle(article)) return 'Powered by QuillMonitor';
+  const label = getProviderLabel(article);
+  return label ? `Source: ${label}` : null;
+}
 
 const audiencePaths = [
   {
     icon: GraduationCap,
     eyebrow: 'I am getting started',
     title: 'Find your security gaps',
-    description: 'Take the short OpSec assessment and get a practical starting point.',
-    action: 'Take the assessment',
+    description: 'Take the two-minute OpSec self-check and get a practical starting point.',
+    action: 'Take the self-check',
     href: '/quiz',
   },
   {
@@ -48,7 +63,7 @@ const audiencePaths = [
     title: 'Harden wallets and accounts',
     description: 'Work through clear checklists for wallets, authentication, devices, and DeFi.',
     action: 'Open the checklists',
-    href: '#checklists',
+    href: '/#checklists',
   },
   {
     icon: Radar,
@@ -72,7 +87,6 @@ const audiencePaths = [
 const Index = () => {
   const { categories, getOverallScore, getStats, threatLevel, isLoading, changeCount } = useSecurityState();
   const location = useLocation();
-  const navigate = useNavigate();
   const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
   const [alertsLoaded, setAlertsLoaded] = useState(false);
 
@@ -80,13 +94,13 @@ const Index = () => {
     const fetchAlerts = async () => {
       const { data } = await supabase
         .from('news_articles')
-        .select('id, title, severity, published_at')
+        .select('id, title, severity, published_at, source_name, metadata')
         .or(CLASSIFICATION_RELEVANCE_POSTGREST_FILTER)
         .in('severity', ['critical', 'high', 'medium'])
         .order('published_at', { ascending: false })
         .limit(3);
 
-      if (data) setRecentAlerts(data);
+      if (data) setRecentAlerts(data as RecentAlert[]);
       setAlertsLoaded(true);
     };
     void fetchAlerts();
@@ -141,7 +155,7 @@ const Index = () => {
                   rel="noopener noreferrer"
                   className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                 >
-                  <span>Supported by</span>
+                  <span>Supported in 2025 by</span>
                   <img src={espLogo} alt="Ethereum Foundation Ecosystem Support Program" className="h-4 w-auto opacity-90" />
                 </a>
 
@@ -150,19 +164,19 @@ const Index = () => {
                   Know what to protect. <span className="text-gradient">Fix what matters.</span>
                 </h1>
                 <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-xl">
-                  Digibastion brings personal OpSec, crypto safety, live threat intelligence, and product security into one practical place. Start free; bring us in when the risk needs an expert.
+                  {SITE_DEFINITION}
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Button size="lg" onClick={() => navigate('/quiz')} className="h-12 w-full gap-2 rounded-full px-6 sm:w-auto">
-                    <Zap className="h-4 w-4" /> Check my security <ArrowRight className="h-4 w-4" />
+                  <Button asChild size="lg" className="h-12 w-full gap-2 rounded-full px-6 sm:w-auto">
+                    <Link to="/quiz"><Zap className="h-4 w-4" /> Check my security <ArrowRight className="h-4 w-4" /></Link>
                   </Button>
                   <Button size="lg" variant="outline" onClick={() => scrollTo('start-here')} className="h-12 w-full rounded-full px-6 sm:w-auto">
                     See what Digibastion offers
                   </Button>
                 </div>
                 <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                  No account for checklists or the assessment. Publicly inspectable. Built for beginners, operators, and security teams.
+                  No account needed for the checklists or the self-check. Source code on GitHub. Built for beginners, operators and security teams.
                 </p>
               </div>
 
@@ -180,10 +194,10 @@ const Index = () => {
                   </div>
                   <div className="grid gap-3 pt-4 sm:grid-cols-2">
                     {[
-                      { icon: Zap, label: 'OpSec assessment', detail: 'Personal next steps', value: 'Free' },
+                      { icon: Zap, label: 'OpSec self-check', detail: 'Personal next steps', value: 'Free' },
                       { icon: CheckCircle2, label: 'Security checklists', detail: `${categories.length} focused areas`, value: 'Practical' },
-                      { icon: Bell, label: 'Threat intelligence', detail: 'Curated incident alerts', value: 'Current' },
-                      { icon: Radar, label: 'Vantage', detail: 'External trust evidence', value: 'Shipped' },
+                      { icon: Bell, label: 'Threat Intel', detail: 'Sourced incident alerts', value: 'Free' },
+                      { icon: Radar, label: 'Vantage', detail: 'Domain security checks', value: 'Beta' },
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-border/60 bg-background/70 p-4">
                         <div className="flex items-start justify-between gap-3">
@@ -226,8 +240,24 @@ const Index = () => {
 
               const className = 'group rounded-2xl border border-border/60 bg-card/50 p-5 text-left transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
               if (path.external) return <a key={path.title} href={path.href} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>;
-              if (path.href.startsWith('#')) return <button key={path.title} type="button" onClick={() => scrollTo(path.href.slice(1))} className={className}>{content}</button>;
-              return <button key={path.title} type="button" onClick={() => navigate(path.href)} className={className}>{content}</button>;
+              if (path.href.startsWith('/#')) {
+                const sectionId = path.href.slice(2);
+                return (
+                  <Link
+                    key={path.title}
+                    to={path.href}
+                    onClick={(event) => {
+                      if (!document.getElementById(sectionId)) return;
+                      event.preventDefault();
+                      scrollTo(sectionId);
+                    }}
+                    className={className}
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+              return <Link key={path.title} to={path.href} className={className}>{content}</Link>;
             })}
           </div>
         </section>
@@ -237,7 +267,7 @@ const Index = () => {
             <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-                  <Radar className="h-4 w-4" /> Vantage by Digibastion · Live now
+                  <Radar className="h-4 w-4" /> Vantage by Digibastion · Beta
                 </div>
                 <h2 className="mt-5 text-3xl font-bold leading-tight text-foreground sm:text-5xl">Your domain is part of your security boundary.</h2>
                 <p className="mt-5 max-w-xl leading-relaxed text-muted-foreground">
@@ -272,32 +302,36 @@ const Index = () => {
             <div className="min-w-0 space-y-5">
               <div className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/10 px-3 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-destructive motion-safe:animate-pulse" />
-                <span className="text-xs font-semibold text-destructive">Current threat intelligence</span>
+                <span className="text-xs font-semibold text-destructive">Threat Intel</span>
               </div>
               <h2 className="text-3xl font-bold text-foreground sm:text-4xl">Know what is happening before you sign, click, or ship.</h2>
-              <p className="leading-relaxed text-muted-foreground">We curate high-signal incidents across phishing, wallet drainers, smart-contract exploits, and software supply chains. Read the feed or subscribe for the alerts that need attention.</p>
+              <p className="leading-relaxed text-muted-foreground">We collect incidents from QuillMonitor, Web3 Is Going Just Great and security news sites, merge duplicates, and link every record to its source. Read the feed, or get alerts by email or Telegram.</p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate('/threat-intel')} className="w-full gap-2 sm:w-auto"><Newspaper className="h-4 w-4" /> View threat feed</Button>
-                <Button onClick={() => navigate('/threat-intel?tab=subscribe')} variant="outline" className="w-full gap-2 sm:w-auto">
-                  <Bell className="h-4 w-4" /> Subscribe
+                <Button asChild className="w-full gap-2 sm:w-auto"><Link to="/threat-intel"><Newspaper className="h-4 w-4" /> Open Threat Intel</Link></Button>
+                <Button asChild variant="outline" className="w-full gap-2 sm:w-auto">
+                  <Link to="/threat-intel?tab=subscribe"><Bell className="h-4 w-4" /> Get alerts</Link>
                 </Button>
               </div>
             </div>
             <div className="min-w-0 rounded-2xl border border-border/60 bg-card/50 p-4 sm:p-5" aria-live="polite">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><AlertTriangle className="h-4 w-4 text-destructive" /> Latest alerts</div>
-                <button type="button" onClick={() => navigate('/threat-intel?tab=alerts')} className="text-xs font-medium text-primary hover:underline">View all</button>
+                <Link to="/threat-intel?tab=alerts" className="text-xs font-medium text-primary hover:underline">View all</Link>
               </div>
               <div className="space-y-2">
-                {recentAlerts.length > 0 ? recentAlerts.map((alert) => (
+                {recentAlerts.length > 0 ? recentAlerts.map((alert) => {
+                  const sourceLabel = alertSourceLabel(alert);
+                  return (
                   <Link key={alert.id} to={`/threat-intel/${encodeURIComponent(alert.id)}`} className="flex w-full items-start gap-3 rounded-xl border border-transparent bg-background/70 p-3 text-left transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${alert.severity === 'critical' ? 'bg-destructive' : alert.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'}`} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-foreground">{alert.title}</span>
-                      <span className="mt-1 block text-xs capitalize text-muted-foreground">{alert.severity} · {formatDistanceToNow(new Date(alert.published_at), { addSuffix: true })}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground"><span className="capitalize">{alert.severity}</span> · {formatDistanceToNow(new Date(alert.published_at), { addSuffix: true })}</span>
+                      {sourceLabel && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{sourceLabel}</span>}
                     </span>
                   </Link>
-                )) : <div className="py-8 text-center text-sm text-muted-foreground">{alertsLoaded ? 'No high-priority alerts are available right now.' : 'Loading current alerts…'}</div>}
+                  );
+                }) : <div className="py-8 text-center text-sm text-muted-foreground">{alertsLoaded ? 'No high-priority alerts right now.' : 'Loading the latest alerts…'}</div>}
               </div>
             </div>
           </div>
@@ -347,16 +381,35 @@ const Index = () => {
               <div>
                 <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Built in public</p>
                 <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">What is live, and what we are improving.</h2>
-                <p className="mt-4 leading-relaxed text-muted-foreground">No stale launch promises. This is the product as it stands today, followed by the work where community feedback can make it better.</p>
+                <p className="mt-4 leading-relaxed text-muted-foreground">What you can use today, what we are working on, and where feedback would help most.</p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
                   <Button asChild variant="outline" className="w-full gap-2 sm:w-auto lg:w-full xl:w-auto"><a href={GITHUB_ROADMAP_URL} target="_blank" rel="noopener noreferrer">Read the roadmap <ExternalLink className="h-4 w-4" /></a></Button>
-                  <Button asChild variant="outline" className="w-full gap-2 sm:w-auto lg:w-full xl:w-auto"><a href="https://github.com/Raiders0786/digibastion/issues" target="_blank" rel="noopener noreferrer">Suggest an idea <MessageCircle className="h-4 w-4" /></a></Button>
+                  <Button asChild variant="outline" className="w-full gap-2 sm:w-auto lg:w-full xl:w-auto"><a href={GITHUB_ISSUES_URL} target="_blank" rel="noopener noreferrer">Suggest an idea <MessageCircle className="h-4 w-4" /></a></Button>
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 {[
-                  { status: 'Live', title: 'Available today', items: ['Vantage domain intelligence', 'OpSec assessment and score', 'Threat feed and email alerts', '11 security checklists'], color: 'text-success border-success/30 bg-success/10' },
-                  { status: 'Improving', title: 'Active work', items: ['Vantage evidence and workflows', 'Threat source coverage', 'Checklist depth and freshness', 'Mobile and accessibility polish'], color: 'text-primary border-primary/30 bg-primary/10' },
+                  {
+                    status: 'Live',
+                    title: 'Available today',
+                    items: [
+                      'Threat Intel feed with email alerts',
+                      `Telegram channel ${TELEGRAM_CHANNEL_HANDLE}`,
+                      'Weekly report every Monday',
+                      `${categories.length} security checklists`,
+                      'OpSec self-check',
+                      `${GUIDE_COUNT} security guides`,
+                      'Vantage (beta)',
+                      ...(NEWSLETTERS_LIVE ? ['Daily brief email'] : []),
+                    ],
+                    color: 'text-success border-success/30 bg-success/10',
+                  },
+                  {
+                    status: 'Improving',
+                    title: 'Active work',
+                    items: [...(NEWSLETTERS_LIVE ? [] : ['Daily brief email']), 'Vantage evidence and workflows', 'More incident sources', 'Checklist depth and freshness', 'Mobile and accessibility polish'],
+                    color: 'text-primary border-primary/30 bg-primary/10',
+                  },
                   { status: 'Open', title: 'Help shape next', items: ['Community-requested guides', 'Contributor-led integrations', 'More actionable incident research', 'Tools people can use without setup'], color: 'text-warning border-warning/30 bg-warning/10' },
                 ].map((column) => (
                   <div key={column.title} className="rounded-2xl border border-border/60 bg-background p-5">
@@ -379,14 +432,14 @@ const Index = () => {
                 <p className="mt-4 leading-relaxed text-muted-foreground">Report a missing threat, improve a checklist, propose a tool, or contribute code. Useful criticism and small fixes are just as welcome as large features.</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-                <Button asChild size="lg" className="w-full gap-2 rounded-full sm:w-auto"><a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer"><Github className="h-5 w-5" /> Contribute on GitHub</a></Button>
-                <Button size="lg" variant="outline" onClick={() => navigate('/services')} className="w-full gap-2 rounded-full sm:w-auto">Work with Digibastion <ArrowRight className="h-4 w-4" /></Button>
+                <Button asChild size="lg" className="w-full gap-2 rounded-full sm:w-auto"><a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer"><Github className="h-5 w-5" /> Contribute on GitHub</a></Button>
+                <Button asChild size="lg" variant="outline" className="w-full gap-2 rounded-full sm:w-auto"><Link to="/services">Work with Digibastion <ArrowRight className="h-4 w-4" /></Link></Button>
               </div>
             </div>
             <div className="mt-8 grid grid-cols-2 gap-3 border-t border-border/60 pt-8 sm:grid-cols-4">
               {[
                 { icon: Globe2, label: 'Source available' }, { icon: BookOpen, label: 'Practical education' },
-                { icon: Newspaper, label: 'Current intelligence' }, { icon: Shield, label: 'Expert services' },
+                { icon: Newspaper, label: 'Sourced incident tracking' }, { icon: Shield, label: 'Expert services' },
               ].map((item) => <div key={item.label} className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:text-sm"><item.icon className="h-4 w-4 shrink-0 text-primary" /> {item.label}</div>)}
             </div>
           </div>

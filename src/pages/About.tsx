@@ -14,36 +14,40 @@ import {
 import { Footer } from '@/components/Footer';
 import { MetaTags } from '@/components/MetaTags';
 import { staticRouteMeta, toMetaTagsProps } from '@/seo/routeMeta';
+import { faqEntries, GITHUB_REPO_URL, SITE_DEFINITION, VANTAGE_URL } from '@/seo/siteFacts';
+import { QuestionList } from '@/components/QuestionList';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { serializeJsonLd } from '@/utils/jsonLd';
 
 const pageMeta = staticRouteMeta('/about');
+const ABOUT_FAQ_IDS = ['what-is-threat-intel', 'sources', 'verification', 'alerts', 'free'];
+const aboutQuestions = faqEntries().filter((entry) => ABOUT_FAQ_IDS.includes(entry.id));
 
 const products = [
   {
     icon: BellRing,
     title: 'Know what is happening',
-    description: 'Follow sourced security incidents and subscribe to alerts without sorting through dozens of feeds.',
-    label: 'Threat intelligence',
+    description: 'Follow sourced Web3 incidents on the site, on Telegram (@digibastion) or by email, and read the weekly report every Monday.',
+    label: 'Open Threat Intel',
     href: '/threat-intel',
     external: false,
   },
   {
     icon: BookOpenCheck,
     title: 'Improve your own setup',
-    description: 'Use practical checklists and a short OpSec assessment to find the next security change worth making.',
-    label: 'Start a checkup',
+    description: 'Use practical checklists and the two-minute OpSec self-check to find the next change worth making.',
+    label: 'Take the self-check',
     href: '/quiz',
     external: false,
   },
   {
     icon: Radar,
     title: 'Understand domain risk',
-    description: 'Vantage brings DNS, email, TLS, frontend, supply-chain and Web3 trust evidence into one workflow.',
+    description: 'Vantage (beta) checks a domain\'s DNS, email, TLS, frontend, supply chain and Web3 trust signals in one place.',
     label: 'Open Vantage',
-    href: 'https://vantage.digibastion.com/',
+    href: VANTAGE_URL,
     external: true,
   },
   {
@@ -94,15 +98,13 @@ const About = () => (
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance">
               Turn security information into better decisions.
             </h1>
-            <p className="mt-6 max-w-3xl text-base sm:text-lg leading-8 text-muted-foreground">
-              Digibastion connects timely threat intelligence, personal security guidance, domain-risk evidence and hands-on review. Start with the free resources; bring us in when the risk deserves deeper work.
-            </p>
+            <p className="mt-6 max-w-3xl text-base sm:text-lg leading-8 text-muted-foreground">{SITE_DEFINITION}</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
                 <Link to="/quiz">Find your next security step <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <a href="https://vantage.digibastion.com/" target="_blank" rel="noopener noreferrer">
+                <a href={VANTAGE_URL} target="_blank" rel="noopener noreferrer">
                   Explore Vantage <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
               </Button>
@@ -115,7 +117,7 @@ const About = () => (
               Security guidance is scattered. Alerts lack context. Scanner output rarely explains ownership or the next decision.
             </p>
             <p className="mt-4 leading-7 text-muted-foreground">
-              We are building the connective tissue: clear explanations for individuals, operational evidence for teams, and a public place for practitioners to improve the work together.
+              So we put the pieces in one place: plain explanations for individuals, evidence for teams, and a public repo where practitioners can fix what we got wrong.
             </p>
           </Card>
         </section>
@@ -196,7 +198,7 @@ const About = () => (
             <div className="space-y-4">
               <Card className="p-5">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Public evidence</p>
-                <a href="https://github.com/Raiders0786/digibastion" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-semibold hover:text-primary">
+                <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-semibold hover:text-primary">
                   Repository, issues and change history <ExternalLink className="h-4 w-4" />
                 </a>
               </Card>
@@ -214,6 +216,14 @@ const About = () => (
               </Card>
             </div>
           </div>
+        </section>
+
+        <section aria-labelledby="about-questions" className="max-w-3xl space-y-6">
+          <h2 id="about-questions" className="text-3xl font-bold tracking-tight">Common questions</h2>
+          <QuestionList entries={aboutQuestions} idPrefix="about-faq" />
+          <Link to="/faq" className="inline-flex items-center gap-2 font-medium text-primary underline-offset-2 hover:underline">
+            All questions and answers <ArrowRight className="h-4 w-4" />
+          </Link>
         </section>
 
         <section className="text-center max-w-3xl mx-auto">
