@@ -24,7 +24,7 @@ export const ChallengeButton = ({ score, variant = 'outline', className = '' }: 
     const handle = friendHandle.replace('@', '').trim();
     if (!handle) return;
 
-    const quizUrl = 'https://digibastion.com/quiz';
+    const quizUrl = 'https://www.digibastion.com/quiz';
     const tweetText = score !== undefined
       ? `Hey @${handle}! 🔥 I just scored ${score}/100 on the @digibastion OpSec Quiz. Think you can beat me? 💀\n\nTake the challenge 👇\n${quizUrl}`
       : `Hey @${handle}! 🛡️ How secure is YOUR crypto OpSec?\n\nI challenge you to take the @digibastion security quiz and share your score! 🔐\n\n${quizUrl}`;

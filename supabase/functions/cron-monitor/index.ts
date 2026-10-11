@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
                   <li>Success Rate: ${successRateStr}%</li>
                 </ul>
                 <p style="font-size: 14px; color: #6b7280;">
-                  View the full dashboard at: <a href="https://digibastion.com/admin/cron">Cron Monitor</a>
+                  View the full dashboard at: <a href="https://www.digibastion.com/admin/cron">Cron Monitor</a>
                 </p>
                 <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
                 <p style="font-size: 12px; color: #9ca3af;">

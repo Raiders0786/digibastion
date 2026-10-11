@@ -373,7 +373,7 @@ serve(async (req) => {
 
         const response = await fetch(feed.url, {
           headers: {
-            'User-Agent': 'DigibastonBot/1.0 (+https://digibastion.com)',
+            'User-Agent': 'DigibastonBot/1.0 (+https://www.digibastion.com)',
             'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*'
           }
         });

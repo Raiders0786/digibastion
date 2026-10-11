@@ -85,7 +85,7 @@ function generateSuccessHtml(): string {
     <div class="icon">✅</div>
     <h1>You've Been Unsubscribed</h1>
     <p>You will no longer receive security alert emails from Digibastion.</p>
-    <a href="https://digibastion.com">Return to Digibastion</a>
+    <a href="https://www.digibastion.com">Return to Digibastion</a>
   </div>
 </body>
 </html>
@@ -140,7 +140,7 @@ function generateErrorHtml(message: string): string {
     <div class="icon">⚠️</div>
     <h1>Unsubscribe Failed</h1>
     <p>${message}</p>
-    <a href="https://digibastion.com/manage-subscription">Manage Subscription</a>
+    <a href="https://www.digibastion.com/manage-subscription">Manage Subscription</a>
   </div>
 </body>
 </html>

@@ -7,7 +7,7 @@ export const web3BestPractices: SecurityCategory = {
   "tools": [
     {
       "title": "The Ultimate Web3 Security Checklist",
-      "url": "https://digibastion.com",
+      "url": "https://www.digibastion.com",
       "description": "A self-driven checklist for enhancing digital security, privacy, and operational practices in the Web3 space.",
       "tags": ["web3", "checklist", "opsec"],
       "lastReviewed": "2025-02-26",
