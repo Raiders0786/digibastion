@@ -1,58 +1,196 @@
 # Digibastion
 
-> Free, community-built Web3 security platform with real-time threat intelligence, OpSec assessments, security checklists, and crypto wallet protection. Supported by the Ethereum Foundation Ecosystem Support Program.
+> Digibastion is a free Web3 security site. It tracks crypto hacks, exploits and phishing from QuillMonitor and other public trackers, links every record to its source, and sends alerts by email and on Telegram. It also has security checklists, a two-minute OpSec self-check and practical guides. Teams that need more can hire Digibastion for OpSec consulting or a full-stack security review, or try Vantage (beta) to check their domain's security.
 
-Digibastion helps crypto users, developers, and DAOs defend against phishing, wallet drains, smart-contract exploits, supply-chain attacks, and social engineering. Its public learning tools are free and require no account; the repository is source-available for non-commercial use under its Commons Clause license.
+Incident records are relayed from the sources each one names (QuillMonitor, Web3 Is Going Just Great and security news sites) and are never verified by Digibastion. Every record links back to its source. Everything listed here is free unless marked as a service.
 
-## Pages
+## Threat intelligence
 
-- [Home](/): Platform overview and security presets for new visitors.
-- [About](/about): Mission, team, funding (Ethereum Foundation ESP 2025), and methodology.
-- [Threat Intelligence Feed](/threat-intel): Real-time Web3 and Web2 incident feed (July 2024 onward) with severity, category, and source attribution.
-- [News](/news): Legacy route that redirects to the Threat Intelligence Feed.
-- [Articles](/articles): 71 published guides on wallet security, phishing prevention, incident response, software supply chains, DeFi risks, smart-contract auditing, and OpSec.
-- [Bybit 2025 signing-security case study](/articles/bybit-hack-2025-signing-security): Source-backed analysis of compromised transaction presentation and multisig verification controls.
-- [Coinbase data-theft defense guide](/articles/coinbase-data-theft-support-scam-defense): What the 2025 disclosure teaches users and support teams about impersonation and insider risk.
-- [Next.js ImageResponse RCE response guide](/articles/nextjs-imageresponse-rce-cve-2026-94545): Exposure checks, patching, and investigation steps for CVE-2026-94545.
-- [Operation Atlantic approval-phishing guide](/articles/operation-atlantic-approval-phishing-2026): How malicious token permissions work, with signing and recovery checks.
-- [Shai-Hulud npm response playbook](/articles/shai-hulud-npm-supply-chain-attack): Practical controls for package publishers, CI systems, and downstream teams.
-- [React2Shell and RSC patch guide](/articles/react2shell-rsc-vulnerability-response): Inventory and response guidance for the React Server Components vulnerability chain.
-- [Passkeys vs authenticator apps](/articles/passkeys-vs-authenticator-apps-security-keys-crypto): Phishing resistance, recovery, and security-key trade-offs for crypto accounts.
-- [Address poisoning and token impersonation](/articles/crypto-address-poisoning-token-impersonation): A recipient and token-verification workflow for lookalike attacks.
-- [Cryptocurrency scam recovery](/articles/cryptocurrency-scam-recovery-steps-recovery-scams): Evidence preservation, reporting, provider contact, and recovery-scam avoidance.
-- [EIP-7702 wallet delegation security](/articles/eip-7702-wallet-delegation-security): User and developer controls for delegated EOAs.
-- [Clear signing and ERC-7730](/articles/clear-signing-erc-7730-guide): Human-readable signing for users, wallets, and dapp teams.
-- [DNS security for Web3 frontends](/articles/dns-domain-security-web3-dapps): Registrar, DNS, certificate, monitoring, and response controls.
-- [DPRK remote IT worker risk](/articles/dprk-remote-it-worker-risk-crypto-web3): Identity, endpoint, access, and incident-response controls for teams.
-- [Browser-wallet infostealer response](/articles/browser-wallet-infostealer-malware-response): Prevention and clean-device recovery after suspected malware.
-- [Exchange API key security](/articles/exchange-api-key-security-trading-bots): Least privilege, secret isolation, monitoring, rotation, and revocation for automation.
-- [Tools](/tools): Directory of vetted Web3 security tools (wallets, scanners, monitors, audit firms).
-- [Links](/links): Curated security resources across application, cloud, on-chain, smart-contract, and private-key categories.
-- [OpSec Quiz](/quiz): Interactive Satoshi-level OpSec assessment with HMAC-signed scoring.
-- [Leaderboard](/leaderboard): Top 100 quiz scores from the community.
-- [Services](/services): Paid engagements — OpSec consulting and full-stack security reviews.
-- [OpSec Consulting](/services/opsec-consulting): 1:1 OpSec hardening for individuals, founders, and treasuries.
-- [Full-Stack Security Review](/services/full-stack-review): Smart contracts, APIs, frontend, cloud, identity, and compliance review.
-- [Contact](/contact): Reach the team for support, partnerships, or research collaboration.
-- [Support](/support): Help center and donation options.
-- [Share](/share): Tools to share the platform with your community.
+- [Threat Intel feed](https://www.digibastion.com/threat-intel): Crypto hacks, DeFi exploits and phishing from QuillMonitor and other public trackers, one record per incident, each linked to its source. Free alerts.
+- [How we track incidents](https://www.digibastion.com/threat-intel/methodology): Where Digibastion's incident records come from, how severity is set, what confirmed and unconfirmed mean, how duplicates merge and how to report a mistake.
+- [Weekly reports](https://www.digibastion.com/threat-intel/weekly): Every weekly deep-dive in one list: reported losses, incident counts and the top incidents of each week, with every item linked to its source.
+- [FAQ](https://www.digibastion.com/faq): Plain answers about Digibastion: where incident data comes from, how severity and duplicates work, how to get alerts and what is free.
+- [RSS feed](https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=rss): New Web3 incidents as RSS 2.0, each naming its source.
+- [Atom feed](https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom): The same incidents as Atom 1.0.
+- [JSON Feed](https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=json): The same incidents as JSON Feed 1.1.
+- [Telegram channel @digibastion](https://t.me/digibastion): Posts new Web3 incidents from QuillMonitor, plus a link to the weekly report every Monday.
+- [Email alerts](https://www.digibastion.com/threat-intel?tab=subscribe): Alerts on critical and high incidents, checked every 30 minutes. Free, double opt-in.
+- Severity: Mostly by reported loss: $50M or more is critical and $10M or more is high. Private-key compromise, access-control flaws, oracle manipulation, reentrancy and flash-loan attacks are rated high even when no loss is disclosed. Any other disclosed loss is medium, and the rest are low. Security news uses the publisher's own rating.
+- Duplicates: Digibastion keeps one record and lists both sources. It merges only on a strong match: the same project name on the same day, or within two days plus one more matching fact such as the loss. It never merges records just because the names look alike, because a wrong merge would hide a real incident.
 
-## Security Categories
+## Guides
 
-- [OpSec](/category/opsec): 34-item Satoshi-level operational security checklist.
-- [Wallet Security](/category/wallet): Hardware wallets, seed phrase protection, hot vs cold storage.
-- [DeFi Security](/category/defi): Protocol risks, flash loans, oracle manipulation, bridge security.
-- [Developers](/category/developers): Secure Solidity practices, audit prep, fuzzing, formal verification.
-- [Authentication](/category/authentication): 2FA, SIM-swap prevention, password managers.
-- [Browsing](/category/browsing): Safe browsing, extension hygiene, phishing defense.
-- [Email](/category/email): Email security and anti-phishing practices.
-- [Social](/category/social): Social engineering defense across Discord, Telegram, X.
-- [OS](/category/os): Operating system hardening for crypto users.
-- [Mobile](/category/mobile): Mobile device security for wallet apps.
-- [Jobs](/category/jobs): Crypto job-scam recognition and developer interview safety.
+### OpSec
 
-## Optional
+- [Web3 OpSec Guide: A Practical Privacy and Security Playbook](https://www.digibastion.com/articles/privacy-security-web3-opsec): Build a threat-model-driven Web3 privacy plan for wallets, identities, devices, RPC traffic, and public-chain activity without promises of perfect anonymity.
 
-- [License](/license): MIT terms with a Commons Clause restriction on commercial use.
-- [Roadmap](https://github.com/Raiders0786/digibastion/blob/main/ROADMAP.md): Public roadmap on GitHub.
-- [GitHub](https://github.com/Raiders0786/digibastion): Source code and contributions.
+### Incident Response
+
+- [Bybit Hack Explained: What the 2025 Multisig Theft Changed](https://www.digibastion.com/articles/bybit-hack-2025-signing-security): How a compromised signing interface defeated Bybit's cold-wallet process in February 2025, and the transaction controls treasury teams can apply.
+- [Crypto Hack Response: Immediate Actions When Your Wallet Is Compromised](https://www.digibastion.com/articles/crypto-hack-response-playbook): Emergency response playbook for wallet compromises. Step-by-step guide covering asset rescue, attacker containment, evidence preservation, and recovery options.
+- [Blockchain Forensics: Tracing Stolen Crypto & Understanding Chain Analysis](https://www.digibastion.com/articles/blockchain-forensics-basics): Introduction to blockchain forensics for hack victims. Understand how investigators trace funds, when recovery is possible, and how to work with forensics firms.
+- [Cryptocurrency Scam Recovery: What to Do and How to Avoid Recovery Scams](https://www.digibastion.com/articles/cryptocurrency-scam-recovery-steps-recovery-scams): A calm, evidence-first response after cryptocurrency fraud: stop further payments, secure accounts, preserve transaction details, report quickly, and reject fake recovery services.
+
+### Social Engineering
+
+- [Coinbase Data Theft: Defending Against Support Scams](https://www.digibastion.com/articles/coinbase-data-theft-support-scam-defense): What Coinbase's May 2025 disclosure shows about insider-enabled data theft, support impersonation, and defenses for crypto users and support teams.
+- [Social Engineering in Web3: Psychology Behind Crypto Scams](https://www.digibastion.com/articles/social-engineering-web3): Understand the psychology of crypto scams. Covers urgency tactics, authority exploitation, social proof manipulation, and cognitive biases attackers exploit.
+- [Crypto Job Scams: Fake Employment Offers That Steal Your Assets](https://www.digibastion.com/articles/crypto-job-scams): How hackers use fake job offers to target crypto professionals. Covers malicious job boards, trojanized developer tools, and verification techniques for legitimate opportunities.
+- [Crypto Romance Scams: Pig Butchering & Investment Fraud Tactics](https://www.digibastion.com/articles/romance-scams-crypto): Exposing cryptocurrency romance scams and pig butchering schemes. Learn the manipulation timeline, fake platform tactics, and how to protect vulnerable individuals.
+
+### Supply Chain
+
+- [Next.js ImageResponse RCE: CVE-2026-94545 Response Guide](https://www.digibastion.com/articles/nextjs-imageresponse-rce-cve-2026-94545): Who is exposed to the September 2026 Next.js ImageResponse vulnerability, how to find affected routes, patch safely, and review possible impact.
+- [Shai-Hulud npm Attacks: A Supply-Chain Response Playbook](https://www.digibastion.com/articles/shai-hulud-npm-supply-chain-attack): How the multi-wave Shai-Hulud campaign spread through maintainer and CI credentials, and what package publishers and downstream teams should change.
+- [NPM Supply Chain Attacks: How Malicious Packages Target Crypto Projects](https://www.digibastion.com/articles/npm-supply-chain-attacks-crypto): Analysis of supply chain attacks targeting the crypto ecosystem through compromised NPM packages. Covers event-stream, ua-parser-js incidents and developer protection strategies.
+
+### Phishing
+
+- [Operation Atlantic: How Approval Phishing Drains Crypto Wallets](https://www.digibastion.com/articles/operation-atlantic-approval-phishing-2026): What the 2026 international Operation Atlantic disruption reveals about malicious token approvals, wallet checks, revocation, and recovery scams.
+- [Crypto Phishing Attacks: How to Identify & Prevent Wallet Drains](https://www.digibastion.com/articles/crypto-phishing-attacks-prevention): Recognize fake airdrops, malicious signature requests, compromised community accounts, and impersonation attempts before they become wallet drains.
+- [Ice Phishing in Crypto: The Silent Wallet Drainer You Need to Know](https://www.digibastion.com/articles/ice-phishing-explained): Understand ice phishing attacks where hackers trick you into signing malicious approvals. Learn how setApprovalForAll and permit signatures can drain your wallet without sending transactions.
+- [Fake Airdrop Scams: How to Spot & Avoid Crypto Giveaway Frauds](https://www.digibastion.com/articles/fake-airdrop-scams): Learn to identify fake cryptocurrency airdrops and giveaway scams. Covers red flags, verification methods, and safe practices for claiming legitimate token distributions.
+- [Discord Crypto Scams: Protect Yourself from Server Hacks & DM Attacks](https://www.digibastion.com/articles/discord-crypto-scams): Complete guide to Discord security for crypto users. Learn about compromised servers, fake mod DMs, malicious bots, and phishing links targeting NFT and DeFi communities.
+- [Twitter/X Crypto Impersonation Scams: Fake Influencers & Blue Check Fraud](https://www.digibastion.com/articles/twitter-crypto-impersonation): How scammers impersonate crypto influencers, projects, and even Elon Musk on Twitter/X. Learn verification techniques and how to report fake accounts promoting scam links.
+- [Honeypot Tokens: How to Detect Scam Coins You Can't Sell](https://www.digibastion.com/articles/honeypot-tokens-detection): Learn to identify honeypot tokens that allow buying but prevent selling. Covers contract analysis tools, red flags in tokenomics, and how to verify token legitimacy before trading.
+
+### Application Security
+
+- [React2Shell and the RSC Vulnerability Chain: What to Patch](https://www.digibastion.com/articles/react2shell-rsc-vulnerability-response): A plain-language response guide to the React Server Components remote-code-execution flaw and the follow-on denial-of-service and source-exposure issues.
+- [DNS and Domain Security for Web3 Frontends and Dapps](https://www.digibastion.com/articles/dns-domain-security-web3-dapps): Protect a Web3 frontend from registrar takeover, DNS tampering, rogue certificates, and unsafe changes with a practical prevention, monitoring, and response plan.
+
+### Wallet Security
+
+- [How to Compare Hardware Wallets: A Security-First Checklist](https://www.digibastion.com/articles/best-hardware-wallet-2025): Compare hardware wallets by threat model, firmware, transaction verification, recovery design, connectivity, and device authenticity—not a stale ranking.
+- [Seed Phrase Security: Storage, Backup and Recovery](https://www.digibastion.com/articles/seed-phrase-security-guide): Protect a wallet recovery phrase against remote theft, physical discovery, disaster, transcription errors, and permanent lockout.
+- [Hot Wallet vs Cold Wallet: Security and Recovery Trade-offs](https://www.digibastion.com/articles/hot-wallet-vs-cold-wallet): Compare connected and offline wallet architectures across key exposure, signing, physical loss, backups, recovery, and everyday usability.
+- [MetaMask Security Settings and Wallet Hardening Guide](https://www.digibastion.com/articles/metamask-security-settings): Harden MetaMask, verify transactions, manage connected sites and on-chain approvals, use hardware wallets, and respond to suspected compromise.
+- [How to Revoke Token Approvals: Protect Yourself from Wallet Drainers](https://www.digibastion.com/articles/revoke-token-approvals-guide): Step-by-step guide to finding and revoking dangerous token approvals. Learn to use Revoke.cash, Etherscan, and other tools to remove unlimited allowances that hackers exploit.
+- [Multisig Wallet Setup: Signers, Thresholds and Safe Operations](https://www.digibastion.com/articles/multi-signature-wallet-setup): Design and verify a multisig wallet with independent signers, explicit transaction review, controlled modules, monitoring, and rehearsed recovery.
+- [Advanced Wallet Security: A Defense-in-Depth Custody Plan](https://www.digibastion.com/articles/advanced-wallet-security): Build a threat-model-driven wallet architecture with separated roles, independent signing, verified intent, monitoring, recovery, and continuity.
+- [EIP-7702 Wallet Delegation Security: A Practical Guide](https://www.digibastion.com/articles/eip-7702-wallet-delegation-security): Understand what EIP-7702 delegation changes for Ethereum wallets, what users should verify, and how developers can avoid initialization, replay, storage, and integration failures.
+- [Clear Signing and ERC-7730: What Users and Dapp Teams Need to Know](https://www.digibastion.com/articles/clear-signing-erc-7730-guide): Learn how ERC-7730 turns opaque Ethereum signing data into human-readable intent, what users can verify, and how dapp teams can publish safer transaction descriptors.
+- [Browser Wallet Infostealer Defense and Infection Response](https://www.digibastion.com/articles/browser-wallet-infostealer-malware-response): Protect browser wallets from credential-stealing malware, recognize an exposure, and respond safely from a clean device when compromise is suspected.
+
+### Scams
+
+- [Rug Pull Warning Signs: How to Identify Crypto Scam Projects Early](https://www.digibastion.com/articles/rug-pull-warning-signs): Learn the red flags that indicate a crypto project might rug pull. Covers anonymous teams, locked liquidity checks, smart contract analysis, and social proof verification.
+- [Soft Rug vs Hard Rug: Understanding Different Types of Crypto Exit Scams](https://www.digibastion.com/articles/soft-rug-vs-hard-rug): Understand the difference between soft rugs (slow dumps, abandoned projects) and hard rugs (liquidity pulls, contract exploits). Learn protection strategies for each type.
+- [Locked Liquidity Explained: Does It Really Prevent Rug Pulls?](https://www.digibastion.com/articles/locked-liquidity-explained): Deep dive into liquidity locks, their limitations, and bypass methods. Learn why locked liquidity alone doesn't guarantee safety and what additional checks to perform.
+
+### DeFi
+
+- [DeFi Exploit Patterns: Bridges, Oracles, Governance and Access Control](https://www.digibastion.com/articles/defi-hacks-2024-2025-analysis): Review recurring DeFi failure patterns in bridge validation, oracle design, governance, access control, and unsafe upgrades before exposing funds.
+- [Flash Loan Attacks Explained: How Hackers Exploit DeFi Protocols](https://www.digibastion.com/articles/flash-loan-attacks-explained): Technical breakdown of flash loan attacks in DeFi. Learn how attackers use uncollateralized loans to manipulate prices, drain pools, and exploit vulnerable smart contracts.
+- [Oracle Manipulation in DeFi: Price Feed Attacks & Prevention](https://www.digibastion.com/articles/oracle-manipulation-attacks): Understand how attackers manipulate price oracles to exploit DeFi protocols. Covers TWAP attacks, Chainlink best practices, and how to identify oracle-dependent vulnerabilities.
+- [Cross-Chain Bridge Security: Why Bridges Are DeFi's Weakest Link](https://www.digibastion.com/articles/bridge-security-risks): Analysis of cross-chain bridge vulnerabilities that have led to billions in losses. Covers Ronin, Wormhole, Nomad hacks and how to safely use bridges.
+- [Sandwich Attacks: How MEV Bots Steal Your DEX Trades & Prevention](https://www.digibastion.com/articles/sandwich-attack-prevention): Learn how sandwich attacks work in DeFi and how MEV bots front-run your transactions. Covers slippage protection, private RPCs, and MEV-resistant DEXs.
+- [Impermanent Loss Explained: Hidden Risks of Liquidity Providing](https://www.digibastion.com/articles/impermanent-loss-risks): Complete guide to impermanent loss in DeFi liquidity pools. Understand when LP yields are profitable, calculate potential losses, and learn mitigation strategies.
+- [DeFi Smart Contract Audit Checklist: What to Verify Before Investing](https://www.digibastion.com/articles/defi-smart-contract-audit-checklist): Essential checklist for evaluating DeFi protocol security. Learn to check audits, verify contracts, assess team credibility, and analyze tokenomics before depositing funds.
+
+### Smart Contracts
+
+- [Reentrancy Attacks: How They Work and How to Prevent Them](https://www.digibastion.com/articles/reentrancy-attack-prevention): Deep dive into reentrancy attacks, the most famous smart contract vulnerability. Covers the DAO hack, checks-effects-interactions pattern, and ReentrancyGuard implementation.
+- [Solidity Security Engineering: A Practical Developer Guide](https://www.digibastion.com/articles/solidity-security-best-practices): A practical Solidity security process covering access control, external calls, invariants, testing, monitoring, upgrades, and incident readiness.
+- [ERC-20 Token Vulnerabilities: Security Flaws in Custom Token Contracts](https://www.digibastion.com/articles/erc20-token-vulnerabilities): Analysis of common ERC-20 implementation vulnerabilities including integer overflow, approval race conditions, and missing return value checks. Includes secure implementation patterns.
+- [Smart Contract Fuzzing: Automated Security Testing with Echidna & Foundry](https://www.digibastion.com/articles/smart-contract-fuzzing-guide): Guide to fuzzing smart contracts for security vulnerabilities. Covers Echidna, Foundry fuzz testing, property-based testing, and integrating fuzzing into your development workflow.
+- [Smart Contract Audit: How Audits Work & How to Prepare Your Code](https://www.digibastion.com/articles/smart-contract-audit-process): Inside look at the smart contract audit process. Learn how top security firms review code, what auditors look for, and how to prepare your protocol for a professional audit.
+- [Formal Verification for Smart Contracts: Mathematical Proof of Security](https://www.digibastion.com/articles/formal-verification-smart-contracts): Introduction to formal verification techniques for blockchain. Covers symbolic execution, SMT solvers, and tools like Certora and Halmos for proving smart contract correctness.
+
+### Authentication
+
+- [2FA for Crypto Accounts: Passkeys, Security Keys and TOTP](https://www.digibastion.com/articles/2fa-crypto-security-guide): Choose and recover multifactor authentication for exchanges and crypto accounts, with clear guidance on phishing-resistant FIDO, TOTP, and SMS risk.
+- [SIM Swap Prevention and Account Recovery Plan](https://www.digibastion.com/articles/sim-swap-attack-prevention): Reduce SIM-swap and port-out risk by removing SMS authority, hardening carrier recovery, and preparing a rapid response to unexpected service loss.
+- [Password Managers for Crypto: A Secure Setup Guide](https://www.digibastion.com/articles/password-manager-crypto-security): Use a password manager safely for exchange, email, and wallet-service accounts without turning the vault into a single point of failure.
+
+### Infrastructure
+
+- [RPC Endpoint Security: Risks of Public Providers & Safe Alternatives](https://www.digibastion.com/articles/rpc-endpoint-security): Understand security and privacy risks of public RPC endpoints. Covers IP tracking, transaction censorship, and how to run your own node or use privacy-preserving RPC services.
+- [DeFi Frontend Attacks: DNS Hijacking, CDN Compromises & Protection](https://www.digibastion.com/articles/frontend-attack-vectors): How attackers compromise DeFi frontends without touching smart contracts. Covers BadgerDAO hack, DNS hijacking, malicious CDN injection, and verification methods.
+
+### Privacy
+
+- [Blockchain Privacy Tools: Layers, Trade-offs and Limits](https://www.digibastion.com/articles/blockchain-privacy-tools-2025): Compare address separation, Tor, VPNs, private RPC, shielded protocols, and privacy coins without confusing one layer of privacy for anonymity.
+- [Wallet Deanonymization: How Addresses Become Identities](https://www.digibastion.com/articles/wallet-address-deanonymization): Learn how public posts, service records, RPC data, address reuse, transaction graphs, and behavioral patterns can connect a wallet to a person.
+- [VPN and Tor for Crypto: Privacy Limits and Safe Use](https://www.digibastion.com/articles/vpn-tor-crypto-trading): Understand what VPNs and Tor hide, what they expose, and how network privacy interacts with exchanges, RPC providers, wallets, and public-chain analysis.
+
+### NFT
+
+- [NFT Marketplace Security: Trading, Signatures and Approvals](https://www.digibastion.com/articles/nft-marketplace-security): Trade NFTs more safely by verifying collection contracts, marketplace orders, operator approvals, wallet signatures, metadata, and incident response.
+- [NFT Scams: 15 Red Flags That Signal a Project Will Rug](https://www.digibastion.com/articles/nft-scam-red-flags): Learn to identify NFT project red flags before investing. Covers art theft, anonymous teams, fake roadmaps, botted Discord, and techniques scammers use to create false hype.
+- [SetApprovalForAll Explained: The NFT Permission That Drains Collections](https://www.digibastion.com/articles/setapprovalforall-risks): Deep dive into the dangerous setApprovalForAll function. Understand how malicious approvals work, how to detect them, and steps to revoke access to your NFT collections.
+
+### Basics
+
+- [Web3 Security for Beginners: Your First 10 Steps to Crypto Safety](https://www.digibastion.com/articles/getting-started-web3-security): Essential first steps for new crypto users. Simple, actionable security measures covering wallet setup, exchange safety, and avoiding common beginner mistakes.
+
+### Exchange
+
+- [Centralized Exchange Security: Account and Custody Checklist](https://www.digibastion.com/articles/cex-security-best-practices): Protect a centralized exchange account with strong authentication, withdrawal controls, restricted API keys, verified support, and limited custody exposure.
+- [Exchange Hack Response: A Customer Survival Guide](https://www.digibastion.com/articles/exchange-hack-survival-guide): Respond to an exchange breach, unauthorized account activity, withdrawal pause, or insolvency concern without falling for secondary phishing and recovery scams.
+- [CEX vs DEX Security: Custody and Protocol Risk Compared](https://www.digibastion.com/articles/cex-vs-dex-security-comparison): Compare centralized and decentralized exchange security across custody, authentication, smart contracts, signing, recovery, availability, and legal exposure.
+
+### Mobile
+
+- [Mobile Crypto Wallet Security: Device and Signing Guide](https://www.digibastion.com/articles/mobile-crypto-wallet-security): Secure a mobile wallet against fake apps, device theft, hostile permissions, signing deception, and recovery failure on iOS and Android.
+
+### Physical Security
+
+- [Physical Security for Crypto Holders and Custody Teams](https://www.digibastion.com/articles/physical-security-crypto): Reduce real-world targeting and prepare for theft, coercion, disasters, travel, incapacity, and inheritance without endangering people.
+
+### Governance
+
+- [DAO Governance Attacks: Flash Loan Voting & Proposal Hijacking](https://www.digibastion.com/articles/dao-governance-attacks): Security risks in DAO governance systems. Covers flash loan governance attacks, malicious proposals, quorum manipulation, and designing secure voting mechanisms.
+
+### Layer 2
+
+- [Layer 2 Security: Risks & Considerations for Optimism, Arbitrum & zkSync](https://www.digibastion.com/articles/layer-2-security-considerations): Security implications of Layer 2 scaling solutions. Covers bridge risks, sequencer centralization, fraud proof windows, and safe usage practices for L2 networks.
+
+### Emerging Tech
+
+- [Account Abstraction Security: Smart Wallet Risks & Best Practices](https://www.digibastion.com/articles/account-abstraction-security): Security considerations for ERC-4337 account abstraction wallets. Covers bundler trust, paymaster risks, session key management, and recovery mechanisms.
+
+### Account Security
+
+- [Passkeys vs Authenticator Apps and Security Keys for Crypto Accounts](https://www.digibastion.com/articles/passkeys-vs-authenticator-apps-security-keys-crypto): Choose stronger sign-in protection for crypto exchanges by comparing passkeys, TOTP authenticator apps, and hardware security keys—including phishing resistance and recovery trade-offs.
+
+### Scam Prevention
+
+- [Crypto Address Poisoning and Token Impersonation: How to Verify Before Sending](https://www.digibastion.com/articles/crypto-address-poisoning-token-impersonation): Learn how address-poisoning transactions and lookalike tokens exploit wallet history, truncated addresses, names, and symbols—and use a safer verification workflow.
+
+### Enterprise Security
+
+- [DPRK Remote IT Worker Risk: A Defense Guide for Crypto and Web3 Teams](https://www.digibastion.com/articles/dprk-remote-it-worker-risk-crypto-web3): How crypto and Web3 teams can detect, prevent, and respond to fraudulent DPRK remote IT workers without turning hiring into guesswork.
+- [Exchange API Key Security for Trading Bots and Automation](https://www.digibastion.com/articles/exchange-api-key-security-trading-bots): A practical design for securing exchange API keys with least privilege, IP restrictions, secret isolation, monitoring, rotation, and incident response.
+
+## Checklists
+
+- [Crypto Wallet Security Checklist](https://www.digibastion.com/category/wallet): 7 items. Secure your cryptocurrency assets
+- [OpSec Checklist](https://www.digibastion.com/category/opsec): 34 items. Protect your digital footprint and operations
+- [DeFi Security Checklist](https://www.digibastion.com/category/defi): 18 items. Secure your DeFi interactions and investments
+- [Authentication Security Checklist](https://www.digibastion.com/category/authentication): 23 items. Secure your accounts with strong authentication methods
+- [OS Hardening Checklist](https://www.digibastion.com/category/os): 41 items. Strengthen your operating system security
+- [Email Security Checklist](https://www.digibastion.com/category/email): 22 items. Secure your email communications for Web2 and Web3
+- [Browsing Security Checklist](https://www.digibastion.com/category/browsing): 49 items. Secure your online browsing experience
+- [Mobile Security Checklist](https://www.digibastion.com/category/mobile): 35 items. Essential security measures for mobile devices in the Web3 era
+- [Developer Security Checklist](https://www.digibastion.com/category/developers): 5 items. Security best practices for Web3 developers
+- [Job Search Security Checklist](https://www.digibastion.com/category/jobs): 5 items. Secure your Web3 job search process
+- [Social Media Security Checklist](https://www.digibastion.com/category/social): 24 items. Protect your social media accounts and personal privacy
+
+## Tools and services
+
+- [OpSec self-check](https://www.digibastion.com/quiz): Eight questions drawn from 20 real scenarios show where your crypto OpSec is weak, with a breakdown and next steps. No wallet or account needed.
+- [Web3 security tools directory](https://www.digibastion.com/tools): 27 Web3 security tools we link to, grouped by job: on-chain analytics, investigation, wallet protection, monitoring, hardware keys and secure messaging.
+- [Security resources](https://www.digibastion.com/links): Links to security guides, tools and references for Web3 users and developers, grouped by topic: wallets, smart contracts, cloud, on-chain and private keys.
+- [Services](https://www.digibastion.com/services): OpSec consulting for founders and funds, and full-stack security reviews for Web3 teams, from the people who run Digibastion's free tools and alerts.
+- [OpSec consulting](https://www.digibastion.com/services/opsec-consulting): Hands-on OpSec for founders, funds and large holders. We review your wallets, devices and daily habits, then tell you what to change first. Book a free call.
+- [Full-stack security review](https://www.digibastion.com/services/full-stack-review): A senior review across your crypto product: smart contracts, offchain services, dApp, cloud, identity and compliance readiness. Flat fee, named team.
+- [Vantage (beta)](https://vantage.digibastion.com): Reviews a domain's DNS, email, TLS, frontend and Web3 trust evidence in one place.
+
+## About
+
+- [About](https://www.digibastion.com/about): Digibastion is a free Web3 security site: an incident tracker with alerts, checklists, an OpSec self-check and guides, plus paid reviews for teams.
+- [License](https://www.digibastion.com/license): Read the Digibastion repository license: MIT terms with an additional Commons Clause restriction on commercial use.
+- [Source code on GitHub](https://github.com/Raiders0786/digibastion): The site, the ingestion functions and the database migrations.
+- [Roadmap](https://github.com/Raiders0786/digibastion/blob/main/docs/ROADMAP.md): What is live, what is in progress and what comes next.
+- [Full text for language models](https://www.digibastion.com/llms-full.txt): The FAQ, every guide and every checklist in plain text.

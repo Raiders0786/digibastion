@@ -10,3 +10,4 @@ export * from '@/seo/incidentMeta';
 export * from '@/seo/prerender';
 export * from '@/seo/fetchDynamic';
 export * from '@/seo/siteFacts';
+export * from '@/seo/staticFiles';
