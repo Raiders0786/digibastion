@@ -29,6 +29,13 @@
       "when": 1791684963773,
       "tag": "0003_newsletter_data_model",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791684989869,
+      "tag": "0004_email_compliance_jobs",
+      "breakpoints": true
     }
   ]
 }
