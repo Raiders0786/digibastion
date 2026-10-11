@@ -1,10 +1,28 @@
 import { QUILLMONITOR_DATABASE_URL, sourceLinkFor } from './attribution.ts';
 import { shortIssueDate } from './daily-brief.ts';
 import { formatLossReported, type NewsletterItem, type WeeklyPublicContent } from './newsletter-content.ts';
-import { buildTrackedUrl, type Tracking } from './share-links.ts';
+import { SAFE_ARTICLE_ID } from './publishable.ts';
+import { buildTrackedUrl, incidentOgImageUrl, type Tracking } from './share-links.ts';
 import { absoluteSiteUrl, incidentPath, weeklyPath } from './site-urls.ts';
 
 export const TELEGRAM_MESSAGE_LIMIT = 4096;
+
+export type TelegramLinkPreview =
+  | { is_disabled: true }
+  | { url: string; prefer_large_media: true; show_above_text: false };
+
+export const NO_LINK_PREVIEW: TelegramLinkPreview = { is_disabled: true };
+
+/**
+ * Preview for an incident post: the incident's own card from og-image. A post
+ * goes out minutes after ingestion, before any Publish could prerender the
+ * page, so a page preview would show the generic home card; the og-image card
+ * is built at request time. Bot API 7.0+ link_preview_options.
+ */
+export function incidentLinkPreview(articleId: string | null | undefined): TelegramLinkPreview {
+  if (!articleId || !SAFE_ARTICLE_ID.test(articleId)) return NO_LINK_PREVIEW;
+  return { url: incidentOgImageUrl(articleId), prefer_large_media: true, show_above_text: false };
+}
 
 export type TelegramSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 

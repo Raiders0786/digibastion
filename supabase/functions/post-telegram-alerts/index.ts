@@ -5,11 +5,14 @@ import {
   buildTelegramIncidentMessage,
   buildWeeklyLinkMessage,
   buildWeeklyPostUrl,
+  incidentLinkPreview,
   isEligibleForTelegram,
   isIncidentPostUid,
+  NO_LINK_PREVIEW,
   planTelegramPostUpdate,
   WEEKLY_POST_UID_PREFIX,
   type TelegramAlertArticle,
+  type TelegramLinkPreview,
   type TelegramSeverity,
 } from '../_shared/telegram-alerts.ts';
 import { SITE_URL } from '../_shared/site-urls.ts';
@@ -246,7 +249,8 @@ async function syncPostedMessages(
       message_id: row.message_id,
       text: plan.text,
       parse_mode: 'HTML',
-      link_preview_options: { is_disabled: true },
+      // A retraction drops the card; a status edit keeps it.
+      link_preview_options: plan.action === 'edit' ? incidentLinkPreview(articlesByUid.get(row.article_uid)?.id) : NO_LINK_PREVIEW,
     });
     if (!result.ok && !isNotModified(result)) {
       failed++;
@@ -317,6 +321,7 @@ async function deliverClaimedPost(
   claim: { id: string; attempts: number },
   text: string,
   sentFields: { posted_verification: string | null; posted_severity: string | null },
+  linkPreview: TelegramLinkPreview = NO_LINK_PREVIEW,
 ): Promise<DeliveryOutcome> {
   let result: TelegramResult;
   try {
@@ -324,7 +329,7 @@ async function deliverClaimedPost(
       chat_id: chatId,
       text,
       parse_mode: 'HTML',
-      link_preview_options: { is_disabled: true },
+      link_preview_options: linkPreview,
     });
   } catch (error) {
     // Rate limited: nothing was delivered, so release the claim without
@@ -392,7 +397,7 @@ async function postNewIncidents(
     const outcome = await deliverClaimedPost(db, token, chatId, claim, buildTelegramIncidentMessage(article, siteUrl), {
       posted_verification: typeof metadata.verification_status === 'string' ? metadata.verification_status : null,
       posted_severity: article.severity,
-    });
+    }, incidentLinkPreview(article.id));
     if (outcome === 'sent') sent++;
     else if (outcome === 'failed') failed++;
     else unknown++;

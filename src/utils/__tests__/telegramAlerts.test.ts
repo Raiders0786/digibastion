@@ -6,6 +6,8 @@ import {
   buildTelegramIncidentMessage,
   buildWeeklyLinkMessage,
   escapeTelegramHtml,
+  incidentLinkPreview,
+  NO_LINK_PREVIEW,
   isEligibleForTelegram,
   isIncidentPostUid,
   planTelegramPostUpdate,
@@ -316,5 +318,19 @@ describe('isIncidentPostUid', () => {
     expect(isIncidentPostUid('weekly:2026-10-05')).toBe(false);
     const rows = [{ article_uid: 'quillmonitor:1' }, { article_uid: 'weekly:2026-10-05' }];
     expect(rows.filter((row) => isIncidentPostUid(row.article_uid))).toEqual([{ article_uid: 'quillmonitor:1' }]);
+  });
+});
+
+describe('incidentLinkPreview', () => {
+  it('previews the incident card, large and below the text', () => {
+    expect(incidentLinkPreview('7f1c2a4e-1111-4222-8333-944455556666')).toEqual({
+      url: 'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/og-image?kind=incident&id=7f1c2a4e-1111-4222-8333-944455556666',
+      prefer_large_media: true,
+      show_above_text: false,
+    });
+  });
+  it('turns the preview off without a safe id', () => {
+    expect(incidentLinkPreview(null)).toEqual(NO_LINK_PREVIEW);
+    expect(incidentLinkPreview('../x')).toEqual({ is_disabled: true });
   });
 });
