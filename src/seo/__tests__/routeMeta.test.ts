@@ -11,6 +11,7 @@ import { initialSecurityData } from '@/data/securityData';
 import { toolCategories } from '@/data/tools/categories';
 import { weeklyPublicContent } from '../../../supabase/functions/_shared/weekly-test-fixtures';
 import {
+  brandedTitle,
   categoryRouteMeta,
   guideRouteMeta,
   NOINDEX_PATHS,
@@ -39,11 +40,11 @@ describe('route registry', () => {
     }
   });
 
-  it('keeps titles within 70 and descriptions within 160 characters', () => {
+  it('keeps titles within 60 and descriptions within 160 characters', () => {
     const all = [...Object.values(STATIC_ROUTES), toolsRouteMeta(27),
       ...initialSecurityData.map(categoryRouteMeta), ...articlesMeta.map((a) => guideRouteMeta(a))];
     for (const meta of all) {
-      expect(meta.title.length, meta.title).toBeLessThanOrEqual(70);
+      expect(meta.title.length, meta.title).toBeLessThanOrEqual(60);
       expect(meta.description.length, meta.path).toBeLessThanOrEqual(160);
       expect(meta.description.length, meta.path).toBeGreaterThanOrEqual(50);
       expect(meta.canonical).toBe(`https://www.digibastion.com${meta.path === '/' ? '/' : meta.path}`);
@@ -54,6 +55,17 @@ describe('route registry', () => {
       expect(meta.robots).toBe('index');
       expect(meta.image.startsWith('https://www.digibastion.com/')).toBe(true);
     }
+  });
+
+  it('keeps the brand only when the whole title fits, and never cuts a title to make room for it', () => {
+    expect(brandedTitle('OpSec Checklist')).toBe('OpSec Checklist | Digibastion');
+    const fiftyFive = 'Alpha Finance/Cream Finance: Flash Loan Attack ($37.5M)';
+    expect(brandedTitle(fiftyFive)).toBe(fiftyFive);
+    const long = '2FA for Crypto Accounts: Passkeys, Security Keys and Authenticator Apps Compared';
+    const cut = brandedTitle(long);
+    expect(cut.length).toBeLessThanOrEqual(60);
+    expect(cut).not.toContain('Digibastion');
+    expect(cut.endsWith('…')).toBe(true);
   });
 
   it('gives the fallback shell no canonical', () => {
@@ -115,7 +127,7 @@ describe('route registry', () => {
   it('builds weekly meta with the numbers in the title and a Report schema', () => {
     const meta = weeklyRouteMeta(weeklyPublicContent(), '2026-10-12T00:10:00Z');
     expect(meta.path).toBe('/threat-intel/weekly/2026-10-05');
-    expect(meta.title.length).toBeLessThanOrEqual(70);
+    expect(meta.title.length).toBeLessThanOrEqual(60);
     expect(meta.title).toContain('~$12.3M across 9 incidents');
     expect(meta.robots).toBe('index');
     expect(meta.publishedTime).toBe('2026-10-12T00:10:00Z');

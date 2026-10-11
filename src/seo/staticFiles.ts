@@ -94,8 +94,9 @@ export function buildLlmsTxt(deps: StaticFileDeps): string {
     '',
     `> ${SITE_DEFINITION}`,
     '',
-    'Incident records are relayed from the sources each one names (QuillMonitor, Web3 Is Going Just Great and security news sites) ' +
-      'and are never verified by Digibastion. Every record links back to its source. Everything listed here is free unless marked as a service.',
+    'Incident records come from the sources each one names (QuillMonitor, Web3 Is Going Just Great, SlowMist and security news sites). ' +
+      'Digibastion does not check incidents itself; each record shows the status its source gives and links back to it. ' +
+      'Everything listed here is free unless marked as a service.',
     '',
     '## Threat intelligence',
     '',
@@ -162,7 +163,7 @@ export function buildLlmsFullTxt(deps: StaticFileDeps): string {
     'This file holds the FAQ, every security guide and every checklist on www.digibastion.com as plain text. ' +
       'Live incident records are not included because they change; read them from the feeds instead:',
     `RSS ${FEED_URLS.rss}, Atom ${FEED_URLS.atom}, JSON Feed ${FEED_URLS.json}.`,
-    'Incident records are relayed from the sources each one names and are never verified by Digibastion.',
+    'Incident records come from the sources each one names. Digibastion does not check incidents itself; each record shows the status its source gives and links back to it.',
     '',
     '# Frequently asked questions',
     '',

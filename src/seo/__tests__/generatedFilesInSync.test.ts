@@ -60,7 +60,10 @@ describe('generated SEO file content', () => {
 
   it('keeps llms.txt honest and complete', () => {
     expect(llms.startsWith('# Digibastion\n\n> Digibastion is a free Web3 security site.')).toBe(true);
-    expect(llms).toMatch(/never verified by Digibastion/);
+    expect(llms).toMatch(/Digibastion does not check incidents itself/);
+    // Not even in a negation: a partial quote must never read as a verification claim.
+    expect(llms).not.toMatch(/verified by Digibastion/i);
+    expect(full).not.toMatch(/verified by Digibastion/i);
     expect(llms).not.toMatch(/vetted|Satoshi-level|HMAC|July 2024 onward|Top 100|digibastion\.com\/news|real-time/i);
     expect(llms).not.toContain('DigiBastion');
     expect(llms).toContain('https://t.me/digibastion');

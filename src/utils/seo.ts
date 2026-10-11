@@ -40,6 +40,9 @@ export interface SeoNewsArticle {
   about?: readonly string[];
   tags: string[];
   image?: string;
+  /** Defaults to 1920 x 1060, the size of /og-threat-intel.png. */
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export const absoluteUrl = (path: string): string => {
@@ -134,8 +137,8 @@ export const buildNewsArticleSchema = (article: SeoNewsArticle) => {
     image: {
       '@type': 'ImageObject',
       url: absoluteUrl(article.image || '/og-threat-intel.png'),
-      width: 1920,
-      height: 1060,
+      width: article.imageWidth ?? 1920,
+      height: article.imageHeight ?? 1060,
     },
     isAccessibleForFree: true,
     mainEntityOfPage: {

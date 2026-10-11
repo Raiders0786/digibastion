@@ -84,6 +84,12 @@ describe('shareTextForIncident', () => {
   it('adds "attack" to attack types that do not name an event', () => {
     expect(shareTextForIncident({ ...base, attackType: 'Reentrancy' })).toContain('Example Protocol reentrancy attack on Ethereum');
   });
+  it('leaves out placeholder chains and "($0 loss)" titles', () => {
+    expect(shareTextForIncident({ ...base, chain: 'Other' })).toBe('Example Protocol bridge exploit: ~$4.2M reported lost. Confirmed by QuillMonitor.');
+    expect(shareTextForIncident({ ...base, chain: 'Centralized' })).not.toMatch(/centralized/i);
+    expect(shareTextForIncident({ ...base, projectName: null, title: 'Foo exploit ($0 loss)', amountUsd: 0, amountDisplay: null, chain: null }))
+      .toBe('Foo exploit. Confirmed by QuillMonitor.');
+  });
   it('never says verified', () => {
     for (const status of ['confirmed', 'unconfirmed', null] as const) {
       expect(shareTextForIncident({ ...base, status })).not.toMatch(/verified/i);

@@ -11,8 +11,23 @@ export type AnswerInput = Pick<NewsletterItem, 'title' | 'projectName' | 'chain'
   | 'amountDisplay' | 'incidentDate' | 'fundsReturned' | 'sourceName' | 'providers' | 'status'>;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-// Attack types that already name the kind of event read wrong with "attack" after them.
-const NAMES_AN_EVENT = /\b(attack|exploit|hack|compromise|scam|phishing|drain|theft|breach|leak|rug ?pull)$/i;
+// Attack types that already name the kind of event (or a flaw, not an attack)
+// read wrong with "attack" after them.
+const NAMES_AN_EVENT = /\b(attack|exploit|hack|compromise|scam|phishing|drain|theft|breach|leak|rug ?pull|issue|error|bug|flaw|vulnerability|misconfiguration)$/i;
+// Chain values the sources use when there is no chain to name. "Centralized"
+// marks an exchange or custodian hack, which happened off-chain.
+const PLACEHOLDER_CHAINS = new Set(['', 'other', 'others', 'unknown', 'n/a', 'na', 'none', '-', 'centralized', 'centralised', 'multiple', 'multi-chain', 'multichain']);
+
+/** The chain to name in a sentence, or null for a placeholder such as "Other" or "Centralized". */
+export function displayChain(chain: string | null | undefined): string | null {
+  const trimmed = chain?.trim() ?? '';
+  return PLACEHOLDER_CHAINS.has(trimmed.toLowerCase()) ? null : trimmed;
+}
+
+/** "Foo: Exploit ($0 loss)" -> "Foo: Exploit". Importers add the suffix when no loss is known. */
+export function stripZeroLossSuffix(title: string): string {
+  return title.replace(/\s*\(\$0(?:\.0+)? loss\)\s*$/i, '').trim();
+}
 
 /** '2026-09-30' -> '30 Sep 2026'; anything else comes back unchanged. */
 export function formatAnswerDate(isoDay: string): string {
@@ -28,15 +43,17 @@ function midSentence(value: string): string {
   return value.trim().split(/\s+/).map((word) => (/^[A-Z0-9]{2,}$/.test(word) ? word : word.toLowerCase())).join(' ');
 }
 
-function attackPhrase(attackType: string | null): string | null {
+/** "Oracle manipulation" -> "oracle manipulation attack"; "Phishing" stays "phishing". */
+export function attackPhrase(attackType: string | null | undefined): string | null {
   if (!attackType || !attackType.trim()) return null;
   const attack = midSentence(attackType);
   return NAMES_AN_EVENT.test(attack) ? attack : `${attack} attack`;
 }
 
 export function buildIncidentAnswer(input: AnswerInput): string {
-  const subject = (input.projectName || input.title).trim();
-  const chain = input.chain ? ` on ${input.chain}` : '';
+  const subject = stripZeroLossSuffix(input.projectName || input.title);
+  const named = displayChain(input.chain);
+  const chain = named ? ` on ${named}` : '';
   const amount = input.amountDisplay || (input.amountUsd && input.amountUsd > 0 ? formatCompactUsd(input.amountUsd) : null);
   const attack = attackPhrase(input.attackType);
   const date = input.incidentDate ? ` on ${formatAnswerDate(input.incidentDate)}` : '';

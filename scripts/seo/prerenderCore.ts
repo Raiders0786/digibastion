@@ -55,6 +55,7 @@ export interface SsrEntry {
   weeklyRouteMeta: (content: WeeklyPage['content'], generatedAt: string) => RouteMeta;
   incidentSeoInputFromArticle: (article: unknown) => unknown;
   incidentRouteMeta: (input: unknown) => RouteMeta;
+  threatIntelRouteMeta: (latest: readonly unknown[]) => RouteMeta;
   renderHead: (meta: RouteMeta) => string;
   renderBody: (body: PrerenderBody) => string;
   injectIntoTemplate: (template: string, head: string, body: string) => string;
@@ -168,22 +169,11 @@ export async function runPrerender({ root, outDir, env, fetchImpl, log }: Preren
       return files.length > 0;
     };
 
-    const toolCount = entry.toolCategories.reduce((total, category) => total + category.tools.length, 0);
-    const staticPages: RouteMeta[] = [
-      ...Object.values(entry.STATIC_ROUTES).filter((meta) => meta.path !== '/'),
-      entry.toolsRouteMeta(toolCount),
-      ...entry.initialSecurityData.map((category, index, all) => entry.categoryRouteMeta(category, index, all)),
-    ];
-    for (const guide of entry.articlesMeta) {
-      const html = guideHtml(guide.slug);
-      // A guide without a body renders "not found" in the app; do not publish a page for it.
-      if (html) staticPages.push(entry.guideRouteMeta(guide, html, entry.articlesMeta));
-    }
-    for (const meta of staticPages) if (await write(meta)) summary.staticPages += 1;
-
+    // Fetch incidents first: /threat-intel links the newest ones, so crawlers
+    // that skip JavaScript can reach every incident page.
+    let dynamic = { incidents: [] as unknown[], weekly: [] as WeeklyPage[] };
     if (env.PRERENDER_DYNAMIC !== '0') {
-      const empty = { incidents: [] as unknown[], weekly: [] as WeeklyPage[] };
-      const dynamic = await withDeadline(
+      dynamic = await withDeadline(
         entry.fetchDynamic({
           baseUrl: env.VITE_SUPABASE_URL?.trim() || entry.DEFAULT_SUPABASE_URL,
           anonKey: env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || entry.DEFAULT_SUPABASE_PUBLISHABLE_KEY,
@@ -194,22 +184,55 @@ export async function runPrerender({ root, outDir, env, fetchImpl, log }: Preren
           log,
         }),
         DYNAMIC_DEADLINE_MS,
-        empty,
+        dynamic,
         () => log.warn(`[seo] dynamic pages skipped: no answer within ${DYNAMIC_DEADLINE_MS / 1000} s`),
       );
-      for (const article of dynamic.incidents) {
-        try {
-          if (await write(entry.incidentRouteMeta(entry.incidentSeoInputFromArticle(article)))) summary.incidents += 1;
-        } catch (error) {
-          log.warn(`[seo] incident page skipped: ${message(error)}`);
-        }
+    }
+    const incidentInputs: unknown[] = [];
+    for (const article of dynamic.incidents) {
+      try {
+        incidentInputs.push(entry.incidentSeoInputFromArticle(article));
+      } catch (error) {
+        log.warn(`[seo] incident page skipped: ${message(error)}`);
       }
-      for (const page of dynamic.weekly) {
-        try {
-          if (await write(entry.weeklyRouteMeta(page.content, page.generatedAt ?? page.content.issueDate))) summary.weekly += 1;
-        } catch (error) {
-          log.warn(`[seo] weekly page skipped: ${message(error)}`);
-        }
+    }
+
+    const hub = (meta: RouteMeta): RouteMeta => {
+      try {
+        return entry.threatIntelRouteMeta(incidentInputs);
+      } catch (error) {
+        log.warn(`[seo] /threat-intel written without incident links: ${message(error)}`);
+        return meta;
+      }
+    };
+
+    const toolCount = entry.toolCategories.reduce((total, category) => total + category.tools.length, 0);
+    const staticPages: RouteMeta[] = [
+      ...Object.values(entry.STATIC_ROUTES)
+        .filter((meta) => meta.path !== '/')
+        .map((meta) => (meta.path === '/threat-intel' ? hub(meta) : meta)),
+      entry.toolsRouteMeta(toolCount),
+      ...entry.initialSecurityData.map((category, index, all) => entry.categoryRouteMeta(category, index, all)),
+    ];
+    for (const guide of entry.articlesMeta) {
+      const html = guideHtml(guide.slug);
+      // A guide without a body renders "not found" in the app; do not publish a page for it.
+      if (html) staticPages.push(entry.guideRouteMeta(guide, html, entry.articlesMeta));
+    }
+    for (const meta of staticPages) if (await write(meta)) summary.staticPages += 1;
+
+    for (const input of incidentInputs) {
+      try {
+        if (await write(entry.incidentRouteMeta(input))) summary.incidents += 1;
+      } catch (error) {
+        log.warn(`[seo] incident page skipped: ${message(error)}`);
+      }
+    }
+    for (const page of dynamic.weekly) {
+      try {
+        if (await write(entry.weeklyRouteMeta(page.content, page.generatedAt ?? page.content.issueDate))) summary.weekly += 1;
+      } catch (error) {
+        log.warn(`[seo] weekly page skipped: ${message(error)}`);
       }
     }
 

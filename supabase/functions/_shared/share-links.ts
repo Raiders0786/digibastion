@@ -4,7 +4,7 @@
 // encodeURIComponent, so Deno, Node and browsers produce identical bytes.
 // Pure module: no Deno or URL imports.
 import { isQuillMonitorOnly, sourceLabelFor, sourceLinkFor } from './attribution.ts';
-import type { AnswerInput } from './incident-answer.ts';
+import { attackPhrase, displayChain, stripZeroLossSuffix, type AnswerInput } from './incident-answer.ts';
 import type { WeeklyPublicContent } from './newsletter-content.ts';
 import { FUNCTIONS_BASE_URL, SITE_URL, trimTrailingSlashes } from './site-urls.ts';
 import { truncateAtWord } from './summary-text.ts';
@@ -128,17 +128,6 @@ export function shareTargets(i: ShareTargetInput): ShareTargets {
   };
 }
 
-// Same rule as incident-answer.ts: attack types that already name an event
-// read wrong with "attack" after them.
-const NAMES_AN_EVENT = /\b(attack|exploit|hack|compromise|scam|phishing|drain|theft|breach|leak|rug ?pull)$/i;
-
-function attackPhrase(attackType: string | null): string | null {
-  const words = attackType?.trim().split(/\s+/).filter(Boolean) ?? [];
-  if (words.length === 0) return null;
-  const phrase = words.map((word) => (/^[A-Z0-9]{2,}$/.test(word) ? word : word.toLowerCase())).join(' ');
-  return NAMES_AN_EVENT.test(phrase) ? phrase : `${phrase} attack`;
-}
-
 function lossLabel(input: Pick<AnswerInput, 'amountUsd' | 'amountDisplay'>): string | null {
   const display = input.amountDisplay?.trim().replace(/^~\s*/, '');
   if (display) return display;
@@ -155,8 +144,9 @@ export function shareTextForIncident(i: AnswerInput): string {
   const attack = attackPhrase(i.attackType);
   const subject = i.projectName?.trim()
     ? `${i.projectName.trim()}${attack ? ` ${attack}` : ''}`
-    : i.title.trim() || 'Security incident';
-  const chain = i.chain?.trim() ? ` on ${i.chain.trim()}` : '';
+    : stripZeroLossSuffix(i.title) || 'Security incident';
+  const named = displayChain(i.chain);
+  const chain = named ? ` on ${named}` : '';
   const loss = lossLabel(i);
   const source = sourceLabelFor(i);
 

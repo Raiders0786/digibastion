@@ -4,7 +4,7 @@
 
 This file holds the FAQ, every security guide and every checklist on www.digibastion.com as plain text. Live incident records are not included because they change; read them from the feeds instead:
 RSS https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=rss, Atom https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom, JSON Feed https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=json.
-Incident records are relayed from the sources each one names and are never verified by Digibastion.
+Incident records come from the sources each one names. Digibastion does not check incidents itself; each record shows the status its source gives and links back to it.
 
 # Frequently asked questions
 

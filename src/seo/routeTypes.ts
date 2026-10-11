@@ -23,7 +23,7 @@ export interface PrerenderBody {
 export interface RouteMeta {
   /** Canonical path. */
   path: string;
-  /** At most 70 characters. */
+  /** At most 60 characters (TITLE_LIMIT). */
   title: string;
   /** At most 160 characters. */
   description: string;

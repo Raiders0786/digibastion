@@ -2,6 +2,7 @@
 // results. The og-image function turns them into PNGs. Every interpolated
 // value goes through xmlText, and the status words are the source's own.
 // Pure module: no Deno or URL imports.
+import { displayChain, stripZeroLossSuffix } from './incident-answer.ts';
 import { sourceCredit } from './share-links.ts';
 import { formatLossReported, type NewsletterItem, type WeeklyPublicContent } from './newsletter-content.ts';
 import { xmlText } from './xml.ts';
@@ -106,9 +107,9 @@ export function incidentCardInput(item: NewsletterItem): IncidentCardInput {
   const credit = sourceCredit(item);
   const loss = formatLossReported(item.amountUsd);
   return {
-    title: item.title || 'Security incident',
+    title: stripZeroLossSuffix(item.title ?? '') || 'Security incident',
     lossLabel: loss ? `${loss} lost` : 'Loss not disclosed',
-    chain: item.chain,
+    chain: displayChain(item.chain),
     attackType: item.attackType,
     sourceLabel: credit.label,
     status: item.status,

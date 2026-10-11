@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildIncidentAnswer, formatAnswerDate, type AnswerInput } from './incident-answer';
+import { attackPhrase, buildIncidentAnswer, displayChain, formatAnswerDate, stripZeroLossSuffix, type AnswerInput } from './incident-answer';
 
 const base: AnswerInput = {
   title: 'HOT Omni Bridge exploit', projectName: 'HOT Omni Bridge', chain: 'NEAR', attackType: 'Bridge exploit',
@@ -49,6 +49,33 @@ describe('buildIncidentAnswer', () => {
   it('never says verified or Digibastion', () => {
     expect(buildIncidentAnswer(base)).not.toMatch(/verified|digibastion/i);
     expect(buildIncidentAnswer({ ...base, providers: [], sourceName: 'Digibastion' })).not.toMatch(/digibastion/i);
+  });
+  it('leaves out placeholder chains', () => {
+    for (const chain of ['Other', 'other', 'Unknown', 'N/A', 'none', '-', 'Centralized', ' centralised ', '']) {
+      expect(displayChain(chain)).toBeNull();
+    }
+    expect(displayChain(null)).toBeNull();
+    expect(displayChain(' Ethereum ')).toBe('Ethereum');
+    expect(buildIncidentAnswer({ ...base, projectName: 'popcornswap', chain: 'Other', attackType: 'Rug pull', fundsReturned: null }))
+      .toBe('popcornswap lost about $3.86M in a rug pull on 30 Sep 2026, according to QuillMonitor (confirmed).');
+    expect(buildIncidentAnswer({ ...base, projectName: 'SomeExchange', chain: 'Centralized', fundsReturned: null }))
+      .toMatch(/^SomeExchange lost about/);
+  });
+  it('does not add "attack" after an issue, error or bug', () => {
+    expect(attackPhrase('Business Logic Issue')).toBe('business logic issue');
+    expect(attackPhrase('Rounding error')).toBe('rounding error');
+    expect(attackPhrase('Contract bug')).toBe('contract bug');
+    expect(attackPhrase('Flash loan')).toBe('flash loan attack');
+    expect(buildIncidentAnswer({ ...base, attackType: 'Business Logic Issue', fundsReturned: null }))
+      .toContain('lost about $3.86M in a business logic issue on 30 Sep 2026');
+  });
+  it('drops a "($0 loss)" suffix from importer titles', () => {
+    expect(stripZeroLossSuffix('Foo Protocol: Exploit ($0 loss)')).toBe('Foo Protocol: Exploit');
+    expect(stripZeroLossSuffix('Foo Protocol: Exploit ($0 Loss) ')).toBe('Foo Protocol: Exploit');
+    expect(stripZeroLossSuffix('Foo ($10 loss)')).toBe('Foo ($10 loss)');
+    expect(buildIncidentAnswer({ ...base, projectName: null, title: 'Foo exploit ($0 loss)', amountUsd: 0, amountDisplay: null,
+      chain: null, incidentDate: null, status: null, fundsReturned: null }))
+      .toBe('Foo exploit was hit by a bridge exploit, according to QuillMonitor. No loss figure has been reported.');
   });
   it('formats dates', () => {
     expect(formatAnswerDate('2026-09-30')).toBe('30 Sep 2026');

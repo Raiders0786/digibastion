@@ -166,7 +166,8 @@ export function renderAtom(ch: FeedChannel, items: readonly FeedItem[], selfUrl:
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">',
-    `<id>${xmlText(ch.homePageUrl)}</id>`,
+    // The feed URL, not the home page: the all-items and incidents-only feeds share a home page.
+    `<id>${xmlText(selfUrl)}</id>`,
     `<title>${xmlText(ch.title)}</title>`,
     `<subtitle>${xmlText(ch.description)}</subtitle>`,
     `<link rel="self" type="application/atom+xml" href="${xmlText(selfUrl)}"/>`,

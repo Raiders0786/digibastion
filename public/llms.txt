@@ -2,7 +2,7 @@
 
 > Digibastion is a free Web3 security site. It tracks crypto hacks, exploits and phishing from QuillMonitor and other public trackers, links every record to its source, and sends alerts by email and on Telegram. It also has security checklists, a two-minute OpSec self-check and practical guides. Teams that need more can hire Digibastion for OpSec consulting or a full-stack security review, or try Vantage (beta) to check their domain's security.
 
-Incident records are relayed from the sources each one names (QuillMonitor, Web3 Is Going Just Great and security news sites) and are never verified by Digibastion. Every record links back to its source. Everything listed here is free unless marked as a service.
+Incident records come from the sources each one names (QuillMonitor, Web3 Is Going Just Great, SlowMist and security news sites). Digibastion does not check incidents itself; each record shows the status its source gives and links back to it. Everything listed here is free unless marked as a service.
 
 ## Threat intelligence
 

@@ -89,6 +89,11 @@ describe('incidentCardInput', () => {
       poweredByQuillMonitor: true,
     });
   });
+  it('drops placeholder chains and a "($0 loss)" title suffix', () => {
+    const card = incidentCardInput(weeklyItem({ chain: 'Other', title: 'Foo exploit ($0 loss)', amountUsd: null, amountDisplay: null }));
+    expect(card.chain).toBeNull();
+    expect(card.title).toBe('Foo exploit');
+  });
   it('says the loss is not disclosed when there is none', () => {
     expect(incidentCardInput(weeklyItem({ amountUsd: null, amountDisplay: null })).lossLabel).toBe('Loss not disclosed');
   });

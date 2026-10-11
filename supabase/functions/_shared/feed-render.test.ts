@@ -48,6 +48,10 @@ describe('feed-render', () => {
     expect(parses(atom)).toBe(true);
     expect(atom).toContain('<updated>2026-10-11T02:20:00.000Z</updated>');
     expect(atom).toContain('<content type="html">');
+    // Each feed URL is its own feed id, so the all-items and incidents-only feeds never share one.
+    expect(atom).toContain('<id>https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom</id>');
+    const incidentsOnly = renderAtom(FEED_CHANNEL, [item], 'https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom&type=incidents');
+    expect(incidentsOnly).toContain('<id>https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=atom&amp;type=incidents</id>');
     const json = JSON.parse(renderJsonFeed(FEED_CHANNEL, [item]));
     expect(json.version).toBe('https://jsonfeed.org/version/1.1');
     expect(json.feed_url).toBe('https://sdszjqltoheqhfkeprrd.supabase.co/functions/v1/threat-intel-feed?format=json');

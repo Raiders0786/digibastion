@@ -7,7 +7,12 @@ import {
   sourceLabelFor,
   sourceLinkFor,
 } from '../../supabase/functions/_shared/attribution';
-import { buildIncidentAnswer, type AnswerInput } from '../../supabase/functions/_shared/incident-answer';
+import {
+  buildIncidentAnswer,
+  displayChain,
+  stripZeroLossSuffix,
+  type AnswerInput,
+} from '../../supabase/functions/_shared/incident-answer';
 import {
   toNewsletterItem,
   type NewsletterSourceRow,
@@ -17,8 +22,8 @@ import { SITE_URL, canonicalIncidentUrl, incidentPath } from '../../supabase/fun
 import { truncateAtWord } from '../../supabase/functions/_shared/summary-text';
 import { METHODOLOGY_PATH } from '../lib/threatIntel/officialLinks';
 import type { NewsArticle } from '../types/news';
-import { buildBreadcrumbSchema, buildNewsArticleSchema } from '../utils/seo';
-import { brandedTitle, DESCRIPTION_LIMIT, SITE_LINKS, THREAT_INTEL_IMAGE } from './routeMeta';
+import { buildBreadcrumbSchema, buildItemListSchema, buildNewsArticleSchema } from '../utils/seo';
+import { brandedTitle, DESCRIPTION_LIMIT, SITE_LINKS, STATIC_ROUTES, THREAT_INTEL_IMAGE } from './routeMeta';
 import type { PrerenderLink, RouteMeta } from './routeTypes';
 
 export interface IncidentSeoInput extends AnswerInput {
@@ -76,7 +81,8 @@ export function incidentSeoInputFromArticle(a: NewsArticle): IncidentSeoInput {
   const sourceUrl = sourceLinkFor({ sourceUrl: item.sourceUrl, incidentUrl: item.incidentUrl });
   return {
     id: a.id,
-    title: item.title,
+    // Importers append "($0 loss)" when no loss is known; the page says that in words.
+    title: stripZeroLossSuffix(item.title) || item.title,
     summary: item.summary,
     createdAt: item.createdAt,
     category: item.category,
@@ -86,7 +92,8 @@ export function incidentSeoInputFromArticle(a: NewsArticle): IncidentSeoInput {
     citations: [...new Set([...(sourceUrl ? [sourceUrl] : []), ...metadataSourceUrls(a.metadata)])],
     tags: item.tags,
     projectName: item.projectName,
-    chain: item.chain,
+    // "Other" and "Centralized" are placeholders, not chains to name.
+    chain: displayChain(item.chain),
     attackType: item.attackType,
     amountUsd: item.amountUsd,
     amountDisplay: item.amountDisplay,
@@ -118,7 +125,7 @@ function facts(i: IncidentSeoInput): string[] {
   return [
     i.severity ? `Severity: ${capitalize(i.severity)}` : null,
     amount ? `Reported loss: about ${amount.replace(/^~\s*/, '')}` : null,
-    i.chain ? `Chain: ${i.chain}` : null,
+    displayChain(i.chain) ? `Chain: ${displayChain(i.chain)}` : null,
     i.attackType ? `Attack type: ${i.attackType}` : null,
     `Source: ${source}${i.status ? ` (${i.status})` : ''}`,
   ].filter((value): value is string => Boolean(value));
@@ -138,15 +145,16 @@ export function incidentRouteMeta(i: IncidentSeoInput): RouteMeta {
   const seen = new Set<string>();
   const allLinks = [...links, ...SITE_LINKS].filter((link) => (seen.has(link.href) ? false : (seen.add(link.href), true)));
   const breadcrumbs: PrerenderLink[] = [{ href: '/', label: 'Home' }, { href: '/threat-intel', label: 'Threat Intel' }];
-  const about = [i.projectName, i.chain].filter((value): value is string => Boolean(value));
+  const about = [i.projectName, displayChain(i.chain)].filter((value): value is string => Boolean(value));
+  const cardImage = i.isWeb3Incident ? incidentOgImageUrl(i.id) : null;
 
   return {
     path,
     title: brandedTitle(i.title),
     description,
     // Web3 incidents get their own card; news relays keep the generic image.
-    ...(i.isWeb3Incident
-      ? { image: incidentOgImageUrl(i.id), imageWidth: 1200, imageHeight: 630 }
+    ...(cardImage
+      ? { image: cardImage, imageWidth: 1200, imageHeight: 630 }
       : { image: THREAT_INTEL_IMAGE }),
     imageAlt: `${truncateAtWord(i.title, 100)}: Digibastion Threat Intel`,
     type: 'article',
@@ -167,6 +175,8 @@ export function incidentRouteMeta(i: IncidentSeoInput): RouteMeta {
         citations: i.citations,
         about,
         tags: i.tags,
+        // Same image as og:image, so structured-data readers get the incident's card.
+        ...(cardImage ? { image: cardImage, imageWidth: 1200, imageHeight: 630 } : {}),
       }),
       buildBreadcrumbSchema([...breadcrumbs, { href: path, label: i.title }]),
     ],
@@ -176,6 +186,37 @@ export function incidentRouteMeta(i: IncidentSeoInput): RouteMeta {
       intro,
       items: facts(i),
       links: allLinks,
+    },
+  };
+}
+
+/** How many of the newest incidents the prerendered /threat-intel page links. */
+export const HUB_INCIDENT_LIMIT = 100;
+
+/**
+ * /threat-intel with links to the newest indexable incidents and one answer
+ * sentence each. AI crawlers that do not run JavaScript find pages by
+ * following links, so without this the incident pages would be orphans for
+ * them. With no incidents it returns the static entry unchanged.
+ */
+export function threatIntelRouteMeta(latest: readonly IncidentSeoInput[]): RouteMeta {
+  const base = STATIC_ROUTES['/threat-intel'];
+  const listed = latest.filter((i) => i.isWeb3Incident).slice(0, HUB_INCIDENT_LIMIT);
+  if (listed.length === 0) return base;
+  const seen = new Set(base.body.links.map((link) => link.href));
+  const incidentLinks = listed
+    .map((i) => ({ href: incidentPath(i.id), label: i.title }))
+    .filter((link) => (seen.has(link.href) ? false : (seen.add(link.href), true)));
+  return {
+    ...base,
+    jsonLd: [
+      ...base.jsonLd,
+      buildItemListSchema('Latest Web3 incidents', listed.map((i) => ({ url: canonicalIncidentUrl(i.id), name: i.title }))),
+    ],
+    body: {
+      ...base.body,
+      items: listed.map((i) => buildIncidentAnswer(i)),
+      links: [...base.body.links, ...incidentLinks],
     },
   };
 }

@@ -29,7 +29,8 @@ import { faqEntries, methodologyFaqEntries, SITE_DEFINITION } from './siteFacts'
 
 /** The day this branch rewrote the copy. Bump it when a static page's copy changes. */
 export const STATIC_LASTMOD = '2026-10-11';
-export const TITLE_LIMIT = 70;
+/** Google shows about 60 characters of a title. */
+export const TITLE_LIMIT = 60;
 export const DESCRIPTION_LIMIT = 160;
 const BRAND_SUFFIX = ' | Digibastion';
 
@@ -85,9 +86,15 @@ function withSiteLinks(path: string, links: readonly PrerenderLink[]): Prerender
 
 const fit = (text: string, limit: number): string => truncateAtWord(text.replace(/\s+/g, ' ').trim(), limit);
 
-/** "<title> | Digibastion", shortening the title at a word so the whole fits. */
+/**
+ * "<title> | Digibastion" when that fits in TITLE_LIMIT, otherwise the bare
+ * title, cut at a word only when even that is too long. The page's own words
+ * matter more than the suffix, which Google already shows as the site name.
+ */
 export function brandedTitle(title: string): string {
-  return `${fit(title, TITLE_LIMIT - BRAND_SUFFIX.length)}${BRAND_SUFFIX}`;
+  const clean = title.replace(/\s+/g, ' ').trim();
+  if (Array.from(clean).length + BRAND_SUFFIX.length <= TITLE_LIMIT) return `${clean}${BRAND_SUFFIX}`;
+  return fit(clean, TITLE_LIMIT);
 }
 
 interface PageInput {
@@ -198,7 +205,7 @@ const routes: RouteMeta[] = [
   }),
   page({
     path: METHODOLOGY_PATH,
-    title: 'How Digibastion Tracks Crypto Incidents: Sources and Severity',
+    title: 'How Digibastion Tracks Crypto Incidents',
     description: 'Where Digibastion\'s incident records come from, how severity is set, what confirmed and unconfirmed mean, how duplicates merge and how to report a mistake.',
     h1: 'How we track security incidents',
     intro: 'Digibastion collects security incidents and news from the sources below, merges reports of the same incident into one record, and shows the status each source gives. We do not investigate or verify incidents ourselves, so every record links back to where it came from.',
@@ -254,7 +261,7 @@ const routes: RouteMeta[] = [
   }),
   page({
     path: '/quiz',
-    title: 'Crypto OpSec Self-Check: 8 Scenarios, 2 Minutes | Digibastion',
+    title: 'Crypto OpSec Self-Check: 8 Questions | Digibastion',
     description: 'Eight questions drawn from 20 real scenarios show where your crypto OpSec is weak, with a breakdown and next steps. No wallet or account needed.',
     h1: 'How secure is your crypto OpSec?',
     image: QUIZ_IMAGE,
@@ -299,7 +306,7 @@ const routes: RouteMeta[] = [
   }),
   page({
     path: '/contact',
-    title: 'Contact: Services, Vantage, Research, Contributions | Digibastion',
+    title: 'Contact: Services, Research, Corrections | Digibastion',
     description: 'Contact Digibastion about security services, Vantage, partnerships, research corrections, responsible disclosure, or contributions.',
     h1: 'Start with the problem.',
     pageType: 'ContactPage',
@@ -451,7 +458,7 @@ export function guideRouteMeta(a: GuideInput, html?: string, all: readonly Guide
 export function weeklyRouteMeta(c: WeeklyPublicContent, generatedAt: string): RouteMeta {
   const path = weeklyPagePath(c.weekStart);
   const seoTitle = weeklySeoTitle(c);
-  const title = seoTitle.length + BRAND_SUFFIX.length <= TITLE_LIMIT ? `${seoTitle}${BRAND_SUFFIX}` : fit(seoTitle, TITLE_LIMIT);
+  const title = brandedTitle(seoTitle);
   const items = c.top.map(({ item }) => `${item.title}${item.sourceName ? ` (source: ${item.sourceName})` : ''}`);
   const meta = page({
     path,
